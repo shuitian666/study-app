@@ -1,0 +1,12 @@
+# Dependencies for Knowledge Extractor
+
+# PDF parsing
+pdfplumber>=0.10.0
+PyPDF2>=3.0.0
+
+# Chinese NLP
+jieba>=0.42.1
+
+# Optional (uncomment if needed)
+# spacy>=3.7.0
+# beautifulsoup4>=4.12.0
