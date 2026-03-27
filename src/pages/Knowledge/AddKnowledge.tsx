@@ -3,9 +3,10 @@ import { useApp } from '@/store/AppContext';
 import { PageHeader } from '@/components/ui/Common';
 import type { ProficiencyLevel } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
+import { Undo2 } from 'lucide-react';
 
 export default function AddKnowledgePage() {
-  const { state, dispatch, navigate } = useApp();
+  const { state, dispatch, navigate, undo, _canUndo } = useApp();
   const [name, setName] = useState('');
   const [explanation, setExplanation] = useState('');
   const [subjectId, setSubjectId] = useState(state.subjects[0]?.id ?? '');
@@ -35,7 +36,20 @@ export default function AddKnowledgePage() {
 
   return (
     <div className="page-scroll pb-4">
-      <PageHeader title="添加知识点" onBack={() => navigate('knowledge')} />
+      <PageHeader 
+        title="添加知识点" 
+        onBack={() => navigate('knowledge')} 
+        rightAction={
+          <button
+            onClick={undo}
+            disabled={!_canUndo}
+            className="p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="撤销"
+          >
+            <Undo2 size={18} className="text-gray-600" />
+          </button>
+        }
+      />
 
       <div className="px-4 pt-4 space-y-4">
         {/* Subject select */}

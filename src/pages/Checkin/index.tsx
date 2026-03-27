@@ -43,8 +43,14 @@ export default function CheckinPage() {
   const goalProgress = Math.min((todayQuestions / dailyGoal) * 100, 100);
   const goalAchieved = todayQuestions >= dailyGoal;
 
-  // 签到条件：达成学习目标即可签到
-  const canCheckin = goalAchieved && !todayChecked;
+  // 检查今日任务是否全部完成
+  const allTasks = [...state.todayReviewItems, ...state.todayNewItems];
+  const totalTasks = allTasks.length;
+  const completedTasks = allTasks.filter(t => t.completed).length;
+  const allTasksCompleted = totalTasks > 0 && completedTasks === totalTasks;
+
+  // 签到条件：完成所有学习任务 OR 完成做题目标
+  const canCheckin = (allTasksCompleted || goalAchieved) && !todayChecked;
 
   const last7 = getLast7Days();
 
@@ -318,13 +324,13 @@ export default function CheckinPage() {
             <span className="text-xs text-text-muted">
               已完成 {todayQuestions} / {dailyGoal} 题
             </span>
-            {goalAchieved ? (
+            {(allTasksCompleted || goalAchieved) ? (
               <span className="flex items-center gap-1 text-xs text-accent font-medium">
                 <CheckCircle size={12} /> 已满足签到条件
               </span>
             ) : (
               <span className="flex items-center gap-1 text-xs text-secondary font-medium">
-                <AlertCircle size={12} /> 需完成 {dailyGoal} 题
+                <AlertCircle size={12} /> 需完成学习任务或{dailyGoal}题
               </span>
             )}
           </div>
@@ -340,13 +346,15 @@ export default function CheckinPage() {
             />
           </div>
 
-          {!goalAchieved && (
+          {!(allTasksCompleted || goalAchieved) && (
             <p className="text-[10px] text-text-muted mt-2">
-              再完成 {dailyGoal - todayQuestions} 题即可签到
+              {totalTasks > 0 && !allTasksCompleted && completedTasks < totalTasks 
+                ? `完成 ${totalTasks - completedTasks} 个学习任务后即可签到` 
+                : `再完成 ${dailyGoal - todayQuestions} 题即可签到`}
             </p>
           )}
           
-          {goalAchieved && (
+          {(allTasksCompleted || goalAchieved) && (
             <p className="text-[10px] text-accent mt-2 font-medium">
               恭喜！已完成今日学习目标，快去签到领奖励吧！
             </p>

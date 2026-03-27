@@ -21,7 +21,7 @@ const tabs: TabItem[] = [
   { key: 'profile', label: '我的', icon: User },
 ];
 
-const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat'];
+const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
 
 export default function TabBar() {
   const { state, navigate } = useApp();

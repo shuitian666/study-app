@@ -31,6 +31,7 @@ export interface User {
   totalPoints: number;
   createdAt: string;
   dailyGoal: number;  // 每日学习目标（题目数）
+  dailyNewGoal: number;  // 每日新学目标（知识点数）
   todayQuestions: number;  // 今日已完成题目数
   goalAchievedToday: boolean;  // 今日目标是否达成
 }
@@ -209,7 +210,9 @@ export type PageName =
   | 'shop'
   | 'ranking'
   | 'lottery'
-  | 'ai-chat';
+  | 'ai-chat'
+  | 'inventory'
+  | 'mail';
 
 // ===== 激励体系 =====
 
@@ -372,4 +375,54 @@ export interface RankEntry {
 export interface AchievementPopup {
   achievement: Achievement;
   show: boolean;
+}
+
+// ===== Inventory / 背包系统 =====
+export type InventoryItemType = 'makeup_card' | 'avatar_frame' | 'background' | 'theme' | 'title' | 'coin_bag' | 'vip_card';
+
+export interface InventoryItem {
+  id: string;
+  type: InventoryItemType;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: 'N' | 'R' | 'SR' | 'SSR';
+  quantity: number;
+  obtainedAt: string;
+  source: 'lottery' | 'mail' | 'achievement' | 'shop' | 'manual';
+  usable: boolean;  // 是否可以使用
+  expiresAt?: string;  // 过期时间
+}
+
+export interface InventoryState {
+  items: InventoryItem[];
+}
+
+// ===== Mail / 邮件系统 =====
+export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'coin' | 'vip';
+
+export interface MailAttachment {
+  type: MailAttachmentType;
+  name: string;
+  quantity: number;
+  claimed: boolean;
+}
+
+export interface MailItem {
+  id: string;
+  title: string;
+  content: string;
+  sender: string;
+  sentAt: string;
+  read: boolean;
+  attachments: MailAttachment[];
+  claimDeadline: string;  // 领取截止日期
+  systemMail: boolean;  // 是否是系统邮件
+  claimed: boolean;  // 是否已领取所有附件
+  version: number;  // 版本号，用于判断更新
+}
+
+export interface MailState {
+  mails: MailItem[];
+  currentVersion: number;
 }

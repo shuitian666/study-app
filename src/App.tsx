@@ -45,6 +45,8 @@ import RankingPage from '@/pages/Ranking';
 import LotteryPage from '@/pages/Lottery';
 import AIChatPage from '@/pages/AIChat';
 import SettingsPage from '@/pages/Settings';
+import InventoryPage from '@/pages/Inventory';
+import MailPage from '@/pages/Mail';
 
 function AppContent() {
   const { state } = useApp();
@@ -71,6 +73,8 @@ function AppContent() {
       case 'lottery': return <LotteryPage />;
       case 'ai-chat': return <AIChatPage />;
       case 'settings': return <SettingsPage />;
+      case 'inventory': return <InventoryPage />;
+      case 'mail': return <MailPage />;
       default: return <HomePage />;
     }
   };

@@ -1,7 +1,7 @@
 import { useApp } from '@/store/AppContext';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal } from 'lucide-react';
+import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
 
 export default function ProfilePage() {
   const { state, dispatch, getLearningStats, navigate } = useApp();
@@ -140,6 +140,8 @@ export default function ProfilePage() {
             { icon: Trophy, label: '我的成就', desc: `${state.achievements.filter(a => a.unlocked).length}/${state.achievements.length}`, color: 'text-yellow-500', page: 'achievements' as const },
             { icon: ShoppingBag, label: '星币商城', desc: `${user?.totalPoints ?? 0}星币`, color: 'text-purple-500', page: 'shop' as const },
             { icon: Medal, label: '排行榜', desc: '查看排名', color: 'text-blue-500', page: 'ranking' as const },
+            { icon: Backpack, label: '背包', desc: `${state.inventory.items.length}件物品`, color: 'text-emerald-500', page: 'inventory' as const },
+            { icon: Mail, label: '邮件', desc: `${state.mail.mails.filter(m => !m.read).length}未读`, color: 'text-rose-500', page: 'mail' as const, badge: state.mail.mails.filter(m => !m.read).length },
           ]).map((item, i, arr) => {
             const Icon = item.icon;
             return (
@@ -153,6 +155,9 @@ export default function ProfilePage() {
                   <span className="text-sm">{item.label}</span>
                 </div>
                 <div className="flex items-center gap-1 text-text-muted">
+                  {item.badge && item.badge > 0 && (
+                    <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] rounded-full">{item.badge}</span>
+                  )}
                   <span className="text-xs">{item.desc}</span>
                   <ChevronRight size={14} />
                 </div>

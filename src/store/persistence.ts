@@ -9,7 +9,8 @@ const STORAGE_VERSION = 1;
 const PERSIST_KEYS = [
   'user', 'subjects', 'chapters', 'knowledgePoints', 'questions',
   'quizResults', 'wrongRecords', 'checkin', 'achievements', 'shopItems',
-  'drawBalance', 'upPool', 'team', 'redeemedCodes'
+  'drawBalance', 'upPool', 'team', 'redeemedCodes',
+  'inventory', 'mail'
 ] as const;
 
 /**

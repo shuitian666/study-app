@@ -18,6 +18,7 @@ export default function LoginPage() {
         totalPoints: 320,
         createdAt: new Date().toISOString(),
         dailyGoal: 10,
+        dailyNewGoal: 15,
         todayQuestions: 0,
         goalAchievedToday: false,
       };

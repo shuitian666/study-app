@@ -18,6 +18,7 @@ import type {
   TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
   DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState,
   ChatMessage, AIChatSession,
+  InventoryState, InventoryItem, MailState, MailItem,
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
@@ -76,6 +77,15 @@ export interface AppState {
   dailyEncouragementDate: string | null;
   // Question explanations for persistence
   questionExplanations: QuestionExplanation[];
+  // Inventory / 背包
+  inventory: InventoryState;
+  // Mail / 邮件
+  mail: MailState;
+  // Undo/Redo history (not persisted, in-memory only)
+  _history: AppState[];
+  _historyIndex: number;
+  _canUndo: boolean;
+  _canRedo: boolean;
 }
 
 const initialState: AppState = {
@@ -106,6 +116,15 @@ const initialState: AppState = {
   dailyEncouragement: null,
   dailyEncouragementDate: null,
   questionExplanations: [],
+  // Inventory / 背包
+  inventory: { items: [] },
+  // Mail / 邮件
+  mail: { mails: [], currentVersion: 1 },
+  // Undo/Redo (not persisted)
+  _history: [],
+  _historyIndex: -1,
+  _canUndo: false,
+  _canRedo: false,
 };
 
 // ---------- Redemption codes ----------
@@ -141,6 +160,7 @@ type Action =
   | { type: 'ADD_CHAPTER'; payload: Chapter }
   | { type: 'ADD_KNOWLEDGE_POINT'; payload: KnowledgePoint }
   | { type: 'UPDATE_KNOWLEDGE_POINT'; payload: Partial<KnowledgePoint> & { id: string } }
+  | { type: 'DELETE_KNOWLEDGE_POINT'; payload: string }
   | { type: 'UPDATE_PROFICIENCY'; payload: { id: string; proficiency: ProficiencyLevel } }
   | { type: 'ADD_QUIZ_RESULT'; payload: QuizResult }
   | { type: 'ADD_WRONG_RECORD'; payload: WrongRecord }
@@ -173,7 +193,21 @@ type Action =
   | { type: 'UPDATE_QUESTION_EXPLANATION'; payload: { questionId: string; explanation: string } }
   | { type: 'DELETE_QUESTION_EXPLANATION'; payload: string }
   | { type: 'SET_DAILY_GOAL'; payload: number }
-  | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } };
+  | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
+  // Inventory actions
+  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
+  | { type: 'USE_INVENTORY_ITEM'; payload: string }
+  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
+  // Mail actions
+  | { type: 'ADD_MAIL'; payload: MailItem }
+  | { type: 'SET_MAILS'; payload: MailItem[] }
+  | { type: 'MARK_MAIL_READ'; payload: string }
+  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
+  | { type: 'UPDATE_MAIL_VERSION'; payload: number }
+  // Undo/Redo actions
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
+  | { type: 'RECORD_HISTORY'; payload: Partial<AppState> };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -189,6 +223,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, chapters: [...state.chapters, action.payload] };
     case 'ADD_KNOWLEDGE_POINT':
       return { ...state, knowledgePoints: [...state.knowledgePoints, action.payload] };
+    case 'DELETE_KNOWLEDGE_POINT':
+      return { ...state, knowledgePoints: state.knowledgePoints.filter(kp => kp.id !== action.payload) };
     case 'UPDATE_KNOWLEDGE_POINT':
       return {
         ...state,
@@ -503,6 +539,186 @@ function reducer(state: AppState, action: Action): AppState {
           : state.user,
       };
 
+    // Inventory actions
+    case 'ADD_INVENTORY_ITEM': {
+      const existing = state.inventory.items.find(i => i.id === action.payload.id);
+      if (existing) {
+        return {
+          ...state,
+          inventory: {
+            items: state.inventory.items.map(i =>
+              i.id === action.payload.id ? { ...i, quantity: i.quantity + action.payload.quantity } : i
+            ),
+          },
+        };
+      }
+      return {
+        ...state,
+        inventory: {
+          items: [...state.inventory.items, action.payload],
+        },
+      };
+    }
+    case 'USE_INVENTORY_ITEM': {
+      const item = state.inventory.items.find(i => i.id === action.payload);
+      if (!item || item.quantity <= 0 || !item.usable) return state;
+      return {
+        ...state,
+        inventory: {
+          items: state.inventory.items.map(i =>
+            i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
+          ).filter(i => i.quantity > 0),
+        },
+      };
+    }
+    case 'REMOVE_INVENTORY_ITEM': {
+      return {
+        ...state,
+        inventory: {
+          items: state.inventory.items.filter(i => i.id !== action.payload),
+        },
+      };
+    }
+
+    // Mail actions
+    case 'ADD_MAIL': {
+      const exists = state.mail.mails.find(m => m.id === action.payload.id);
+      if (exists) return state;
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          mails: [action.payload, ...state.mail.mails],
+        },
+      };
+    }
+    case 'SET_MAILS':
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          mails: action.payload,
+        },
+      };
+    case 'MARK_MAIL_READ':
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          mails: state.mail.mails.map(m =>
+            m.id === action.payload ? { ...m, read: true } : m
+          ),
+        },
+      };
+    case 'CLAIM_MAIL_ATTACHMENT': {
+      const { mailId, attachmentIndex } = action.payload;
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          mails: state.mail.mails.map(m => {
+            if (m.id !== mailId) return m;
+            const newAttachments = m.attachments.map((a, idx) =>
+              idx === attachmentIndex ? { ...a, claimed: true } : a
+            );
+            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
+          }),
+        },
+        // Add claimed items to inventory
+        inventory: {
+          items: (() => {
+            const mail = state.mail.mails.find(m => m.id === mailId);
+            if (!mail) return state.inventory.items;
+            const attachment = mail.attachments[attachmentIndex];
+            if (!attachment || attachment.claimed) return state.inventory.items;
+            
+            const newItems = [...state.inventory.items];
+            const invItem: InventoryItem = {
+              id: `inv-${Date.now()}-${attachmentIndex}`,
+              type: attachment.type as any,
+              name: attachment.name,
+              description: `来自邮件: ${mail.title}`,
+              icon: '🎁',
+              rarity: 'R',
+              quantity: attachment.quantity,
+              obtainedAt: new Date().toISOString(),
+              source: 'mail',
+              usable: true,
+            };
+            const existing = newItems.find(i => i.name === attachment.name);
+            if (existing) {
+              existing.quantity += attachment.quantity;
+            } else {
+              newItems.push(invItem);
+            }
+            return newItems;
+          })(),
+        },
+        // Add coins if applicable
+        user: (() => {
+          const mail = state.mail.mails.find(m => m.id === mailId);
+          if (!mail) return state.user;
+          const attachment = mail.attachments[attachmentIndex];
+          if (!attachment || attachment.claimed || attachment.type !== 'coin') return state.user;
+          return state.user ? { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity } : null;
+        })(),
+      };
+    }
+    case 'UPDATE_MAIL_VERSION':
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          currentVersion: action.payload,
+        },
+      };
+
+    // Undo/Redo actions
+    case 'RECORD_HISTORY': {
+      // Only record certain actions for undo (not navigation, not undo/redo)
+      const newHistory = state._history.slice(0, state._historyIndex + 1);
+      newHistory.push({
+        subjects: state.subjects,
+        chapters: state.chapters,
+        knowledgePoints: state.knowledgePoints,
+        questions: state.questions,
+        inventory: state.inventory,
+      } as AppState);
+      // Keep only last 50 history entries
+      if (newHistory.length > 50) newHistory.shift();
+      return {
+        ...state,
+        _history: newHistory,
+        _historyIndex: newHistory.length - 1,
+        _canUndo: newHistory.length > 1,
+        _canRedo: false,
+      };
+    }
+    case 'UNDO': {
+      if (state._historyIndex <= 0 || state._history.length === 0) return state;
+      const prevState = state._history[state._historyIndex - 1];
+      return {
+        ...state,
+        ...prevState,
+        _history: state._history,
+        _historyIndex: state._historyIndex - 1,
+        _canUndo: state._historyIndex > 1,
+        _canRedo: true,
+      };
+    }
+    case 'REDO': {
+      if (state._historyIndex >= state._history.length - 1) return state;
+      const nextState = state._history[state._historyIndex + 1];
+      return {
+        ...state,
+        ...nextState,
+        _history: state._history,
+        _historyIndex: state._historyIndex + 1,
+        _canUndo: true,
+        _canRedo: state._historyIndex < state._history.length - 2,
+      };
+    }
+
     default:
       return state;
   }
@@ -515,6 +731,12 @@ interface AppContextType {
   getLearningStats: () => LearningStats;
   getTaskCompletionRate: () => { done: number; total: number; rate: number };
   navigate: (page: PageName, params?: Record<string, string>) => void;
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
+  recordHistory: () => void;
+  _canUndo: boolean;
+  _canRedo: boolean;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -598,8 +820,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'NAVIGATE', payload: { page, params } });
   };
 
+  // Undo/Redo functions
+  const undo = () => {
+    if (state._canUndo) {
+      dispatch({ type: 'UNDO' });
+    }
+  };
+
+  const redo = () => {
+    if (state._canRedo) {
+      dispatch({ type: 'REDO' });
+    }
+  };
+
+  const recordHistory = () => {
+    dispatch({ type: 'RECORD_HISTORY', payload: {} });
+  };
+
+  // Initialize history on login
+  useEffect(() => {
+    if (state.isLoggedIn && state._history.length === 0) {
+      dispatch({ type: 'RECORD_HISTORY', payload: {} });
+    }
+  }, [state.isLoggedIn]);
+
   return (
-    <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate }}>
+    <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>
       {children}
     </AppContext.Provider>
   );
