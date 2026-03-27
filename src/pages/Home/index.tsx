@@ -50,6 +50,7 @@ export default function HomePage() {
 
   const reviewPending = state.todayReviewItems.filter(r => !r.completed).length;
   const newPending = state.todayNewItems.filter(r => !r.completed).length;
+  const dailyNewGoal = state.user?.dailyNewGoal ?? 10;
   const totalToday = reviewPending + newPending;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
@@ -150,11 +151,11 @@ export default function HomePage() {
               </div>
 
               <div className={`text-2xl font-bold ${totalToday > 0 ? 'text-blue-600' : 'text-green-600'}`}>
-                {totalToday > 0 ? totalToday : '🎉'}
+                {totalToday > 0 ? `${reviewPending} + ${dailyNewGoal}` : '🎉'}
               </div>
 
               <div className={`text-[10px] mt-0.5 ${totalToday > 0 ? 'text-blue-400' : 'text-green-400'}`}>
-                {totalToday > 0 ? '继续学习' : '今日任务完成'}
+                {totalToday > 0 ? `复习 + 新学` : '今日任务完成'}
               </div>
 
             </button>

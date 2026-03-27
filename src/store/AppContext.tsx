@@ -155,6 +155,7 @@ function calculateStreak(records: { date: string }[]): number {
 type Action =
   | { type: 'LOGIN'; payload: User }
   | { type: 'LOGOUT' }
+  | { type: 'RESET_ALL' }
   | { type: 'NAVIGATE'; payload: { page: PageName; params?: Record<string, string> } }
   | { type: 'ADD_SUBJECT'; payload: Subject }
   | { type: 'ADD_CHAPTER'; payload: Chapter }
@@ -215,6 +216,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, user: action.payload, isLoggedIn: true, currentPage: 'home' };
     case 'LOGOUT':
       return { ...state, user: null, isLoggedIn: false, currentPage: 'login', team: null };
+    case 'RESET_ALL':
+      return { ...initialState };
     case 'NAVIGATE':
       return { ...state, currentPage: action.payload.page, pageParams: action.payload.params ?? {} };
     case 'ADD_SUBJECT':

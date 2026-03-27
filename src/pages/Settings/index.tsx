@@ -98,8 +98,8 @@ export default function SettingsPage() {
     // 清除所有本地存储
     localStorage.clear();
     
-    // 登出并重置状态
-    dispatch({ type: 'LOGOUT' });
+    // 彻底重置状态
+    dispatch({ type: 'RESET_ALL' });
     navigate('login');
   };
 
