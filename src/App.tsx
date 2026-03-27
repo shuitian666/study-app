@@ -31,6 +31,7 @@ import ProfilePage from '@/pages/Profile';
 import KnowledgePage from '@/pages/Knowledge';
 import KnowledgeDetailPage from '@/pages/Knowledge/KnowledgeDetail';
 import AddKnowledgePage from '@/pages/Knowledge/AddKnowledge';
+import ImportKnowledgePage from '@/pages/Knowledge/ImportKnowledge';
 import QuizPage from '@/pages/Quiz';
 import QuizSessionPage from '@/pages/Quiz/QuizSession';
 import QuizResultPage from '@/pages/Quiz/QuizResult';
@@ -56,6 +57,7 @@ function AppContent() {
       case 'knowledge': return <KnowledgePage />;
       case 'knowledge-detail': return <KnowledgeDetailPage />;
       case 'add-knowledge': return <AddKnowledgePage />;
+      case 'import-knowledge': return <ImportKnowledgePage />;
       case 'quiz': return <QuizPage />;
       case 'quiz-session': return <QuizSessionPage />;
       case 'quiz-result': return <QuizResultPage />;

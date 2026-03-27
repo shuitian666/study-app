@@ -203,6 +203,7 @@ export type PageName =
   | 'wrong-book'
   | 'review-session'
   | 'add-knowledge'
+  | 'import-knowledge'
   | 'checkin'
   | 'achievements'
   | 'shop'

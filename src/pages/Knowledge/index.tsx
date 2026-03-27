@@ -3,7 +3,7 @@ import { useApp } from '@/store/AppContext';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List } from 'lucide-react';
+import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload } from 'lucide-react';
 
 const sourceConfig = {
   manual: {
@@ -56,12 +56,21 @@ export default function KnowledgePage() {
       <PageHeader
         title="知识库"
         rightAction={
-          <button
-            onClick={() => navigate('add-knowledge')}
-            className="p-1.5 bg-primary/10 rounded-lg"
-          >
-            <Plus size={18} className="text-primary" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => navigate('import-knowledge')}
+              className="p-1.5 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              title="导入知识"
+            >
+              <Upload size={18} className="text-blue-600" />
+            </button>
+            <button
+              onClick={() => navigate('add-knowledge')}
+              className="p-1.5 bg-primary/10 rounded-lg"
+            >
+              <Plus size={18} className="text-primary" />
+            </button>
+          </div>
         }
       />
 
