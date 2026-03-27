@@ -15,7 +15,7 @@ import { useApp } from '@/store/AppContext';
 import { PageHeader } from '@/components/ui/Common';
 import type { AIConfig } from '@/types';
 import { getAIConfig, setAIConfig } from '@/services/aiClient';
-import { Bot, Target, Check, Sparkles, WifiOff, Cloud } from 'lucide-react';
+import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle } from 'lucide-react';
 
 // 豆包API配置
 const DOUBAN_API_KEY = '3f5deb81-98ad-468a-a78d-e4c78f5b6fda';
@@ -32,6 +32,10 @@ export default function SettingsPage() {
   
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  
+  // 销号确认弹窗
+  const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
+  const [destroyConfirmText, setDestroyConfirmText] = useState('');
   
   // 保存AI模式
   const saveAIMode = (mode: 'douban' | 'offline') => {
@@ -85,6 +89,18 @@ export default function SettingsPage() {
       type: 'SET_DAILY_GOAL', 
       payload: dailyGoal 
     });
+  };
+
+  // 销号处理
+  const handleDestroyAccount = () => {
+    if (destroyConfirmText !== '确认销号') return;
+    
+    // 清除所有本地存储
+    localStorage.clear();
+    
+    // 登出并重置状态
+    dispatch({ type: 'LOGOUT' });
+    navigate('login');
   };
 
   const isDoubanMode = aiMode === 'douban';
@@ -257,6 +273,80 @@ export default function SettingsPage() {
           </ul>
         </div>
       </div>
+
+      {/* 销号功能 */}
+      <div className="px-4 mt-6 mb-4">
+        <button
+          onClick={() => setShowDestroyConfirm(true)}
+          className="w-full py-3 bg-red-50 text-red-600 text-sm font-medium rounded-xl flex items-center justify-center gap-2 border border-red-200"
+        >
+          <Trash2 size={16} />
+          注销账号
+        </button>
+        <p className="text-[10px] text-text-muted text-center mt-2">
+          注销后将清除所有学习记录，此操作不可恢复
+        </p>
+      </div>
+
+      {/* 销号确认弹窗 */}
+      {showDestroyConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle size={24} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-red-600">确认注销账号</h3>
+                <p className="text-xs text-text-muted">此操作不可撤销</p>
+              </div>
+            </div>
+
+            <div className="bg-red-50 rounded-xl p-3 mb-4 text-xs text-red-700">
+              <p className="font-medium mb-2">注销后将清除以下数据：</p>
+              <ul className="space-y-1">
+                <li>• 所有学习记录和进度</li>
+                <li>• 错题本和收藏</li>
+                <li>• 签到记录和成就</li>
+                <li>• 背包物品和邮件</li>
+                <li>• 个人设置和目标</li>
+              </ul>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs text-text-secondary mb-1.5 block">
+                请输入 <span className="font-bold text-red-600">确认销号</span> 以确认
+              </label>
+              <input
+                type="text"
+                value={destroyConfirmText}
+                onChange={(e) => setDestroyConfirmText(e.target.value)}
+                placeholder="确认销号"
+                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-400 transition-colors"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDestroyConfirm(false);
+                  setDestroyConfirmText('');
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-text-secondary text-sm font-medium rounded-xl"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDestroyAccount}
+                disabled={destroyConfirmText !== '确认销号'}
+                className="flex-1 py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                确认注销
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
