@@ -23,7 +23,7 @@ import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { BookOpen, Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play } from 'lucide-react';
+import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play, CheckCircle } from 'lucide-react';
 import { ProgressBar } from '@/components/ui/Common';
 
 export default function HomePage() {
@@ -51,10 +51,6 @@ export default function HomePage() {
   const reviewPending = state.todayReviewItems.filter(r => !r.completed).length;
   const newPending = state.todayNewItems.filter(r => !r.completed).length;
   const totalToday = reviewPending + newPending;
-  // 学习任务是否全部完成
-  const allTasksDone = reviewPending === 0 && newPending === 0;
-  // 每日新学目标
-  const dailyNewGoal = state.user?.dailyNewGoal ?? 10;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -133,39 +129,33 @@ export default function HomePage() {
 
             <button
               onClick={() => {
-                // 点击进入学习状态（复习+新学）
-                navigate('review-session', { type: allTasksDone ? 'new' : 'review' });
+                // 点击进入学习：优先复习，复习完成后继续新学
+                navigate('review-session', { type: 'review' });
               }}
               className={`rounded-xl p-3 text-left border transition-transform active:scale-[0.97] ${
-                !allTasksDone 
+                totalToday > 0
                   ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100' 
                   : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
               }`}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                {!allTasksDone ? (
+                {totalToday > 0 ? (
                   <Play size={14} className="text-blue-500" />
                 ) : (
-                  <BookOpen size={14} className="text-green-500" />
+                  <CheckCircle size={14} className="text-green-500" />
                 )}
-                <span className={`text-xs font-medium ${!allTasksDone ? 'text-blue-700' : 'text-green-700'}`}>
-                  {!allTasksDone ? '开始学习' : '今日新学'}
+                <span className={`text-xs font-medium ${totalToday > 0 ? 'text-blue-700' : 'text-green-700'}`}>
+                  {totalToday > 0 ? '开始学习' : '已完成'}
                 </span>
               </div>
 
-              {!allTasksDone ? (
-                <>
-                  <div className="text-lg font-bold text-blue-600">继续</div>
-                  <div className="text-[10px] text-blue-400 mt-0.5">
-                    {reviewPending > 0 ? `复习 ${reviewPending} + 新学 ${dailyNewGoal}` : `新学 ${dailyNewGoal}`}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-lg font-bold text-green-600">已完成</div>
-                  <div className="text-[10px] text-green-400 mt-0.5">今日任务全部完成</div>
-                </>
-              )}
+              <div className={`text-2xl font-bold ${totalToday > 0 ? 'text-blue-600' : 'text-green-600'}`}>
+                {totalToday > 0 ? totalToday : '🎉'}
+              </div>
+
+              <div className={`text-[10px] mt-0.5 ${totalToday > 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                {totalToday > 0 ? '继续学习' : '今日任务完成'}
+              </div>
 
             </button>
 

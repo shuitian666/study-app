@@ -37,7 +37,14 @@ export default function ReviewSessionPage() {
       if (currentIndex < knowledgePoints.length - 1) {
         setCurrentIndex(prev => prev + 1);
       } else {
-        navigate('home');
+        // 当前阶段完成，检查是否有下一阶段
+        const hasNewItems = state.todayNewItems.filter(r => !r.completed).length > 0;
+        if (reviewType === 'review' && hasNewItems) {
+          // 复习完成，自动进入新学
+          navigate('review-session', { type: 'new' });
+        } else {
+          navigate('home');
+        }
       }
     } else if (action === 'next_stage') {
       // 进入下一阶段学习
@@ -52,19 +59,35 @@ export default function ReviewSessionPage() {
   };
 
   if (knowledgePoints.length === 0) {
+    // 检查是否有其他阶段可以继续
+    const hasNewItems = reviewType === 'review' && state.todayNewItems.filter(r => !r.completed).length > 0;
+    const hasReviewItems = reviewType === 'new' && state.todayReviewItems.filter(r => !r.completed).length > 0;
+    
     return (
       <div>
-        <PageHeader title="复习" onBack={() => navigate('home')} />
+        <PageHeader title={reviewType === 'review' ? '复习' : '新学'} onBack={() => navigate('home')} />
         <div className="flex flex-col items-center justify-center py-20 px-8">
           <span className="text-5xl mb-4">🎉</span>
-          <p className="text-text-secondary font-medium">今日任务已全部完成！</p>
+          <p className="text-text-secondary font-medium">
+            {reviewType === 'review' ? '今日复习已全部完成！' : '今日新学已全部完成！'}
+          </p>
           <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => navigate('quiz')}
-              className="bg-primary text-white px-6 py-2 rounded-xl text-sm"
-            >
-              去刷题
-            </button>
+            {hasNewItems && (
+              <button
+                onClick={() => navigate('review-session', { type: 'new' })}
+                className="bg-primary text-white px-6 py-2 rounded-xl text-sm"
+              >
+                继续新学
+              </button>
+            )}
+            {hasReviewItems && (
+              <button
+                onClick={() => navigate('review-session', { type: 'review' })}
+                className="bg-orange-500 text-white px-6 py-2 rounded-xl text-sm"
+              >
+                继续复习
+              </button>
+            )}
             <button
               onClick={() => navigate('home')}
               className="bg-gray-100 text-text-secondary px-6 py-2 rounded-xl text-sm"
@@ -84,10 +107,10 @@ export default function ReviewSessionPage() {
   const isLastItem = currentIndex === knowledgePoints.length - 1;
 
   // 检查是否有下一阶段
-  const nextStageType = reviewType === 'review' ? '新学内容' : '复习内容';
+  const nextStageLabel = reviewType === 'review' ? '新学内容' : '复习内容';
   const hasNextStage = reviewType === 'review' 
     ? state.todayNewItems.filter(r => !r.completed).length > 0
-    : false;
+    : state.todayReviewItems.filter(r => !r.completed).length > 0;
 
   return (
     <div className="page-scroll pb-4">
@@ -206,7 +229,7 @@ export default function ReviewSessionPage() {
                     <ArrowRight size={18} />
                   </div>
                   <div className="text-left">
-                    <div className="font-medium text-sm">进入{nextStageType}</div>
+                    <div className="font-medium text-sm">继续{nextStageLabel}</div>
                     <div className="text-xs text-white/80">
                       {reviewType === 'review' ? `${state.todayNewItems.filter(r => !r.completed).length} 个新知识点待学习` : '复习更多内容'}
                     </div>
