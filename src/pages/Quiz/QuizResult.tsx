@@ -227,13 +227,17 @@ export default function QuizResultPage() {
           <div className="mt-2 bg-white rounded-xl border border-border p-4 space-y-3 max-h-64 overflow-y-auto">
             {stageQuestions.map((q, idx) => {
               const explanation = getSavedExplanation(q.id);
+              const correctLabels = q.correctAnswers.map(a => {
+                const optIdx = q.options.findIndex(o => o.id === a);
+                return String.fromCharCode(65 + optIdx);
+              });
               return (
                 <div key={q.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
                   <div className="text-xs font-medium text-text-primary mb-1">
                     {idx + 1}. {q.stem}
                   </div>
                   <div className="text-xs text-text-muted mb-1">
-                    正确答案: {q.correctAnswers.join('、')}
+                    正确答案: {correctLabels.join('、')}
                   </div>
                   {explanation ? (
                     <div className="text-xs text-purple-700 bg-purple-50 rounded-lg p-2">

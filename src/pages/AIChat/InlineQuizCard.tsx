@@ -39,7 +39,8 @@ export default function InlineQuizCard({ question, onAnswer }: InlineQuizCardPro
     onAnswer(correct, selectedAnswers);
   };
 
-  const labels = ['A', 'B', 'C', 'D'];
+  // 动态生成选项标签，支持 A-Z 最多26个选项
+  const labels = question.options.map((_, i) => String.fromCharCode(65 + i));
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100 mt-2">

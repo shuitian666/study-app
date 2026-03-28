@@ -258,12 +258,12 @@ export default function QuizSessionPage() {
 
           <p className="text-base font-medium leading-relaxed mb-4">{currentQuestion.stem}</p>
 
-          {/* Options - 使用 A/B/C/D 标签 */}
+          {/* Options - 动态标签支持更多选项 */}
           <div className="space-y-2.5">
             {currentQuestion.options.map((opt, i) => {
               const isSelected = selectedAnswers.includes(opt.id);
               const isCorrectOption = currentQuestion.correctAnswers.includes(opt.id);
-              const labels = ['A', 'B', 'C', 'D'];
+              const labels = currentQuestion.options.map((_, idx) => String.fromCharCode(65 + idx));
 
               let optionStyle = 'bg-gray-50 border-gray-200';
               if (showResult) {
@@ -330,7 +330,7 @@ export default function QuizSessionPage() {
                   <p className="text-xs text-text-secondary mt-1">
                     正确答案: {currentQuestion.correctAnswers.map(a => {
                       const idx = currentQuestion.options.findIndex(o => o.id === a);
-                      return ['A', 'B', 'C', 'D'][idx];
+                      return String.fromCharCode(65 + idx);
                     }).join('、')}
                   </p>
                 )}
