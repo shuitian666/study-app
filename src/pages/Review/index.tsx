@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import { PageHeader, ProficiencyBadge } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
@@ -19,21 +19,42 @@ export default function ReviewSessionPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
   const [showNextOption, setShowNextOption] = useState(false);
+  // 防止自动跳转循环
+  const hasAutoNavigated = useRef(false);
 
   // 检查是否有其他阶段任务
   const hasNewItems = state.todayNewItems.filter(r => !r.completed).length > 0;
   const hasReviewItems = state.todayReviewItems.filter(r => !r.completed).length > 0;
 
-  // 自动跳转逻辑
+  // 自动跳转逻辑 - 当知识点列表为空时自动切换阶段
   useEffect(() => {
+    // 只有在当前页面且尚未自动跳转过时才触发
+    if (state.currentPage !== 'review-session') return;
+    if (hasAutoNavigated.current) return;
+    
     if (knowledgePoints.length === 0) {
+      hasAutoNavigated.current = true;
       if (reviewType === 'review' && hasNewItems) {
         navigate('review-session', { type: 'new' });
       } else if (reviewType === 'new' && hasReviewItems) {
         navigate('review-session', { type: 'review' });
       }
     }
-  }, [knowledgePoints.length, reviewType, hasNewItems, hasReviewItems, navigate]);
+    
+    return () => {
+      // 离开页面时重置标志
+      hasAutoNavigated.current = false;
+    };
+  }, [knowledgePoints.length, reviewType, hasNewItems, hasReviewItems, navigate, state.currentPage]);
+
+  // 当知识点列表变空或变短时，重置 currentIndex 防止越界
+  useEffect(() => {
+    if (currentIndex >= knowledgePoints.length && knowledgePoints.length > 0) {
+      setCurrentIndex(knowledgePoints.length - 1);
+    } else if (knowledgePoints.length === 0) {
+      setCurrentIndex(0);
+    }
+  }, [knowledgePoints.length]);
 
   const currentKP = knowledgePoints[currentIndex];
 
@@ -43,6 +64,8 @@ export default function ReviewSessionPage() {
     dispatch({ type: 'COMPLETE_REVIEW_ITEM', payload: currentKP.id });
     setShowExplanation(false);
     setShowNextOption(true);
+    // 重置导航标志，以便下次自动跳转能正常工作
+    hasAutoNavigated.current = false;
   };
 
   const handleNextAction = (action: 'continue' | 'next_stage' | 'quiz') => {
@@ -71,10 +94,12 @@ export default function ReviewSessionPage() {
         navigate('quiz-session', { subjectId: currentKP.subjectId, knowledgePointId: currentKP.id });
       }
     }
+    // 重置导航标志
+    hasAutoNavigated.current = false;
   };
 
   if (knowledgePoints.length === 0) {
-    // 所有任务都完成了，直接跳转首页
+    // 所有任务都完成了
     return (
       <div>
         <PageHeader title={reviewType === 'review' ? '复习' : '新学'} onBack={() => navigate('home')} />
@@ -94,7 +119,19 @@ export default function ReviewSessionPage() {
     );
   }
 
-  if (!currentKP) return null;
+  // 防御性检查：确保 currentKP 存在，防止越界导致白屏
+  if (!currentKP) {
+    setCurrentIndex(0);
+    return (
+      <div>
+        <PageHeader title="加载中..." onBack={() => navigate('home')} />
+        <div className="flex flex-col items-center justify-center py-20 px-8">
+          <span className="text-5xl mb-4">⏳</span>
+          <p className="text-text-secondary font-medium">正在加载...</p>
+        </div>
+      </div>
+    );
+  }
 
   const subject = state.subjects.find(s => s.id === currentKP.subjectId);
   const relatedQuestions = state.questions.filter(q => q.knowledgePointId === currentKP.id);

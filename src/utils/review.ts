@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * 【函数清单】
- * - generateTodayReviewPlan(kps) → 基于间隔重复算法生成今日复习/新学计划
+ * - generateTodayReviewPlan(kps, existingItems?) → 基于间隔重复算法生成今日复习/新学计划
  * - calculateNewProficiency(current, isCorrect) → 答题后计算新掌握度
  * - getNextReviewDate(proficiency) → 根据掌握度计算下次复习日期
  * - formatDate(dateStr) → ISO 日期转中文"月日"格式
@@ -13,6 +13,11 @@
  *
  * 【间隔重复参数】定义在 types/index.ts 的 PROFICIENCY_MAP：
  * none=1天, rusty=2.5天, normal=7天, master=22天
+ *
+ * 【重要】generateTodayReviewPlan 的 existingNewItems 参数：
+ * 当用户完成新学后，知识点状态会变为 reviewCount > 0，不再被视为"新学"。
+ * 为了保留已完成新学的状态（completed: true），需要传入 existingNewItems
+ * 以确保首页显示的进度是正确的（如 3/15）。
  * ============================================================================
  */
 
@@ -20,14 +25,23 @@ import type { KnowledgePoint, ReviewItem, ProficiencyLevel } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 
 /**
- * Generate today's review items based on spaced repetition algorithm.
- * - none: review every day
- * - rusty: review every 2-3 days
- * - normal: review every ~7 days
- * - master: review every 15-30 days
- * 
- * @param knowledgePoints - all knowledge points
- * @param existingNewItems - existing new items to preserve (from today), so completed items stay in list
+ * 生成今日复习/新学计划
+ *
+ * 【核心逻辑】
+ * 1. 遍历所有知识点
+ * 2. 如果 reviewCount === 0 且 proficiency === 'none' → 新学项目
+ * 3. 如果 nextReviewAt <= 今天 → 待复习项目
+ *
+ * 【关于 existingNewItems 参数】
+ * 作用：保留已完成新学项目的状态
+ * 场景：用户学习了一个新知识点后，该点的 reviewCount 会变成 1，
+ *       此时 generateTodayReviewPlan 不会再把它加入 newItems 列表。
+ *       这会导致 completedNew 的计算出错（已完成的数量丢失）。
+ * 解决：传入已存在的 newItems 列表，如果知识点仍然存在，保留其完成状态
+ *
+ * @param knowledgePoints - 所有知识点
+ * @param existingNewItems - 已存在的新学项目（来自 state.todayNewItems）
+ * @returns 今日复习列表和新学列表
  */
 export function generateTodayReviewPlan(
   knowledgePoints: KnowledgePoint[],
@@ -42,31 +56,36 @@ export function generateTodayReviewPlan(
   const review: ReviewItem[] = [];
   const newItems: ReviewItem[] = [];
 
-  // Create a map of existing new items for quick lookup (preserve completed state)
+  // 【关键】创建已存在新学项目的映射，用于快速查找
+  // 这样即使知识点状态变化，也能保留完成状态
   const existingNewMap = new Map<string, ReviewItem>();
   if (existingNewItems) {
     existingNewItems.forEach(item => existingNewMap.set(item.knowledgePointId, item));
   }
 
   for (const kp of knowledgePoints) {
-    if (kp.reviewCount === 0 && kp.proficiency === 'none') {
-      // Check if this item already exists in the existing list (preserve completed state)
-      const existing = existingNewMap.get(kp.id);
-      if (existing) {
-        // Keep existing item with its completed state
-        newItems.push(existing);
-      } else {
-        // New item never reviewed
-        newItems.push({
-          knowledgePointId: kp.id,
-          type: 'new',
-          scheduledAt: today,
-          completed: false,
-        });
-      }
+    // 【新学判断优先】先检查是否已存在于今日新学计划中（保留完成状态）
+    // 这样做可以确保即使 proficiency 已改变（用户已学习过），仍然能追踪新学进度
+    const existing = existingNewMap.get(kp.id);
+    if (existing) {
+      // 【关键】如果已存在于今日计划中，直接保留（无论 proficiency 是否改变）
+      newItems.push(existing);
       continue;
     }
 
+    // 【新学判断】从未学习过的知识点（reviewCount === 0 且 proficiency === 'none'）
+    if (kp.reviewCount === 0 && kp.proficiency === 'none') {
+      // 新的新学项目
+      newItems.push({
+        knowledgePointId: kp.id,
+        type: 'new',
+        scheduledAt: today,
+        completed: false,
+      });
+      continue;
+    }
+
+    // 【复习判断】根据 nextReviewAt 判断是否需要复习
     if (kp.nextReviewAt) {
       const nextDate = new Date(kp.nextReviewAt).toISOString().slice(0, 10);
       if (nextDate <= today) {
@@ -80,7 +99,7 @@ export function generateTodayReviewPlan(
     }
   }
 
-  // Sort: lower proficiency first
+  // 复习列表按掌握度排序：掌握度低的优先复习
   const profOrder: Record<ProficiencyLevel, number> = { none: 0, rusty: 1, normal: 2, master: 3 };
   review.sort((a, b) => {
     const kpA = knowledgePoints.find(k => k.id === a.knowledgePointId);
@@ -92,7 +111,9 @@ export function generateTodayReviewPlan(
 }
 
 /**
- * Calculate next proficiency based on quiz correctness.
+ * 根据答题正确性计算新的掌握度
+ * 正确 → 提升一级（最高 master）
+ * 错误 → 降低一级（最低 none）
  */
 export function calculateNewProficiency(
   current: ProficiencyLevel,
@@ -109,7 +130,7 @@ export function calculateNewProficiency(
 }
 
 /**
- * Calculate next review date based on proficiency.
+ * 根据掌握度计算下次复习日期
  */
 export function getNextReviewDate(proficiency: ProficiencyLevel): string {
   const days = PROFICIENCY_MAP[proficiency].reviewIntervalDays;
@@ -118,7 +139,7 @@ export function getNextReviewDate(proficiency: ProficiencyLevel): string {
 }
 
 /**
- * Format date to readable Chinese string.
+ * 格式化日期为中文"月日"格式
  */
 export function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -128,7 +149,7 @@ export function formatDate(dateStr: string): string {
 }
 
 /**
- * Get greeting based on time of day.
+ * 根据时间段获取问候语
  */
 export function getGreeting(): string {
   const hour = new Date().getHours();
@@ -142,7 +163,7 @@ export function getGreeting(): string {
 }
 
 /**
- * Generate a random encouragement message.
+ * 获取随机鼓励语（AI 鼓励语的兜底方案）
  */
 export function getEncouragement(): string {
   const messages = [

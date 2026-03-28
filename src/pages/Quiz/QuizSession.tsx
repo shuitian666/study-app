@@ -51,16 +51,19 @@ export default function QuizSessionPage() {
 
   // Start pre-generating explanations when questions are loaded
   useEffect(() => {
-    if (questions.length > 0 && !preGenProgress) {
+    if (questions.length > 0 && preGenProgress === null) {
       setPreGenProgress({ current: 0, total: questions.length });
+      const timeoutId = setTimeout(() => setPreGenProgress(null), 500);
       preGenerateExplanations(questions, (current, total) => {
         setPreGenProgress({ current, total });
         if (current >= total) {
+          clearTimeout(timeoutId);
           setTimeout(() => setPreGenProgress(null), 500);
         }
       });
+      return () => clearTimeout(timeoutId);
     }
-  }, [questions, preGenerateExplanations, preGenProgress]);
+  }, [questions, preGenerateExplanations]);
   
   const isCorrect = currentQuestion
     ? selectedAnswers.length === currentQuestion.correctAnswers.length &&

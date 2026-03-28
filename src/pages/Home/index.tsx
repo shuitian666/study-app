@@ -45,7 +45,7 @@ export default function HomePage() {
         dispatch({ type: 'SET_DAILY_ENCOURAGEMENT', payload: { text, date: today } });
       });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.dailyEncouragementDate, stats, state.wrongRecords.length, state.checkin.streak, dispatch]);
 
   const encouragementText = state.dailyEncouragement ?? getEncouragement();
 

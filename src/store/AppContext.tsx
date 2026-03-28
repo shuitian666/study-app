@@ -273,16 +273,55 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'CHECKIN': {
       const exists = state.checkin.records.some(r => r.date === action.payload.date);
-      if (exists) return state;
+      if (exists) {
+        console.log('[CHECKIN] 已存在今日签到记录', action.payload.date);
+        return state;
+      }
       const isMakeup = action.payload.type === 'makeup';
-      if (isMakeup && state.checkin.makeupCards <= 0) return state;
+      if (isMakeup && state.checkin.makeupCards <= 0) {
+        console.log('[CHECKIN] 补签卡不足');
+        return state;
+      }
 
       if (action.payload.type !== 'makeup') {
-        const allTasks = [...state.todayReviewItems, ...state.todayNewItems];
-        const total = allTasks.length;
-        const done = allTasks.filter(t => t.completed).length;
-        const rate = total === 0 ? 1 : done / total;
-        if (rate < 0.8) return state;
+        // 【修复】与签到页面条件保持一致，只检查复习和每日新学目标
+        // 不检查自由学习的额外任务
+
+        // 复习完成检查
+        const reviewItems = state.todayReviewItems;
+        const reviewCompleted = reviewItems.length === 0 || reviewItems.every(r => r.completed);
+
+        // 每日新学目标完成检查
+        const dailyNewGoal = state.user?.dailyGoal ?? 10;
+        const newItems = state.todayNewItems;
+        const completedNewCount = newItems.filter(r => r.completed).length;
+        const newLearnCompleted = completedNewCount >= dailyNewGoal;
+
+        // 做题目标达成检查
+        const todayDate = action.payload.date;
+        const todayQuestions = state.quizResults
+          .filter(r => new Date(r.completedAt).toISOString().slice(0, 10) === todayDate)
+          .reduce((sum, r) => sum + r.totalQuestions, 0);
+        const dailyGoal = state.user?.dailyGoal ?? 10;
+        const goalAchieved = todayQuestions >= dailyGoal;
+
+        console.log('[CHECKIN] 条件检查:', {
+          reviewCompleted, newLearnCompleted, goalAchieved,
+          completedNewCount, dailyNewGoal,
+          todayQuestions, dailyGoal,
+          reviewItems: reviewItems.length,
+          newItems: newItems.length
+        });
+
+        // 满足以下任一条件即可签到：
+        // 1. 复习完成 + 每日新学目标完成
+        // 2. 做题目标达成
+        const canCheckin = (reviewCompleted && newLearnCompleted) || goalAchieved;
+        if (!canCheckin) {
+          console.log('[CHECKIN] 条件不满足，拒绝签到');
+          return state;
+        }
+        console.log('[CHECKIN] 条件满足，执行签到');
       }
 
       if (action.payload.type === 'team') {
@@ -791,9 +830,18 @@ const AppContext = createContext<AppContextType | null>(null);
 function getInitialState(): AppState {
   const saved = loadState();
   if (saved) {
+    // 【修复】跨天清理：检查今日复习/新学任务是否过期
+    const today = new Date().toISOString().slice(0, 10);
+    const savedReviewItems = (saved.todayReviewItems as ReviewItem[]) || [];
+    const savedNewItems = (saved.todayNewItems as ReviewItem[]) || [];
+    const todayReviewItems = savedReviewItems.filter(item => item.scheduledAt === today);
+    const todayNewItems = savedNewItems.filter(item => item.scheduledAt === today);
+
     return {
       ...initialState,
       ...saved,
+      todayReviewItems,
+      todayNewItems,
       aiChat: initialState.aiChat,
       dailyEncouragement: initialState.dailyEncouragement,
       dailyEncouragementDate: initialState.dailyEncouragementDate,

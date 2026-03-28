@@ -10,7 +10,9 @@ const PERSIST_KEYS = [
   'user', 'subjects', 'chapters', 'knowledgePoints', 'questions',
   'quizResults', 'wrongRecords', 'checkin', 'achievements', 'shopItems',
   'drawBalance', 'upPool', 'team', 'redeemedCodes',
-  'inventory', 'mail'
+  'inventory', 'mail',
+  // 【修复】添加今日复习和新学任务，防止刷新后数据丢失
+  'todayReviewItems', 'todayNewItems'
 ] as const;
 
 /**
