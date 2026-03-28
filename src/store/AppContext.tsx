@@ -345,10 +345,32 @@ function reducer(state: AppState, action: Action): AppState {
       const result = action.payload;
       let newUser = state.user;
       let newMakeupCards = state.checkin.makeupCards;
+      let newInventoryItems = state.inventory.items;
+      
       if (result.reward.type === 'coins' && newUser) {
         newUser = { ...newUser, totalPoints: newUser.totalPoints + result.reward.amount };
       } else if (result.reward.type === 'makeup_card') {
         newMakeupCards += result.reward.amount;
+        // 将补签卡添加到背包
+        const existingMakeup = newInventoryItems.find(i => i.type === 'makeup_card');
+        if (existingMakeup) {
+          newInventoryItems = newInventoryItems.map(i =>
+            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + result.reward.amount } : i
+          );
+        } else {
+          newInventoryItems = [...newInventoryItems, {
+            id: `inv-makeup-${Date.now()}`,
+            type: 'makeup_card' as const,
+            name: '补签卡',
+            description: '可在忘记签到时补签',
+            icon: '📝',
+            rarity: 'R' as const,
+            quantity: result.reward.amount,
+            obtainedAt: new Date().toISOString(),
+            source: 'lottery' as const,
+            usable: true,
+          }];
+        }
       }
       let newPity: LotteryPityState;
       if (result.tier === 'SSR') {
@@ -363,12 +385,32 @@ function reducer(state: AppState, action: Action): AppState {
         user: newUser,
         drawBalance: { ...state.drawBalance, regular: state.drawBalance.regular - 1 },
         checkin: { ...state.checkin, makeupCards: newMakeupCards, lotteryPity: newPity },
+        inventory: { items: newInventoryItems },
       };
     }
 
     case 'DRAW_UP': {
       if (state.drawBalance.up <= 0) return state;
       const { item, isNew } = action.payload;
+      // 将物品添加到背包
+      const invItem: InventoryItem = {
+        id: `inv-up-${item.id}-${Date.now()}`,
+        type: item.type as any,
+        name: item.name,
+        description: item.description,
+        icon: item.icon,
+        rarity: item.rarity,
+        quantity: 1,
+        obtainedAt: new Date().toISOString(),
+        source: 'lottery',
+        usable: false,
+      };
+      const existingInv = state.inventory.items.find(i => i.name === item.name);
+      const newInventoryItems = existingInv
+        ? state.inventory.items.map(i =>
+            i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i
+          )
+        : [...state.inventory.items, invItem];
       return {
         ...state,
         drawBalance: { ...state.drawBalance, up: state.drawBalance.up - 1 },
@@ -376,6 +418,7 @@ function reducer(state: AppState, action: Action): AppState {
           ...state.upPool,
           items: state.upPool.items.map(i => i.id === item.id ? { ...i, owned: true } : i),
         } : state.upPool,
+        inventory: { items: newInventoryItems },
       };
     }
 

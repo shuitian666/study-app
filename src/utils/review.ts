@@ -25,8 +25,14 @@ import { PROFICIENCY_MAP } from '@/types';
  * - rusty: review every 2-3 days
  * - normal: review every ~7 days
  * - master: review every 15-30 days
+ * 
+ * @param knowledgePoints - all knowledge points
+ * @param existingNewItems - existing new items to preserve (from today), so completed items stay in list
  */
-export function generateTodayReviewPlan(knowledgePoints: KnowledgePoint[]): {
+export function generateTodayReviewPlan(
+  knowledgePoints: KnowledgePoint[],
+  existingNewItems?: ReviewItem[]
+): {
   review: ReviewItem[];
   newItems: ReviewItem[];
 } {
@@ -36,15 +42,28 @@ export function generateTodayReviewPlan(knowledgePoints: KnowledgePoint[]): {
   const review: ReviewItem[] = [];
   const newItems: ReviewItem[] = [];
 
+  // Create a map of existing new items for quick lookup (preserve completed state)
+  const existingNewMap = new Map<string, ReviewItem>();
+  if (existingNewItems) {
+    existingNewItems.forEach(item => existingNewMap.set(item.knowledgePointId, item));
+  }
+
   for (const kp of knowledgePoints) {
     if (kp.reviewCount === 0 && kp.proficiency === 'none') {
-      // New item never reviewed
-      newItems.push({
-        knowledgePointId: kp.id,
-        type: 'new',
-        scheduledAt: today,
-        completed: false,
-      });
+      // Check if this item already exists in the existing list (preserve completed state)
+      const existing = existingNewMap.get(kp.id);
+      if (existing) {
+        // Keep existing item with its completed state
+        newItems.push(existing);
+      } else {
+        // New item never reviewed
+        newItems.push({
+          knowledgePointId: kp.id,
+          type: 'new',
+          scheduledAt: today,
+          completed: false,
+        });
+      }
       continue;
     }
 

@@ -32,7 +32,8 @@ export default function HomePage() {
   const stats = getLearningStats();
 
   useEffect(() => {
-    const { review, newItems } = generateTodayReviewPlan(state.knowledgePoints);
+    // Pass existingNewItems to preserve completed state when regenerating
+    const { review, newItems } = generateTodayReviewPlan(state.knowledgePoints, state.todayNewItems);
     dispatch({ type: 'SET_REVIEW_ITEMS', payload: { review, newItems } });
   }, [state.knowledgePoints, dispatch]);
 
@@ -49,8 +50,17 @@ export default function HomePage() {
   const encouragementText = state.dailyEncouragement ?? getEncouragement();
 
   const reviewPending = state.todayReviewItems.filter(r => !r.completed).length;
-  const newPending = state.todayNewItems.filter(r => !r.completed).length;
-  const totalToday = reviewPending + newPending;
+  const completedNew = state.todayNewItems.filter(r => r.completed).length;
+  const dailyNewGoal = state.user?.dailyNewGoal ?? 10;
+  
+  // 复习是否完成
+  const reviewCompleted = reviewPending === 0;
+  // 新学目标是否完成
+  const newGoalCompleted = completedNew >= dailyNewGoal;
+  // 是否有待学习的内容
+  const hasPendingNew = state.todayNewItems.filter(r => !r.completed).length > 0;
+  // 是否进入自由学习模式
+  const freeLearningMode = reviewCompleted && newGoalCompleted && hasPendingNew;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -98,7 +108,11 @@ export default function HomePage() {
             </h3>
 
             <span className="text-xs text-text-muted">
-              {totalToday > 0 ? `还剩 ${totalToday} 项` : '已全部完成 🎉'}
+              {reviewPending > 0 
+                ? `复习中` 
+                : freeLearningMode 
+                  ? '自由学习中' 
+                  : newGoalCompleted ? '目标完成 🎉' : '新学中'}
             </span>
 
           </div>
@@ -129,40 +143,42 @@ export default function HomePage() {
 
             <button
               onClick={() => {
-                // 智能选择学习阶段：优先复习，复习完成后进入新学
+                // 智能选择学习阶段
                 if (reviewPending > 0) {
                   navigate('review-session', { type: 'review' });
-                } else if (newPending > 0) {
+                } else {
                   navigate('review-session', { type: 'new' });
                 }
               }}
               className={`rounded-xl p-3 text-left border transition-transform active:scale-[0.97] ${
-                totalToday > 0
-                  ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100' 
-                  : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
+                freeLearningMode
+                  ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
+                  : reviewPending > 0 || completedNew < dailyNewGoal
+                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100' 
+                    : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
               }`}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                {totalToday > 0 ? (
-                  <Play size={14} className="text-blue-500" />
-                ) : (
+                {freeLearningMode ? (
                   <CheckCircle size={14} className="text-green-500" />
+                ) : (
+                  <Play size={14} className="text-blue-500" />
                 )}
-                <span className={`text-xs font-medium ${totalToday > 0 ? 'text-blue-700' : 'text-green-700'}`}>
-                  {totalToday > 0 ? '开始学习' : '已完成'}
+                <span className={`text-xs font-medium ${freeLearningMode ? 'text-green-700' : 'text-blue-700'}`}>
+                  {freeLearningMode ? '自由学习' : '开始学习'}
                 </span>
               </div>
 
-              <div className={`text-2xl font-bold ${totalToday > 0 ? 'text-blue-600' : 'text-green-600'}`}>
-                {totalToday > 0 ? `${reviewPending} + ${newPending}` : '🎉'}
+              <div className={`text-2xl font-bold ${freeLearningMode ? 'text-green-600' : 'text-blue-600'}`}>
+                {freeLearningMode ? '🎉' : reviewPending > 0 ? `${reviewPending}` : `${completedNew}/${dailyNewGoal}`}
               </div>
 
-              <div className={`text-[10px] mt-0.5 ${totalToday > 0 ? 'text-blue-400' : 'text-green-400'}`}>
-                {totalToday > 0 ? (
-                  <>
-                    复习 {reviewPending > 0 ? `剩${reviewPending}` : '完'} + 新学 {newPending > 0 ? `剩${newPending}` : '完'}
-                  </>
-                ) : '今日任务完成'}
+              <div className={`text-[10px] mt-0.5 ${freeLearningMode ? 'text-green-400' : 'text-blue-400'}`}>
+                {freeLearningMode 
+                  ? '目标已完成，自由学习' 
+                  : reviewPending > 0 
+                    ? `待复习 + ${dailyNewGoal} 新学目标` 
+                    : `新学 ${completedNew}/${dailyNewGoal}`}
               </div>
 
             </button>
