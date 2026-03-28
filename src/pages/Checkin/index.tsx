@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { PageHeader } from '@/components/ui/Common';
-import { Calendar, Gift, Ticket, Flame, BookOpen, CheckCircle, AlertCircle, Sparkles, Gift as GiftIcon, X, Copy, Check } from 'lucide-react';
+import { Calendar, Gift, Ticket, Flame, BookOpen, CheckCircle, Sparkles, Gift as GiftIcon, X, Copy, Check } from 'lucide-react';
 import { STREAK_REWARDS } from '@/data/incentive-mock';
 import TeamPanel from './TeamPanel';
 
@@ -40,17 +40,19 @@ export default function CheckinPage() {
   
   // 学习目标
   const dailyGoal = state.user?.dailyGoal ?? 10;
+  const dailyNewGoal = state.user?.dailyNewGoal ?? 10;
   const goalProgress = Math.min((todayQuestions / dailyGoal) * 100, 100);
   const goalAchieved = todayQuestions >= dailyGoal;
 
-  // 检查今日任务是否全部完成
-  const allTasks = [...state.todayReviewItems, ...state.todayNewItems];
-  const totalTasks = allTasks.length;
-  const completedTasks = allTasks.filter(t => t.completed).length;
-  const allTasksCompleted = totalTasks > 0 && completedTasks === totalTasks;
+  // 复习完成检查
+  const reviewCompleted = state.todayReviewItems.length === 0 || state.todayReviewItems.every(r => r.completed);
+  
+  // 新学完成检查：已完成的新学数 >= 每日新学目标
+  const completedNewCount = state.todayNewItems.filter(r => r.completed).length;
+  const newLearnCompleted = completedNewCount >= dailyNewGoal;
 
-  // 签到条件：完成所有学习任务 OR 完成做题目标
-  const canCheckin = (allTasksCompleted || goalAchieved) && !todayChecked;
+  // 签到条件：复习完成 + 新学完成 OR 完成做题目标
+  const canCheckin = ((reviewCompleted && newLearnCompleted) || goalAchieved) && !todayChecked;
 
   const last7 = getLast7Days();
 
@@ -319,46 +321,55 @@ export default function CheckinPage() {
           今日学习目标
         </h3>
 
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-text-muted">
-              已完成 {todayQuestions} / {dailyGoal} 题
-            </span>
-            {(allTasksCompleted || goalAchieved) ? (
-              <span className="flex items-center gap-1 text-xs text-accent font-medium">
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm space-y-3">
+          {/* 做题进度 */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-text-muted">做题进度</span>
+              <span className="text-xs text-text-muted">{todayQuestions} / {dailyGoal} 题</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, Math.round(goalProgress))}%`,
+                  backgroundColor: goalAchieved ? '#10b981' : '#f59e0b',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 新学进度 */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-text-muted">新学进度</span>
+              <span className="text-xs text-text-muted">{completedNewCount} / {dailyNewGoal} 个</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100,(completedNewCount / dailyNewGoal) * 100)}%`,
+                  backgroundColor: newLearnCompleted ? '#10b981' : '#3b82f6',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 签到条件提示 */}
+          <div className="pt-2 border-t border-border">
+            {(reviewCompleted && newLearnCompleted) || goalAchieved ? (
+              <p className="text-xs text-accent font-medium flex items-center gap-1">
                 <CheckCircle size={12} /> 已满足签到条件
-              </span>
+              </p>
             ) : (
-              <span className="flex items-center gap-1 text-xs text-secondary font-medium">
-                <AlertCircle size={12} /> 需完成学习任务或{dailyGoal}题
-              </span>
+              <p className="text-xs text-text-muted">
+                {reviewCompleted 
+                  ? `再完成 ${dailyNewGoal - completedNewCount} 个新学即可签到` 
+                  : '完成复习和新学任务后即可签到'}
+              </p>
             )}
           </div>
-
-          {/* Progress bar */}
-          <div className="w-full h-2.5 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.min(100, Math.round(goalProgress))}%`,
-                backgroundColor: goalAchieved ? '#10b981' : '#f59e0b',
-              }}
-            />
-          </div>
-
-          {!(allTasksCompleted || goalAchieved) && (
-            <p className="text-[10px] text-text-muted mt-2">
-              {totalTasks > 0 && !allTasksCompleted && completedTasks < totalTasks 
-                ? `完成 ${totalTasks - completedTasks} 个学习任务后即可签到` 
-                : `再完成 ${dailyGoal - todayQuestions} 题即可签到`}
-            </p>
-          )}
-          
-          {(allTasksCompleted || goalAchieved) && (
-            <p className="text-[10px] text-accent mt-2 font-medium">
-              恭喜！已完成今日学习目标，快去签到领奖励吧！
-            </p>
-          )}
         </div>
 
       </div>
