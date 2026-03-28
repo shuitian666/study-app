@@ -34,6 +34,16 @@ export interface User {
   dailyNewGoal: number;  // 每日新学目标（知识点数）
   todayQuestions: number;  // 今日已完成题目数
   goalAchievedToday: boolean;  // 今日目标是否达成
+  // 【新增】形象相关
+  avatarFrame: string | null;  // 当前使用头像框的 icon
+  aiSkin: string | null;  // 当前使用 AI 形象的 icon
+  background: string | null;  // 当前使用背景的 id
+  unlockedAvatars: string[];  // 已解锁的头像列表（emoji）
+  unlockedFrames: string[];  // 已解锁的头像框列表（icon）
+  unlockedAiSkins: string[];  // 已解锁的 AI 形象列表（icon）
+  unlockedBackgrounds: string[];  // 已解锁的背景列表（id）
+  customAvatarUrl?: string;  // 自定义头像 URL
+  currentBackground?: string;  // 当前背景样式（gradient）
 }
 
 // Subject / Category
@@ -212,7 +222,8 @@ export type PageName =
   | 'lottery'
   | 'ai-chat'
   | 'inventory'
-  | 'mail';
+  | 'mail'
+  | 'avatar-edit';
 
 // ===== 激励体系 =====
 

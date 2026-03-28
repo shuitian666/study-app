@@ -157,6 +157,7 @@ type Action =
   | { type: 'LOGOUT' }
   | { type: 'RESET_ALL' }
   | { type: 'NAVIGATE'; payload: { page: PageName; params?: Record<string, string> } }
+  | { type: 'UPDATE_USER'; payload: Partial<User> }
   | { type: 'ADD_SUBJECT'; payload: Subject }
   | { type: 'ADD_CHAPTER'; payload: Chapter }
   | { type: 'ADD_KNOWLEDGE_POINT'; payload: KnowledgePoint }
@@ -220,6 +221,11 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...initialState };
     case 'NAVIGATE':
       return { ...state, currentPage: action.payload.page, pageParams: action.payload.params ?? {} };
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: state.user ? { ...state.user, ...action.payload } : null,
+      };
     case 'ADD_SUBJECT':
       return { ...state, subjects: [...state.subjects, action.payload] };
     case 'ADD_CHAPTER':

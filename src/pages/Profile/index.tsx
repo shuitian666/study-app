@@ -27,9 +27,34 @@ export default function ProfilePage() {
       <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-2xl">
-              {user?.avatar || '👤'}
-            </div>
+            {/* 头像区域 - 可点击编辑 */}
+            <button
+              onClick={() => navigate('avatar-edit')}
+              className="relative"
+            >
+              {/* 头像框 */}
+              <div 
+                className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                style={{
+                  padding: user?.avatarFrame ? '3px' : '0',
+                  background: user?.avatarFrame 
+                    ? 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)'
+                    : 'rgba(255,255,255,0.2)',
+                  boxShadow: user?.avatarFrame ? '0 0 12px rgba(251, 191, 36, 0.5)' : 'none',
+                }}
+              >
+                <div 
+                  className="w-full h-full bg-white/20 rounded-full flex items-center justify-center"
+                  style={{ border: user?.avatarFrame ? '2px solid white' : 'none' }}
+                >
+                  {user?.avatar || '👤'}
+                </div>
+              </div>
+              {/* 编辑提示 */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white text-[8px]">
+                ✎
+              </div>
+            </button>
             <div>
               <h2 className="text-lg font-bold">{user?.nickname ?? '未登录'}</h2>
               <p className="text-white/60 text-xs">已学习 {stats.streakDays} 天</p>

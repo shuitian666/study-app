@@ -6,8 +6,8 @@ import { Backpack, Package, Gift, Ticket, Sparkles, Crown } from 'lucide-react';
 const rarityConfig = {
   N: { label: '普通', color: '#9ca3af', bg: 'bg-gray-100' },
   R: { label: '稀有', color: '#3b82f6', bg: 'bg-blue-50' },
-  SR: { label: '超稀有', color: '#a855f7', bg: 'bg-purple-50' },
-  SSR: { label: '超超稀有', color: '#f59e0b', bg: 'bg-amber-50' },
+  SR: { label: '史诗', color: '#a855f7', bg: 'bg-purple-50' },
+  SSR: { label: '传说', color: '#f59e0b', bg: 'bg-amber-50' },
 };
 
 const typeConfig = {
@@ -112,22 +112,22 @@ export default function InventoryPage() {
               return (
                 <div
                   key={item.id}
-                  className={`${rarity.bg} rounded-xl p-3 border border-gray-200/50`}
+                  className={`${rarity.bg} rounded-xl p-3 border border-gray-200/50 min-h-[120px] flex flex-col`}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="text-3xl">{typeInfo.icon}</div>
+                  <div className="flex items-start justify-between mb-2 flex-shrink-0">
+                    <div className="text-3xl leading-none">{item.icon || typeInfo.icon}</div>
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                      className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
                       style={{ color: rarity.color, backgroundColor: 'white' }}
                     >
                       {rarity.label}
                     </span>
                   </div>
 
-                  <h4 className="text-sm font-medium text-gray-900 mb-1">{item.name}</h4>
-                  <p className="text-[10px] text-gray-500 mb-2 line-clamp-2">{item.description}</p>
+                  <h4 className="text-sm font-medium text-gray-900 mb-1 truncate">{item.name}</h4>
+                  <p className="text-[10px] text-gray-500 flex-grow overflow-hidden" style={{display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>{item.description}</p>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-auto pt-2 flex-shrink-0">
                     <span className="text-xs text-gray-400">x{item.quantity}</span>
                     {item.usable && item.quantity > 0 && (
                       <button

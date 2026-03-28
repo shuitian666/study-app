@@ -13,7 +13,7 @@ export default function LoginPage() {
       const mockUser: User = {
         id: 'user-1',
         nickname: '学习达人',
-        avatar: '',
+        avatar: '👤',
         learningDays: 15,
         totalPoints: 320,
         createdAt: new Date().toISOString(),
@@ -21,6 +21,14 @@ export default function LoginPage() {
         dailyNewGoal: 15,
         todayQuestions: 0,
         goalAchievedToday: false,
+        // 形象相关
+        avatarFrame: null,
+        aiSkin: null,
+        background: null,
+        unlockedAvatars: ['👤', '🦊', '🐰', '🐼'],
+        unlockedFrames: ['⬜', '🧊'],
+        unlockedAiSkins: ['🤖'],
+        unlockedBackgrounds: [],
       };
       dispatch({ type: 'LOGIN', payload: mockUser });
       setLoading(false);

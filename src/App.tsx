@@ -47,6 +47,7 @@ import AIChatPage from '@/pages/AIChat';
 import SettingsPage from '@/pages/Settings';
 import InventoryPage from '@/pages/Inventory';
 import MailPage from '@/pages/Mail';
+import AvatarEditPage from '@/pages/AvatarEdit';
 
 function AppContent() {
   const { state } = useApp();
@@ -75,6 +76,7 @@ function AppContent() {
       case 'settings': return <SettingsPage />;
       case 'inventory': return <InventoryPage />;
       case 'mail': return <MailPage />;
+      case 'avatar-edit': return <AvatarEditPage />;
       default: return <HomePage />;
     }
   };
