@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/store/AppContext';
 import { PageHeader, ProficiencyBadge } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
@@ -19,6 +19,21 @@ export default function ReviewSessionPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
   const [showNextOption, setShowNextOption] = useState(false);
+
+  // 检查是否有其他阶段任务
+  const hasNewItems = state.todayNewItems.filter(r => !r.completed).length > 0;
+  const hasReviewItems = state.todayReviewItems.filter(r => !r.completed).length > 0;
+
+  // 自动跳转逻辑
+  useEffect(() => {
+    if (knowledgePoints.length === 0) {
+      if (reviewType === 'review' && hasNewItems) {
+        navigate('review-session', { type: 'new' });
+      } else if (reviewType === 'new' && hasReviewItems) {
+        navigate('review-session', { type: 'review' });
+      }
+    }
+  }, [knowledgePoints.length, reviewType, hasNewItems, hasReviewItems, navigate]);
 
   const currentKP = knowledgePoints[currentIndex];
 
@@ -59,10 +74,7 @@ export default function ReviewSessionPage() {
   };
 
   if (knowledgePoints.length === 0) {
-    // 检查是否有其他阶段可以继续
-    const hasNewItems = reviewType === 'review' && state.todayNewItems.filter(r => !r.completed).length > 0;
-    const hasReviewItems = reviewType === 'new' && state.todayReviewItems.filter(r => !r.completed).length > 0;
-    
+    // 所有任务都完成了，直接跳转首页
     return (
       <div>
         <PageHeader title={reviewType === 'review' ? '复习' : '新学'} onBack={() => navigate('home')} />
@@ -71,30 +83,12 @@ export default function ReviewSessionPage() {
           <p className="text-text-secondary font-medium">
             {reviewType === 'review' ? '今日复习已全部完成！' : '今日新学已全部完成！'}
           </p>
-          <div className="flex gap-3 mt-4">
-            {hasNewItems && (
-              <button
-                onClick={() => navigate('review-session', { type: 'new' })}
-                className="bg-primary text-white px-6 py-2 rounded-xl text-sm"
-              >
-                继续新学
-              </button>
-            )}
-            {hasReviewItems && (
-              <button
-                onClick={() => navigate('review-session', { type: 'review' })}
-                className="bg-orange-500 text-white px-6 py-2 rounded-xl text-sm"
-              >
-                继续复习
-              </button>
-            )}
-            <button
-              onClick={() => navigate('home')}
-              className="bg-gray-100 text-text-secondary px-6 py-2 rounded-xl text-sm"
-            >
-              返回首页
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('home')}
+            className="mt-4 bg-primary text-white px-6 py-2 rounded-xl text-sm"
+          >
+            返回首页
+          </button>
         </div>
       </div>
     );

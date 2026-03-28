@@ -130,8 +130,12 @@ export default function HomePage() {
 
             <button
               onClick={() => {
-                // 点击进入学习：优先复习，复习完成后继续新学
-                navigate('review-session', { type: 'review' });
+                // 智能选择学习阶段：优先复习，复习完成后进入新学
+                if (reviewPending > 0) {
+                  navigate('review-session', { type: 'review' });
+                } else if (newPending > 0) {
+                  navigate('review-session', { type: 'new' });
+                }
               }}
               className={`rounded-xl p-3 text-left border transition-transform active:scale-[0.97] ${
                 totalToday > 0
