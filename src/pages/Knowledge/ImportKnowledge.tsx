@@ -15,11 +15,26 @@ interface ImportedKnowledge {
   raw_text?: string;
 }
 
+interface ImportedQuestion {
+  id: string;
+  knowledgePointId: string;
+  subjectId: string;
+  type: 'single_choice' | 'multi_choice' | 'true_false';
+  stem: string;
+  options: { id: string; text: string }[];
+  correctAnswers: string[];
+  explanation?: string;
+}
+
 interface ImportResult {
-  total: number;
-  success: number;
-  duplicate: number;
-  invalid: number;
+  totalKP: number;
+  successKP: number;
+  duplicateKP: number;
+  invalidKP: number;
+  totalQ: number;
+  successQ: number;
+  duplicateQ: number;
+  invalidQ: number;
 }
 
 export default function ImportKnowledgePage() {
@@ -27,6 +42,7 @@ export default function ImportKnowledgePage() {
   const [mode, setMode] = useState<'file' | 'paste'>('file');
   const [jsonInput, setJsonInput] = useState('');
   const [parsedData, setParsedData] = useState<ImportedKnowledge[]>([]);
+  const [parsedQuestions, setParsedQuestions] = useState<ImportedQuestion[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -34,18 +50,35 @@ export default function ImportKnowledgePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Parse JSON from input
-  const parseJson = useCallback((jsonStr: string): ImportedKnowledge[] => {
+  const parseJson = useCallback((jsonStr: string): { knowledgePoints: ImportedKnowledge[]; questions: ImportedQuestion[] } => {
     try {
       const data = JSON.parse(jsonStr);
-      // Handle both array and { knowledgePoints: [] } format
+      let knowledgePoints: ImportedKnowledge[] = [];
+      let questions: ImportedQuestion[] = [];
+
+      // Handle different JSON formats
       if (Array.isArray(data)) {
-        return data;
-      } else if (data.knowledgePoints && Array.isArray(data.knowledgePoints)) {
-        return data.knowledgePoints;
-      } else if (data.data && Array.isArray(data.data)) {
-        return data.data;
+        // Direct array of knowledge points
+        knowledgePoints = data;
+      } else {
+        // Object with knowledgePoints and/or questions arrays
+        if (data.knowledgePoints && Array.isArray(data.knowledgePoints)) {
+          knowledgePoints = data.knowledgePoints;
+        }
+        if (data.questions && Array.isArray(data.questions)) {
+          questions = data.questions;
+        }
+        // Fallback for { data: [...] }
+        if (data.data && Array.isArray(data.data)) {
+          knowledgePoints = data.data;
+        }
       }
-      throw new Error('JSON 格式不正确，应为数组或包含 knowledgePoints 属性的对象');
+
+      if (knowledgePoints.length === 0 && questions.length === 0) {
+        throw new Error('JSON 格式不正确，应为数组或包含 knowledgePoints/questions 属性的对象');
+      }
+
+      return { knowledgePoints, questions };
     } catch (e) {
       throw new Error(`JSON 解析失败: ${e instanceof Error ? e.message : '未知错误'}`);
     }
@@ -78,13 +111,15 @@ export default function ImportKnowledgePage() {
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const data = parseJson(content);
-        setParsedData(data);
+        const { knowledgePoints, questions } = parseJson(content);
+        setParsedData(knowledgePoints);
+        setParsedQuestions(questions);
         setError(null);
         setImportResult(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : '文件解析失败');
         setParsedData([]);
+        setParsedQuestions([]);
       }
     };
     reader.onerror = () => {
@@ -119,13 +154,15 @@ export default function ImportKnowledgePage() {
       return;
     }
     try {
-      const data = parseJson(jsonInput);
-      setParsedData(data);
+      const { knowledgePoints, questions } = parseJson(jsonInput);
+      setParsedData(knowledgePoints);
+      setParsedQuestions(questions);
       setError(null);
       setImportResult(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'JSON 解析失败');
       setParsedData([]);
+      setParsedQuestions([]);
     }
   }, [jsonInput, parseJson]);
 
@@ -135,24 +172,25 @@ export default function ImportKnowledgePage() {
     return new Set(items.filter(item => existingNames.has(item.name.toLowerCase())).map(item => item.id));
   }, [state.knowledgePoints]);
 
-  // Import knowledge
+  // Import knowledge and questions
   const handleImport = useCallback(() => {
-    let success = 0;
-    let duplicate = 0;
-    let invalid = 0;
+    let successKP = 0;
+    let duplicateKP = 0;
+    let invalidKP = 0;
 
     const duplicates = checkDuplicates(parsedData);
 
+    // Import knowledge points
     parsedData.forEach((item, index) => {
       const validation = validateItem(item, index);
       
       if (!validation.valid) {
-        invalid++;
+        invalidKP++;
         return;
       }
 
       if (duplicates.has(item.id)) {
-        duplicate++;
+        duplicateKP++;
         return;
       }
 
@@ -171,11 +209,55 @@ export default function ImportKnowledgePage() {
       };
 
       dispatch({ type: 'ADD_KNOWLEDGE_POINT', payload: newKP });
-      success++;
+      successKP++;
     });
 
-    setImportResult({ total: parsedData.length, success, duplicate, invalid });
-  }, [parsedData, validateItem, checkDuplicates, dispatch]);
+    // Import questions
+    let successQ = 0;
+    let duplicateQ = 0;
+    let invalidQ = 0;
+
+    const existingQuestionIds = new Set(state.questions.map(q => q.id));
+
+    parsedQuestions.forEach((q, index) => {
+      // Validate question
+      if (!q.stem || !q.options || q.options.length === 0 || !q.correctAnswers || q.correctAnswers.length === 0) {
+        invalidQ++;
+        return;
+      }
+
+      // Check for duplicate
+      if (existingQuestionIds.has(q.id)) {
+        duplicateQ++;
+        return;
+      }
+
+      const newQuestion = {
+        id: q.id || `q-import-${Date.now()}-${index}`,
+        knowledgePointId: q.knowledgePointId,
+        subjectId: q.subjectId,
+        type: q.type,
+        stem: q.stem,
+        options: q.options,
+        correctAnswers: q.correctAnswers,
+        explanation: q.explanation || '',
+      };
+
+      dispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: newQuestion });
+      successQ++;
+    });
+
+    setImportResult({
+      totalKP: parsedData.length,
+      successKP,
+      duplicateKP,
+      invalidKP,
+      totalQ: parsedQuestions.length,
+      successQ,
+      duplicateQ,
+      invalidQ,
+    });
+  }, [parsedData, parsedQuestions, validateItem, checkDuplicates, dispatch, state.questions]);
 
   // Toggle item expansion
   const toggleExpand = useCallback((index: number) => {
@@ -193,6 +275,7 @@ export default function ImportKnowledgePage() {
   // Clear all
   const handleClear = useCallback(() => {
     setParsedData([]);
+    setParsedQuestions([]);
     setError(null);
     setImportResult(null);
     setJsonInput('');
@@ -293,37 +376,68 @@ export default function ImportKnowledgePage() {
         {/* Import Result */}
         {importResult && (
           <div className={`rounded-xl p-4 ${
-            importResult.success > 0 ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
+            (importResult.successKP > 0 || importResult.successQ > 0) ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
           }`}>
             <div className="flex items-center gap-2 mb-3">
-              {importResult.success > 0 ? (
+              {(importResult.successKP > 0 || importResult.successQ > 0) ? (
                 <CheckCircle size={20} className="text-green-500" />
               ) : (
                 <AlertCircle size={20} className="text-amber-500" />
               )}
               <span className="font-medium text-sm">
-                {importResult.success > 0 ? '导入完成' : '导入结果'}
+                {(importResult.successKP > 0 || importResult.successQ > 0) ? '导入完成' : '导入结果'}
               </span>
             </div>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-bold text-gray-700">{importResult.total}</p>
-                <p className="text-[10px] text-text-muted">总数量</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-bold text-green-600">{importResult.success}</p>
-                <p className="text-[10px] text-text-muted">成功</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-bold text-amber-600">{importResult.duplicate}</p>
-                <p className="text-[10px] text-text-muted">重复</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-bold text-red-600">{importResult.invalid}</p>
-                <p className="text-[10px] text-text-muted">无效</p>
+
+            {/* Knowledge Points Summary */}
+            <div className="mb-3">
+              <p className="text-xs font-medium text-text-secondary mb-2">知识点导入结果</p>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="bg-white rounded-lg p-2">
+                  <p className="text-lg font-bold text-gray-700">{importResult.totalKP}</p>
+                  <p className="text-[10px] text-text-muted">总数量</p>
+                </div>
+                <div className="bg-white rounded-lg p-2">
+                  <p className="text-lg font-bold text-green-600">{importResult.successKP}</p>
+                  <p className="text-[10px] text-text-muted">成功</p>
+                </div>
+                <div className="bg-white rounded-lg p-2">
+                  <p className="text-lg font-bold text-amber-600">{importResult.duplicateKP}</p>
+                  <p className="text-[10px] text-text-muted">重复</p>
+                </div>
+                <div className="bg-white rounded-lg p-2">
+                  <p className="text-lg font-bold text-red-600">{importResult.invalidKP}</p>
+                  <p className="text-[10px] text-text-muted">无效</p>
+                </div>
               </div>
             </div>
-            {importResult.success > 0 && (
+
+            {/* Questions Summary */}
+            {importResult.totalQ > 0 && (
+              <div className="mb-3">
+                <p className="text-xs font-medium text-text-secondary mb-2">题目导入结果</p>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-lg font-bold text-gray-700">{importResult.totalQ}</p>
+                    <p className="text-[10px] text-text-muted">总数量</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-lg font-bold text-green-600">{importResult.successQ}</p>
+                    <p className="text-[10px] text-text-muted">成功</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-lg font-bold text-amber-600">{importResult.duplicateQ}</p>
+                    <p className="text-[10px] text-text-muted">重复</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <p className="text-lg font-bold text-red-600">{importResult.invalidQ}</p>
+                    <p className="text-[10px] text-text-muted">无效</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(importResult.successKP > 0 || importResult.successQ > 0) && (
               <button
                 onClick={() => navigate('knowledge')}
                 className="w-full mt-3 bg-primary text-white font-medium py-2.5 rounded-xl text-sm"
@@ -341,7 +455,8 @@ export default function ImportKnowledgePage() {
               <h3 className="text-sm font-medium">数据预览</h3>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-text-muted">
-                  {validItems.length}/{parsedData.length} 有效
+                  知识点: {validItems.length}/{parsedData.length} 有效
+                  {parsedQuestions.length > 0 && ` | 题目: ${parsedQuestions.length} 个`}
                 </span>
                 <button
                   onClick={handleClear}
@@ -440,6 +555,7 @@ export default function ImportKnowledgePage() {
               >
                 <Plus size={18} />
                 导入 {validItems.length} 个知识点
+                {parsedQuestions.length > 0 && ` + ${parsedQuestions.length} 个题目`}
               </button>
             )}
           </div>
@@ -464,10 +580,10 @@ export default function ImportKnowledgePage() {
           <div className="text-xs text-text-muted space-y-2">
             <p className="font-medium text-text-secondary">导入格式说明：</p>
             <ul className="list-disc list-inside space-y-1 pl-2">
-              <li>JSON 数组格式或包含 <code className="bg-gray-100 px-1 rounded">knowledgePoints</code> 的对象</li>
+              <li>支持包含 <code className="bg-gray-100 px-1 rounded">knowledgePoints</code> 和 <code className="bg-gray-100 px-1 rounded">questions</code> 的对象</li>
               <li>每个知识点需包含 <code className="bg-gray-100 px-1 rounded">name</code>（名称）和 <code className="bg-gray-100 px-1 rounded">subjectId</code>（学科ID）</li>
-              <li>可选字段：<code className="bg-gray-100 px-1 rounded">explanation</code>、<code className="bg-gray-100 px-1 rounded">chapterId</code></li>
-              <li>重复的知识点名称会自动跳过</li>
+              <li>题目需包含 <code className="bg-gray-100 px-1 rounded">stem</code>、<code className="bg-gray-100 px-1 rounded">options</code>、<code className="bg-gray-100 px-1 rounded">correctAnswers</code></li>
+              <li>重复的知识点名称和题目ID会自动跳过</li>
             </ul>
           </div>
         )}
