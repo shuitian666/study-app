@@ -226,6 +226,11 @@ async function* streamChatDouban(
   }
 }
 
+// ===== 清除选项文本开头的标签前缀 =====
+const cleanOptionPrefix = (text: string): string => {
+  return text.replace(/^[A-G]\.\s*/, '').trim();
+};
+
 // ===== 豆包API生成题目 =====
 async function fetchDoubanQuiz(
   apiKey: string,
@@ -280,7 +285,15 @@ async function fetchDoubanQuiz(
     if (content) {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        // 清除选项前缀
+        if (parsed.options) {
+          parsed.options = parsed.options.map((opt: any) => ({
+            ...opt,
+            text: cleanOptionPrefix(opt.text || opt.label || ''),
+          }));
+        }
+        return parsed;
       }
     }
   } catch { /* timeout or error */ }

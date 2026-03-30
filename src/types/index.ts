@@ -361,7 +361,7 @@ export interface AchievementCondition {
 }
 
 // Shop
-export type ShopItemType = 'makeup_card' | 'avatar_frame' | 'theme_skin' | 'ai_skin';
+export type ShopItemType = 'makeup_card' | 'avatar_frame' | 'theme_skin' | 'ai_skin' | 'background';
 
 export interface ShopItem {
   id: string;

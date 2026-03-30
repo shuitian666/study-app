@@ -6,7 +6,8 @@ import { useState } from 'react';
 
 const TYPE_LABELS: Record<ShopItemType, string> = {
   makeup_card: '功能道具',
-  avatar_frame: '头像装饰',
+  avatar_frame: '头像框',
+  background: '背景板',
   theme_skin: '主题皮肤',
   ai_skin: 'AI助手皮肤',
 };

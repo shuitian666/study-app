@@ -201,19 +201,23 @@ export default function KnowledgeDetailPage() {
                 </div>
                 <p className="text-sm mb-3">{q.stem}</p>
                 <div className="space-y-1.5">
-                  {q.options.map((opt, optIdx) => (
-                    <div 
-                      key={opt.id} 
-                      className={`text-xs px-2 py-1 rounded ${
-                        q.correctAnswers.includes(opt.id) 
-                          ? 'bg-green-50 text-green-700' 
-                          : 'bg-gray-50 text-text-muted'
-                      }`}
-                    >
-                      {String.fromCharCode(65 + optIdx)}. {opt.text}
-                      {q.correctAnswers.includes(opt.id) && ' ✓'}
-                    </div>
-                  ))}
+                  {q.options.map((opt, optIdx) => {
+                    const label = String.fromCharCode(65 + optIdx);
+                    const hasPrefix = /^[A-G]\.\s/.test(opt.text);
+                    return (
+                      <div 
+                        key={opt.id} 
+                        className={`text-xs px-2 py-1 rounded ${
+                          q.correctAnswers.includes(opt.id) 
+                            ? 'bg-green-50 text-green-700' 
+                            : 'bg-gray-50 text-text-muted'
+                        }`}
+                      >
+                        {hasPrefix ? opt.text : `${label}. ${opt.text}`}
+                        {q.correctAnswers.includes(opt.id) && ' ✓'}
+                      </div>
+                    );
+                  })}
                 </div>
                 {q.explanation && (
                   <div className="mt-3 pt-3 border-t border-gray-100">

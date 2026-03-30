@@ -264,6 +264,8 @@ export default function QuizSessionPage() {
               const isSelected = selectedAnswers.includes(opt.id);
               const isCorrectOption = currentQuestion.correctAnswers.includes(opt.id);
               const labels = currentQuestion.options.map((_, idx) => String.fromCharCode(65 + idx));
+              // 强制清除任何前缀，统一显示格式
+              const cleanText = opt.text.replace(/^[A-G]\.\s*/, '').trim();
 
               let optionStyle = 'bg-gray-50 border-gray-200';
               if (showResult) {
@@ -300,7 +302,7 @@ export default function QuizSessionPage() {
 
                   <div className="flex-1">
                     <span className="text-xs font-medium text-text-muted mr-2">{labels[i]}.</span>
-                    <span className="text-sm">{opt.text}</span>
+                    <span className="text-sm">{cleanText}</span>
                   </div>
                 </button>
 

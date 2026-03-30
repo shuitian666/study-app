@@ -35,6 +35,9 @@ export default function KnowledgePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'proficiency'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const toggleSelectMode = () => {
     setIsSelectMode(!isSelectMode);
@@ -69,12 +72,25 @@ export default function KnowledgePage() {
   const subjects = state.subjects;
   const allKPs = state.knowledgePoints;
 
-  const filteredKPs = allKPs.filter(kp => {
-    if (selectedSubject && kp.subjectId !== selectedSubject) return false;
-    if (filterProf !== 'all' && kp.proficiency !== filterProf) return false;
-    if (searchQuery && !kp.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
+  const filteredKPs = allKPs
+    .filter(kp => {
+      if (selectedSubject && kp.subjectId !== selectedSubject) return false;
+      if (filterProf !== 'all' && kp.proficiency !== filterProf) return false;
+      if (searchQuery && !kp.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'name') {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortBy === 'createdAt') {
+        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortBy === 'proficiency') {
+        const profOrder = { none: 0, rusty: 1, normal: 2, master: 3 };
+        cmp = profOrder[a.proficiency] - profOrder[b.proficiency];
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
 
   const grouped = filteredKPs.reduce<Record<string, typeof filteredKPs>>((acc, kp) => {
     const chapter = state.chapters.find(c => c.id === kp.chapterId);
@@ -149,17 +165,65 @@ export default function KnowledgePage() {
         }
       />
 
-      {/* Search */}
+      {/* Search and Sort */}
       <div className="px-4 pt-3 pb-2">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索知识点..."
-            className="w-full bg-white border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索知识点..."
+              className="w-full bg-white border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+            />
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="h-full px-3 bg-white border border-border rounded-xl flex items-center gap-1 text-sm text-text-secondary hover:bg-gray-50"
+            >
+              <Filter size={14} />
+              <span className="hidden sm:inline">排序</span>
+            </button>
+            {showSortMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-lg py-1 z-10 min-w-[140px]">
+                <div className="px-3 py-1.5 text-xs text-text-muted">排序方式</div>
+                <button
+                  onClick={() => { setSortBy('name'); setShowSortMenu(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${sortBy === 'name' ? 'text-primary font-medium' : ''}`}
+                >
+                  名称
+                </button>
+                <button
+                  onClick={() => { setSortBy('createdAt'); setShowSortMenu(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${sortBy === 'createdAt' ? 'text-primary font-medium' : ''}`}
+                >
+                  导入时间
+                </button>
+                <button
+                  onClick={() => { setSortBy('proficiency'); setShowSortMenu(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${sortBy === 'proficiency' ? 'text-primary font-medium' : ''}`}
+                >
+                  熟练程度
+                </button>
+                <div className="border-t my-1" />
+                <div className="px-3 py-1.5 text-xs text-text-muted">排序顺序</div>
+                <button
+                  onClick={() => setSortOrder('asc')}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${sortOrder === 'asc' ? 'text-primary font-medium' : ''}`}
+                >
+                  升序 ↑
+                </button>
+                <button
+                  onClick={() => setSortOrder('desc')}
+                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 ${sortOrder === 'desc' ? 'text-primary font-medium' : ''}`}
+                >
+                  降序 ↓
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

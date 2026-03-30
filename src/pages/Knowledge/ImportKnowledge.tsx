@@ -26,6 +26,11 @@ interface ImportedQuestion {
   explanation?: string;
 }
 
+// 清除选项文本开头的标签前缀 (A. B. C. 等)
+const cleanOptionPrefix = (text: string): string => {
+  return text.replace(/^[A-G]\.\s*/, '').trim();
+};
+
 interface ImportResult {
   totalKP: number;
   successKP: number;
@@ -38,7 +43,7 @@ interface ImportResult {
 }
 
 export default function ImportKnowledgePage() {
-  const { state, dispatch, navigate } = useApp();
+  const { state, dispatch, navigate, recordHistory } = useApp();
   const [mode, setMode] = useState<'file' | 'paste'>('file');
   const [jsonInput, setJsonInput] = useState('');
   const [parsedData, setParsedData] = useState<ImportedKnowledge[]>([]);
@@ -47,6 +52,8 @@ export default function ImportKnowledgePage() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [pendingDuplicateCount, setPendingDuplicateCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Parse JSON from input
@@ -66,7 +73,15 @@ export default function ImportKnowledgePage() {
           knowledgePoints = data.knowledgePoints;
         }
         if (data.questions && Array.isArray(data.questions)) {
-          questions = data.questions;
+          // 清除题目选项中的前缀
+          questions = data.questions.map((q: any) => ({
+            ...q,
+            stem: q.stem,
+            options: q.options.map((opt: any) => ({
+              id: opt.id,
+              text: cleanOptionPrefix(opt.text || opt.label || ''),
+            })),
+          }));
         }
         // Fallback for { data: [...] }
         if (data.data && Array.isArray(data.data)) {
@@ -172,8 +187,25 @@ export default function ImportKnowledgePage() {
     return new Set(items.filter(item => existingNames.has(item.name.toLowerCase())).map(item => item.id));
   }, [state.knowledgePoints]);
 
-  // Import knowledge and questions
-  const handleImport = useCallback(() => {
+  // 检查是否有重复，如果有则显示对话框
+  const checkAndShowDuplicateDialog = useCallback(() => {
+    const duplicates = checkDuplicates(parsedData);
+    if (duplicates.size > 0) {
+      setPendingDuplicateCount(duplicates.size);
+      setShowDuplicateDialog(true);
+    } else {
+      // 没有重复，直接导入
+      handleImportWithMode('skip');
+    }
+  }, [parsedData, checkDuplicates]);
+
+  // 导入知识库（带跳过/覆盖模式）
+  const handleImportWithMode = useCallback((mode: 'skip' | 'overwrite') => {
+    setShowDuplicateDialog(false);
+    
+    // 导入前记录历史，用于撤销
+    recordHistory();
+    
     let successKP = 0;
     let duplicateKP = 0;
     let invalidKP = 0;
@@ -189,9 +221,22 @@ export default function ImportKnowledgePage() {
         return;
       }
 
-      if (duplicates.has(item.id)) {
-        duplicateKP++;
-        return;
+      // 检查是否为重复项
+      const isDuplicate = duplicates.has(item.id);
+      
+      if (isDuplicate) {
+        if (mode === 'overwrite') {
+          // 删除旧项
+          const oldKP = state.knowledgePoints.find(kp => 
+            item.name.toLowerCase() === kp.name.toLowerCase()
+          );
+          if (oldKP) {
+            dispatch({ type: 'DELETE_KNOWLEDGE_POINT', payload: oldKP.id });
+          }
+        } else {
+          duplicateKP++;
+          return;
+        }
       }
 
       const newKP = {
@@ -257,7 +302,7 @@ export default function ImportKnowledgePage() {
       duplicateQ,
       invalidQ,
     });
-  }, [parsedData, parsedQuestions, validateItem, checkDuplicates, dispatch, state.questions]);
+  }, [parsedData, parsedQuestions, validateItem, checkDuplicates, dispatch, state.questions, recordHistory]);
 
   // Toggle item expansion
   const toggleExpand = useCallback((index: number) => {
@@ -550,13 +595,45 @@ export default function ImportKnowledgePage() {
             {/* Import Button */}
             {validItems.length > 0 && (
               <button
-                onClick={handleImport}
+                onClick={checkAndShowDuplicateDialog}
                 className="w-full bg-primary text-white font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2"
               >
                 <Plus size={18} />
                 导入 {validItems.length} 个知识点
                 {parsedQuestions.length > 0 && ` + ${parsedQuestions.length} 个题目`}
               </button>
+            )}
+
+            {/* Duplicate Dialog */}
+            {showDuplicateDialog && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+                  <h3 className="text-lg font-bold mb-2">检测到重复内容</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    发现 {pendingDuplicateCount} 个重复的知识点，请选择处理方式：
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleImportWithMode('skip')}
+                      className="w-full bg-gray-100 text-gray-700 font-medium py-3 rounded-xl text-sm"
+                    >
+                      跳过重复项
+                    </button>
+                    <button
+                      onClick={() => handleImportWithMode('overwrite')}
+                      className="w-full bg-amber-500 text-white font-medium py-3 rounded-xl text-sm"
+                    >
+                      覆盖重复项
+                    </button>
+                    <button
+                      onClick={() => setShowDuplicateDialog(false)}
+                      className="w-full text-gray-500 text-sm py-2"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}

@@ -48,11 +48,23 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
 
 export const MOCK_SHOP_ITEMS: ShopItem[] = [
   { id: 'item-1', name: '补签卡', description: '可补签1天', icon: '🎫', type: 'makeup_card', price: 30, owned: false },
-  { id: 'item-2', name: '金色头像框', description: '闪闪发光的金色边框', icon: '🖼️', type: 'avatar_frame', price: 100, owned: false },
-  { id: 'item-3', name: '暗夜主题', description: '深色护眼主题皮肤', icon: '🌙', type: 'theme_skin', price: 200, owned: false },
-  { id: 'item-4', name: '樱花主题', description: '粉嫩樱花风格', icon: '🌸', type: 'theme_skin', price: 200, owned: false },
-  { id: 'item-5', name: '猫咪助手', description: 'AI助手变身可爱猫咪', icon: '🐱', type: 'ai_skin', price: 150, owned: false },
-  { id: 'item-6', name: '机器人助手', description: 'AI助手科技风外观', icon: '🤖', type: 'ai_skin', price: 150, owned: false },
+  
+  // 头像框
+  { id: 'item-2', name: '优雅黑金框', description: '优雅黑色金边头像框', icon: '🖤', type: 'avatar_frame', price: 100, owned: false },
+  { id: 'item-3', name: '彩虹缤纷框', description: '多彩渐变彩虹头像框', icon: '🌈', type: 'avatar_frame', price: 150, owned: false },
+  { id: 'item-4', name: '爱心包围框', description: '爱心装饰粉色头像框', icon: '❤️', type: 'avatar_frame', price: 200, owned: false },
+  { id: 'item-5', name: '火焰图腾框', description: 'SSR传说火焰特效头像框', icon: '🔥', type: 'avatar_frame', price: 500, owned: false },
+  
+  // 背景
+  { id: 'bg-item-1', name: '橘光晚霞', description: '暖色调渐变背景', icon: '☁️', type: 'background', price: 120, owned: false },
+  { id: 'bg-item-2', name: '春日樱', description: '粉色樱花飘落动态背景', icon: '🌸', type: 'background', price: 250, owned: false },
+  { id: 'bg-item-3', name: '璀璨银河', description: 'SSR星空闪烁动态背景', icon: '🌌', type: 'background', price: 600, owned: false },
+  
+  // AI皮肤
+  { id: 'item-10', name: '暗夜主题', description: '深色护眼主题皮肤', icon: '🌙', type: 'theme_skin', price: 200, owned: false },
+  { id: 'item-11', name: '樱花主题', description: '粉嫩樱花风格', icon: '🌸', type: 'theme_skin', price: 200, owned: false },
+  { id: 'item-12', name: '猫咪助手', description: 'AI助手变身可爱猫咪', icon: '🐱', type: 'ai_skin', price: 150, owned: false },
+  { id: 'item-13', name: '机器人助手', description: 'AI助手科技风外观', icon: '🤖', type: 'ai_skin', price: 150, owned: false },
 ];
 
 export const MOCK_RANKINGS: { studyTime: RankEntry[]; masterCount: RankEntry[] } = {

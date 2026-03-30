@@ -13,41 +13,48 @@
  * 4. 如需隐藏底部 TabBar → 在 TabBar.tsx 的 hiddenPages 中添加
  * 5. 如需全屏（无 scroll-container 包裹）→ 在 isFullScreen 条件中添加
  *
- * 【当前页面清单】19 个
- * 核心 (P1): login, home, profile, knowledge, knowledge-detail, add-knowledge,
- *            quiz, quiz-session, quiz-result, wrong-book, knowledge-map, review-session
- * 激励 (P2): checkin, achievements, shop, ranking, lottery
- * AI (P3):   ai-chat
+ * 【优化】使用 React.lazy 进行代码分割，减少首屏加载体积
  * ============================================================================
  */
 
+import React, { Suspense } from 'react';
 import { useApp } from '@/store/AppContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
-import LoginPage from '@/pages/Login';
-import HomePage from '@/pages/Home';
-import ProfilePage from '@/pages/Profile';
-import KnowledgePage from '@/pages/Knowledge';
-import KnowledgeDetailPage from '@/pages/Knowledge/KnowledgeDetail';
-import AddKnowledgePage from '@/pages/Knowledge/AddKnowledge';
-import ImportKnowledgePage from '@/pages/Knowledge/ImportKnowledge';
-import QuizPage from '@/pages/Quiz';
-import QuizSessionPage from '@/pages/Quiz/QuizSession';
-import QuizResultPage from '@/pages/Quiz/QuizResult';
-import WrongBookPage from '@/pages/Quiz/WrongBook';
-import KnowledgeMapPage from '@/pages/KnowledgeMap';
-import ReviewSessionPage from '@/pages/Review';
-import CheckinPage from '@/pages/Checkin';
-import AchievementsPage from '@/pages/Achievements';
-import ShopPage from '@/pages/Shop';
-import RankingPage from '@/pages/Ranking';
-import LotteryPage from '@/pages/Lottery';
-import AIChatPage from '@/pages/AIChat';
-import SettingsPage from '@/pages/Settings';
-import InventoryPage from '@/pages/Inventory';
-import MailPage from '@/pages/Mail';
-import AvatarEditPage from '@/pages/AvatarEdit';
+import { Loader2 } from 'lucide-react';
+
+// 懒加载所有页面组件，减少首屏加载体积
+const LoginPage = React.lazy(() => import('@/pages/Login'));
+const HomePage = React.lazy(() => import('@/pages/Home'));
+const ProfilePage = React.lazy(() => import('@/pages/Profile'));
+const KnowledgePage = React.lazy(() => import('@/pages/Knowledge'));
+const KnowledgeDetailPage = React.lazy(() => import('@/pages/Knowledge/KnowledgeDetail'));
+const AddKnowledgePage = React.lazy(() => import('@/pages/Knowledge/AddKnowledge'));
+const ImportKnowledgePage = React.lazy(() => import('@/pages/Knowledge/ImportKnowledge'));
+const QuizPage = React.lazy(() => import('@/pages/Quiz'));
+const QuizSessionPage = React.lazy(() => import('@/pages/Quiz/QuizSession'));
+const QuizResultPage = React.lazy(() => import('@/pages/Quiz/QuizResult'));
+const WrongBookPage = React.lazy(() => import('@/pages/Quiz/WrongBook'));
+const KnowledgeMapPage = React.lazy(() => import('@/pages/KnowledgeMap'));
+const ReviewSessionPage = React.lazy(() => import('@/pages/Review'));
+const CheckinPage = React.lazy(() => import('@/pages/Checkin'));
+const AchievementsPage = React.lazy(() => import('@/pages/Achievements'));
+const ShopPage = React.lazy(() => import('@/pages/Shop'));
+const RankingPage = React.lazy(() => import('@/pages/Ranking'));
+const LotteryPage = React.lazy(() => import('@/pages/Lottery'));
+const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
+const SettingsPage = React.lazy(() => import('@/pages/Settings'));
+const InventoryPage = React.lazy(() => import('@/pages/Inventory'));
+const MailPage = React.lazy(() => import('@/pages/Mail'));
+const AvatarEditPage = React.lazy(() => import('@/pages/AvatarEdit'));
+
+// 加载占位组件
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+  </div>
+);
 
 function AppContent() {
   const { state } = useApp();
@@ -84,13 +91,19 @@ function AppContent() {
   const isFullScreen = state.currentPage === 'login' || state.currentPage === 'quiz-result' || state.currentPage === 'ai-chat';
 
   if (isFullScreen) {
-    return renderPage();
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        {renderPage()}
+      </Suspense>
+    );
   }
 
   return (
     <>
       <div className="scroll-container">
-        {renderPage()}
+        <Suspense fallback={<LoadingFallback />}>
+          {renderPage()}
+        </Suspense>
       </div>
       {state.isLoggedIn && <TabBar />}
       <AchievementPopup />

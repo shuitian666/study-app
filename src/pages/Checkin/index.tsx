@@ -418,7 +418,7 @@ export default function CheckinPage() {
                     {record || (isToday && todayChecked) ? '✓' : new Date(date).getDate()}
                   </button>
 
-                  {isToday && <div className="w-1 h-1 rounded-full bg-primary" />}
+                  {isToday && <div className="w-1.5 h-1.5 rounded-full bg-primary mt-0.5" />}
                 </div>
 
               );

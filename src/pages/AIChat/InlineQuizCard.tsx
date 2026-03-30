@@ -47,12 +47,16 @@ export default function InlineQuizCard({ question, onAnswer }: InlineQuizCardPro
       <div className="text-[10px] text-indigo-500 font-medium mb-1.5">
         {question.type === 'single_choice' ? '单选题' : question.type === 'true_false' ? '判断题' : '多选题'}
       </div>
+
       <p className="text-sm font-medium text-gray-800 mb-3 leading-relaxed">{question.stem}</p>
+
 
       <div className="space-y-2">
         {question.options.map((opt, i) => {
           const isSelected = selectedAnswers.includes(opt.id);
           const isCorrectOption = question.correctAnswers.includes(opt.id);
+          // 强制清除任何前缀，统一显示格式
+          const cleanText = opt.text.replace(/^[A-G]\.\s*/, '').trim();
 
           let style = 'bg-white border-gray-200';
           if (submitted) {
@@ -82,11 +86,12 @@ export default function InlineQuizCard({ question, onAnswer }: InlineQuizCardPro
                  submitted && isSelected && !isCorrectOption ? <XCircle size={12} /> :
                  labels[i]}
               </span>
-              <span className="text-xs text-gray-700">{opt.text}</span>
+              <span className="text-xs text-gray-700">{labels[i]}. {cleanText}</span>
             </button>
           );
         })}
       </div>
+
 
       {!submitted ? (
         <button
@@ -96,15 +101,19 @@ export default function InlineQuizCard({ question, onAnswer }: InlineQuizCardPro
         >
           确认答案
         </button>
+
       ) : (
         <div className={`mt-3 p-3 rounded-lg text-xs leading-relaxed ${isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
           <div className="flex items-center gap-1.5 mb-1 font-medium">
             {isCorrect ? <CheckCircle size={14} /> : <XCircle size={14} />}
             {isCorrect ? '回答正确！' : '回答错误'}
           </div>
+
           {question.explanation}
         </div>
+
       )}
     </div>
+
   );
 }

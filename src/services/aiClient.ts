@@ -274,7 +274,14 @@ export async function fetchDoubanQuiz(
     if (content) {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.options) {
+          parsed.options = parsed.options.map((opt: any) => ({
+            ...opt,
+            text: (opt.text || opt.label || '').replace(/^[A-G]\.\s*/, '').trim(),
+          }));
+        }
+        return parsed;
       }
     }
   } catch { /* timeout or error */ }

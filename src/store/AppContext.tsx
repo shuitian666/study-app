@@ -788,25 +788,27 @@ function reducer(state: AppState, action: Action): AppState {
     case 'UNDO': {
       if (state._historyIndex <= 0 || state._history.length === 0) return state;
       const prevState = state._history[state._historyIndex - 1];
+      const newHistoryIndex = state._historyIndex - 1;
       return {
         ...state,
         ...prevState,
         _history: state._history,
-        _historyIndex: state._historyIndex - 1,
-        _canUndo: state._historyIndex > 1,
+        _historyIndex: newHistoryIndex,
+        _canUndo: newHistoryIndex > 0,
         _canRedo: true,
       };
     }
     case 'REDO': {
       if (state._historyIndex >= state._history.length - 1) return state;
       const nextState = state._history[state._historyIndex + 1];
+      const newHistoryIndex = state._historyIndex + 1;
       return {
         ...state,
         ...nextState,
         _history: state._history,
-        _historyIndex: state._historyIndex + 1,
+        _historyIndex: newHistoryIndex,
         _canUndo: true,
-        _canRedo: state._historyIndex < state._history.length - 2,
+        _canRedo: newHistoryIndex < state._history.length - 1,
       };
     }
 
