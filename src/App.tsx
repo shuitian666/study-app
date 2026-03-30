@@ -162,18 +162,21 @@ function AppContent() {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: currentBackground }}>
-      {renderBackgroundPattern(currentPattern)}
-      <div className="flex-1 overflow-y-auto z-10">
-        <div className="pb-4">
-          <Suspense fallback={<LoadingFallback />}>
-            {renderPage()}
-          </Suspense>
+    <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
+      {/* 手机端满屏，电脑端限制最大宽度像手机一样居中显示 */}
+      <div className="w-full max-w-[480px] flex flex-col relative">
+        {renderBackgroundPattern(currentPattern)}
+        <div className="flex-1 overflow-y-auto z-10">
+          <div className="pb-4">
+            <Suspense fallback={<LoadingFallback />}>
+              {renderPage()}
+            </Suspense>
+          </div>
         </div>
+        {state.isLoggedIn && <TabBar />}
+        <AchievementPopup />
+        <LotteryDrawModal />
       </div>
-      {state.isLoggedIn && <TabBar />}
-      <AchievementPopup />
-      <LotteryDrawModal />
     </div>
   );
 }
