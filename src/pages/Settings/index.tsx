@@ -17,17 +17,23 @@ import type { AIConfig } from '@/types';
 import { getAIConfig, setAIConfig } from '@/services/aiClient';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle } from 'lucide-react';
 
-// 豆包API配置
-const DOUBAN_API_KEY = '3f5deb81-98ad-468a-a78d-e4c78f5b6fda';
+// 豆包默认模型
 const DOUBAN_MODEL = 'doubao-lite-32k';
 
 export default function SettingsPage() {
   const { state, dispatch, navigate } = useApp();
   
+  // 读取已保存配置
+  const savedConfig = getAIConfig();
+  
   // 当前模式: 'douban' = 云端豆包, 'offline' = 离线模式
   const [aiMode, setAiMode] = useState<'douban' | 'offline'>(() => {
-    const config = getAIConfig();
-    return config.provider === 'douban' ? 'douban' : 'offline';
+    return savedConfig.provider === 'douban' ? 'douban' : 'offline';
+  });
+  
+  // API Key 输入框
+  const [apiKey, setApiKey] = useState(() => {
+    return savedConfig.apiKey || '';
   });
   
   const [saving, setSaving] = useState(false);
@@ -42,11 +48,11 @@ export default function SettingsPage() {
     setSaving(true);
     
     if (mode === 'douban') {
-      // 配置豆包云端API
+      // 配置豆包云端API - 使用用户输入的 API Key
       const newConfig: AIConfig = {
         provider: 'douban',
         presetId: 'douban',
-        apiKey: DOUBAN_API_KEY,
+        apiKey: apiKey.trim(),
         modelId: DOUBAN_MODEL,
       };
       setAIConfig(newConfig);
@@ -150,8 +156,7 @@ export default function SettingsPage() {
             
             {/* 豆包云端 */}
             <button
-              onClick={() => saveAIMode('douban')}
-              disabled={saving}
+              onClick={() => setAiMode('douban')}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                 isDoubanMode 
                   ? 'border-purple-500 bg-purple-50' 
@@ -172,10 +177,28 @@ export default function SettingsPage() {
               </div>
             </button>
             
+            {/* 豆包 API Key 输入框 */}
+            {isDoubanMode && (
+              <div className="mt-3">
+                <label className="text-xs text-text-secondary mb-1.5 block">
+                  豆包 API Key
+                </label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="请输入你的火山方舟 API Key"
+                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-400 transition-colors"
+                />
+                <p className="text-[10px] text-text-muted mt-1">
+                  在 <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" className="text-purple-500 underline">火山方舟控制台</a> 获取 API Key
+                </p>
+              </div>
+            )}
+            
             {/* 离线模式 */}
             <button
-              onClick={() => saveAIMode('offline')}
-              disabled={saving}
+              onClick={() => setAiMode('offline')}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                 !isDoubanMode 
                   ? 'border-gray-400 bg-gray-50' 
@@ -194,6 +217,15 @@ export default function SettingsPage() {
                 </div>
                 {!isDoubanMode && <Check size={18} className="text-gray-400" />}
               </div>
+            </button>
+
+            {/* 保存按钮 */}
+            <button
+              onClick={() => saveAIMode(aiMode)}
+              disabled={saving || (isDoubanMode && !apiKey.trim())}
+              className="w-full mt-2 py-2.5 bg-purple-500 text-white text-sm rounded-xl font-medium active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? '保存中...' : '保存 AI 配置'}
             </button>
           </div>
         </div>

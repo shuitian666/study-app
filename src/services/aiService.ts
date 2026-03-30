@@ -171,14 +171,16 @@ async function* streamChatDouban(
   modelId: string = 'doubao-lite-32k'
 ): AsyncGenerator<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
+  // 缩短超时到 60 秒，避免无限等待
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
+    // 如果配置了代理，需要确保浏览器能访问
     const res = await fetch(`${DOUBAN_API_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey.trim()}`, // 清除可能的空格
       },
       body: JSON.stringify({
         model: modelId,
@@ -194,10 +196,18 @@ async function* streamChatDouban(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      throw new Error(`豆包API调用失败: ${res.status}`);
+      let errMsg = `豆包API调用失败: HTTP ${res.status}`;
+      if (res.status === 401) errMsg += ' - API Key 无效或过期';
+      if (res.status === 403) errMsg += ' - 没有权限访问该模型';
+      if (res.status === 429) errMsg += ' - 请求太频繁，速率限制';
+      throw new Error(errMsg);
     }
 
-    const reader = res.body!.getReader();
+    if (!res.body) {
+      throw new Error('豆包API返回为空');
+    }
+
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
 
@@ -218,9 +228,14 @@ async function* streamChatDouban(
           const payload = JSON.parse(trimmed.slice(6));
           const content = payload.choices?.[0]?.delta?.content;
           if (content) yield content;
-        } catch { /* ignore */ }
+        } catch { /* ignore parse errors on partial chunks */ }
       }
     }
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('连接超时，豆包API响应太慢，请检查网络连接');
+    }
+    throw e;
   } finally {
     clearTimeout(timeoutId);
   }

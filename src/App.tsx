@@ -17,7 +17,7 @@
  * ============================================================================
  */
 
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
@@ -58,7 +58,7 @@ const LoadingFallback = () => (
 );
 
 function AppContent() {
-  const { state } = useApp();
+  const { state, navigate } = useApp();
   
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
@@ -151,29 +151,237 @@ function AppContent() {
     }
   };
 
-  const isFullScreen = state.currentPage === 'login' || state.currentPage === 'quiz-result' || state.currentPage === 'ai-chat';
+  const isFullScreen = state.currentPage === 'login' || state.currentPage === 'quiz-result' || state.currentPage === 'ai-chat' 
+    || state.currentPage === 'quiz-session' || state.currentPage === 'knowledge-detail' || state.currentPage === 'add-knowledge' 
+    || state.currentPage === 'import-knowledge' || state.currentPage === 'review-session' || state.currentPage === 'wrong-book';
 
-  if (isFullScreen) {
+  // 五个主页面用于循环滑动切换
+  const mainTabs = ['home', 'knowledge', 'quiz', 'knowledge-map', 'profile'] as const;
+  type MainTab = typeof mainTabs[number];
+  const currentIndex = mainTabs.indexOf(state.currentPage as MainTab);
+  const isMainTab = currentIndex >= 0;
+
+  // 检测是否为大屏幕（电脑）启用滑动切换，小屏幕（手机）保持原有方式
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth > 768);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [offsetX, setOffsetX] = useState(0);
+
+  // 监听屏幕尺寸变化
+  useEffect(() => {
+    const handleResize = () => setIsLargeScreen(window.innerWidth > 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 如果非大屏幕/非主页面，使用原有布局
+  if (!isLargeScreen || !isMainTab || isFullScreen) {
     return (
-      <Suspense fallback={<LoadingFallback />}>
-        {renderPage()}
-      </Suspense>
+      <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
+        <div className="w-full max-w-[480px] flex flex-col relative">
+          {renderBackgroundPattern(currentPattern)}
+          <div className="flex-1 overflow-y-auto z-10">
+            <div className="pb-4">
+              <Suspense fallback={<LoadingFallback />}>
+                {renderPage()}
+              </Suspense>
+            </div>
+          </div>
+          {state.isLoggedIn && <TabBar />}
+          <AchievementPopup />
+          <LotteryDrawModal />
+        </div>
+      </div>
     );
   }
 
+  // 大屏幕 + 主页面：铺满屏幕，同时**一直显示三张牌** - 前/中/后，全程都有内容不会空白
+  const prevIndex = currentIndex === 0 ? mainTabs.length - 1 : currentIndex - 1;
+  const nextIndex = currentIndex === mainTabs.length - 1 ? 0 : currentIndex + 1;
+
+  const renderMainTab = (tabName: string) => {
+    switch (tabName) {
+      case 'home': return <HomePage />;
+      case 'knowledge': return <KnowledgePage />;
+      case 'quiz': return <QuizPage />;
+      case 'knowledge-map': return <KnowledgeMapPage />;
+      case 'profile': return <ProfilePage />;
+      default: return <HomePage />;
+    }
+  };
+
+  // 计算位置：三张均匀分布，全程可见
+  // 每一页宽度 = 屏幕一半，最大 520px
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
+  const pageWidth = Math.min(screenWidth * 0.5, 520);
+  // 计算三个页面的基础位置：都完整可见
+  const leftX = (screenWidth - pageWidth) / 2 - pageWidth; // prev 在 current 左侧，正好一个完整宽度
+  const currX = (screenWidth - pageWidth) / 2;             // current 居中
+  const nextX = (screenWidth - pageWidth) / 2 + pageWidth; // next 在 current 右侧，正好一个完整宽度
+
+  const getTransform = (pageOffset: -1 | 0 | 1) => {
+    const baseX = pageOffset === -1 ? leftX : pageOffset === 0 ? currX : nextX;
+    const scale = pageOffset === 0 ? 1 : 0.92;
+    const rotateY = pageOffset === -1 ? '8deg' : pageOffset === 1 ? '-8deg' : '0deg';
+    const translateZ = pageOffset === 0 ? '30px' : '0px';
+    return `translateX(calc(${baseX}px + ${offsetX * 0.8}px)) scale(${scale}) rotateY(${rotateY}) translateZ(${translateZ})`;
+  };
+
+  const getOpacity = (pageOffset: -1 | 0 | 1) => {
+    return pageOffset === 0 ? 1 : 0.4;
+  };
+
+  // 拖动结束处理：超过阈值则切换，否则回弹
+  const finishSwipe = () => {
+    if (!isDragging) return;
+    const threshold = pageWidth * 0.3;
+    if (Math.abs(offsetX) > threshold) {
+      if (offsetX > 0) {
+        goToPrev();
+      } else {
+        goToNext();
+      }
+    } else {
+      // 回弹到原位
+      setOffsetX(0);
+    }
+    setIsDragging(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setOffsetX(e.clientX - startX);
+  };
+
+  const handleMouseUp = () => finishSwipe();
+  const handleMouseLeave = () => finishSwipe();
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    setOffsetX(e.touches[0].clientX - startX);
+  };
+
+  const handleTouchEnd = () => finishSwipe();
+
+  // 按钮点击切换：带动画，滑到位再更新索引，全程三张都可见
+  const goToPrev = () => {
+    const targetOffset = pageWidth; // 向右滑一个页面宽度
+    setOffsetX(targetOffset);
+    setTimeout(() => {
+      navigate(mainTabs[prevIndex]);
+      setOffsetX(0);
+    }, 400);
+  };
+
+  const goToNext = () => {
+    const targetOffset = -pageWidth; // 向左滑一个页面宽度
+    setOffsetX(targetOffset);
+    setTimeout(() => {
+      navigate(mainTabs[nextIndex]);
+      setOffsetX(0);
+    }, 400);
+  };
+
   return (
-    <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
-      {/* 手机端满屏，电脑端限制最大宽度像手机一样居中显示 */}
-      <div className="w-full max-w-[480px] flex flex-col relative">
-        {renderBackgroundPattern(currentPattern)}
-        <div className="flex-1 overflow-y-auto z-10">
-          <div className="pb-4">
-            <Suspense fallback={<LoadingFallback />}>
-              {renderPage()}
-            </Suspense>
+    <div className="fixed inset-0" style={{ background: currentBackground }}>
+      {renderBackgroundPattern(currentPattern)}
+      <div className="h-full flex flex-col relative group"
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="flex-1 relative overflow-hidden perspective-[1200px]">
+          {/* 前一页 - 始终在左边 */}
+          <div
+            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
+            style={{
+              transform: getTransform(-1),
+              opacity: getOpacity(-1),
+              zIndex: 1
+            }}
+          >
+            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
+              <Suspense fallback={<LoadingFallback />}>
+                {renderMainTab(mainTabs[prevIndex])}
+              </Suspense>
+            </div>
           </div>
+
+          {/* 当前页 - 始终在中间 */}
+          <div
+            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
+            style={{
+              transform: getTransform(0),
+              opacity: getOpacity(0),
+              zIndex: 2
+            }}
+          >
+            <div className="w-full h-full overflow-y-auto pb-[70px]">
+              <Suspense fallback={<LoadingFallback />}>
+                {renderMainTab(mainTabs[currentIndex])}
+              </Suspense>
+            </div>
+          </div>
+
+          {/* 后一页 - 始终在右边 */}
+          <div
+            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
+            style={{
+              transform: getTransform(1),
+              opacity: getOpacity(1),
+              zIndex: 1
+            }}
+          >
+            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
+              <Suspense fallback={<LoadingFallback />}>
+                {renderMainTab(mainTabs[nextIndex])}
+              </Suspense>
+            </div>
+          </div>
+
+          {/* 左侧切换按钮 - 透明，鼠标靠近显示 */}
+          <button
+            onClick={goToPrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center
+              text-white/20 hover:text-white/80 bg-black/5 hover:bg-black/20 rounded-full 
+              transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
+          >
+            <span className="text-2xl font-bold">&lt;</span>
+          </button>
+
+          {/* 右侧切换按钮 - 透明，鼠标靠近显示 */}
+          <button
+            onClick={goToNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center
+              text-white/20 hover:text-white/80 bg-black/5 hover:bg-black/20 rounded-full 
+              transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
+          >
+            <span className="text-2xl font-bold">&gt;</span>
+          </button>
         </div>
-        {state.isLoggedIn && <TabBar />}
+
+        {/* 底部导航保持居中 */}
+        {state.isLoggedIn && (
+          <div className="relative z-10 max-w-[520px] mx-auto bg-white">
+            <TabBar />
+          </div>
+        )}
         <AchievementPopup />
         <LotteryDrawModal />
       </div>

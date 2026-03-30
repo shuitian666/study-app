@@ -27,6 +27,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   ollama: '本地 Ollama',
   volcengine: '火山引擎',
   minimax: 'Minimax',
+  douban: '豆包 AI',
 };
 
 export default function AIChatPage() {
@@ -39,6 +40,17 @@ export default function AIChatPage() {
   const [backendMode, setBackendMode] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
+    const config = getAIConfig();
+    // 豆包直连模式不需要检测本地后端，直接显示在线
+    if (config.provider === 'douban') {
+      if (config.apiKey && config.apiKey.trim().length > 0) {
+        setBackendMode('online');
+      } else {
+        setBackendMode('offline');
+      }
+      return;
+    }
+    // 其他模式检测本地后端
     checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
   }, []);
 
@@ -90,7 +102,13 @@ export default function AIChatPage() {
       setStreamingMsgId(null);
       dispatch({ type: 'AI_SET_LOADING', payload: false });
 
-      checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
+      // 豆包模式不需要检测本地后端
+      const config = getAIConfig();
+      if (config.provider === 'douban') {
+        setBackendMode('online');
+      } else {
+        checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
+      }
 
       if (relatedKpIds.length > 0) {
         const question = await generateQuiz(
