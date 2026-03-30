@@ -237,7 +237,8 @@ export async function* streamChatDouban(
 export async function fetchDoubanQuiz(
   apiKey: string,
   knowledgePointNames: string[],
-  subjectName: string
+  subjectName: string,
+  modelId: string = 'doubao-lite-32k'
 ): Promise<Question | null> {
   const messages = [
     {
@@ -257,7 +258,7 @@ export async function fetchDoubanQuiz(
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'doubao-lite-32k',
+        model: modelId,
         messages,
         stream: false,
       }),
@@ -293,7 +294,8 @@ export async function fetchDoubanExplanation(
   apiKey: string,
   question: { stem?: string; options?: Array<{ id: string; text: string }> },
   selectedAnswer: string[],
-  correctAnswer: string[]
+  correctAnswer: string[],
+  modelId: string = 'doubao-lite-32k'
 ): Promise<string> {
   const isCorrect = selectedAnswer.length === correctAnswer.length &&
     selectedAnswer.every(a => correctAnswer.includes(a));
@@ -316,7 +318,7 @@ export async function fetchDoubanExplanation(
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'doubao-lite-32k',
+        model: modelId,
         messages,
         stream: false,
       }),

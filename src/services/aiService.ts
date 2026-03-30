@@ -25,6 +25,7 @@ import { AI_ANSWER_TEMPLATES, AI_GENERIC_ANSWER, AI_QUIZ_POOL, ENCOURAGEMENT_RUL
 import {
   checkBackendAvailable, getAIConfig,
   streamChat, fetchQuiz, fetchEncouragement,
+  fetchDoubanExplanation,
 } from '@/services/aiClient';
 
 // ===== 豆包API配置 =====
@@ -63,7 +64,7 @@ function findRelatedKpIds(query: string, knowledgePoints: KnowledgePoint[]): str
 
 // ===== Mock 实现 (作为降级方案) =====
 
-function mockAskQuestion(query: string, knowledgePoints: KnowledgePoint[]): { answer: string; relatedKpIds: string[] } {
+function mockAskQuestion(query: string, knowledgePoints: KnowledgePoint[], _history: ChatMessage[] = []): { answer: string; relatedKpIds: string[] } {
   const queryLower = query.toLowerCase();
 
   for (const tpl of AI_ANSWER_TEMPLATES) {
@@ -168,7 +169,7 @@ function mockGetSmartEncouragement(stats: LearningStats, wrongCount: number, che
 async function* streamChatDouban(
   apiKey: string,
   messages: { role: string; content: string }[],
-  modelId: string = 'doubao-lite-32k'
+  modelId: string
 ): AsyncGenerator<string> {
   const controller = new AbortController();
   // 缩短超时到 60 秒，避免无限等待
@@ -250,7 +251,8 @@ const cleanOptionPrefix = (text: string): string => {
 async function fetchDoubanQuiz(
   apiKey: string,
   knowledgePointNames: string[],
-  subjectName: string
+  subjectName: string,
+  modelId: string
 ): Promise<Question | null> {
   const messages = [
     {
@@ -280,10 +282,10 @@ async function fetchDoubanQuiz(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey.trim()}`,
       },
       body: JSON.stringify({
-        model: 'doubao-lite-32k',
+        model: modelId,
         messages,
         stream: false,
       }),
@@ -325,17 +327,22 @@ export interface AskQuestionResult {
 
 export async function askQuestion(
   query: string,
-  knowledgePoints: KnowledgePoint[]
+  knowledgePoints: KnowledgePoint[],
+  history: ChatMessage[] = []
 ): Promise<AskQuestionResult> {
   const config = getAIConfig();
 
-  // 如果使用豆包API且有密钥，直接调用
-  if (config.provider === 'douban' && config.apiKey) {
+  // 如果使用豆包API且有密钥，直接调用 - 只保留最近N轮消息，控制token消耗
+  if (config.provider === 'douban' && config.apiKey && config.modelId) {
     try {
-      const messages = [{ role: 'user', content: query }];
+      const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
+        role: m.role === 'ai' ? 'assistant' : m.role,
+        content: m.content,
+      }));
+      recentHistory.push({ role: 'user', content: query });
       let answer = '';
 
-      for await (const chunk of streamChatDouban(config.apiKey, messages)) {
+      for await (const chunk of streamChatDouban(config.apiKey, recentHistory, config.modelId)) {
         answer += chunk;
       }
 
@@ -351,12 +358,16 @@ export async function askQuestion(
   if (available) {
     try {
       const kpNames = knowledgePoints.slice(0, 20).map(kp => kp.name);
-      const messages = [{ role: 'user', content: query }];
+      const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
+        role: m.role === 'ai' ? 'assistant' : m.role,
+        content: m.content,
+      }));
+      recentHistory.push({ role: 'user', content: query });
 
       let answer = '';
       const generator = streamChat({
         provider: config.provider,
-        messages,
+        messages: recentHistory,
         knowledgeContext: kpNames,
       });
       for await (const chunk of generator) {
@@ -371,7 +382,7 @@ export async function askQuestion(
   }
 
   await randomDelay(800, 1500);
-  return mockAskQuestion(query, knowledgePoints);
+  return mockAskQuestion(query, knowledgePoints, history);
 }
 
 // ===== 1b. Ask Question (流式) =====
@@ -381,6 +392,9 @@ export interface StreamingAskResult {
   relatedKpIds: string[];
 }
 
+// 最大上下文轮数，避免token过多消耗
+const MAX_CONTEXT_MESSAGES = 6;
+
 export async function askQuestionStreaming(
   query: string,
   knowledgePoints: KnowledgePoint[],
@@ -388,15 +402,15 @@ export async function askQuestionStreaming(
 ): Promise<StreamingAskResult> {
   const config = getAIConfig();
 
-  // 豆包API
-  if (config.provider === 'douban' && config.apiKey) {
-    const recentHistory = history.slice(-6).map(m => ({
+  // 豆包API - 只保留最近N轮消息，控制token消耗
+  if (config.provider === 'douban' && config.apiKey && config.modelId) {
+    const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
       role: m.role === 'ai' ? 'assistant' : m.role,
       content: m.content,
     }));
     recentHistory.push({ role: 'user', content: query });
 
-    const stream = streamChatDouban(config.apiKey, recentHistory);
+    const stream = streamChatDouban(config.apiKey, recentHistory, config.modelId);
     const relatedKpIds = findRelatedKpIds(query, knowledgePoints);
     return { stream, relatedKpIds };
   }
@@ -406,7 +420,7 @@ export async function askQuestionStreaming(
   if (available) {
     const kpNames = knowledgePoints.slice(0, 20).map(kp => kp.name);
 
-    const recentHistory = history.slice(-6).map(m => ({
+    const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
       role: m.role === 'ai' ? 'assistant' : m.role,
       content: m.content,
     }));
@@ -447,7 +461,7 @@ export async function generateQuiz(
   const config = getAIConfig();
 
   // 豆包API
-  if (config.provider === 'douban' && config.apiKey) {
+  if (config.provider === 'douban' && config.apiKey && config.modelId) {
     try {
       const kps = knowledgePoints.filter(kp => knowledgePointIds.includes(kp.id));
       const kpNames = kps.map(kp => kp.name);
@@ -455,7 +469,7 @@ export async function generateQuiz(
         ? knowledgePoints.find(k => k.subjectId === kps[0].subjectId)?.name || ''
         : '';
 
-      const question = await fetchDoubanQuiz(config.apiKey, kpNames, subjectName);
+      const question = await fetchDoubanQuiz(config.apiKey, kpNames, subjectName, config.modelId);
 
       if (question) {
         return {
@@ -513,7 +527,7 @@ export async function getSmartEncouragement(
   const config = getAIConfig();
 
   // 豆包API
-  if (config.provider === 'douban' && config.apiKey) {
+  if (config.provider === 'douban' && config.apiKey && config.modelId) {
     try {
       const messages = [
         {
@@ -523,7 +537,7 @@ export async function getSmartEncouragement(
       ];
 
       let result = '';
-      for await (const chunk of streamChatDouban(config.apiKey, messages)) {
+      for await (const chunk of streamChatDouban(config.apiKey, messages, config.modelId)) {
         result += chunk;
       }
       return result || '今天也要加油哦！';
@@ -568,20 +582,15 @@ export async function generateQuestionExplanation(params: ExplainParams): Promis
     params.selectedAnswer.every(a => params.correctAnswer.includes(a));
 
   // 豆包API
-  if (config.provider === 'douban' && config.apiKey) {
+  if (config.provider === 'douban' && config.apiKey && config.modelId) {
     try {
-      const messages = [
-        {
-          role: 'user',
-          content: `题目：${params.question.stem || ''}\n选项：${(params.question.options || []).map(o => `${o.id}. ${o.text}`).join(' | ')}\n用户答案：${params.selectedAnswer.join('、')}\n正确答案：${params.correctAnswer.join('、')}\n\n请生成详细的题目解析，说明解题思路和知识点。`,
-        },
-      ];
-
-      let result = '';
-      for await (const chunk of streamChatDouban(config.apiKey, messages)) {
-        result += chunk;
-      }
-      return result || (isCorrect ? '回答正确！' : '建议回顾相关知识点。');
+      return await fetchDoubanExplanation(
+        config.apiKey,
+        params.question,
+        params.selectedAnswer,
+        params.correctAnswer,
+        config.modelId
+      );
     } catch {
       // fallback to mock
     }

@@ -121,11 +121,16 @@ export default function AIChatPage() {
           setGeneratedQuestions(prev => ({ ...prev, [aiMsgId]: question }));
         }
       }
-    } catch {
+    } catch (e) {
       setStreamingMsgId(null);
+      let errorMsg = '抱歉，AI暂时无法回答，请稍后再试。';
+      if (e instanceof Error) {
+        errorMsg = `连接豆包API失败：${e.message}`;
+        console.error('豆包API错误:', e);
+      }
       dispatch({
         type: 'AI_UPDATE_STREAMING_MESSAGE',
-        payload: { id: aiMsgId, content: '抱歉，AI暂时无法回答，请稍后再试。' },
+        payload: { id: aiMsgId, content: errorMsg },
       });
       dispatch({ type: 'AI_SET_LOADING', payload: false });
     }
@@ -215,7 +220,7 @@ export default function AIChatPage() {
     : '离线模式';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="absolute inset-0 flex flex-col bg-bg">
       <PageHeader
         title="AI 问答"
         onBack={() => navigate('home')}
@@ -233,7 +238,7 @@ export default function AIChatPage() {
         }
       />
 
-      <div className="px-4 py-1.5 text-center">
+      <div className="px-4 py-1.5 text-center shrink-0">
         <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${
           backendMode === 'online'
             ? 'bg-green-50 text-green-600'
@@ -298,7 +303,7 @@ export default function AIChatPage() {
         )}
       </div>
 
-      <div className="shrink-0 bg-white border-t border-border px-4 py-3 safe-bottom">
+      <div className="shrink-0 bg-white border-t border-border px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2">
           <input
             type="text"

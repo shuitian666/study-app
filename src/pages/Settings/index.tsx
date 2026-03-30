@@ -18,7 +18,7 @@ import { getAIConfig, setAIConfig } from '@/services/aiClient';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle } from 'lucide-react';
 
 // 豆包默认模型
-const DOUBAN_MODEL = 'doubao-lite-32k';
+const DEFAULT_DOUBAN_MODEL = 'doubao-lite-32k';
 
 export default function SettingsPage() {
   const { state, dispatch, navigate } = useApp();
@@ -35,6 +35,9 @@ export default function SettingsPage() {
   const [apiKey, setApiKey] = useState(() => {
     return savedConfig.apiKey || '';
   });
+  const [modelId, setModelId] = useState(() => {
+    return savedConfig.modelId || DEFAULT_DOUBAN_MODEL;
+  });
   
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -48,12 +51,12 @@ export default function SettingsPage() {
     setSaving(true);
     
     if (mode === 'douban') {
-      // 配置豆包云端API - 使用用户输入的 API Key
+      // 配置豆包云端API - 使用用户输入的 API Key 和模型 ID
       const newConfig: AIConfig = {
         provider: 'douban',
         presetId: 'douban',
         apiKey: apiKey.trim(),
-        modelId: DOUBAN_MODEL,
+        modelId: modelId.trim(),
       };
       setAIConfig(newConfig);
     } else {
@@ -177,22 +180,42 @@ export default function SettingsPage() {
               </div>
             </button>
             
-            {/* 豆包 API Key 输入框 */}
+            {/* 豆包配置 */}
             {isDoubanMode && (
-              <div className="mt-3">
-                <label className="text-xs text-text-secondary mb-1.5 block">
-                  豆包 API Key
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="请输入你的火山方舟 API Key"
-                  className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-400 transition-colors"
-                />
-                <p className="text-[10px] text-text-muted mt-1">
-                  在 <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" className="text-purple-500 underline">火山方舟控制台</a> 获取 API Key
-                </p>
+              <div className="mt-3 space-y-3">
+                {/* API Key */}
+                <div>
+                  <label className="text-xs text-text-secondary mb-1.5 block">
+                    豆包 API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="请输入你的火山方舟 API Key"
+                    className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-400 transition-colors"
+                  />
+                  <p className="text-[10px] text-text-muted mt-1">
+                    在 <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" className="text-purple-500 underline">火山方舟控制台</a> 获取 API Key
+                  </p>
+                </div>
+
+                {/* 模型 ID / 推理接入点 ID */}
+                <div>
+                  <label className="text-xs text-text-secondary mb-1.5 block">
+                    推理接入点 ID (模型 ID)
+                  </label>
+                  <input
+                    type="text"
+                    value={modelId}
+                    onChange={(e) => setModelId(e.target.value)}
+                    placeholder="例如: doubao-lite-32k 或 ep-xxxxxx-xxxxxx"
+                    className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-400 transition-colors"
+                  />
+                  <p className="text-[10px] text-text-muted mt-1">
+                    在火山方舟创建推理接入点后复制，通常是 ep- 开头或直接用 doubao-lite-32k
+                  </p>
+                </div>
               </div>
             )}
             
@@ -222,7 +245,7 @@ export default function SettingsPage() {
             {/* 保存按钮 */}
             <button
               onClick={() => saveAIMode(aiMode)}
-              disabled={saving || (isDoubanMode && !apiKey.trim())}
+              disabled={saving || (isDoubanMode && (!apiKey.trim() || !modelId.trim()))}
               className="w-full mt-2 py-2.5 bg-purple-500 text-white text-sm rounded-xl font-medium active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? '保存中...' : '保存 AI 配置'}
