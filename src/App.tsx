@@ -17,11 +17,12 @@
  * ============================================================================
  */
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { useApp } from '@/store/AppContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
+import { allBackgrounds } from '@/pages/AvatarEdit';
 import { Loader2 } from 'lucide-react';
 
 // 懒加载所有页面组件，减少首屏加载体积
@@ -58,6 +59,68 @@ const LoadingFallback = () => (
 
 function AppContent() {
   const { state } = useApp();
+  
+  // 获取当前用户选择的背景
+  const currentBackground = useMemo(() => {
+    const backgroundId = state.user?.background;
+    if (!backgroundId) return 'linear-gradient(180deg, #ffffff, #f9fafb)';
+    const bg = allBackgrounds.find(b => b.id === backgroundId);
+    return bg?.gradient || 'linear-gradient(180deg, #ffffff, #f9fafb)';
+  }, [state.user?.background]);
+
+  // 获取当前背景图案类型
+  const currentPattern = useMemo(() => {
+    const backgroundId = state.user?.background;
+    if (!backgroundId) return undefined;
+    const bg = allBackgrounds.find(b => b.id === backgroundId);
+    return bg?.pattern;
+  }, [state.user?.background]);
+
+  // 渲染背景装饰图案
+  const renderBackgroundPattern = (pattern?: string) => {
+    if (!pattern) return null;
+
+    if (pattern === 'stars' || pattern === 'galaxy') {
+      return (
+        <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
+          {[...Array(pattern === 'galaxy' ? 40 : 20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-white rounded-full animate-twinkle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                opacity: Math.random() * 0.8 + 0.2,
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    if (pattern === 'cherry') {
+      return (
+        <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
+          {[...Array(12)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute text-5xl animate-float"
+              style={{
+                left: `${(i % 4) * 30 + Math.random() * 20}%`,
+                top: `${Math.floor(i / 4) * 30 + Math.random() * 20}%`,
+                animationDelay: `${i * 0.8}s`,
+              }}
+            >
+              🌸
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   const renderPage = () => {
     switch (state.currentPage) {
@@ -99,22 +162,25 @@ function AppContent() {
   }
 
   return (
-    <>
-      <div className="scroll-container">
-        <Suspense fallback={<LoadingFallback />}>
-          {renderPage()}
-        </Suspense>
+    <div className="fixed inset-0 flex flex-col" style={{ background: currentBackground }}>
+      {renderBackgroundPattern(currentPattern)}
+      <div className="flex-1 overflow-y-auto z-10">
+        <div className="pb-4">
+          <Suspense fallback={<LoadingFallback />}>
+            {renderPage()}
+          </Suspense>
+        </div>
       </div>
       {state.isLoggedIn && <TabBar />}
       <AchievementPopup />
       <LotteryDrawModal />
-    </>
+    </div>
   );
 }
 
 export default function App() {
   return (
-    <div className="app-shell">
+    <div className="app-shell bg-transparent">
       <AppContent />
     </div>
   );

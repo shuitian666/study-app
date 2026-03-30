@@ -1,12 +1,14 @@
 import { useApp } from '@/store/AppContext';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
+import { allFrames } from '@/pages/AvatarEdit';
 import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
 
 export default function ProfilePage() {
   const { state, dispatch, getLearningStats, navigate } = useApp();
   const stats = getLearningStats();
   const user = state.user;
+  const isCustomAvatar = user ? (user.avatar?.startsWith('data:') || user.avatar?.startsWith('http')) ?? false : false;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -24,7 +26,7 @@ export default function ProfilePage() {
   return (
     <div className="page-scroll pb-4">
       {/* Profile Header */}
-      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-6">
+      <div className="bg-transparent text-white px-5 pt-10 pb-6 relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {/* 头像区域 - 可点击编辑 */}
@@ -33,23 +35,60 @@ export default function ProfilePage() {
               className="relative"
             >
               {/* 头像框 */}
-              <div 
-                className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
-                style={{
-                  padding: user?.avatarFrame ? '3px' : '0',
-                  background: user?.avatarFrame 
-                    ? 'linear-gradient(135deg, #fbbf24, #f59e0b, #d97706)'
-                    : 'rgba(255,255,255,0.2)',
-                  boxShadow: user?.avatarFrame ? '0 0 12px rgba(251, 191, 36, 0.5)' : 'none',
-                }}
-              >
+              {user?.avatarFrame ? (
+                (() => {
+                  const frameConfig = allFrames.find(f => f.icon === user.avatarFrame);
+                  if (!frameConfig) return null;
+                  return (
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
+                      style={{
+                        background: frameConfig.gradient,
+                        clipPath: frameConfig.shapeTransform || 'circle(50%)',
+                        backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
+                      }}
+                    >
+                      <div className="bg-white/20 rounded-full flex items-center justify-center p-1 w-[calc(100%-8px)] h-[calc(100%-8px)]">
+                        {isCustomAvatar ? (
+                          <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                          <span className="text-2xl">{user.avatar || '👤'}</span>
+                        )}
+                      </div>
+                      {frameConfig.decorations && frameConfig.decorations.length > 0 && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          {frameConfig.decorations.map((dec, i) => (
+                            <span
+                              key={i}
+                              className={`absolute text-sm ${frameConfig.animation ? 'animate-bounce' : ''}`}
+                              style={{
+                                top: i === 0 ? '-4px' : i === 1 ? '50%' : 'auto',
+                                bottom: i === 2 ? '-4px' : 'auto',
+                                right: i === 1 ? '-4px' : i === 2 ? '0' : 'auto',
+                                left: i === 0 ? '50%' : i === 1 ? 'auto' : '0',
+                                transform: i === 0 ? 'translateX(-50%)' : i === 1 ? 'translateY(-50%)' : 'none',
+                                animationDelay: `${i * 0.5}s`,
+                              }}
+                            >
+                              {dec}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              ) : (
                 <div 
-                  className="w-full h-full bg-white/20 rounded-full flex items-center justify-center"
-                  style={{ border: user?.avatarFrame ? '2px solid white' : 'none' }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center text-2xl bg-white/20"
                 >
-                  {user?.avatar || '👤'}
+                  {isCustomAvatar && user?.avatar ? (
+                    <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    user?.avatar || '👤'
+                  )}
                 </div>
-              </div>
+              )}
               {/* 编辑提示 */}
               <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white text-[8px]">
                 ✎

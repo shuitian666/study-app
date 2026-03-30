@@ -320,6 +320,7 @@ export interface TeamMember {
   id: string;
   name: string;
   avatar: string;
+  avatarFrame?: string;
   isSimulated: boolean;
   progress: TeamMemberProgress;
 }
@@ -378,6 +379,7 @@ export interface RankEntry {
   rank: number;
   nickname: string;
   avatar: string;
+  avatarFrame?: string;
   value: number;
   isMe: boolean;
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
+import { allFrames } from '@/pages/AvatarEdit';
 import { Users, Copy, Check, UserPlus, X, Loader2 } from 'lucide-react';
 import { createTeam } from '@/services/teamService';
 import { createSimulatedTeammate, startTeammateSimulation, type SimulationHandle } from '@/services/teamSimulator';
@@ -203,11 +204,59 @@ export default function TeamPanel() {
           {/* Self */}
           <div className="flex flex-col items-center gap-1.5">
             <div className="relative">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
-                self?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
-              }`}>
-                {state.user?.avatar || '👤'}
-              </div>
+              {state.user?.avatarFrame ? (
+                (() => {
+                  const frameConfig = allFrames.find(f => f.icon === state.user!.avatarFrame);
+                  if (!frameConfig) return null;
+                  const isCustomAvatar = state.user?.avatar?.startsWith('data:') || state.user?.avatar?.startsWith('http');
+                  return (
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
+                      style={{
+                        background: frameConfig.gradient,
+                        clipPath: frameConfig.shapeTransform || 'circle(50%)',
+                        backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
+                      }}
+                    >
+                      <div className={`bg-white/20 rounded-full flex items-center justify-center p-1 w-[calc(100%-6px)] h-[calc(100%-6px)] border-3 ${
+                        self?.progress.isReady ? 'border-accent' : 'border-white/50'
+                      }`}>
+                        {isCustomAvatar ? (
+                          <img src={state.user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                          <span className="text-2xl">{state.user?.avatar || '👤'}</span>
+                        )}
+                      </div>
+                      {frameConfig.decorations && frameConfig.decorations.length > 0 && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          {frameConfig.decorations.map((dec, i) => (
+                            <span
+                              key={i}
+                              className={`absolute text-sm ${frameConfig.animation ? 'animate-bounce' : ''}`}
+                              style={{
+                                top: i === 0 ? '-4px' : i === 1 ? '50%' : 'auto',
+                                bottom: i === 2 ? '-4px' : 'auto',
+                                right: i === 1 ? '-4px' : i === 2 ? '0' : 'auto',
+                                left: i === 0 ? '50%' : i === 1 ? 'auto' : '0',
+                                transform: i === 0 ? 'translateX(-50%)' : i === 1 ? 'translateY(-50%)' : 'none',
+                                animationDelay: `${i * 0.5}s`,
+                              }}
+                            >
+                              {dec}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
+                  self?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
+                }`}>
+                  {state.user?.avatar || '👤'}
+                </div>
+              )}
               {self?.progress.isReady && (
                 <div className="absolute -bottom-0.5 -right-0.5 bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
                   ✓
@@ -224,11 +273,39 @@ export default function TeamPanel() {
           {/* Partner */}
           <div className="flex flex-col items-center gap-1.5">
             <div className="relative">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
-                partner?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
-              }`}>
-                {partner?.avatar || '👤'}
-              </div>
+              {partner?.avatarFrame ? (
+                (() => {
+                  const frameConfig = allFrames.find(f => f.icon === partner.avatarFrame);
+                  if (!frameConfig) return null;
+                  const isCustomAvatar = partner.avatar?.startsWith('data:') || partner.avatar?.startsWith('http');
+                  return (
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
+                      style={{
+                        background: frameConfig.gradient,
+                        clipPath: frameConfig.shapeTransform || 'circle(50%)',
+                        backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
+                      }}
+                    >
+                      <div className={`bg-white/20 rounded-full flex items-center justify-center p-1 w-[calc(100%-6px)] h-[calc(100%-6px)] border-3 ${
+                        partner?.progress.isReady ? 'border-accent' : 'border-white/50'
+                      }`}>
+                        {isCustomAvatar ? (
+                          <img src={partner.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                          <span className="text-2xl">{partner.avatar || '👤'}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
+                  partner?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
+                }`}>
+                  {partner?.avatar || '👤'}
+                </div>
+              )}
               {partner?.progress.isReady && (
                 <div className="absolute -bottom-0.5 -right-0.5 bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
                   ✓

@@ -1,5 +1,6 @@
 import { useApp } from '@/store/AppContext';
 import { PageHeader } from '@/components/ui/Common';
+import { allFrames } from '@/pages/AvatarEdit';
 import { useState } from 'react';
 import { Clock, Brain, Trophy } from 'lucide-react';
 
@@ -46,10 +47,33 @@ export default function RankingPage() {
           {[rankings[1], rankings[0], rankings[2]].map((entry, i) => {
             const height = i === 1 ? 'h-24' : i === 0 ? 'h-20' : 'h-16';
             const actualRank = entry.rank;
+            const frameConfig = entry.avatarFrame ? allFrames.find(f => f.icon === entry.avatarFrame) : null;
+            const isCustomAvatar = entry.avatar?.startsWith('data:') || entry.avatar?.startsWith('http');
             return (
               <div key={entry.rank} className="flex flex-col items-center flex-1">
-                <div className={`text-2xl mb-1 ${entry.isMe ? 'ring-2 ring-primary ring-offset-1' : ''} w-10 h-10 rounded-full flex items-center justify-center bg-gray-100`}>
-                  {entry.avatar}
+                <div className={`text-2xl mb-1 ${entry.isMe ? 'ring-2 ring-primary ring-offset-1' : ''}`}>
+                  {frameConfig ? (
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
+                      style={{
+                        background: frameConfig.gradient,
+                        clipPath: frameConfig.shapeTransform || 'circle(50%)',
+                        backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
+                      }}
+                    >
+                      <div className="bg-white/20 rounded-full flex items-center justify-center p-1 w-[calc(100%-6px)] h-[calc(100%-6px)]">
+                        {isCustomAvatar ? (
+                          <img src={entry.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                          <span className="text-2xl">{entry.avatar || '👤'}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
+                      {entry.avatar}
+                    </div>
+                  )}
                 </div>
                 <span className={`text-[10px] mb-1 truncate max-w-full ${entry.isMe ? 'text-primary font-bold' : 'text-text-secondary'}`}>
                   {entry.nickname}
@@ -69,35 +93,62 @@ export default function RankingPage() {
 
       {/* Full list */}
       <div className="mx-4 mt-4 space-y-2">
-        {rankings.map(entry => (
-          <div
-            key={entry.rank}
-            className={`bg-white rounded-xl p-3 border shadow-sm flex items-center gap-3 ${
-              entry.isMe ? 'border-primary/30 bg-primary/5' : 'border-border'
-            }`}
-          >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-              entry.rank <= 3 ? 'text-white' : 'bg-gray-100 text-text-muted'
-            }`}
-              style={entry.rank <= 3 ? { backgroundColor: medalColors[entry.rank - 1] } : {}}
+        {rankings.map(entry => {
+          // 检查是否有头像框
+          const frameConfig = entry.avatarFrame ? allFrames.find(f => f.icon === entry.avatarFrame) : null;
+          const isCustomAvatar = entry.avatar?.startsWith('data:') || entry.avatar?.startsWith('http');
+          
+          return (
+            <div
+              key={entry.rank}
+              className={`bg-white rounded-xl p-3 border shadow-sm flex items-center gap-3 ${
+                entry.isMe ? 'border-primary/30 bg-primary/5' : 'border-border'
+              }`}
             >
-              {entry.rank}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                entry.rank <= 3 ? 'text-white' : 'bg-gray-100 text-text-muted'
+              }`}
+                style={entry.rank <= 3 ? { backgroundColor: medalColors[entry.rank - 1] } : {}}
+              >
+                {entry.rank}
+              </div>
+              <div className="relative">
+                {frameConfig ? (
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
+                    style={{
+                      background: frameConfig.gradient,
+                      clipPath: frameConfig.shapeTransform || 'circle(50%)',
+                      backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
+                    }}
+                  >
+                    <div className="bg-white/20 rounded-full flex items-center justify-center p-0.5 w-[calc(100%-4px)] h-[calc(100%-4px)]">
+                      {isCustomAvatar ? (
+                        <img src={entry.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        <span className="text-base">{entry.avatar || '👤'}</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+                    {entry.avatar}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm ${entry.isMe ? 'font-bold text-primary' : 'font-medium'}`}>
+                  {entry.nickname}
+                  {entry.isMe && <span className="text-[10px] ml-1">(我)</span>}
+                </span>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-bold">{entry.value}</div>
+                <div className="text-[9px] text-text-muted">{tabConfig[tab].unit}</div>
+              </div>
             </div>
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-lg">
-              {entry.avatar}
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className={`text-sm ${entry.isMe ? 'font-bold text-primary' : 'font-medium'}`}>
-                {entry.nickname}
-                {entry.isMe && <span className="text-[10px] ml-1">(我)</span>}
-              </span>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-bold">{entry.value}</div>
-              <div className="text-[9px] text-text-muted">{tabConfig[tab].unit}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="text-[10px] text-text-muted text-center mt-4">仅显示排名，不公开个人隐私</p>

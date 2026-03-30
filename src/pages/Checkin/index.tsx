@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/store/AppContext';
+import { allFrames, allBackgrounds } from '@/pages/AvatarEdit';
 import { PageHeader } from '@/components/ui/Common';
 import { Calendar, Gift, Ticket, Flame, BookOpen, CheckCircle, Sparkles, Gift as GiftIcon, X, Copy, Check } from 'lucide-react';
 import { STREAK_REWARDS } from '@/data/incentive-mock';
@@ -21,9 +22,10 @@ function getLast7Days(): string[] {
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
 // 兑换码配置
-const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
-  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
-  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
+const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number; unlockAllFrames: boolean; unlockAllBackgrounds: boolean }> = {
+  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0, unlockAllFrames: false, unlockAllBackgrounds: false },
+  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0, unlockAllFrames: false, unlockAllBackgrounds: false },
+  '创作者体验': { upDraws: 0, regularDraws: 0, coins: 9999, unlockAllFrames: true, unlockAllBackgrounds: true },
 };
 
 export default function CheckinPage() {
@@ -75,14 +77,65 @@ export default function CheckinPage() {
       return;
     }
     dispatch({ type: 'REDEEM_CODE', payload: code });
-    setRedeemMessage({ type: 'success', text: `兑换成功！获得UP抽数+${reward.upDraws}` });
+    
+    // 解锁所有头像框和背景
+    const now = new Date().toISOString();
+    if (reward.unlockAllFrames || reward.unlockAllBackgrounds) {
+      let unlockMessage = '';
+      if (reward.unlockAllFrames) {
+        // 解锁所有头像框
+        allFrames.forEach(frame => {
+          dispatch({
+            type: 'ADD_INVENTORY_ITEM',
+            payload: {
+              id: `avatar-frame-${frame.icon}`,
+              name: frame.name,
+              description: `${frame.rarity}级头像框`,
+              type: 'avatar_frame',
+              rarity: frame.rarity,
+              quantity: 1,
+              usable: false,
+              icon: frame.icon,
+              obtainedAt: now,
+              source: 'manual',
+            }
+          });
+        });
+        unlockMessage += `全部${allFrames.length}款头像框`;
+      }
+      if (reward.unlockAllBackgrounds) {
+        if (unlockMessage) unlockMessage += ' + ';
+        // 解锁所有背景
+        allBackgrounds.forEach(bg => {
+          dispatch({
+            type: 'ADD_INVENTORY_ITEM',
+            payload: {
+              id: `background-${bg.id}`,
+              name: bg.name,
+              description: `${bg.rarity}级背景板`,
+              type: 'background',
+              rarity: bg.rarity,
+              quantity: 1,
+              usable: false,
+              icon: bg.pattern || '🌸',
+              obtainedAt: now,
+              source: 'manual',
+            }
+          });
+        });
+        unlockMessage += `全部${allBackgrounds.length}款背景板`;
+      }
+      if (reward.coins > 0) {
+        unlockMessage += ` + ${reward.coins}星币`;
+      }
+      if (reward.upDraws > 0) {
+        unlockMessage += ` + UP抽数+${reward.upDraws}`;
+      }
+      setRedeemMessage({ type: 'success', text: `兑换成功！解锁${unlockMessage}` });
+    } else {
+      setRedeemMessage({ type: 'success', text: `兑换成功！获得UP抽数+${reward.upDraws}` });
+    }
     setRedeemInput('');
-  };
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText('学习使我快乐').catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   // Team check
@@ -269,18 +322,33 @@ export default function CheckinPage() {
             </div>
 
             {/* 示例兑换码 */}
-            <div className="bg-amber-50 rounded-xl p-3 mb-4 border border-amber-200">
+            <div className="bg-amber-50 rounded-xl p-3 mb-3 border border-amber-200">
               <div className="text-xs text-amber-700 mb-1.5">示例兑换码</div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <span className="font-mono font-bold text-amber-900">学习使我快乐</span>
                 <button
-                  onClick={handleCopyCode}
+                  onClick={() => { navigator.clipboard.writeText('学习使我快乐').catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
                   className="p-1.5 bg-amber-200 rounded-lg text-amber-700 active:bg-amber-300 transition-colors"
                 >
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                 </button>
               </div>
-              <div className="text-[10px] text-amber-600 mt-1">可获得UP抽数 +10</div>
+              <div className="text-[10px] text-amber-600">可获得UP抽数 +10</div>
+            </div>
+
+            {/* 创作者体验兑换码 */}
+            <div className="bg-green-50 rounded-xl p-3 mb-4 border border-green-200">
+              <div className="text-xs text-green-700 mb-1.5">创作者体验码</div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-green-900">创作者体验</span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText('创作者体验').catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                  className="p-1.5 bg-green-200 rounded-lg text-green-700 active:bg-green-300 transition-colors"
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+              <div className="text-[10px] text-green-600 mt-1">解锁全部{allFrames.length}款头像框 + {allBackgrounds.length}款背景板 + 9999星币</div>
             </div>
 
             {/* 输入框 */}
