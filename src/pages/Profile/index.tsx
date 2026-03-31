@@ -25,8 +25,8 @@ export default function ProfilePage() {
 
   return (
     <div className="page-scroll pb-4">
-      {/* Profile Header */}
-      <div className="bg-transparent text-white px-5 pt-10 pb-6 relative z-10">
+      {/* Profile Header - 默认背景是浅色，使用深色文字保证对比度 */}
+      <div className="bg-transparent text-text-primary px-5 pt-10 pb-6 relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {/* 头像区域 - 可点击编辑 */}
@@ -96,30 +96,30 @@ export default function ProfilePage() {
             </button>
             <div>
               <h2 className="text-lg font-bold">{user?.nickname ?? '未登录'}</h2>
-              <p className="text-white/60 text-xs">已学习 {stats.streakDays} 天</p>
+              <p className="text-text-muted text-xs">已学习 {stats.streakDays} 天</p>
             </div>
           </div>
           <button 
             onClick={() => navigate('settings')}
-            className="p-2 bg-white/10 rounded-full active:bg-white/20 transition-colors"
+            className="p-2 bg-text-primary/10 rounded-full active:bg-text-primary/20 transition-colors"
           >
-            <Settings size={18} />
+            <Settings size={18} className="text-text-primary" />
           </button>
         </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold">{stats.totalKnowledgePoints}</div>
-            <div className="text-[10px] text-white/60">知识点</div>
+          <div className="bg-text-primary/10 rounded-xl p-3 text-center">
+            <div className="text-xl font-bold text-text-primary">{stats.totalKnowledgePoints}</div>
+            <div className="text-[10px] text-text-muted">知识点</div>
           </div>
-          <div className="bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold">{stats.streakDays}</div>
-            <div className="text-[10px] text-white/60">学习天数</div>
+          <div className="bg-text-primary/10 rounded-xl p-3 text-center">
+            <div className="text-xl font-bold text-text-primary">{stats.streakDays}</div>
+            <div className="text-[10px] text-text-muted">学习天数</div>
           </div>
-          <div className="bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold">{user?.totalPoints ?? 0}</div>
-            <div className="text-[10px] text-white/60">星币</div>
+          <div className="bg-text-primary/10 rounded-xl p-3 text-center">
+            <div className="text-xl font-bold text-text-primary">{user?.totalPoints ?? 0}</div>
+            <div className="text-[10px] text-text-muted">星币</div>
           </div>
         </div>
       </div>

@@ -203,13 +203,25 @@ export default function ShopPage() {
               <p className="text-[10px] text-text-muted mb-3 text-center">{item.description}</p>
 
 
-              {item.owned ? (
+              {/* 可堆叠功能道具（补签卡）始终显示购买按钮，支持重复购买 */}
+              {item.type === 'makeup_card' ? (
+                <button
+                  onClick={() => handleBuy(item.id)}
+                  disabled={coins < item.price}
+                  className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
+                    coins >= item.price
+                      ? 'bg-primary text-white active:scale-[0.97]'
+                      : 'bg-gray-100 text-text-muted cursor-not-allowed'
+                  }`}
+                >
+                  <Star size={10} fill="currentColor" />
+                  {item.price}
+                </button>
+              ) : item.owned ? (
                 <div className="flex items-center gap-1 text-accent text-xs font-medium">
                   <Check size={12} />
                   已拥有
-
                 </div>
-
               ) : (
                 <button
                   onClick={() => handleBuy(item.id)}
@@ -217,16 +229,12 @@ export default function ShopPage() {
                   className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
                     coins >= item.price
                       ? 'bg-primary text-white active:scale-[0.97]'
-
                       : 'bg-gray-100 text-text-muted cursor-not-allowed'
-
                   }`}
                 >
                   <Star size={10} fill="currentColor" />
                   {item.price}
-
                 </button>
-
               )}
 
             </div>

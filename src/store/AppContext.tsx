@@ -131,6 +131,7 @@ const initialState: AppState = {
 const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
   '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
   '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
+  '全部解锁': { upDraws: 99, regularDraws: 99, coins: 9999 },
 };
 
 export function isValidRedeemCode(code: string): boolean {
@@ -390,13 +391,13 @@ function reducer(state: AppState, action: Action): AppState {
       const result = action.payload;
       let newUser = state.user;
       let newMakeupCards = state.checkin.makeupCards;
-      let newInventoryItems = state.inventory.items;
+      let newInventoryItems = [...state.inventory.items];
       
       if (result.reward.type === 'coins' && newUser) {
         newUser = { ...newUser, totalPoints: newUser.totalPoints + result.reward.amount };
       } else if (result.reward.type === 'makeup_card') {
+        // 补签卡可以堆叠，直接增加数量
         newMakeupCards += result.reward.amount;
-        // 将补签卡添加到背包
         const existingMakeup = newInventoryItems.find(i => i.type === 'makeup_card');
         if (existingMakeup) {
           newInventoryItems = newInventoryItems.map(i =>
@@ -415,6 +416,38 @@ function reducer(state: AppState, action: Action): AppState {
             source: 'lottery' as const,
             usable: true,
           }];
+        }
+      } else if (result.reward.type === 'avatar_frame' || result.reward.type === 'background') {
+        // 装饰物品 - 检查是否已有，已有则补偿
+        if (state.user) {
+          const existing = newInventoryItems.find(i => i.name === result.reward.name);
+          if (existing) {
+            // 重复获得，补偿星币（按稀有度）
+            let compensation = 0;
+            switch (result.reward.rarity) {
+              case 'N': compensation = 10; break;
+              case 'R': compensation = 30; break;
+              case 'SR': compensation = 60; break;
+              case 'SSR': compensation = 150; break;
+              default: compensation = 10;
+            }
+            newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
+            console.log(`[DRAW_REGULAR] 重复获得 ${result.reward.name}，补偿 ${compensation} 星币`);
+          } else {
+            // 新物品添加到背包
+            newInventoryItems.push({
+              id: `inv-regular-${result.reward.id}-${Date.now()}`,
+              type: result.reward.type as any,
+              name: result.reward.name,
+              description: result.reward.description || '',
+              icon: result.reward.icon || '📦',
+              rarity: result.reward.rarity || 'N',
+              quantity: 1,
+              obtainedAt: new Date().toISOString(),
+              source: 'lottery',
+              usable: false,
+            });
+          }
         }
       }
       let newPity: LotteryPityState;
@@ -437,32 +470,79 @@ function reducer(state: AppState, action: Action): AppState {
     case 'DRAW_UP': {
       if (state.drawBalance.up <= 0) return state;
       const { item, isNew } = action.payload;
-      // 将物品添加到背包
-      const invItem: InventoryItem = {
-        id: `inv-up-${item.id}-${Date.now()}`,
-        type: item.type as any,
-        name: item.name,
-        description: item.description,
-        icon: item.icon,
-        rarity: item.rarity,
-        quantity: 1,
-        obtainedAt: new Date().toISOString(),
-        source: 'lottery',
-        usable: false,
+      let newInventoryItems = [...state.inventory.items];
+      let newUser = state.user;
+      let newUpPool = state.upPool;
+
+      // UP池物品标记为已拥有
+      newUpPool = {
+        ...newUpPool,
+        items: newUpPool.items.map(i => i.id === item.id ? { ...i, owned: true } : i),
       };
-      const existingInv = state.inventory.items.find(i => i.name === item.name);
-      const newInventoryItems = existingInv
-        ? state.inventory.items.map(i =>
-            i.name === item.name ? { ...i, quantity: i.quantity + 1 } : i
-          )
-        : [...state.inventory.items, invItem];
+
+      // 检查是否已经拥有该装饰物品，如果已有则给星币补偿
+      if ((item.type === 'avatar_frame' || item.type === 'background') && state.user) {
+        const existingInv = state.inventory.items.find(i => i.name === item.name);
+        if (existingInv) {
+          // 已经拥有，按价格比例补偿星币（30%）
+          let compensation = 0;
+          switch (item.rarity) {
+            case 'N': compensation = 10; break;
+            case 'R': compensation = 30; break;
+            case 'SR': compensation = 60; break;
+            case 'SSR': compensation = 150; break;
+            default: compensation = 10;
+          }
+          newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
+          console.log(`[DRAW_UP] 重复获得 ${item.name}，补偿 ${compensation} 星币`);
+        } else {
+          // 新获得，添加到背包
+          const invItem: InventoryItem = {
+            id: `inv-up-${item.id}-${Date.now()}`,
+            type: item.type as any,
+            name: item.name,
+            description: item.description,
+            icon: item.icon,
+            rarity: item.rarity,
+            quantity: 1,
+            obtainedAt: new Date().toISOString(),
+            source: 'lottery',
+            usable: false,
+          };
+          newInventoryItems = [...state.inventory.items, invItem];
+        }
+      } else {
+        // 非装饰物品正常添加到背包
+        const invItem: InventoryItem = {
+          id: `inv-up-${item.id}-${Date.now()}`,
+          type: item.type as any,
+          name: item.name,
+          description: item.description,
+          icon: item.icon,
+          rarity: item.rarity,
+          quantity: 1,
+          obtainedAt: new Date().toISOString(),
+          source: 'lottery',
+          usable: false,
+        };
+        newInventoryItems = [...state.inventory.items, invItem];
+      }
+
+      let newPity: LotteryPityState;
+      if (item.rarity === 'SSR') {
+        newPity = { sinceLastSSR: 0, sinceLastSR: 0 };
+      } else if (item.rarity === 'SR') {
+        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: 0 };
+      } else {
+        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: state.checkin.lotteryPity.sinceLastSR + 1 };
+      }
+
       return {
         ...state,
+        user: newUser,
         drawBalance: { ...state.drawBalance, up: state.drawBalance.up - 1 },
-        upPool: isNew ? {
-          ...state.upPool,
-          items: state.upPool.items.map(i => i.id === item.id ? { ...i, owned: true } : i),
-        } : state.upPool,
+        upPool: newUpPool,
+        checkin: { ...state.checkin, lotteryPity: newPity },
         inventory: { items: newInventoryItems },
       };
     }
@@ -504,13 +584,97 @@ function reducer(state: AppState, action: Action): AppState {
     case 'DISMISS_ACHIEVEMENT_POPUP':
       return { ...state, achievementPopup: null };
     case 'BUY_SHOP_ITEM': {
-      const item = state.shopItems.find(i => i.id === action.payload);
-      if (!item || item.owned || !state.user || state.user.totalPoints < item.price) return state;
+      let item = state.shopItems.find(i => i.id === action.payload);
+      if (!item || !state.user || state.user.totalPoints < item.price) return state;
+
+      // 检查背包中是否已经拥有该物品（装饰类），已经拥有就不能购买
+      if (item.type === 'avatar_frame' || item.type === 'background') {
+        const alreadyOwned = state.inventory.items.some(
+          invItem => invItem.name === item.name
+        );
+        if (alreadyOwned || item.owned) {
+          console.log('[BUY_SHOP_ITEM] 已经拥有该物品，无法重复购买');
+          return state;
+        }
+      }
+
+      // 将购买的物品添加到背包
+      let newInventoryItems = [...state.inventory.items];
+      let rarity: 'N' | 'R' | 'SR' | 'SSR' = 'R';
+      // 根据 ID 判断稀有度
+      if (item.id.startsWith('frame-n-') || item.id.startsWith('bg-n-')) rarity = 'N';
+      if (item.id.startsWith('frame-r-') || item.id.startsWith('bg-r-')) rarity = 'R';
+      if (item.id.startsWith('frame-sr-') || item.id.startsWith('bg-sr-')) rarity = 'SR';
+      if (item.id.startsWith('frame-ssr-') || item.id.startsWith('bg-ssr-')) rarity = 'SSR';
+      
+      // 如果是可堆叠物品（补签卡），梯度涨价
+      let newShopItems = [...state.shopItems];
+      if (item.type === 'makeup_card') {
+        // 计算当前已有数量
+        const existing = newInventoryItems.find(i => i.type === 'makeup_card');
+        const currentCount = existing ? existing.quantity : 0;
+        
+        // 检查用户余额是否够
+        if (state.user.totalPoints < item.price) return state;
+
+        // 增加数量到背包
+        if (existing) {
+          newInventoryItems = newInventoryItems.map(i =>
+            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + 1 } : i
+          );
+        } else {
+          newInventoryItems.push({
+            id: `inv-shop-${item.id}-${Date.now()}`,
+            type: item.type as any,
+            name: item.name,
+            description: item.description,
+            icon: item.icon,
+            rarity: 'R',
+            quantity: 1,
+            obtainedAt: new Date().toISOString(),
+            source: 'shop',
+            usable: true,
+          });
+        }
+
+        // 计算下一次价格梯度：1->30, 2->50, 3->80, 4+->120
+        let nextPrice = 30;
+        switch (currentCount + 1) {
+          case 1: nextPrice = 50; break;
+          case 2: nextPrice = 80; break;
+          default: nextPrice = 120; break;
+        }
+        // 更新商店中补签卡的价格
+        newShopItems = newShopItems.map(i => 
+          i.id === action.payload ? { ...i, price: nextPrice } : i
+        );
+      } else if (item.type === 'avatar_frame' || item.type === 'background') {
+        // 装饰类物品（头像框、背景等）添加到背包，按照正确稀有度
+        newInventoryItems.push({
+          id: `inv-shop-${item.id}-${Date.now()}`,
+          type: item.type as any,
+          name: item.name,
+          description: item.description,
+          icon: item.icon,
+          rarity,
+          quantity: 1,
+          obtainedAt: new Date().toISOString(),
+          source: 'shop',
+          usable: false,
+        });
+        // 标记为已拥有
+        newShopItems = newShopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i);
+      } else {
+        // 其他物品标记已拥有
+        newShopItems = newShopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i);
+      }
+
       return {
         ...state,
         user: { ...state.user, totalPoints: state.user.totalPoints - item.price },
-        shopItems: state.shopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i),
+        shopItems: newShopItems,
         checkin: item.type === 'makeup_card' ? { ...state.checkin, makeupCards: state.checkin.makeupCards + 1 } : state.checkin,
+        inventory: { items: newInventoryItems },
       };
     }
     case 'ADD_COINS':
@@ -703,27 +867,71 @@ function reducer(state: AppState, action: Action): AppState {
       };
     case 'CLAIM_MAIL_ATTACHMENT': {
       const { mailId, attachmentIndex } = action.payload;
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m => {
-            if (m.id !== mailId) return m;
-            const newAttachments = m.attachments.map((a, idx) =>
-              idx === attachmentIndex ? { ...a, claimed: true } : a
-            );
-            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
-          }),
-        },
-        // Add claimed items to inventory
-        inventory: {
-          items: (() => {
-            const mail = state.mail.mails.find(m => m.id === mailId);
-            if (!mail) return state.inventory.items;
-            const attachment = mail.attachments[attachmentIndex];
-            if (!attachment || attachment.claimed) return state.inventory.items;
-            
-            const newItems = [...state.inventory.items];
+      let newUser = state.user;
+      let newInventoryItems = [...state.inventory.items];
+
+      const mail = state.mail.mails.find(m => m.id === mailId);
+      if (mail && state.user) {
+        const attachment = mail.attachments[attachmentIndex];
+        if (attachment && !attachment.claimed) {
+          if (attachment.type === 'coin') {
+            // 金币直接加
+            newUser = { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity };
+          } else if (attachment.type === 'makeup_card') {
+            // 补签卡可以堆叠
+            const existing = newInventoryItems.find(i => i.type === 'makeup_card');
+            if (existing) {
+              newInventoryItems = newInventoryItems.map(i =>
+                i.type === 'makeup_card' ? { ...i, quantity: i.quantity + attachment.quantity } : i
+              );
+            } else {
+              newInventoryItems.push({
+                id: `inv-${Date.now()}-${attachmentIndex}`,
+                type: attachment.type as any,
+                name: attachment.name,
+                description: `来自邮件: ${mail.title}`,
+                icon: '🎁',
+                rarity: 'R',
+                quantity: attachment.quantity,
+                obtainedAt: new Date().toISOString(),
+                source: 'mail',
+                usable: true,
+              });
+            }
+          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
+            // 装饰物品 - 已有就补偿星币
+            const existing = newInventoryItems.find(i => i.name === attachment.name);
+            if (existing) {
+              // 根据稀有度补偿
+              let compensation = 10;
+              const rarity = (attachment as any).rarity;
+              if (rarity) {
+                switch (rarity) {
+                  case 'N': compensation = 10; break;
+                  case 'R': compensation = 30; break;
+                  case 'SR': compensation = 60; break;
+                  case 'SSR': compensation = 150; break;
+                }
+              }
+              newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
+              console.log(`[CLAIM_MAIL] 重复获得 ${attachment.name}，补偿 ${compensation} 星币`);
+            } else {
+              // 新物品添加到背包
+              newInventoryItems.push({
+                id: `inv-${Date.now()}-${attachmentIndex}`,
+                type: attachment.type as any,
+                name: attachment.name,
+                description: `来自邮件: ${mail.title}`,
+                icon: attachment.icon || '🎁',
+                rarity: (attachment as any).rarity || 'R',
+                quantity: 1,
+                obtainedAt: new Date().toISOString(),
+                source: 'mail',
+                usable: false,
+              });
+            }
+          } else {
+            // 其他物品正常处理
             const invItem: InventoryItem = {
               id: `inv-${Date.now()}-${attachmentIndex}`,
               type: attachment.type as any,
@@ -736,23 +944,30 @@ function reducer(state: AppState, action: Action): AppState {
               source: 'mail',
               usable: true,
             };
-            const existing = newItems.find(i => i.name === attachment.name);
+            const existing = newInventoryItems.find(i => i.name === attachment.name);
             if (existing) {
               existing.quantity += attachment.quantity;
             } else {
-              newItems.push(invItem);
+              newInventoryItems.push(invItem);
             }
-            return newItems;
-          })(),
+          }
+        }
+      }
+
+      return {
+        ...state,
+        user: newUser,
+        mail: {
+          ...state.mail,
+          mails: state.mail.mails.map(m => {
+            if (m.id !== mailId) return m;
+            const newAttachments = m.attachments.map((a, idx) =>
+              idx === attachmentIndex ? { ...a, claimed: true } : a
+            );
+            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
+          }),
         },
-        // Add coins if applicable
-        user: (() => {
-          const mail = state.mail.mails.find(m => m.id === mailId);
-          if (!mail) return state.user;
-          const attachment = mail.attachments[attachmentIndex];
-          if (!attachment || attachment.claimed || attachment.type !== 'coin') return state.user;
-          return state.user ? { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity } : null;
-        })(),
+        inventory: { items: newInventoryItems },
       };
     }
     case 'UPDATE_MAIL_VERSION':

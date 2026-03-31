@@ -109,30 +109,52 @@ export default function InventoryPage() {
               const rarity = rarityConfig[item.rarity] || rarityConfig.N;
               const typeInfo = typeConfig[item.type] || { icon: '📦', label: '其他' };
 
+              // 来源配置
+              const sourceConfig = {
+                lottery: { label: '抽签奖励', icon: Gift, color: 'text-amber-500' },
+                mail: { label: '邮件附件', icon: Ticket, color: 'text-blue-500' },
+                achievement: { label: '成就奖励', icon: Sparkles, color: 'text-purple-500' },
+                shop: { label: '商店购买', icon: Crown, color: 'text-yellow-500' },
+                manual: { label: '手动添加', icon: Package, color: 'text-gray-500' },
+              };
+              const sourceInfo = sourceConfig[item.source] || sourceConfig.manual;
+              const SourceIcon = sourceInfo.icon;
+
               return (
                 <div
                   key={item.id}
-                  className={`${rarity.bg} rounded-xl p-3 border border-gray-200/50 min-h-[120px] flex flex-col`}
+                  className={`bg-white rounded-xl p-4 border border-border shadow-sm flex flex-col`}
                 >
-                  <div className="flex items-start justify-between mb-2 flex-shrink-0">
-                    <div className="text-3xl leading-none">{item.icon || typeInfo.icon}</div>
+                  {/* 图标和稀有度 */}
+                  <div className="flex items-start justify-between mb-3 flex-shrink-0">
+                    <div className="text-4xl leading-none">{item.icon || typeInfo.icon}</div>
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
-                      style={{ color: rarity.color, backgroundColor: 'white' }}
+                      className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                      style={{ color: rarity.color, backgroundColor: rarity.bg }}
                     >
                       {rarity.label}
                     </span>
                   </div>
 
-                  <h4 className="text-sm font-medium text-gray-900 mb-1 truncate">{item.name}</h4>
-                  <p className="text-[10px] text-gray-500 flex-grow overflow-hidden" style={{display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>{item.description}</p>
+                  {/* 名称 */}
+                  <h4 className="text-sm font-semibold text-text-primary mb-1">{item.name}</h4>
 
-                  <div className="flex items-center justify-between mt-auto pt-2 flex-shrink-0">
-                    <span className="text-xs text-gray-400">x{item.quantity}</span>
+                  {/* 描述 */}
+                  <p className="text-xs text-text-muted mb-3 line-clamp-2">{item.description}</p>
+
+                  {/* 来源 - 单独一行 */}
+                  <div className="flex items-center gap-1 mb-3">
+                    <SourceIcon size={10} className={sourceInfo.color} />
+                    <span className="text-[10px] text-text-muted">{sourceInfo.label}</span>
+                  </div>
+
+                  {/* 数量和使用按钮 */}
+                  <div className="flex items-center justify-between mt-auto">
+                    <span className="text-xs text-text-muted">数量: <b className="text-text-primary">x{item.quantity}</b></span>
                     {item.usable && item.quantity > 0 && (
                       <button
                         onClick={() => handleUseItem(item.id)}
-                        className="text-xs px-2 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                        className="text-xs px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                       >
                         使用
                       </button>
@@ -143,25 +165,6 @@ export default function InventoryPage() {
             })}
           </div>
         )}
-
-        {/* Source Legend */}
-        <div className="bg-gray-50 rounded-xl p-3">
-          <h4 className="text-xs font-medium text-text-secondary mb-2">物品来源</h4>
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs bg-white px-2 py-1 rounded-lg flex items-center gap-1">
-              <Gift size={12} className="text-amber-500" /> 抽签奖励
-            </span>
-            <span className="text-xs bg-white px-2 py-1 rounded-lg flex items-center gap-1">
-              <Ticket size={12} className="text-blue-500" /> 邮件附件
-            </span>
-            <span className="text-xs bg-white px-2 py-1 rounded-lg flex items-center gap-1">
-              <Sparkles size={12} className="text-purple-500" /> 成就奖励
-            </span>
-            <span className="text-xs bg-white px-2 py-1 rounded-lg flex items-center gap-1">
-              <Crown size={12} className="text-yellow-500" /> 商店购买
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );

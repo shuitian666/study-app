@@ -49,20 +49,60 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
 export const MOCK_SHOP_ITEMS: ShopItem[] = [
   { id: 'item-1', name: '补签卡', description: '可补签1天', icon: '🎫', type: 'makeup_card', price: 30, owned: false },
   
-  // 头像框
-  { id: 'item-2', name: '优雅黑金框', description: '优雅黑色金边头像框', icon: '🖤', type: 'avatar_frame', price: 100, owned: false },
-  { id: 'item-3', name: '彩虹缤纷框', description: '多彩渐变彩虹头像框', icon: '🌈', type: 'avatar_frame', price: 150, owned: false },
-  { id: 'item-4', name: '爱心包围框', description: '爱心装饰粉色头像框', icon: '❤️', type: 'avatar_frame', price: 200, owned: false },
-  { id: 'item-5', name: '火焰图腾框', description: 'SSR传说火焰特效头像框', icon: '🔥', type: 'avatar_frame', price: 500, owned: false },
+  // N级 - 普通头像框
+  { id: 'frame-n-1', name: '简约银框', description: '简约风格银色边框', icon: '⬜', type: 'avatar_frame', price: 30, owned: false },
+  { id: 'frame-n-2', name: '冰川蓝框', description: '清爽冰川蓝色边框', icon: '🧊', type: 'avatar_frame', price: 30, owned: false },
+  { id: 'frame-n-3', name: '翡翠绿框', description: '自然清新绿色边框', icon: '💚', type: 'avatar_frame', price: 30, owned: false },
+  { id: 'frame-n-4', name: '珊瑚红框', description: '热情珊瑚红色边框', icon: '❤️', type: 'avatar_frame', price: 30, owned: false },
+  { id: 'frame-n-5', name: '优雅黑金', description: '优雅黑色金边头像框', icon: '🖤', type: 'avatar_frame', price: 50, owned: false },
   
-  // 背景
-  { id: 'bg-item-1', name: '橘光晚霞', description: '暖色调渐变背景', icon: '☁️', type: 'background', price: 120, owned: false },
-  { id: 'bg-item-2', name: '春日樱', description: '粉色樱花飘落动态背景', icon: '🌸', type: 'background', price: 250, owned: false },
-  { id: 'bg-item-3', name: '璀璨银河', description: 'SSR星空闪烁动态背景', icon: '🌌', type: 'background', price: 600, owned: false },
+  // R级 - 稀有头像框
+  { id: 'frame-r-1', name: '星空紫框', description: '渐变星空紫色头像框', icon: '🌌', type: 'avatar_frame', price: 100, owned: false },
+  { id: 'frame-r-2', name: '极光蓝框', description: '极光渐变蓝色头像框', icon: '🌊', type: 'avatar_frame', price: 100, owned: false },
+  { id: 'frame-r-3', name: '樱花粉框', description: '浪漫樱花粉色头像框', icon: '🌸', type: 'avatar_frame', price: 120, owned: false },
+  { id: 'frame-r-4', name: '闪电黑框', description: '闪电风格黑色边框', icon: '⚡', type: 'avatar_frame', price: 120, owned: false },
+  { id: 'frame-r-5', name: '彩虹缤纷', description: '多彩渐变彩虹头像框', icon: '🌈', type: 'avatar_frame', price: 150, owned: false },
+  
+  // SR级 - 史诗头像框
+  { id: 'frame-sr-1', name: '春日花环', description: '春日樱花花环头像框', icon: '🌸', type: 'avatar_frame', price: 200, owned: false },
+  { id: 'frame-sr-2', name: '金桂飘香', description: '金秋桂花装饰头像框', icon: '🌼', type: 'avatar_frame', price: 220, owned: false },
+  { id: 'frame-sr-3', name: '紫藤花架', description: '紫色紫藤装饰头像框', icon: '💜', type: 'avatar_frame', price: 220, owned: false },
+  { id: 'frame-sr-4', name: '圣诞花环', description: '圣诞节日装饰头像框', icon: '🎄', type: 'avatar_frame', price: 250, owned: false },
+  { id: 'frame-sr-5', name: '爱心包围', description: '爱心装饰粉色头像框', icon: '❤️', type: 'avatar_frame', price: 250, owned: false },
+  
+  // SSR级 - 传说头像框
+  { id: 'frame-ssr-1', name: '星河璀璨', description: 'SSR传说星河特效头像框', icon: '✨', type: 'avatar_frame', price: 500, owned: false },
+  { id: 'frame-ssr-2', name: '永恒钻石', description: 'SSR永恒钻石特效头像框', icon: '💎', type: 'avatar_frame', price: 550, owned: false },
+  { id: 'frame-ssr-3', name: '火焰图腾', description: 'SSR传说火焰特效头像框', icon: '🔥', type: 'avatar_frame', price: 500, owned: false },
+  { id: 'frame-ssr-4', name: '双龙戏珠', description: 'SSR传说双龙特效头像框', icon: '🐲', type: 'avatar_frame', price: 600, owned: false },
+  
+  // N级 - 普通背景
+  { id: 'bg-n-1', name: '纯净白', description: '纯净白色背景', icon: '⬜', type: 'background', price: 30, owned: false },
+  { id: 'bg-n-2', name: '静谧蓝', description: '安静蓝色背景', icon: '💙', type: 'background', price: 30, owned: false },
+  { id: 'bg-n-3', name: '薄荷绿', description: '清新薄荷绿色背景', icon: '🍃', type: 'background', price: 30, owned: false },
+  { id: 'bg-n-4', name: '暖米色', description: '温暖米色背景', icon: '🌾', type: 'background', price: 30, owned: false },
+  { id: 'bg-n-5', name: '浅烟灰', description: '简约烟灰背景', icon: '🩶', type: 'background', price: 30, owned: false },
+  
+  // R级 - 稀有背景
+  { id: 'bg-r-1', name: '星空夜', description: '星空点点夜晚背景', icon: '🌌', type: 'background', price: 100, owned: false },
+  { id: 'bg-r-2', name: '森林极光', description: '森林极光绿色背景', icon: '🌲', type: 'background', price: 120, owned: false },
+  { id: 'bg-r-3', name: '橘光晚霞', description: '暖色调渐变晚霞背景', icon: '☁️', type: 'background', price: 120, owned: false },
+  { id: 'bg-r-4', name: '黄昏落日', description: '黄昏落日背景', icon: '🌇', type: 'background', price: 150, owned: false },
+  
+  // SR级 - 史诗背景
+  { id: 'bg-sr-1', name: '春日樱', description: '粉色樱花飘落动态背景', icon: '🌸', type: 'background', price: 220, owned: false },
+  { id: 'bg-sr-2', name: '竹林风', description: '清幽竹林动态背景', icon: '🎋', type: 'background', price: 250, owned: false },
+  { id: 'bg-sr-3', name: '深海蓝', description: '深海波浪动态背景', icon: '🌊', type: 'background', price: 250, owned: false },
+  { id: 'bg-sr-4', name: '沙漠日落', description: '沙漠落日风景背景', icon: '🏜️', type: 'background', price: 280, owned: false },
+  
+  // SSR级 - 传说背景
+  { id: 'bg-ssr-1', name: '璀璨银河', description: 'SSR星空闪烁动态背景', icon: '🌌', type: 'background', price: 550, owned: false },
+  { id: 'bg-ssr-2', name: '极光绚烂', description: 'SSR多彩极光动态背景', icon: '✨', type: 'background', price: 600, owned: false },
+  { id: 'bg-ssr-3', name: '幻彩云境', description: 'SSR彩虹渐变梦幻背景', icon: '🌈', type: 'background', price: 600, owned: false },
   
   // AI皮肤
-  { id: 'item-10', name: '暗夜主题', description: '深色护眼主题皮肤', icon: '🌙', type: 'theme_skin', price: 200, owned: false },
-  { id: 'item-11', name: '樱花主题', description: '粉嫩樱花风格', icon: '🌸', type: 'theme_skin', price: 200, owned: false },
+  { id: 'item-10', name: '暗夜主题', description: '深色护眼主题皮肤', icon: '🌙', type: 'theme', price: 200, owned: false },
+  { id: 'item-11', name: '樱花主题', description: '粉嫩樱花风格', icon: '🌸', type: 'theme', price: 200, owned: false },
   { id: 'item-12', name: '猫咪助手', description: 'AI助手变身可爱猫咪', icon: '🐱', type: 'ai_skin', price: 150, owned: false },
   { id: 'item-13', name: '机器人助手', description: 'AI助手科技风外观', icon: '🤖', type: 'ai_skin', price: 150, owned: false },
 ];

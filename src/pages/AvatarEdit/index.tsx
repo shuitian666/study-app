@@ -154,12 +154,26 @@ export default function AvatarEditPage() {
     setPreviewBg(null);
   };
 
+  // 从背包中检查是否已拥有该头像框
   const isFrameUnlocked = (frame: FrameConfig) => {
-    return user?.unlockedFrames?.includes(frame.icon) || frame.rarity === 'N';
+    // 所有稀有度都检查背包
+    const hasInInventory = state.inventory.items.some(
+      item => item.type === 'avatar_frame' && item.name === frame.name
+    );
+    // 兼容旧数据：同时检查原来的解锁列表
+    const oldUnlocked = user?.unlockedFrames?.includes(frame.icon);
+    return hasInInventory || oldUnlocked;
   };
 
+  // 从背包中检查是否已拥有该背景
   const isBackgroundUnlocked = (bg: BackgroundConfig) => {
-    return user?.unlockedBackgrounds?.includes(bg.id) || bg.rarity === 'N';
+    // 所有稀有度都检查背包
+    const hasInInventory = state.inventory.items.some(
+      item => item.type === 'background' && (item.id.startsWith(`inv-${bg.id}`) || item.name === bg.name)
+    );
+    // 兼容旧数据：同时检查原来的解锁列表
+    const oldUnlocked = user?.unlockedBackgrounds?.includes(bg.id);
+    return hasInInventory || oldUnlocked;
   };
 
   const isCustomAvatar = (user?.avatar?.startsWith('data:') || user?.avatar?.startsWith('http')) ?? false;
