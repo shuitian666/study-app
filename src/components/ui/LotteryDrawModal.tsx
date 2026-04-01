@@ -132,8 +132,25 @@ export default function LotteryDrawModal() {
                     <span className="text-sm font-semibold">NEW! 首次获得</span>
                   </div>
                 ) : (
-                  <div className="inline-flex items-center gap-1.5 bg-gray-50 text-text-muted px-4 py-2 rounded-full border border-gray-200">
-                    <span className="text-sm">已拥有</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="inline-flex items-center gap-1.5 bg-gray-50 text-text-muted px-4 py-2 rounded-full border border-gray-200">
+                      <span className="text-sm">已拥有</span>
+                    </div>
+                    {/* 显示星币补偿 - 按照你的要求，补偿数量要在这里显示出来 */}
+                    <div className="inline-flex items-center gap-1.5 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-full border border-yellow-200">
+                      <Star size={14} />
+                      <span className="text-sm font-medium">补偿 {
+                        (() => {
+                          switch(result.item.rarity) {
+                            case 'N': return 10;
+                            case 'R': return 30;
+                            case 'SR': return 60;
+                            case 'SSR': return 150;
+                            default: return 10;
+                          }
+                        })()} 星币
+                      </span>
+                    </div>
                   </div>
                 )}
                 <div className="mt-3" />

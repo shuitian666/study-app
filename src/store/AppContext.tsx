@@ -417,14 +417,18 @@ function reducer(state: AppState, action: Action): AppState {
             usable: true,
           }];
         }
-      } else if (result.reward.type === 'avatar_frame' || result.reward.type === 'background') {
-        // 装饰物品 - 检查是否已有，已有则补偿
+      } else if (
+        result.reward.type === 'avatar_frame' || 
+        result.reward.type === 'background' || 
+        result.reward.type === 'title'
+      ) {
+        // 装饰物品/称号 - 检查是否已有，已有则补偿
         if (state.user) {
-          const existing = newInventoryItems.find(i => i.name === result.reward.name);
+          const existing = newInventoryItems.find(i => i.name === (result.reward as any).name);
           if (existing) {
             // 重复获得，补偿星币（按稀有度）
             let compensation = 0;
-            switch (result.reward.rarity) {
+            switch ((result.reward as any).rarity) {
               case 'N': compensation = 10; break;
               case 'R': compensation = 30; break;
               case 'SR': compensation = 60; break;
@@ -432,16 +436,16 @@ function reducer(state: AppState, action: Action): AppState {
               default: compensation = 10;
             }
             newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-            console.log(`[DRAW_REGULAR] 重复获得 ${result.reward.name}，补偿 ${compensation} 星币`);
+            console.log(`[DRAW_REGULAR] 重复获得 ${(result.reward as any).name}，补偿 ${compensation} 星币`);
           } else {
             // 新物品添加到背包
             newInventoryItems.push({
               id: `inv-regular-${result.reward.id}-${Date.now()}`,
               type: result.reward.type as any,
-              name: result.reward.name,
-              description: result.reward.description || '',
-              icon: result.reward.icon || '📦',
-              rarity: result.reward.rarity || 'N',
+              name: (result.reward as any).name || '',
+              description: (result.reward as any).description || '',
+              icon: (result.reward as any).icon || '📦',
+              rarity: (result.reward as any).rarity || 'N',
               quantity: 1,
               obtainedAt: new Date().toISOString(),
               source: 'lottery',
@@ -481,10 +485,14 @@ function reducer(state: AppState, action: Action): AppState {
       };
 
       // 检查是否已经拥有该装饰物品，如果已有则给星币补偿
-      if ((item.type === 'avatar_frame' || item.type === 'background') && state.user) {
+      // 称号(title)、头像框(avatar_frame)、背景(background)都需要补偿
+      if (
+        (item.type === 'avatar_frame' || item.type === 'background' || item.type === 'title') 
+        && state.user
+      ) {
         const existingInv = state.inventory.items.find(i => i.name === item.name);
         if (existingInv) {
-          // 已经拥有，按价格比例补偿星币（30%）
+          // 已经拥有，按稀有度等级补偿星币 ✅ 称号也纳入等级系统补偿
           let compensation = 0;
           switch (item.rarity) {
             case 'N': compensation = 10; break;

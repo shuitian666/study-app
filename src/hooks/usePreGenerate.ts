@@ -76,29 +76,29 @@ export function usePreGenerate() {
     
     for (let i = 0; i < count; i++) {
       try {
-        const newQuestion = await generateQuiz(
+        const result = await generateQuiz(
           knowledgePointIds,
           kps,
           state.questions
         );
 
-        if (newQuestion) {
+        if (result.question) {
           dispatch({
             type: 'AI_ADD_GENERATED_QUESTION',
-            payload: newQuestion,
+            payload: result.question,
           });
           
           // Also pre-generate explanation for the new question
           const explanation = await generateQuestionExplanation({
-            question: { stem: newQuestion.stem, options: newQuestion.options },
+            question: { stem: result.question.stem, options: result.question.options },
             selectedAnswer: [],
-            correctAnswer: newQuestion.correctAnswers,
+            correctAnswer: result.question.correctAnswers,
           });
 
           dispatch({
             type: 'SAVE_QUESTION_EXPLANATION',
             payload: {
-              questionId: newQuestion.id,
+              questionId: result.question.id,
               explanation,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
@@ -117,9 +117,48 @@ export function usePreGenerate() {
     }
   }, [state.knowledgePoints, state.questions, dispatch]);
 
+  /**
+   * 按需生成单个题目的解析（用户点击才生成，不预先生成）
+   * 按照用户需求：点击才生成，节省token
+   */
+  const generateExplanationOnDemand = useCallback(async (
+    questionId: string,
+    question: { stem: string; options: Array<{ id: string; text: string }> },
+    selectedAnswer: string[],
+    correctAnswer: string[],
+    knowledgePointName?: string,
+    subjectName?: string,
+  ): Promise<string> => {
+    // 如果已经生成过，直接返回
+    const existing = getSavedExplanation(questionId);
+    if (existing) return existing;
+
+    const explanation = await generateQuestionExplanation({
+      question,
+      selectedAnswer,
+      correctAnswer,
+      knowledgePoint: knowledgePointName,
+      subjectName,
+    });
+
+    dispatch({
+      type: 'SAVE_QUESTION_EXPLANATION',
+      payload: {
+        questionId,
+        explanation,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isUserModified: false,
+      },
+    });
+
+    return explanation;
+  }, [dispatch, getSavedExplanation]);
+
   return {
     getSavedExplanation,
     preGenerateExplanations,
     generateNextStageQuestions,
+    generateExplanationOnDemand,
   };
 }

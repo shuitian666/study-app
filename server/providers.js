@@ -37,6 +37,17 @@ export function getProviderConfig(name, userConfig = {}) {
         },
         model: process.env.MINIMAX_MODEL || 'MiniMax-Text-01',
       };
+    case 'openclaw':
+      // OpenClaw 本地接入 - 默认运行在 localhost，端口由 OpenClaw 控制
+      // 可通过环境变量 OPENCLAW_BASE_URL 修改
+      return {
+        baseURL: process.env.OPENCLAW_BASE_URL || 'http://localhost:8080/v1',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userConfig.apiKey || process.env.OPENCLAW_API_KEY || 'openclaw-local'}`,
+        },
+        model: userConfig.modelId || process.env.OPENCLAW_MODEL || 'default',
+      };
     default:
       throw new Error(`Unknown provider: ${name}`);
   }
@@ -143,6 +154,35 @@ export async function listAvailableProviders() {
     models: [],
     note: '请在设置中输入 API Key',
   });
+
+  // OpenClaw 本地接入 - 检测连通性
+  try {
+    const openclawBase = process.env.OPENCLAW_BASE_URL || 'http://localhost:8080/v1';
+    const base = openclawBase.replace(/\/v1$/, '');
+    const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      providers.push({ 
+        name: 'openclaw', 
+        available: true, 
+        models: ['default'],
+        note: '本地 OpenClaw 已连接，自带知识库' 
+      });
+    } else {
+      providers.push({ 
+        name: 'openclaw', 
+        available: false, 
+        models: [], 
+        error: 'Connection failed' 
+      });
+    }
+  } catch (err) {
+    providers.push({ 
+      name: 'openclaw', 
+      available: false, 
+      models: [], 
+      error: err.message 
+    });
+  }
 
   return providers;
 }

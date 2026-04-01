@@ -4,7 +4,7 @@
  */
 import type { AIConfig, AIProvider, ProviderInfo, Question } from '@/types';
 
-const API_BASE = 'http://localhost:3001/api';
+export const API_BASE = 'http://localhost:3001/api';
 const CONFIG_KEY = 'ai-config';
 const DOUBAN_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 
@@ -129,8 +129,10 @@ export async function* streamChat(params: {
 export async function fetchQuiz(params: {
   provider: AIProvider;
   knowledgePointNames: string[];
+  knowledgePoints?: Array<{id: string, name: string, masteryLevel: number, wrongCount: number, lastReviewedAt: string}>;
   subjectName: string;
-}): Promise<Question | null> {
+  mode?: 'random' | 'smart';
+}): Promise<{question: Question | null, selectedKnowledgePoint?: string, mode: 'random' | 'smart'}> {
   const config = getUserAIConfig();
   
   const res = await fetch(`${API_BASE}/quiz`, {
@@ -138,13 +140,18 @@ export async function fetchQuiz(params: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ...params,
+      mode: params.mode || 'random',
       apiKey: config.apiKey,
       modelId: config.modelId,
       groupId: config.groupId,
     }),
   });
   const data = await res.json();
-  return data.question || null;
+  return {
+    question: data.question || null,
+    selectedKnowledgePoint: data.selectedKnowledgePoint,
+    mode: data.mode || params.mode || 'random',
+  };
 }
 
 // ===== 生成鼓励语 =====
@@ -169,6 +176,81 @@ export async function fetchEncouragement(params: {
   });
   const data = await res.json();
   return data.text || '今天也要加油哦！';
+}
+
+// ===== 获取学习报告 =====
+
+export interface StudyReportParams {
+  knowledgeStats: Array<{
+    name: string;
+    masteryLevel: number;
+    wrongCount: number;
+  }>;
+  totalKnowledgePoints: number;
+  masteredCount: number;
+  subjectName: string;
+}
+
+export async function fetchStudyReport(params: StudyReportParams): Promise<any> {
+  const config = getUserAIConfig();
+  
+  const res = await fetch(`${API_BASE}/study-report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...params,
+      provider: config.provider,
+      apiKey: config.apiKey,
+      modelId: config.modelId,
+      groupId: config.groupId,
+    }),
+  });
+  const data = await res.json();
+  return data.report || null;
+}
+
+// ===== 获取每日学习建议 =====
+
+export async function fetchDailySuggestion(params: StudyReportParams): Promise<any> {
+  const config = getUserAIConfig();
+  
+  const res = await fetch(`${API_BASE}/daily-suggestion`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...params,
+      provider: config.provider,
+      apiKey: config.apiKey,
+      modelId: config.modelId,
+      groupId: config.groupId,
+    }),
+  });
+  const data = await res.json();
+  return data || null;
+}
+
+// ===== 获取知识点关联讲解 =====
+
+export async function fetchKnowledgeExplain(params: {
+  knowledgePoint: string;
+  subjectName: string;
+  relatedTo?: string[];
+}): Promise<string> {
+  const config = getUserAIConfig();
+  
+  const res = await fetch(`${API_BASE}/knowledge-explain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...params,
+      provider: config.provider,
+      apiKey: config.apiKey,
+      modelId: config.modelId,
+      groupId: config.groupId,
+    }),
+  });
+  const data = await res.json();
+  return data.explanation || '';
 }
 
 // ===== 豆包API直接调用 =====

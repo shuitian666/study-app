@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { PageHeader, EmptyState } from '@/components/ui/Common';
-import { Play, RotateCcw, AlertCircle, BookOpen } from 'lucide-react';
+import { Play, RotateCcw, AlertCircle, BookOpen, Sparkles, Compass } from 'lucide-react';
+
+export type LearningIntention = 'mixed' | 'new' | 'review' | 'weak' | 'custom';
 
 export default function QuizPage() {
   const { state, navigate } = useApp();
+  const [selectedIntention, setSelectedIntention] = useState<LearningIntention>('mixed');
 
   const subjectsWithQuestions = state.subjects.filter(s =>
     state.questions.some(q => q.subjectId === s.id)
@@ -34,8 +38,44 @@ export default function QuizPage() {
         </div>
       )}
 
-      {/* Subject Selection */}
+      {/* 学习倾向选择 - 用户可以指定今天学习重点 */}
       <div className="px-4 pt-5">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-100 mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Compass size={16} className="text-blue-600" />
+            <h3 className="text-sm font-semibold text-blue-800">今日学习倾向</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { key: 'mixed', label: '混合练习', desc: '新知识点+复习' },
+              { key: 'new', label: '学习新知识点', desc: '优先新内容' },
+              { key: 'review', label: '复习旧知识点', desc: '根据遗忘曲线' },
+              { key: 'weak', label: '强化薄弱点', desc: '错题+未掌握' },
+            ] as const).map(({ key, label, desc }) => (
+              <button
+                key={key}
+                onClick={() => setSelectedIntention(key)}
+                className={`p-2 rounded-xl border text-left transition-all ${
+                  selectedIntention === key
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-white border-blue-200 text-text-primary'
+                }`}
+              >
+                <div className="text-sm font-medium">{label}</div>
+                <div className={`text-xs ${selectedIntention === key ? 'text-blue-100' : 'text-text-muted'}`}>
+                  {desc}
+                </div>
+              </button>
+            ))}
+          </div>
+          {selectedIntention !== 'mixed' && (
+            <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
+              <Sparkles size={12} />
+              AI会根据你的学习倾向智能调整出题优先级
+            </div>
+          )}
+        </div>
+
         <h3 className="text-base font-semibold mb-4">选择学科开始测试</h3>
 
         {subjectsWithQuestions.length === 0 ? (

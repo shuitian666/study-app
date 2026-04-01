@@ -28,6 +28,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   volcengine: '火山引擎',
   minimax: 'Minimax',
   douban: '豆包 AI',
+  openclaw: 'OpenClaw (本地)',
 };
 
 export default function AIChatPage() {
@@ -41,12 +42,18 @@ export default function AIChatPage() {
 
   useEffect(() => {
     const config = getAIConfig();
-    // 豆包直连模式不需要检测本地后端，直接显示在线
-    if (config.provider === 'douban') {
-      if (config.apiKey && config.apiKey.trim().length > 0) {
-        setBackendMode('online');
+    // 豆包和OpenClaw直连模式不需要检测本地后端，直接显示在线
+    if (config.provider === 'douban' || config.provider === 'openclaw') {
+      if (config.provider === 'douban') {
+        // 豆包需要检查 API Key 是否存在
+        if (config.apiKey && config.apiKey.trim().length > 0) {
+          setBackendMode('online');
+        } else {
+          setBackendMode('offline');
+        }
       } else {
-        setBackendMode('offline');
+        // OpenClaw 不需要额外检查，直接在线 ✅
+        setBackendMode('online');
       }
       return;
     }

@@ -26,9 +26,11 @@ export default function SettingsPage() {
   // 读取已保存配置
   const savedConfig = getAIConfig();
   
-  // 当前模式: 'douban' = 云端豆包, 'offline' = 离线模式
-  const [aiMode, setAiMode] = useState<'douban' | 'offline'>(() => {
-    return savedConfig.provider === 'douban' ? 'douban' : 'offline';
+  // 当前模式: 'douban' = 云端豆包, 'offline' = 离线模式, 'openclaw' = 本地 OpenClaw
+  const [aiMode, setAiMode] = useState<'douban' | 'offline' | 'openclaw'>(() => {
+    if (savedConfig.provider === 'douban') return 'douban';
+    if (savedConfig.provider === 'openclaw') return 'openclaw';
+    return 'offline';
   });
   
   // API Key 输入框
@@ -47,7 +49,7 @@ export default function SettingsPage() {
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
   
   // 保存AI模式
-  const saveAIMode = (mode: 'douban' | 'offline') => {
+  const saveAIMode = (mode: 'douban' | 'offline' | 'openclaw') => {
     setSaving(true);
     
     if (mode === 'douban') {
@@ -57,6 +59,13 @@ export default function SettingsPage() {
         presetId: 'douban',
         apiKey: apiKey.trim(),
         modelId: modelId.trim(),
+      };
+      setAIConfig(newConfig);
+    } else if (mode === 'openclaw') {
+      // OpenClaw 本地接入 - 手动选择接入，使用本地 OpenClaw 服务
+      const newConfig: AIConfig = {
+        provider: 'openclaw',
+        presetId: 'openclaw-local',
       };
       setAIConfig(newConfig);
     } else {
@@ -129,18 +138,23 @@ export default function SettingsPage() {
           {/* 当前状态显示 */}
           <div className="p-4 flex items-center justify-between border-b border-border">
             <div className="flex items-center gap-3">
-              {isDoubanMode ? (
+              {aiMode === 'douban' ? (
                 <Cloud size={20} className="text-purple-500" />
+              ) : aiMode === 'openclaw' ? (
+                <Sparkles size={20} className="text-green-500" />
               ) : (
                 <WifiOff size={20} className="text-gray-400" />
               )}
               <div>
                 <div className="text-sm font-medium">
-                  {isDoubanMode ? '豆包 AI (云端)' : '离线模式'}
+                  {aiMode === 'douban' ? '豆包 AI (云端)' : 
+                   aiMode === 'openclaw' ? 'OpenClaw (本地)' : '离线模式'}
                 </div>
                 <div className="text-xs text-text-muted">
-                  {isDoubanMode 
-                    ? `使用 doubao-lite-32k 模型` 
+                  {aiMode === 'douban' 
+                    ? `使用 doubao-lite-32k 模型`
+                    : aiMode === 'openclaw'
+                    ? '连接本地 OpenClaw 服务，使用本地知识库'
                     : '使用预设任务流，无AI能力'}
                 </div>
               </div>
@@ -218,13 +232,36 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-            
+
+            {/* OpenClaw 本地接入 - 用户要求手动选择接入 ✅ */}
+            <button
+              onClick={() => setAiMode('openclaw')}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                aiMode === 'openclaw'
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-border bg-white hover:border-green-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <Sparkles size={20} className="text-green-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">OpenClaw (本地)</div>
+                    <div className="text-xs text-text-muted">接入本地 OpenClaw，使用本地知识库</div>
+                  </div>
+                </div>
+                {aiMode === 'openclaw' && <Check size={18} className="text-green-500" />}
+              </div>
+            </button>
+
             {/* 离线模式 */}
             <button
               onClick={() => setAiMode('offline')}
               className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                !isDoubanMode 
-                  ? 'border-gray-400 bg-gray-50' 
+                aiMode === 'offline'
+                  ? 'border-gray-400 bg-gray-50'
                   : 'border-border bg-white hover:border-gray-300'
               }`}
             >
@@ -245,7 +282,7 @@ export default function SettingsPage() {
             {/* 保存按钮 */}
             <button
               onClick={() => saveAIMode(aiMode)}
-              disabled={saving || (isDoubanMode && (!apiKey.trim() || !modelId.trim()))}
+              disabled={saving || (aiMode === 'douban' && (!apiKey.trim() || !modelId.trim()))}
               className="w-full mt-2 py-2.5 bg-purple-500 text-white text-sm rounded-xl font-medium active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? '保存中...' : '保存 AI 配置'}

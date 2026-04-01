@@ -20,12 +20,13 @@
  * ============================================================================
  */
 
-import type { KnowledgePoint, Question, LearningStats, ChatMessage } from '@/types';
+import type { KnowledgePoint, Question, LearningStats, ChatMessage, GenerateSmartQuizResult } from '@/types';
 import { AI_ANSWER_TEMPLATES, AI_GENERIC_ANSWER, AI_QUIZ_POOL, ENCOURAGEMENT_RULES } from '@/data/ai-mock';
 import {
   checkBackendAvailable, getAIConfig,
   streamChat, fetchQuiz, fetchEncouragement,
-  fetchDoubanExplanation,
+  fetchDoubanExplanation, fetchStudyReport, fetchDailySuggestion, fetchKnowledgeExplain,
+  API_BASE,
 } from '@/services/aiClient';
 
 // ===== 豆包API配置 =====
@@ -353,9 +354,15 @@ export async function askQuestion(
     }
   }
 
-  const available = await checkBackendAvailable();
+  // OpenClaw: always use backend (local gateway)
+  // 不需要豆包直连，走后端转发到本地 OpenClaw
+  // 如果是 openclaw 模式，强制使用后端，不检测直接尝试
+  // 检测只是对于其他本地 provider (ollama)
+  const shouldUseBackend = 
+    config.provider === 'openclaw' || 
+    (config.provider !== 'douban' && await checkBackendAvailable());
 
-  if (available) {
+  if (shouldUseBackend) {
     try {
       const kpNames = knowledgePoints.slice(0, 20).map(kp => kp.name);
       const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
@@ -376,8 +383,13 @@ export async function askQuestion(
 
       const relatedKpIds = findRelatedKpIds(query, knowledgePoints);
       return { answer, relatedKpIds };
-    } catch {
-      // fallback to mock
+    } catch (err) {
+      console.error('[aiService] OpenClaw request failed', err);
+      // OpenClaw 不 fallback，直接抛出错误让用户知道连接失败
+      if (config.provider === 'openclaw') {
+        throw err;
+      }
+      // others fallback to mock
     }
   }
 
@@ -415,9 +427,12 @@ export async function askQuestionStreaming(
     return { stream, relatedKpIds };
   }
 
-  const available = await checkBackendAvailable();
+  // OpenClaw: always use backend, don't fallback to mock
+  const shouldUseBackend = 
+    config.provider === 'openclaw' || 
+    (config.provider !== 'douban' && await checkBackendAvailable());
 
-  if (available) {
+  if (shouldUseBackend) {
     const kpNames = knowledgePoints.slice(0, 20).map(kp => kp.name);
 
     const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
@@ -436,7 +451,7 @@ export async function askQuestionStreaming(
     return { stream, relatedKpIds };
   }
 
-  // Mock fallback
+  // Mock fallback - only for non-openclaw when backend down
   await randomDelay(500, 800);
   const mockResult = mockAskQuestion(query, knowledgePoints);
 
@@ -453,13 +468,67 @@ export async function askQuestionStreaming(
 
 // ===== 2. Generate Quiz =====
 
+export interface GenerateSmartQuizResult {
+  question: Question | null;
+  selectedKnowledgePoint?: string;
+  mode: 'random' | 'smart';
+}
+
 export async function generateQuiz(
   knowledgePointIds: string[],
   knowledgePoints: KnowledgePoint[],
-  existingQuestions: Question[]
-): Promise<Question | null> {
+  existingQuestions: Question[],
+  mode: 'random' | 'smart' = 'random'
+): Promise<GenerateSmartQuizResult> {
   const config = getAIConfig();
 
+  // 智能模式或 openclaw 模式直接走后端，因为需要AI选题
+  // OpenClaw 强制使用后端，不 fallback 到 mock
+  const shouldUseBackend = config.provider === 'openclaw' || mode === 'smart';
+  let available = shouldUseBackend ? true : await checkBackendAvailable();
+
+  if (shouldUseBackend || available) {
+    try {
+      const kps = knowledgePoints.filter(kp => knowledgePointIds.includes(kp.id))
+        .map(kp => ({
+          id: kp.id,
+          name: kp.name,
+          masteryLevel: kp.proficiency,
+          wrongCount: 0,
+          lastReviewedAt: kp.lastReviewedAt || '',
+        }));
+      const subjectName = kps[0]
+        ? knowledgePoints.find(k => k.subjectId === kps[0].subjectId)?.name || ''
+        : '';
+
+      const result = await fetchQuiz({
+        provider: config.provider,
+        knowledgePoints: kps,
+        knowledgePointNames: kps.map(k => k.name),
+        subjectName,
+        mode: 'smart',
+      });
+
+      if (result.question) {
+        // 找到知识点 id
+        const selectedKp = knowledgePoints.find(k => k.name === result.selectedKnowledgePoint);
+        return {
+          question: {
+            ...result.question,
+            id: `ai-q-${Date.now()}`,
+            knowledgePointId: selectedKp?.id || kps[0]?.id || '',
+            subjectId: selectedKp?.subjectId || kps[0]?.subjectId || '',
+          },
+          selectedKnowledgePoint: result.selectedKnowledgePoint,
+          mode: 'smart',
+        };
+      }
+    } catch {
+      // fallback to random mode
+    }
+  }
+
+  // 随机模式 / fallback
   // 豆包API
   if (config.provider === 'douban' && config.apiKey && config.modelId) {
     try {
@@ -473,10 +542,13 @@ export async function generateQuiz(
 
       if (question) {
         return {
-          ...question,
-          id: `ai-q-${Date.now()}`,
-          knowledgePointId: kps[0]?.id || '',
-          subjectId: kps[0]?.subjectId || '',
+          question: {
+            ...question,
+            id: `ai-q-${Date.now()}`,
+            knowledgePointId: kps[0]?.id || '',
+            subjectId: kps[0]?.subjectId || '',
+          },
+          mode: 'random',
         };
       }
     } catch {
@@ -484,7 +556,10 @@ export async function generateQuiz(
     }
   }
 
-  const available = await checkBackendAvailable();
+  // random mode fallback - check backend again
+  if (!shouldUseBackend && !available) {
+    available = await checkBackendAvailable();
+  }
 
   if (available) {
     try {
@@ -494,18 +569,22 @@ export async function generateQuiz(
         ? knowledgePoints.find(k => k.subjectId === kps[0].subjectId)?.name || ''
         : '';
 
-      const question = await fetchQuiz({
+      const result = await fetchQuiz({
         provider: config.provider,
         knowledgePointNames: kpNames,
         subjectName,
+        mode: 'random',
       });
 
-      if (question) {
+      if (result.question) {
         return {
-          ...question,
-          id: `ai-q-${Date.now()}`,
-          knowledgePointId: kps[0]?.id || '',
-          subjectId: kps[0]?.subjectId || '',
+          question: {
+            ...result.question,
+            id: `ai-q-${Date.now()}`,
+            knowledgePointId: kps[0]?.id || '',
+            subjectId: kps[0]?.subjectId || '',
+          },
+          mode: 'random',
         };
       }
     } catch {
@@ -514,7 +593,10 @@ export async function generateQuiz(
   }
 
   await randomDelay(500, 1000);
-  return mockGenerateQuiz(knowledgePointIds, knowledgePoints, existingQuestions);
+  return {
+    question: mockGenerateQuiz(knowledgePointIds, knowledgePoints, existingQuestions),
+    mode: 'random',
+  };
 }
 
 // ===== 3. Smart Encouragement =====
@@ -546,9 +628,12 @@ export async function getSmartEncouragement(
     }
   }
 
-  const available = await checkBackendAvailable();
+  // OpenClaw: always use backend
+  const shouldUseBackend = 
+    config.provider === 'openclaw' || 
+    (config.provider !== 'douban' && await checkBackendAvailable());
 
-  if (available) {
+  if (shouldUseBackend) {
     try {
       return await fetchEncouragement({
         provider: config.provider,
@@ -557,7 +642,10 @@ export async function getSmartEncouragement(
         streak: checkinStreak,
       });
     } catch {
-      // fallback to mock
+      // fallback only if not openclaw
+      if (config.provider !== 'openclaw') {
+        // fallback to mock
+      }
     }
   }
 
@@ -574,12 +662,53 @@ export interface ExplainParams {
   };
   selectedAnswer: string[];
   correctAnswer: string[];
+  knowledgePoint?: string;
+  subjectName?: string;
 }
 
 export async function generateQuestionExplanation(params: ExplainParams): Promise<string> {
   const config = getAIConfig();
   const isCorrect = params.selectedAnswer.length === params.correctAnswer.length &&
     params.selectedAnswer.every(a => params.correctAnswer.includes(a));
+
+  // OpenClaw: always use backend
+  const shouldUseBackend = 
+    config.provider === 'openclaw' || 
+    (config.provider !== 'douban' && await checkBackendAvailable());
+
+  if (shouldUseBackend) {
+    try {
+      // 调用后端增强解析（支持关联知识库）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const res = await fetch(`${API_BASE}/explain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: config.provider,
+          question: params.question,
+          selectedAnswer: params.selectedAnswer,
+          correctAnswer: params.correctAnswer,
+          knowledgePoint: params.knowledgePoint,
+          subjectName: params.subjectName,
+          apiKey: config.apiKey,
+          modelId: config.modelId,
+          groupId: config.groupId,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      if (data.explanation) {
+        return data.explanation;
+      }
+    } catch {
+      // fallback only if not openclaw
+      if (config.provider !== 'openclaw') {
+        // fallback
+      }
+    }
+  }
 
   // 豆包API
   if (config.provider === 'douban' && config.apiKey && config.modelId) {
@@ -596,10 +725,75 @@ export async function generateQuestionExplanation(params: ExplainParams): Promis
     }
   }
 
-  // Mock fallback
+  // Mock fallback - only for non-openclaw
   await delay(500);
   if (isCorrect) {
     return '回答正确！这道题考查的知识点你已经掌握了，继续保持！';
   }
   return '这道题的正确答案是 ' + params.correctAnswer.join('、') + '。建议回顾相关知识点，加强理解后再做一遍。';
+}
+
+// ===== 5. 获取学习报告 =====
+
+export interface StudyStats {
+  knowledgeStats: Array<{
+    name: string;
+    masteryLevel: number;
+    wrongCount: number;
+  }>;
+  totalKnowledgePoints: number;
+  masteredCount: number;
+  subjectName: string;
+}
+
+export async function getStudyReport(stats: StudyStats) {
+  const config = getAIConfig();
+  // OpenClaw 强制使用后端
+  const shouldUseBackend = config.provider === 'openclaw' || (await checkBackendAvailable());
+  if (!shouldUseBackend) return null;
+
+  try {
+    return await fetchStudyReport({
+      ...stats,
+      provider: config.provider,
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ===== 6. 获取每日学习建议 =====
+
+export async function getDailySuggestion(stats: StudyStats) {
+  const config = getAIConfig();
+  // OpenClaw 强制使用后端
+  const shouldUseBackend = config.provider === 'openclaw' || (await checkBackendAvailable());
+  if (!shouldUseBackend) return null;
+
+  try {
+    return await fetchDailySuggestion({
+      ...stats,
+      provider: config.provider,
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ===== 7. 获取知识点关联讲解 =====
+
+export async function getKnowledgeExplain(params: {
+  knowledgePoint: string;
+  subjectName: string;
+  relatedTo?: string[];
+}) {
+  const config = getAIConfig();
+  // OpenClaw 强制使用后端
+  const shouldUseBackend = config.provider === 'openclaw' || (await checkBackendAvailable());
+  if (!shouldUseBackend) return '';
+  try {
+    return await fetchKnowledgeExplain(params);
+  } catch {
+    return '';
+  }
 }

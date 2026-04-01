@@ -148,7 +148,7 @@ export interface LearningStats {
 
 // ===== AI Chat =====
 
-export type AIProvider = 'ollama' | 'volcengine' | 'minimax' | 'douban';
+export type AIProvider = 'ollama' | 'volcengine' | 'minimax' | 'douban' | 'openclaw';
 
 // AI预设配置
 export interface AIPreset {
@@ -292,7 +292,7 @@ export interface UpPoolItem {
   description: string;
   icon: string;
   type: 'avatar_frame' | 'background' | 'theme' | 'title';
-  rarity: 'SSR' | 'SR' | 'R';
+  rarity: 'N' | 'R' | 'SR' | 'SSR';
   probability: number;
   owned: boolean;
 }
@@ -362,7 +362,7 @@ export interface AchievementCondition {
 }
 
 // Shop
-export type ShopItemType = 'makeup_card' | 'avatar_frame' | 'theme_skin' | 'ai_skin' | 'background';
+export type ShopItemType = 'makeup_card' | 'avatar_frame' | 'theme_skin' | 'ai_skin' | 'background' | 'theme';
 
 export interface ShopItem {
   id: string;
@@ -412,11 +412,14 @@ export interface InventoryState {
 }
 
 // ===== Mail / 邮件系统 =====
-export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'coin' | 'vip';
+export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'background' | 'title' | 'coin' | 'vip';
 
 export interface MailAttachment {
   type: MailAttachmentType;
   name: string;
+  description?: string;
+  icon?: string;
+  rarity?: 'N' | 'R' | 'SR' | 'SSR';
   quantity: number;
   claimed: boolean;
 }

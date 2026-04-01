@@ -2,7 +2,16 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { chatCompletion, extractContent, listAvailableProviders } from './providers.js';
-import { CHAT_SYSTEM_PROMPT, QUIZ_SYSTEM_PROMPT, ENCOURAGE_SYSTEM_PROMPT, buildChatMessages } from './prompts.js';
+import { 
+  CHAT_SYSTEM_PROMPT, 
+  QUIZ_SYSTEM_PROMPT,
+  SMART_QUIZ_SYSTEM_PROMPT,
+  ENCOURAGE_SYSTEM_PROMPT,
+  STUDY_REPORT_PROMPT,
+  DAILY_SUGGESTION_PROMPT,
+  OPENCLAW_KB_SYSTEM,
+  buildChatMessages 
+} from './prompts.js';
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -22,7 +31,9 @@ app.get('/api/models', async (_req, res) => {
 app.post('/api/chat', async (req, res) => {
   const { provider = 'ollama', messages = [], knowledgeContext, apiKey, modelId, groupId } = req.body;
 
-  const fullMessages = buildChatMessages(CHAT_SYSTEM_PROMPT, knowledgeContext, messages);
+  // 如果 provider 是 openclaw，使用知识库关联系统提示
+  const systemPrompt = provider === 'openclaw' ? OPENCLAW_KB_SYSTEM : CHAT_SYSTEM_PROMPT;
+  const fullMessages = buildChatMessages(systemPrompt, knowledgeContext, messages);
   
   // 用户配置（支持前端动态传入）
   const userConfig = { apiKey, modelId, groupId };
@@ -88,33 +99,83 @@ app.post('/api/chat', async (req, res) => {
 
 // ===== POST /api/quiz (JSON) =====
 app.post('/api/quiz', async (req, res) => {
-  const { provider = 'ollama', knowledgePointNames = [], subjectName = '', apiKey, modelId, groupId } = req.body;
+  const { 
+    provider = 'ollama', 
+    knowledgePointNames = [], 
+    knowledgePoints = [], // 智能模式：[{id, name, masteryLevel, wrongCount, lastReviewedAt}]
+    subjectName = '', 
+    apiKey, 
+    modelId, 
+    groupId,
+    mode = 'random' // random | smart (智能私教模式)
+  } = req.body;
 
-  const userContent = `请根据以下知识点出一道选择题：\n知识点：${knowledgePointNames.join('、')}\n学科：${subjectName}`;
-  const messages = [
-    { role: 'system', content: QUIZ_SYSTEM_PROMPT },
-    { role: 'user', content: userContent },
-  ];
-  
-  const userConfig = { apiKey, modelId, groupId };
+  // 智能私教模式：基于掌握程度自动选题
+  if (mode === 'smart' && knowledgePoints.length > 0) {
+    const userContent = `# 学生知识点掌握情况
 
-  try {
-    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.8, userConfig });
-    const text = await extractContent(response);
+以下是学生当前${subjectName ? `【${subjectName}】` : ''}的知识点掌握情况：
+${knowledgePoints.map(kp => `- ${kp.name}：掌握等级 ${kp.masteryLevel}/3（未掌握=1，掌握中=2，已掌握=3），错题数：${kp.wrongCount || 0}，上次复习：${kp.lastReviewedAt || '从未'}`).join('\n')}
 
-    // 尝试解析 JSON（去掉可能的 markdown 代码块标记）
-    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-    const question = JSON.parse(cleaned);
+请你作为私教，根据遗忘曲线和掌握程度，选择一道当前最需要练习的知识点出题。`;
 
-    // 校验必要字段
-    if (!question.stem || !question.options || !question.correctAnswers) {
-      return res.json({ question: null, error: 'incomplete_fields' });
+    const messages = [
+      { role: 'system', content: SMART_QUIZ_SYSTEM_PROMPT },
+      { role: 'user', content: userContent },
+    ];
+    
+    const userConfig = { apiKey, modelId, groupId };
+
+    try {
+      const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.8, userConfig });
+      const text = await extractContent(response);
+
+      // 尝试解析 JSON（去掉可能的 markdown 代码块标记）
+      const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+      const result = JSON.parse(cleaned);
+
+      // 校验必要字段
+      if (!result.question || !result.question.stem || !result.question.options || !result.question.correctAnswers) {
+        return res.json({ question: null, error: 'incomplete_fields' });
+      }
+
+      res.json({ 
+        question: result.question,
+        selectedKnowledgePoint: result.selectedKnowledgePoint,
+        mode: 'smart'
+      });
+    } catch (err) {
+      console.error('Smart Quiz error:', err.message);
+      res.json({ question: null, error: err.message });
     }
+  } else {
+    // 传统随机模式：指定知识点出题
+    const userContent = `请根据以下知识点出一道选择题：\n知识点：${knowledgePointNames.join('、')}\n学科：${subjectName}`;
+    const messages = [
+      { role: 'system', content: QUIZ_SYSTEM_PROMPT },
+      { role: 'user', content: userContent },
+    ];
+    
+    const userConfig = { apiKey, modelId, groupId };
 
-    res.json({ question });
-  } catch (err) {
-    console.error('Quiz error:', err.message);
-    res.json({ question: null, error: err.message });
+    try {
+      const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.8, userConfig });
+      const text = await extractContent(response);
+
+      // 尝试解析 JSON（去掉可能的 markdown 代码块标记）
+      const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+      const question = JSON.parse(cleaned);
+
+      // 校验必要字段
+      if (!question.stem || !question.options || !question.correctAnswers) {
+        return res.json({ question: null, error: 'incomplete_fields' });
+      }
+
+      res.json({ question, mode: 'random' });
+    } catch (err) {
+      console.error('Quiz error:', err.message);
+      res.json({ question: null, error: err.message });
+    }
   }
 });
 
@@ -293,9 +354,22 @@ app.post('/api/team/dissolve', (req, res) => {
 
 // ===== POST /api/explain - AI生成题目解析 =====
 app.post('/api/explain', async (req, res) => {
-  const { provider = 'ollama', question, selectedAnswer, correctAnswer, apiKey, modelId, groupId } = req.body;
+  const { 
+    provider = 'ollama', 
+    question, 
+    selectedAnswer, 
+    correctAnswer,
+    knowledgePoint,
+    subjectName,
+    apiKey, 
+    modelId, 
+    groupId 
+  } = req.body;
 
   const userContent = `请为以下题目生成详细的解析：
+
+学科：${subjectName || '未知'}
+知识点：${knowledgePoint || '未知'}
 
 题目：${question.stem || question}
 选项：${question.options ? question.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o.text}`).join('\n') : ''}
@@ -303,15 +377,16 @@ app.post('/api/explain', async (req, res) => {
 正确答案：${correctAnswer}
 
 请生成包含以下内容的详细解析：
-1. 正确答案分析
-2. 错误选项解析
-3. 相关知识点讲解
-4. 记忆技巧（如适用）
+1. ✅ 正确答案分析
+2. ❌ 错误选项逐个解析
+3. 📚 **相关知识点讲解**（这里需要关联基础知识，帮学生复习）
+4. 💡 记忆技巧（如果适用）
+5. 🔗 关联知识扩展（相关的相似知识点、前置知识）
 
-请用清晰、有条理的方式回答。`;
+请用清晰、有条理的方式回答，就像私教一对一辅导。利用知识库中的内容帮助学生融会贯通。`;
 
   const messages = [
-    { role: 'system', content: '你是一位专业的学习导师，擅长解释知识点和题目。请用简洁明了的语言解释问题。' },
+    { role: 'system', content: '你是一位专业的私教学习导师，擅长解释知识点和题目。你会主动关联相关知识库内容，帮助学生建立知识网络。请用简洁明了的语言解释问题。' },
     { role: 'user', content: userContent },
   ];
 
@@ -332,8 +407,135 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ===== POST /api/study-report - 生成学习报告 =====
+app.post('/api/study-report', async (req, res) => {
+  const { 
+    provider = 'ollama', 
+    knowledgeStats = [], 
+    totalKnowledgePoints = 0,
+    masteredCount = 0,
+    subjectName = '',
+    apiKey, 
+    modelId, 
+    groupId 
+  } = req.body;
+
+  const userContent = `# 学生学习数据
+
+学科：${subjectName || '全部'}
+总知识点：${totalKnowledgePoints}
+已掌握：${masteredCount}
+
+知识点详情：
+${knowledgeStats.map(kp => `- ${kp.name}: 掌握等级 ${kp.masteryLevel}/3，错题数 ${kp.wrongCount || 0}`).join('\n')}
+
+请生成学习报告。`;
+
+  const messages = [
+    { role: 'system', content: STUDY_REPORT_PROMPT },
+    { role: 'user', content: userContent },
+  ];
+  
+  const userConfig = { apiKey, modelId, groupId };
+
+  try {
+    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.7, userConfig });
+    const text = await extractContent(response);
+    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+    const report = JSON.parse(cleaned);
+    res.json({ report });
+  } catch (err) {
+    console.error('Study report error:', err.message);
+    res.json({ report: null, error: err.message });
+  }
+});
+
+// ===== POST /api/daily-suggestion - 获取每日学习建议 =====
+app.post('/api/daily-suggestion', async (req, res) => {
+  const { 
+    provider = 'ollama', 
+    knowledgeStats = [], 
+    totalKnowledgePoints = 0,
+    masteredCount = 0,
+    subjectName = '',
+    apiKey, 
+    modelId, 
+    groupId 
+  } = req.body;
+
+  const userContent = `# 学生学习数据
+
+学科：${subjectName || '全部'}
+总知识点：${totalKnowledgePoints}
+已掌握：${masteredCount}
+
+知识点掌握情况：
+${knowledgeStats.map(kp => `- ${kp.name}: 掌握等级 ${kp.masteryLevel}/3，错题数 ${kp.wrongCount || 0}，上次复习 ${kp.lastReviewedAt || '从未'}`).join('\n')}
+
+请给出今天的学习建议。`;
+
+  const messages = [
+    { role: 'system', content: DAILY_SUGGESTION_PROMPT },
+    { role: 'user', content: userContent },
+  ];
+  
+  const userConfig = { apiKey, modelId, groupId };
+
+  try {
+    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.7, userConfig });
+    const text = await extractContent(response);
+    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+    const result = JSON.parse(cleaned);
+    res.json(result);
+  } catch (err) {
+    console.error('Daily suggestion error:', err.message);
+    res.json({ suggestions: null, error: err.message });
+  }
+});
+
+// ===== POST /api/knowledge-explain - 知识库关联讲解 =====
+app.post('/api/knowledge-explain', async (req, res) => {
+  const { 
+    provider = 'ollama', 
+    knowledgePoint,
+    subjectName,
+    relatedTo = [],
+    apiKey, 
+    modelId, 
+    groupId 
+  } = req.body;
+
+  const userContent = `请给我讲解知识点"${knowledgePoint}"（学科：${subjectName}）。
+
+${relatedTo.length > 0 ? `需要关联讲解这些前置知识点：${relatedTo.join('、')}` : ''}
+
+请结合OpenClaw知识库中的内容，进行清晰有条理的讲解，主动关联相关知识帮助理解。`;
+
+  const messages = [
+    { role: 'system', content: OPENCLAW_KB_SYSTEM },
+    { role: 'user', content: userContent },
+  ];
+  
+  const userConfig = { apiKey, modelId, groupId };
+
+  try {
+    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.6, userConfig });
+    const explanation = await extractContent(response);
+    res.json({ explanation });
+  } catch (err) {
+    console.error('Knowledge explain error:', err.message);
+    res.json({ explanation: null, error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`AI proxy server running on http://localhost:${PORT}`);
+  console.log('✅ OpenClaw 智能私教已接入！支持：');
+  console.log('  - /api/quiz 智能出题（随机/智能模式）');
+  console.log('  - /api/explain 关联式题目解析');
+  console.log('  - /api/study-report 学习报告');
+  console.log('  - /api/daily-suggestion 每日学习建议');
+  console.log('  - /api/knowledge-explain 知识点关联讲解');
   console.log('支持云端 API Key 动态配置！');
 });

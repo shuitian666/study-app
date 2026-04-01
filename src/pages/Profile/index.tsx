@@ -231,6 +231,40 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* 已获得称号 - 显示在个人页面 ✅ 按照你的要求 */}
+      {state.inventory.items.filter(i => i.type === 'title').length > 0 && (
+        <div className="px-4 mt-4">
+          <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+            <h3 className="font-semibold text-sm mb-3">当前称号</h3>
+            <div className="flex flex-wrap gap-2">
+              {state.inventory.items
+                .filter(i => i.type === 'title')
+                .map(title => (
+                  <span
+                    key={title.id}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full border ${
+                      title.rarity === 'SSR'
+                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                        : title.rarity === 'SR'
+                        ? 'bg-purple-50 border-purple-200 text-purple-700'
+                        : title.rarity === 'R'
+                        ? 'bg-blue-50 border-blue-200 text-blue-700'
+                        : 'bg-gray-50 border-gray-200 text-gray-700'
+                    }`}
+                  >
+                    <Medal size={14} />
+                    <span className="text-sm font-medium">{title.name}</span>
+                  </span>
+                ))
+              }
+            </div>
+            <p className="text-[10px] text-text-muted mt-2">
+              称号可通过活动抽奖获得，重复获得自动兑换为星币
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Logout */}
       <div className="px-4 mt-4 mb-4">
         <button

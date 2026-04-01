@@ -15,7 +15,8 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
-import { Trophy, RotateCcw, Home, BookOpen, ArrowRight, Sparkles, Target, CheckCircle2, FileText, Loader2 } from 'lucide-react';
+import { getKnowledgeExplain } from '@/services/aiService';
+import { Trophy, RotateCcw, Home, BookOpen, ArrowRight, Sparkles, Target, CheckCircle2, FileText, Loader2, MessageSquare } from 'lucide-react';
 
 export default function QuizResultPage() {
   const { state, navigate } = useApp();
@@ -35,6 +36,7 @@ export default function QuizResultPage() {
   // 预生成状态
   const [generating, setGenerating] = useState(false);
   const [genProgress, setGenProgress] = useState({ current: 0, total: 0 });
+  const [generatingOne, setGeneratingOne] = useState<string | null>(null);
   
   // 获取当前阶段的题目解析
   const [showExplanations, setShowExplanations] = useState(false);
@@ -213,40 +215,89 @@ export default function QuizResultPage() {
         </div>
       )}
 
-      {/* 查看解析按钮 */}
+      {/* 查看解析按钮 - 用户点击才生成，节省token */}
       <div className="w-full max-w-xs mb-4">
         <button
           onClick={() => setShowExplanations(!showExplanations)}
           className="w-full bg-white border border-border rounded-xl p-3 text-sm flex items-center justify-center gap-2 text-text-secondary"
         >
           <FileText size={16} />
-          {showExplanations ? '收起解析' : '查看本次答题解析'}
+          {showExplanations ? '收起解析' : '查看AI解析'}
         </button>
         
         {showExplanations && (
-          <div className="mt-2 bg-white rounded-xl border border-border p-4 space-y-3 max-h-64 overflow-y-auto">
+          <div className="mt-2 bg-white rounded-xl border border-border p-4 space-y-4 max-h-96 overflow-y-auto">
             {stageQuestions.map((q, idx) => {
               const explanation = getSavedExplanation(q.id);
               const correctLabels = q.correctAnswers.map(a => {
                 const optIdx = q.options.findIndex(o => o.id === a);
                 return String.fromCharCode(65 + optIdx);
               });
+              const relatedKP = state.knowledgePoints.find(kp => kp.id === q.knowledgePointId);
+              const subject = state.subjects.find(s => s.id === q.subjectId);
+              
               return (
-                <div key={q.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                  <div className="text-xs font-medium text-text-primary mb-1">
+                <div key={q.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                  <div className="text-sm font-medium text-text-primary mb-2">
                     {idx + 1}. {q.stem}
                   </div>
-                  <div className="text-xs text-text-muted mb-1">
-                    正确答案: {correctLabels.join('、')}
+                  <div className="text-xs text-text-muted mb-2">
+                    正确答案: <span className="font-medium">{correctLabels.join('、')}</span>
                   </div>
+                  
                   {explanation ? (
-                    <div className="text-xs text-purple-700 bg-purple-50 rounded-lg p-2">
-                      {explanation}
-                    </div>
+                    <>
+                      <div className="text-sm text-purple-700 bg-purple-50 rounded-lg p-3 mb-2">
+                        <div className="font-medium mb-1">AI解析：</div>
+                        {explanation}
+                      </div>
+                      {/* 追问按钮 - 解析看不懂可以继续问 */}
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => {
+                            // 打开追问模态框或者跳转到聊天
+                            navigate('ai-chat', { 
+                              context: `关于这道题：${q.stem}，我对解析还有疑问，请进一步讲解`,
+                              subjectId: q.subjectId,
+                              knowledgePointId: q.knowledgePointId
+                            });
+                          }}
+                          className="text-xs text-blue-600 flex items-center gap-1 px-2 py-1 rounded-md hover:bg-blue-50"
+                        >
+                          <MessageSquare size={10} />
+                          仍不理解，继续追问AI
+                        </button>
+                      </div>
+                    </>
                   ) : (
-                    <div className="text-xs text-text-muted italic">
-                      解析生成中...
-                    </div>
+                    <button
+                      onClick={async () => {
+                        setGeneratingOne(q.id);
+                        await generateExplanationOnDemand(
+                          q.id,
+                          { stem: q.stem, options: q.options },
+                          [],
+                          q.correctAnswers,
+                          relatedKP?.name,
+                          subject?.name
+                        );
+                        setGeneratingOne(null);
+                      }}
+                      disabled={generatingOne === q.id}
+                      className="w-full py-2 bg-purple-100 text-purple-700 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {generatingOne === q.id ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          AI正在生成解析...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={14} />
+                          点击生成AI解析
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
               );

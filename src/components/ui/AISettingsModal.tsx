@@ -13,6 +13,7 @@ const PROVIDER_LABELS: Record<AIProvider, { name: string; desc: string; placehol
   volcengine: { name: '火山引擎', desc: '豆包大模型', placeholder: '输入 API Key' },
   minimax: { name: 'MiniMax', desc: 'MiniMax 大模型', placeholder: '输入 API Key' },
   douban: { name: '豆包 API', desc: '火山引擎豆包大模型', placeholder: '输入 API Key' },
+  openclaw: { name: 'OpenClaw', desc: '本地 OpenClaw 服务', placeholder: '' },
 };
 
 export default function AISettingsModal({ show, onClose }: AISettingsModalProps) {
@@ -92,8 +93,8 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
         {/* Provider Selection (Cloud mode) */}
         {mode === 'cloud' && (
           <div className="p-4 space-y-3">
-            <div className="text-xs text-text-muted">选择云端服务</div>
-            {(['volcengine', 'minimax', 'douban'] as AIProvider[]).map(provider => (
+            <div className="text-xs text-text-muted">选择云端/本地服务</div>
+            {(['volcengine', 'minimax', 'douban', 'openclaw'] as AIProvider[]).map(provider => (
               <button
                 key={provider}
                 onClick={() => handleSelectProvider(provider)}

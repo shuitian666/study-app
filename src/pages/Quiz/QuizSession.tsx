@@ -15,7 +15,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/store/AppContext';
 import { PageHeader } from '@/components/ui/Common';
 import { calculateNewProficiency } from '@/utils/review';
-import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Zap } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Zap, Loader2, MessageSquare } from 'lucide-react';
 import type { Question, QuizAnswer } from '@/types';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
 
@@ -48,22 +48,36 @@ export default function QuizSessionPage() {
 
   const currentQuestion: Question | undefined = questions[currentIndex];
   const relatedKP = state.knowledgePoints.find(k => k.id === currentQuestion?.knowledgePointId);
+  const [generatingExplanation, setGeneratingExplanation] = useState<string | null>(null);
+  const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
 
-  // Start pre-generating explanations when questions are loaded
+  // 关闭预生成，改为点击才生成，节省token
   useEffect(() => {
-    if (questions.length > 0 && preGenProgress === null) {
-      setPreGenProgress({ current: 0, total: questions.length });
-      const timeoutId = setTimeout(() => setPreGenProgress(null), 500);
-      preGenerateExplanations(questions, (current, total) => {
-        setPreGenProgress({ current, total });
-        if (current >= total) {
-          clearTimeout(timeoutId);
-          setTimeout(() => setPreGenProgress(null), 500);
-        }
-      });
-      return () => clearTimeout(timeoutId);
-    }
-  }, [questions, preGenerateExplanations]);
+    // 不再预生成，用户主动点击才生成
+  }, [questions]);
+
+  // 当前题目已生成的解释
+  const currentExplanation = currentQuestion ? getSavedExplanation(currentQuestion.id) : null;
+
+  // 处理点击生成解释
+  const handleGenerateExplanation = async () => {
+    if (!currentQuestion) return;
+    
+    setGeneratingExplanation(currentQuestion.id);
+    const relatedKP = state.knowledgePoints.find(kp => kp.id === currentQuestion.knowledgePointId);
+    const subject = state.subjects.find(s => s.id === subjectId);
+    
+    await generateExplanationOnDemand(
+      currentQuestion.id,
+      { stem: currentQuestion.stem, options: currentQuestion.options },
+      selectedAnswers,
+      currentQuestion.correctAnswers,
+      relatedKP?.name,
+      subject?.name
+    );
+    
+    setGeneratingExplanation(null);
+  };
   
   const isCorrect = currentQuestion
     ? selectedAnswers.length === currentQuestion.correctAnswers.length &&
@@ -314,7 +328,7 @@ export default function QuizSessionPage() {
 
 
       {/* Stage result - simplified, no detailed settlement per question */}
-      {showResult && (
+      {showResult && currentQuestion && (
         <div className="px-4 pt-3">
           {/* 简洁的结果提示 */}
           <div className={`rounded-2xl p-4 border ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
@@ -337,14 +351,55 @@ export default function QuizSessionPage() {
                   </p>
                 )}
               </div>
-              {preGenProgress && preGenProgress.current < preGenProgress.total && (
-                <div className="flex items-center gap-1 text-xs text-purple-600">
-                  <Sparkles size={12} />
-                  <span>AI解析中</span>
-                </div>
-              )}
             </div>
           </div>
+
+          {/* AI解析：用户点击才生成，放在这里正好，答完题就可以看 */}
+          <div className="mt-3">
+            {currentExplanation ? (
+              <div className="text-sm text-purple-700 bg-purple-50 rounded-xl p-3">
+                <div className="font-medium mb-1">AI解析：</div>
+                {currentExplanation}
+              </div>
+            ) : (
+              <button
+                onClick={handleGenerateExplanation}
+                disabled={generatingExplanation === currentQuestion.id}
+                className="w-full py-2.5 bg-purple-100 text-purple-700 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {generatingExplanation === currentQuestion.id ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    AI正在生成解析...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={14} />
+                    查看AI解析（点击生成）
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* 如果有解析且用户仍有疑问，可以追问 */}
+          {currentExplanation && (
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={() => {
+                  navigate('ai-chat', { 
+                    context: `关于这道题：${currentQuestion.stem}，我对解析还有疑问，请进一步讲解`,
+                    subjectId: subjectId,
+                    knowledgePointId: currentQuestion.knowledgePointId
+                  });
+                }}
+                className="text-xs text-blue-600 flex items-center gap-1 px-2 py-1 rounded-md hover:bg-blue-50"
+              >
+                <MessageSquare size={10} />
+                仍不理解，继续追问AI
+              </button>
+            </div>
+          )}
         </div>
 
       )}
