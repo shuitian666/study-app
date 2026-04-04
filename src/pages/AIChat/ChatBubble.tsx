@@ -6,12 +6,12 @@
  */
 import { useState } from 'react';
 import { Bot, Lightbulb, BookPlus } from 'lucide-react';
-import type { ChatMessage, Question } from '@/types';
+import type { ChatMessage, GenerateSmartQuizResult } from '@/types';
 import InlineQuizCard from './InlineQuizCard';
 
 interface ChatBubbleProps {
   message: ChatMessage;
-  generatedQuestion?: Question;
+  generatedQuestion?: GenerateSmartQuizResult;
   isStreaming?: boolean;
   onRequestQuiz: () => void;
   onAddToKnowledge: () => void;
@@ -78,8 +78,8 @@ export default function ChatBubble({
         )}
 
         {/* Inline quiz card */}
-        {showQuiz && generatedQuestion && (
-          <InlineQuizCard question={generatedQuestion} onAnswer={onQuizAnswer} />
+        {showQuiz && generatedQuestion?.question && (
+          <InlineQuizCard question={generatedQuestion.question} onAnswer={onQuizAnswer} />
         )}
       </div>
     </div>

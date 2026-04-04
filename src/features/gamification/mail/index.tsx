@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
@@ -11,12 +11,12 @@ const attachmentIcons: Record<string, React.ReactNode> = {
 };
 
 export default function MailPage() {
-  const { state, dispatch, navigate } = useApp();
+  const { userState, userDispatch, navigate } = useUser();
   const [selectedMail, setSelectedMail] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'claimable'>('all');
 
-  const mails = state.mail.mails;
-  const currentVersion = state.mail.currentVersion;
+  const mails = userState.mail.mails;
+  const currentVersion = userState.mail.currentVersion;
 
   const filteredMails = mails.filter(mail => {
     if (filter === 'unread') return !mail.read;
@@ -29,13 +29,13 @@ export default function MailPage() {
 
   const handleOpenMail = (mailId: string) => {
     if (!mails.find(m => m.id === mailId)?.read) {
-      dispatch({ type: 'MARK_MAIL_READ', payload: mailId });
+      userDispatch({ type: 'MARK_MAIL_READ', payload: mailId });
     }
     setSelectedMail(mailId);
   };
 
   const handleClaimAttachment = (mailId: string, attachmentIndex: number) => {
-    dispatch({ type: 'CLAIM_MAIL_ATTACHMENT', payload: { mailId, attachmentIndex } });
+    userDispatch({ type: 'CLAIM_MAIL_ATTACHMENT', payload: { mailId, attachmentIndex } });
   };
 
   const isExpired = (deadline: string) => new Date(deadline) < new Date();

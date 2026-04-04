@@ -1,13 +1,42 @@
-import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
-import { PageHeader, ProficiencyBadge } from '@/components/ui/Common';
+import { useState, useEffect } from 'react';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
+import { ProficiencyBadge } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 export default function KnowledgeMapPage() {
-  const { state, navigate } = useApp();
-  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set(state.subjects.map(s => s.id)));
+  const { navigate } = useUser();
+  const { learningState } = useLearning();
+  const { theme } = useTheme();
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set(learningState.subjects.map(s => s.id)));
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  
+  // 动画效果 - 使用主界面动画设置
+  const [animationEffect, setAnimationEffect] = useState(() => {
+    const saved = localStorage.getItem('main-animation-effect');
+    return saved || 'slide-up';
+  });
+
+  // 监听动画效果变化
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'main-animation-effect' && e.newValue) {
+        setAnimationEffect(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+  
+  // 获取动画类名
+  const getAnimationClass = (delay: number) => {
+    const baseClass = `scroll-${animationEffect}`;
+    const delayClass = `reveal-delay-${delay}`;
+    return `${baseClass} ${delayClass}`;
+  };
 
   const toggleSubject = (id: string) => {
     setExpandedSubjects(prev => {
@@ -27,7 +56,7 @@ export default function KnowledgeMapPage() {
 
   // Calculate subject-level proficiency summary
   const getSubjectStats = (subjectId: string) => {
-    const kps = state.knowledgePoints.filter(k => k.subjectId === subjectId);
+    const kps = learningState.knowledgePoints.filter(k => k.subjectId === subjectId);
     const total = kps.length;
     if (total === 0) return { total: 0, mastered: 0, percent: 0 };
     const mastered = kps.filter(k => k.proficiency === 'master' || k.proficiency === 'normal').length;
@@ -36,44 +65,51 @@ export default function KnowledgeMapPage() {
 
   return (
     <div className="page-scroll pb-4">
-      <PageHeader title="知识图谱" />
+      {/* 渐变头部背景 */}
+      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-6 rounded-b-[40px] mb-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">知识图谱</h2>
+        </div>
+        <p className="text-white/70 text-sm mt-1">可视化掌握知识进度</p>
+      </div>
 
       {/* Legend */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="bg-white rounded-xl p-3 border border-border flex items-center justify-center gap-4">
+      <div className={`px-4 pt-3 pb-2 ${getAnimationClass(1)}`}>
+        <div className="rounded-xl p-3 border flex items-center justify-center gap-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
           {(['none', 'rusty', 'normal', 'master'] as const).map(level => (
             <div key={level} className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PROFICIENCY_MAP[level].color }} />
-              <span className="text-[10px] text-text-muted">{PROFICIENCY_MAP[level].label}</span>
+              <span className="text-[10px]" style={{ color: theme.textMuted }}>{PROFICIENCY_MAP[level].label}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Tree Structure */}
-      <div className="px-4 pt-2">
-        {state.subjects.map(subject => {
+      <div className={`px-4 pt-2 ${getAnimationClass(2)}`}>
+        {learningState.subjects.map(subject => {
           const isExpanded = expandedSubjects.has(subject.id);
           const subjectStats = getSubjectStats(subject.id);
-          const chapters = state.chapters.filter(c => c.subjectId === subject.id);
+          const chapters = learningState.chapters.filter(c => c.subjectId === subject.id);
 
           return (
             <div key={subject.id} className="mb-3">
               {/* Subject Node */}
               <button
                 onClick={() => toggleSubject(subject.id)}
-                className="w-full bg-white rounded-2xl p-4 border border-border shadow-sm flex items-center justify-between"
+                className="w-full rounded-2xl p-4 border shadow-sm flex items-center justify-between"
+                style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                    style={{ backgroundColor: subject.color + '20' }}
+                    style={{ backgroundColor: subject.color + '30' }}
                   >
                     {subject.icon}
                   </div>
                   <div className="text-left">
-                    <div className="font-medium text-sm">{subject.name}</div>
-                    <div className="text-xs text-text-muted">
+                    <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>{subject.name}</div>
+                    <div className="text-xs" style={{ color: theme.textMuted }}>
                       {subjectStats.mastered}/{subjectStats.total} 已掌握
                     </div>
                   </div>
@@ -82,7 +118,7 @@ export default function KnowledgeMapPage() {
                   {/* Mini progress ring */}
                   <div className="relative w-8 h-8">
                     <svg className="w-8 h-8 -rotate-90" viewBox="0 0 32 32">
-                      <circle cx="16" cy="16" r="12" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                      <circle cx="16" cy="16" r="12" fill="none" stroke={theme.border} strokeWidth="3" />
                       <circle
                         cx="16" cy="16" r="12" fill="none"
                         stroke={subject.color}
@@ -91,20 +127,20 @@ export default function KnowledgeMapPage() {
                         strokeLinecap="round"
                       />
                     </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-text-secondary">
+                    <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold" style={{ color: theme.textSecondary }}>
                       {subjectStats.percent}%
                     </span>
                   </div>
-                  {isExpanded ? <ChevronDown size={14} className="text-text-muted" /> : <ChevronRight size={14} className="text-text-muted" />}
+                  <ChevronRight size={14} style={{ color: theme.textMuted, transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                 </div>
               </button>
 
               {/* Chapters */}
               {isExpanded && (
-                <div className="ml-5 border-l-2 border-border pl-4 mt-1">
+                <div className="ml-5 border-l-2 pl-4 mt-1" style={{ borderColor: theme.border }}>
                   {chapters.map(chapter => {
                     const isChapterExpanded = expandedChapters.has(chapter.id);
-                    const chapterKPs = state.knowledgePoints.filter(k => k.chapterId === chapter.id);
+                    const chapterKPs = learningState.knowledgePoints.filter(k => k.chapterId === chapter.id);
 
                     return (
                       <div key={chapter.id} className="mb-2">
@@ -114,28 +150,31 @@ export default function KnowledgeMapPage() {
                           className="w-full flex items-center justify-between py-2"
                         >
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-primary" />
-                            <span className="text-sm font-medium">{chapter.name}</span>
-                            <span className="text-[10px] text-text-muted">({chapterKPs.length})</span>
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
+                            <span className="text-sm font-medium" style={{ color: theme.textPrimary }}>{chapter.name}</span>
+                            <span className="text-[10px]" style={{ color: theme.textMuted }}>({chapterKPs.length})</span>
                           </div>
-                          {isChapterExpanded ? <ChevronDown size={12} className="text-text-muted" /> : <ChevronRight size={12} className="text-text-muted" />}
+                          <ChevronRight size={12} style={{ color: theme.textMuted, transform: isChapterExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                         </button>
 
                         {/* Knowledge Points */}
                         {isChapterExpanded && (
-                          <div className="ml-4 border-l border-border/50 pl-3 space-y-1 mb-2">
+                          <div className="ml-4 border-l pl-3 space-y-1 mb-2" style={{ borderColor: theme.border }}>
                             {chapterKPs.map(kp => (
                               <button
                                 key={kp.id}
                                 onClick={() => navigate('knowledge-detail', { id: kp.id })}
-                                className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors"
+                                style={{ backgroundColor: 'transparent' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
                                 <div className="flex items-center gap-2">
                                   <div
                                     className="w-2.5 h-2.5 rounded-full shrink-0"
                                     style={{ backgroundColor: PROFICIENCY_MAP[kp.proficiency].color }}
                                   />
-                                  <span className="text-xs">{kp.name}</span>
+                                  <span className="text-xs" style={{ color: theme.textPrimary }}>{kp.name}</span>
                                 </div>
                                 <ProficiencyBadge level={kp.proficiency} />
                               </button>

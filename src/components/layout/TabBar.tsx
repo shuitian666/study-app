@@ -4,7 +4,7 @@
  * 新增页面如需隐藏 TabBar → 在 hiddenPages 数组中添加对应 PageName
  */
 import { Home, BookOpen, PenTool, Network, User } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import type { PageName } from '@/types';
 
 interface TabItem {
@@ -24,35 +24,38 @@ const tabs: TabItem[] = [
 const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
 
 export default function TabBar() {
-  const { state, navigate } = useApp();
+  const { userState, navigate } = useUser();
 
-  if (hiddenPages.includes(state.currentPage)) {
+  if (hiddenPages.includes(userState.currentPage)) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border safe-bottom">
-      <div className="flex items-center justify-around h-[52px]">
-        {tabs.map(tab => {
-          const isActive = state.currentPage === tab.key;
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => navigate(tab.key)}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full active:opacity-60 transition-opacity"
-            >
-              <Icon
-                size={20}
-                className={isActive ? 'text-primary' : 'text-text-muted'}
-                strokeWidth={isActive ? 2.5 : 1.8}
-              />
-              <span className={`text-[10px] leading-tight ${isActive ? 'text-primary font-semibold' : 'text-text-muted'}`}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+    <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom">
+      {/* 苹果风格：底部半透明磨砂玻璃效果 */}
+      <div className="bg-white/70 backdrop-blur-xl border-t border-white/20">
+        <div className="flex items-center justify-around h-[56px]">
+          {tabs.map(tab => {
+            const isActive = userState.currentPage === tab.key;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => navigate(tab.key)}
+                className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 rounded-full mx-1 ${isActive ? 'bg-primary/10 scale-105' : 'active:opacity-60'}`}
+              >
+                <Icon
+                  size={isActive ? 22 : 20}
+                  className={isActive ? 'text-primary' : 'text-text-muted'}
+                  strokeWidth={isActive ? 2.5 : 1.8}
+                />
+                <span className={`text-[10px] leading-tight ${isActive ? 'text-primary font-semibold' : 'text-text-muted'}`}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

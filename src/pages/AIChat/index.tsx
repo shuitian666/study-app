@@ -13,12 +13,14 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Trash2, Sparkles, Settings2 } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useAIChat } from '@/store/AIChatContext';
 import { PageHeader } from '@/components/ui/Common';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
 import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
 import { calculateNewProficiency } from '@/utils/review';
-import type { ChatMessage, Question } from '@/types';
+import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
 import AISettingsModal from '@/components/ui/AISettingsModal';
@@ -32,32 +34,31 @@ const PROVIDER_NAMES: Record<string, string> = {
 };
 
 export default function AIChatPage() {
-  const { state, dispatch, navigate } = useApp();
+  const { navigate } = useUser();
+  const { learningState, learningDispatch } = useLearning();
+  const { aiChatState, aiChatDispatch } = useAIChat();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [generatedQuestions, setGeneratedQuestions] = useState<Record<string, Question>>({});
+  const [generatedQuestions, setGeneratedQuestions] = useState<Record<string, GenerateSmartQuizResult>>({});
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [backendMode, setBackendMode] = useState<'checking' | 'online' | 'offline'>('checking');
 
+  // 解构 aiChat 对象便于使用
+  const { messages, isLoading } = aiChatState.aiChat;
+
   useEffect(() => {
     const config = getAIConfig();
-    // 豆包和OpenClaw直连模式不需要检测本地后端，直接显示在线
-    if (config.provider === 'douban' || config.provider === 'openclaw') {
-      if (config.provider === 'douban') {
-        // 豆包需要检查 API Key 是否存在
-        if (config.apiKey && config.apiKey.trim().length > 0) {
-          setBackendMode('online');
-        } else {
-          setBackendMode('offline');
-        }
-      } else {
-        // OpenClaw 不需要额外检查，直接在线 ✅
+    // 豆包模式需要检查 API Key 是否存在
+    if (config.provider === 'douban') {
+      if (config.apiKey && config.apiKey.trim().length > 0) {
         setBackendMode('online');
+      } else {
+        setBackendMode('offline');
       }
       return;
     }
-    // 其他模式检测本地后端
+    // OpenClaw和其他模式检测本地后端
     checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
   }, []);
 
@@ -67,11 +68,11 @@ export default function AIChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [state.aiChat.messages, state.aiChat.isLoading, streamingMsgId]);
+  }, [messages, isLoading, streamingMsgId]);
 
   const handleSend = useCallback(async () => {
     const query = input.trim();
-    if (!query || state.aiChat.isLoading) return;
+    if (!query || isLoading) return;
 
     setInput('');
 
@@ -81,7 +82,7 @@ export default function AIChatPage() {
       content: query,
       timestamp: new Date().toISOString(),
     };
-    dispatch({ type: 'AI_SEND_MESSAGE', payload: userMsg });
+    aiChatDispatch({ type: 'AI_SEND_MESSAGE', payload: userMsg });
 
     const aiMsgId = `msg-${Date.now()}-ai`;
     const aiMsg: ChatMessage = {
@@ -90,24 +91,24 @@ export default function AIChatPage() {
       content: '',
       timestamp: new Date().toISOString(),
     };
-    dispatch({ type: 'AI_RECEIVE_MESSAGE', payload: aiMsg });
+    aiChatDispatch({ type: 'AI_RECEIVE_MESSAGE', payload: aiMsg });
     setStreamingMsgId(aiMsgId);
 
     try {
       const { stream, relatedKpIds } = await askQuestionStreaming(
         query,
-        state.knowledgePoints,
-        state.aiChat.messages,
+        learningState.knowledgePoints,
+        messages,
       );
 
       let fullContent = '';
       for await (const chunk of stream) {
         fullContent += chunk;
-        dispatch({ type: 'AI_UPDATE_STREAMING_MESSAGE', payload: { id: aiMsgId, content: fullContent } });
+        aiChatDispatch({ type: 'AI_UPDATE_STREAMING_MESSAGE', payload: { id: aiMsgId, content: fullContent } });
       }
 
       setStreamingMsgId(null);
-      dispatch({ type: 'AI_SET_LOADING', payload: false });
+      aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
 
       // 豆包模式不需要检测本地后端
       const config = getAIConfig();
@@ -118,14 +119,14 @@ export default function AIChatPage() {
       }
 
       if (relatedKpIds.length > 0) {
-        const question = await generateQuiz(
+        const questionResult = await generateQuiz(
           relatedKpIds,
-          state.knowledgePoints,
-          state.questions
+          learningState.knowledgePoints,
+          learningState.questions
         );
-        if (question) {
-          dispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: question });
-          setGeneratedQuestions(prev => ({ ...prev, [aiMsgId]: question }));
+        if (questionResult.question) {
+          aiChatDispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: questionResult.question });
+          setGeneratedQuestions(prev => ({ ...prev, [aiMsgId]: questionResult }));
         }
       }
     } catch (e) {
@@ -135,39 +136,41 @@ export default function AIChatPage() {
         errorMsg = `连接豆包API失败：${e.message}`;
         console.error('豆包API错误:', e);
       }
-      dispatch({
+      // API调用失败时设置为离线状态
+      setBackendMode('offline');
+      aiChatDispatch({
         type: 'AI_UPDATE_STREAMING_MESSAGE',
         payload: { id: aiMsgId, content: errorMsg },
       });
-      dispatch({ type: 'AI_SET_LOADING', payload: false });
+      aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
     }
-  }, [input, state.aiChat.isLoading, state.aiChat.messages, state.knowledgePoints, state.questions, dispatch]);
+  }, [input, isLoading, messages, learningState.knowledgePoints, learningState.questions, aiChatDispatch]);
 
   const handleRequestQuiz = async (aiMessageId: string, content: string) => {
     if (generatedQuestions[aiMessageId]) return;
 
-    const relatedKps = state.knowledgePoints.filter(kp =>
+    const relatedKps = learningState.knowledgePoints.filter(kp =>
       content.includes(kp.name) || kp.name.split('').some(ch => content.includes(ch) && ch.length > 1)
     );
     const kpIds = relatedKps.length > 0
       ? relatedKps.map(kp => kp.id)
-      : state.knowledgePoints.slice(0, 3).map(kp => kp.id);
+      : learningState.knowledgePoints.slice(0, 3).map(kp => kp.id);
 
-    const question = await generateQuiz(kpIds, state.knowledgePoints, state.questions);
-    if (question) {
-      dispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: question });
-      setGeneratedQuestions(prev => ({ ...prev, [aiMessageId]: question }));
+    const questionResult = await generateQuiz(kpIds, learningState.knowledgePoints, learningState.questions);
+    if (questionResult.question) {
+      aiChatDispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: questionResult.question });
+      setGeneratedQuestions(prev => ({ ...prev, [aiMessageId]: questionResult }));
     }
   };
 
   const handleQuizAnswer = (question: Question, isCorrect: boolean, selectedAnswers: string[]) => {
-    const kp = state.knowledgePoints.find(k => k.id === question.knowledgePointId);
+    const kp = learningState.knowledgePoints.find(k => k.id === question.knowledgePointId);
     if (kp) {
       const newProf = calculateNewProficiency(kp.proficiency, isCorrect);
-      dispatch({ type: 'UPDATE_PROFICIENCY', payload: { id: kp.id, proficiency: newProf } });
+      learningDispatch({ type: 'UPDATE_PROFICIENCY', payload: { id: kp.id, proficiency: newProf } });
     }
     if (!isCorrect) {
-      dispatch({
+      learningDispatch({
         type: 'ADD_WRONG_RECORD',
         payload: {
           id: `wr-${Date.now()}`,
@@ -186,12 +189,12 @@ export default function AIChatPage() {
     const firstLine = content.split('\n')[0].replace(/[#*]/g, '').trim();
     const name = firstLine.length > 20 ?firstLine.slice(0, 20) + '...' : firstLine;
 
-    dispatch({
+    learningDispatch({
       type: 'ADD_KNOWLEDGE_POINT',
       payload: {
         id: `kp-ai-${Date.now()}`,
-        subjectId: state.subjects[0]?.id ?? 'general',
-        chapterId: state.chapters[0]?.id ?? 'general',
+        subjectId: learningState.subjects[0]?.id ?? 'general',
+        chapterId: learningState.chapters[0]?.id ?? 'general',
         name,
         explanation: content.slice(0, 500),
         proficiency: 'none',
@@ -204,7 +207,7 @@ export default function AIChatPage() {
     });
 
     const confirmMsg = '已将"' + name + '"加入知识库，你可以在知识库中查看和复习。';
-    dispatch({
+    aiChatDispatch({
       type: 'AI_RECEIVE_MESSAGE',
       payload: {
         id: `msg-${Date.now()}-kb`,
@@ -216,7 +219,7 @@ export default function AIChatPage() {
   };
 
   const handleClear = () => {
-    dispatch({ type: 'AI_CLEAR_CHAT' });
+    aiChatDispatch({ type: 'AI_CLEAR_CHAT' });
     setGeneratedQuestions({});
     setStreamingMsgId(null);
   };
@@ -233,7 +236,7 @@ export default function AIChatPage() {
         onBack={() => navigate('home')}
         rightAction={
           <div className="flex items-center gap-2">
-            {state.aiChat.messages.length > 0 && (
+            {messages.length > 0 && (
               <button onClick={handleClear} className="text-text-muted active:opacity-60">
                 <Trash2 size={18} />
               </button>
@@ -262,7 +265,7 @@ export default function AIChatPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-4">
-        {state.aiChat.messages.length === 0 ? (
+        {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full px-8 text-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-4">
               <Sparkles size={28} className="text-violet-500" />
@@ -290,7 +293,7 @@ export default function AIChatPage() {
           </div>
         ) : (
           <div className="pt-3">
-            {state.aiChat.messages.map(msg => (
+            {messages.map(msg => (
               <ChatBubble
                 key={msg.id}
                 message={msg}
@@ -299,12 +302,12 @@ export default function AIChatPage() {
                 onRequestQuiz={() => handleRequestQuiz(msg.id, msg.content)}
                 onAddToKnowledge={() => handleAddToKnowledge(msg.content)}
                 onQuizAnswer={(isCorrect, selectedAnswers) => {
-                  const q = generatedQuestions[msg.id];
-                  if (q) handleQuizAnswer(q, isCorrect, selectedAnswers);
+                  const result = generatedQuestions[msg.id];
+                  if (result?.question) handleQuizAnswer(result.question, isCorrect, selectedAnswers);
                 }}
               />
             ))}
-            {state.aiChat.isLoading && !streamingMsgId && <TypingIndicator />}
+            {isLoading && !streamingMsgId && <TypingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -319,11 +322,11 @@ export default function AIChatPage() {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder="输入你的问题..."
             className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
-            disabled={state.aiChat.isLoading}
+            disabled={isLoading}
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || state.aiChat.isLoading}
+            disabled={!input.trim() || isLoading}
             className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center active:opacity-80 transition-opacity disabled:opacity-40"
           >
             <Send size={18} />

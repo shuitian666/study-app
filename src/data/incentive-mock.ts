@@ -44,6 +44,52 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     category: 'quiz', condition: { type: 'clear_wrong', value: 1 }, reward: { coins: 30 },
     unlocked: false, unlockedAt: null,
   },
+  // ===== 隐藏成就 Hidden =====
+  {
+    id: 'ach-9', name: '知识百宝箱', description: '累计添加 100 个知识点', icon: '📦',
+    category: 'hidden', condition: { type: 'total_knowledge', value: 100 }, reward: { coins: 100 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-10', name: '打卡狂人', description: '累计签到 100 天', icon: '⏰',
+    category: 'hidden', condition: { type: 'total_checkins', value: 100 }, reward: { coins: 150 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-11', name: '测验大师', description: '完成 50 次章节测验', icon: '🎯',
+    category: 'hidden', condition: { type: 'total_quizzes', value: 50 }, reward: { coins: 120 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-12', name: '补签达人', description: '使用 10 张补签卡', icon: '🔄',
+    category: 'hidden', condition: { type: 'makeup_used', value: 10 }, reward: { coins: 80 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-13', name: '完美主义者', description: '获得 10 次满分测验', icon: '💯',
+    category: 'hidden', condition: { type: 'one_session_correct', value: 10 }, reward: { coins: 150 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-14', name: '学习先锋', description: '连续学习 60 天', icon: '🚀',
+    category: 'hidden', condition: { type: 'streak_days', value: 60 }, reward: { coins: 300 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-15', name: '知识大师', description: '掌握 200 个知识点', icon: '🧠',
+    category: 'hidden', condition: { type: 'master_count', value: 200 }, reward: { coins: 250 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-16', name: '满分猎人', description: '获得 5 次测验满分', icon: '💯',
+    category: 'hidden', condition: { type: 'one_session_correct', value: 5 }, reward: { coins: 100 },
+    unlocked: false, unlockedAt: null,
+  },
+  {
+    id: 'ach-17', name: '从不缺席', description: '使用 5 次补签卡', icon: '🛠️',
+    category: 'hidden', condition: { type: 'makeup_used', value: 5 }, reward: { coins: 50 },
+    unlocked: false, unlockedAt: null,
+  },
 ];
 
 export const MOCK_SHOP_ITEMS: ShopItem[] = [
@@ -82,6 +128,7 @@ export const MOCK_SHOP_ITEMS: ShopItem[] = [
   { id: 'bg-n-3', name: '薄荷绿', description: '清新薄荷绿色背景', icon: '🍃', type: 'background', price: 30, owned: false },
   { id: 'bg-n-4', name: '暖米色', description: '温暖米色背景', icon: '🌾', type: 'background', price: 30, owned: false },
   { id: 'bg-n-5', name: '浅烟灰', description: '简约烟灰背景', icon: '🩶', type: 'background', price: 30, owned: false },
+  { id: 'bg-n-6', name: '苹果风', description: 'iOS风格磨砂玻璃背景', icon: '🍎', type: 'background', price: 50, owned: false },
   
   // R级 - 稀有背景
   { id: 'bg-r-1', name: '星空夜', description: '星空点点夜晚背景', icon: '🌌', type: 'background', price: 100, owned: false },
@@ -138,14 +185,14 @@ export const MOCK_UP_POOL: UpPoolConfig = {
   endDate: '2026-04-30',
   active: true,
   items: [
-    { id: 'up-1', name: '春日花环框', description: '限定樱花头像框', icon: '🌸', type: 'avatar_frame', rarity: 'SSR', probability: 0.02, owned: false },
-    { id: 'up-2', name: '星空背景', description: '璀璨星空学习背景', icon: '🌌', type: 'background', rarity: 'SSR', probability: 0.02, owned: false },
-    { id: 'up-3', name: '竹林背景', description: '清幽竹林学习背景', icon: '🎋', type: 'background', rarity: 'SR', probability: 0.10, owned: false },
+    { id: 'up-1', name: '春日花环', description: '限定樱花头像框', icon: '🌸', type: 'avatar_frame', rarity: 'SSR', probability: 0.02, owned: false },
+    { id: 'up-2', name: '璀璨银河', description: '璀璨星空学习背景', icon: '🌌', type: 'background', rarity: 'SSR', probability: 0.02, owned: false },
+    { id: 'up-3', name: '竹林风', description: '清幽竹林学习背景', icon: '🎋', type: 'background', rarity: 'SR', probability: 0.10, owned: false },
     { id: 'up-4', name: '海洋框', description: '蓝色波浪头像框', icon: '🌊', type: 'avatar_frame', rarity: 'SR', probability: 0.10, owned: false },
-    { id: 'up-5', name: '学霸称号', description: '"知识之星"限定称号', icon: '⭐', type: 'title', rarity: 'SR', probability: 0.10, owned: false },
-    { id: 'up-6', name: '绿野背景', description: '清新绿地学习背景', icon: '🍀', type: 'background', rarity: 'R', probability: 0.22, owned: false },
-    { id: 'up-7', name: '简约框', description: '简洁线条头像框', icon: '⬜', type: 'avatar_frame', rarity: 'R', probability: 0.22, owned: false },
-    { id: 'up-8', name: '新人称号', description: '"初来乍到"称号', icon: '🏷️', type: 'title', rarity: 'R', probability: 0.22, owned: false },
+    { id: 'up-5', name: '学习之星', description: '学习之星限定称号', icon: '⭐', type: 'title', rarity: 'SR', probability: 0.10, owned: false },
+    { id: 'up-6', name: '薄荷绿', description: '清新绿地学习背景', icon: '🍀', type: 'background', rarity: 'R', probability: 0.22, owned: false },
+    { id: 'up-7', name: '简约银框', description: '简洁线条头像框', icon: '⬜', type: 'avatar_frame', rarity: 'R', probability: 0.22, owned: false },
+    { id: 'up-8', name: '求知者', description: '积极探索知识的称号', icon: '🔍', type: 'title', rarity: 'N', probability: 0.22, owned: false },
   ],
 };
 

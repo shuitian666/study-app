@@ -9,28 +9,71 @@
  * 4. 预生成下一阶段题目
  * 5. 提供"继续学习"、"查看解析"按钮
  * 
- * @depends src/hooks/usePreGenerate.ts | src/pages/Quiz/QuizSession.tsx | src/store/AppContext.tsx
+ * @depends src/hooks/usePreGenerate.ts | src/pages/Quiz/QuizSession.tsx | src/store/LearningContext.tsx | src/store/UserContext.tsx
  */
 
 import { useEffect, useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
-import { getKnowledgeExplain } from '@/services/aiService';
+
 import { Trophy, RotateCcw, Home, BookOpen, ArrowRight, Sparkles, Target, CheckCircle2, FileText, Loader2, MessageSquare } from 'lucide-react';
 
 export default function QuizResultPage() {
-  const { state, navigate } = useApp();
-  const { generateNextStageQuestions, getSavedExplanation } = usePreGenerate();
+  const { userState, navigate } = useUser();
+  const { learningState } = useLearning();
+  const { theme } = useTheme();
+
+  // 动画效果 - 使用次级界面动画设置
+  const [animationEffect, setAnimationEffect] = useState<string>('fade-in');
+  const { generateNextStageQuestions, getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
+
+  useEffect(() => {
+    const savedEffect = localStorage.getItem('sub-animation-effect');
+    if (savedEffect) {
+      setAnimationEffect(savedEffect);
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sub-animation-effect' && e.newValue) {
+        setAnimationEffect(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const getAnimationClass = (index: number) => {
+    switch (animationEffect) {
+      case 'fade-in':
+        return `scroll-fade-in delay-${index}`;
+      case 'scale-in':
+        return `scroll-scale-in delay-${index}`;
+      case 'rotate-in':
+        return `scroll-rotate-in delay-${index}`;
+      case 'bounce-in':
+        return `scroll-bounce-in delay-${index}`;
+      case 'slide-left':
+        return `scroll-slide-left delay-${index}`;
+      case 'slide-right':
+        return `scroll-slide-right delay-${index}`;
+      case 'slide-up':
+      default:
+        return `scroll-slide-up delay-${index}`;
+    }
+  };
   
-  const score = Number(state.pageParams.score ?? 0);
-  const correct = Number(state.pageParams.correct ?? 0);
-  const total = Number(state.pageParams.total ?? 0);
-  const subjectId = state.pageParams.subjectId;
-  const currentStage = Number(state.pageParams.stage ?? 0);
+  const score = Number(userState.pageParams.score ?? 0);
+  const correct = Number(userState.pageParams.correct ?? 0);
+  const total = Number(userState.pageParams.total ?? 0);
+  const subjectId = userState.pageParams.subjectId;
+  const currentStage = Number(userState.pageParams.stage ?? 0);
   const nextStage = currentStage + 1;
   
   // 学习目标进度
-  const dailyGoal = state.user?.dailyGoal ?? 10;
+  const dailyGoal = userState.user?.dailyGoal ?? 10;
   const [todayQuestions, setTodayQuestions] = useState(0);
   
   // 预生成状态
@@ -40,25 +83,25 @@ export default function QuizResultPage() {
   
   // 获取当前阶段的题目解析
   const [showExplanations, setShowExplanations] = useState(false);
-  const stageQuestions = state.quizResults.length > 0 
-    ? state.questions.filter(q => q.subjectId === subjectId).slice(-total)
+  const stageQuestions = learningState.quizResults.length > 0 
+    ? learningState.questions.filter(q => q.subjectId === subjectId).slice(-total)
     : [];
 
   useEffect(() => {
     const today = new Date().toDateString();
-    const todayResults = state.quizResults.filter(r => 
+    const todayResults = learningState.quizResults.filter(r => 
       new Date(r.completedAt).toDateString() === today
     );
     const totalToday = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
     setTodayQuestions(totalToday);
-  }, [state.quizResults]);
+  }, [learningState.quizResults]);
 
   // 预生成下一阶段题目
   const handlePreGenerate = async () => {
     if (generating) return;
     setGenerating(true);
     
-    const kpIds = state.knowledgePoints
+    const kpIds = learningState.knowledgePoints
       .filter(kp => kp.subjectId === subjectId)
       .map(kp => kp.id);
     
@@ -73,11 +116,7 @@ export default function QuizResultPage() {
   const goalProgress = Math.min((todayQuestions / dailyGoal) * 100, 100);
   const goalAchieved = todayQuestions >= dailyGoal;
 
-  const getScoreColor = () => {
-    if (score >= 80) return 'text-accent';
-    if (score >= 60) return 'text-warning';
-    return 'text-danger';
-  };
+
 
   const getScoreEmoji = () => {
     if (score === 100) return '🎉';
@@ -102,71 +141,82 @@ export default function QuizResultPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 bg-bg overflow-y-auto pb-8">
+    <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto pb-8">
       {/* Score circle */}
-      <div className="relative mb-6">
-        <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center border-4 border-border">
+      <div className={`relative mb-6 ${getAnimationClass(1)}`}>
+        <div className="w-36 h-36 rounded-full shadow-lg flex items-center justify-center border-4" style={{ 
+          backgroundColor: theme.bgCard,
+          borderColor: theme.border
+        }}>
           <div className="text-center">
             <div className="text-4xl mb-1">{getScoreEmoji()}</div>
-            <div className={`text-3xl font-bold ${getScoreColor()}`}>{score}</div>
-            <div className="text-xs text-text-muted">分</div>
+            <div className="text-3xl font-bold" style={{ color: score >= 80 ? '#f59e0b' : score >= 60 ? '#f59e0b' : '#ef4444' }}>{score}</div>
+            <div className="text-xs" style={{ color: theme.textMuted }}>分</div>
           </div>
         </div>
 
-        <div className="absolute -top-2 -right-2 bg-secondary text-white p-1.5 rounded-full">
+        <div className="absolute -top-2 -right-2 text-white p-1.5 rounded-full" style={{ backgroundColor: theme.secondary }}>
           <Trophy size={16} />
         </div>
       </div>
 
-      <h2 className="text-lg font-bold mb-1">{getMessage()}</h2>
-      <p className="text-sm text-text-muted mb-6">
-        共 {total} 题，答对 {correct} 题
-      </p>
+      <div className={getAnimationClass(2)}>
+        <h2 className="text-lg font-bold mb-1" style={{ color: theme.textPrimary }}>{getMessage()}</h2>
+        <p className="text-sm mb-6" style={{ color: theme.textMuted }}>
+          共 {total} 题，答对 {correct} 题
+        </p>
+      </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 w-full max-w-xs mb-6">
-        <div className="bg-white rounded-xl p-3 text-center border border-border">
-          <div className="text-lg font-bold text-accent">{correct}</div>
-          <div className="text-[10px] text-text-muted">正确</div>
+      <div className={`grid grid-cols-3 gap-3 w-full max-w-xs mb-6 ${getAnimationClass(3)}`}>
+        <div className="rounded-xl p-3 text-center border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="text-lg font-bold" style={{ color: theme.accent }}>{correct}</div>
+          <div className="text-[10px]" style={{ color: theme.textMuted }}>正确</div>
         </div>
-        <div className="bg-white rounded-xl p-3 text-center border border-border">
-          <div className="text-lg font-bold text-danger">{total - correct}</div>
-          <div className="text-[10px] text-text-muted">错误</div>
+        <div className="rounded-xl p-3 text-center border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{total - correct}</div>
+          <div className="text-[10px]" style={{ color: theme.textMuted }}>错误</div>
         </div>
-        <div className="bg-white rounded-xl p-3 text-center border border-border">
-          <div className="text-lg font-bold text-primary">{score}%</div>
-          <div className="text-[10px] text-text-muted">正确率</div>
+        <div className="rounded-xl p-3 text-center border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="text-lg font-bold" style={{ color: theme.primary }}>{score}%</div>
+          <div className="text-[10px]" style={{ color: theme.textMuted }}>正确率</div>
         </div>
       </div>
 
       {/* 学习目标进度 */}
-      <div className="w-full max-w-xs mb-4">
-        <div className={`rounded-2xl p-4 border ${goalAchieved ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+      <div className={`w-full max-w-xs mb-4 ${getAnimationClass(4)}`}>
+        <div className="rounded-2xl p-4 border" style={{ 
+          backgroundColor: goalAchieved ? '#d1fae5' : '#eff6ff',
+          borderColor: goalAchieved ? '#a7f3d0' : '#dbeafe'
+        }}>
           <div className="flex items-center gap-2 mb-3">
-            <Target size={16} className={goalAchieved ? 'text-green-600' : 'text-blue-600'} />
-            <span className={`text-sm font-medium ${goalAchieved ? 'text-green-700' : 'text-blue-700'}`}>今日学习目标</span>
+            <Target size={16} style={{ color: goalAchieved ? '#059669' : '#2563eb' }} />
+            <span className="text-sm font-medium" style={{ color: goalAchieved ? '#059669' : '#1e40af' }}>今日学习目标</span>
             {goalAchieved && (
-              <div className="ml-auto flex items-center gap-1 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+              <div className="ml-auto flex items-center gap-1 text-white text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#059669' }}>
                 <CheckCircle2 size={12} />
 已达成
               </div>
             )}
           </div>
           
-          <div className="flex items-center justify-between text-xs text-text-secondary mb-2">
+          <div className="flex items-center justify-between text-xs mb-2" style={{ color: theme.textMuted }}>
             <span>已完成 {todayQuestions} 题</span>
             <span>目标 {dailyGoal} 题</span>
           </div>
           
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div className="w-full rounded-full h-2 overflow-hidden" style={{ backgroundColor: theme.border }}>
             <div 
-              className={`h-full rounded-full transition-all duration-500 ${goalAchieved ? 'bg-green-500' : 'bg-blue-500'}`}
-              style={{ width: `${goalProgress}%` }}
+              className="h-full rounded-full transition-all duration-500"
+              style={{ 
+                width: `${goalProgress}%`,
+                backgroundColor: goalAchieved ? '#10b981' : '#3b82f6'
+              }}
             />
           </div>
           
           {goalAchieved && (
-            <div className="mt-2 text-xs text-green-600">
+            <div className="mt-2 text-xs" style={{ color: '#059669' }}>
               恭喜！今日签到条件已满足，可以去签到领奖励啦！
             </div>
           )}
@@ -175,19 +225,26 @@ export default function QuizResultPage() {
 
       {/* 继续学习区域 */}
       {subjectId && (
-        <div className="w-full max-w-xs mb-4">
-          <div className="bg-gradient-to-r from-primary/10 to-purple-50 rounded-2xl p-4 border border-primary/20">
-            <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
+        <div className={`w-full max-w-xs mb-4 ${getAnimationClass(5)}`}>
+          <div className="rounded-2xl p-4 border" style={{ 
+            background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+            borderColor: 'rgba(59, 130, 246, 0.2)'
+          }}>
+            <div className="flex items-center justify-between text-xs mb-3" style={{ color: theme.textMuted }}>
               <span>第 {currentStage} 阶段完成</span>
               <span>→</span>
-              <span className="text-primary font-medium">第 {nextStage} 阶段</span>
+              <span className="font-medium" style={{ color: theme.primary }}>第 {nextStage} 阶段</span>
             </div>
             
             <div className="space-y-2">
               <button
                 onClick={handlePreGenerate}
                 disabled={generating}
-                className="w-full bg-purple-500 text-white font-medium py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-70"
+                className="w-full font-medium py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-70"
+                style={{ 
+                  backgroundColor: '#7c3aed',
+                  color: '#ffffff'
+                }}
               >
                 {generating ? (
                   <>
@@ -204,7 +261,11 @@ export default function QuizResultPage() {
               
               <button
                 onClick={handleContinueLearning}
-                className="w-full bg-primary text-white font-medium py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md active:opacity-80"
+                className="w-full font-medium py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md active:opacity-80"
+                style={{ 
+                  backgroundColor: theme.primary,
+                  color: '#ffffff'
+                }}
               >
                 <BookOpen size={16} />
                 继续学习
@@ -216,38 +277,51 @@ export default function QuizResultPage() {
       )}
 
       {/* 查看解析按钮 - 用户点击才生成，节省token */}
-      <div className="w-full max-w-xs mb-4">
+      <div className={`w-full max-w-xs mb-4 ${getAnimationClass(6)}`}>
         <button
           onClick={() => setShowExplanations(!showExplanations)}
-          className="w-full bg-white border border-border rounded-xl p-3 text-sm flex items-center justify-center gap-2 text-text-secondary"
+          className="w-full border rounded-xl p-3 text-sm flex items-center justify-center gap-2"
+          style={{ 
+            backgroundColor: theme.bgCard,
+            borderColor: theme.border,
+            color: theme.textSecondary
+          }}
         >
           <FileText size={16} />
           {showExplanations ? '收起解析' : '查看AI解析'}
         </button>
         
         {showExplanations && (
-          <div className="mt-2 bg-white rounded-xl border border-border p-4 space-y-4 max-h-96 overflow-y-auto">
+          <div className="mt-2 rounded-xl border p-4 space-y-4 max-h-96 overflow-y-auto" style={{ 
+            backgroundColor: theme.bgCard,
+            borderColor: theme.border
+          }}>
             {stageQuestions.map((q, idx) => {
               const explanation = getSavedExplanation(q.id);
               const correctLabels = q.correctAnswers.map(a => {
                 const optIdx = q.options.findIndex(o => o.id === a);
                 return String.fromCharCode(65 + optIdx);
               });
-              const relatedKP = state.knowledgePoints.find(kp => kp.id === q.knowledgePointId);
-              const subject = state.subjects.find(s => s.id === q.subjectId);
+              const relatedKP = learningState.knowledgePoints.find(kp => kp.id === q.knowledgePointId);
+              const subject = learningState.subjects.find(s => s.id === q.subjectId);
               
               return (
-                <div key={q.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
-                  <div className="text-sm font-medium text-text-primary mb-2">
+                <div key={q.id} className={`pb-4 border-b last:border-0 ${getAnimationClass(7 + idx)}`} style={{ 
+                  borderBottom: '1px solid ' + theme.border
+                }}>
+                  <div className="text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
                     {idx + 1}. {q.stem}
                   </div>
-                  <div className="text-xs text-text-muted mb-2">
+                  <div className="text-xs mb-2" style={{ color: theme.textMuted }}>
                     正确答案: <span className="font-medium">{correctLabels.join('、')}</span>
                   </div>
                   
                   {explanation ? (
                     <>
-                      <div className="text-sm text-purple-700 bg-purple-50 rounded-lg p-3 mb-2">
+                      <div className="text-sm rounded-lg p-3 mb-2" style={{ 
+                        color: '#7e22ce',
+                        backgroundColor: '#f3e8ff'
+                      }}>
                         <div className="font-medium mb-1">AI解析：</div>
                         {explanation}
                       </div>
@@ -262,7 +336,8 @@ export default function QuizResultPage() {
                               knowledgePointId: q.knowledgePointId
                             });
                           }}
-                          className="text-xs text-blue-600 flex items-center gap-1 px-2 py-1 rounded-md hover:bg-blue-50"
+                          className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"
+                          style={{ color: '#2563eb' }}
                         >
                           <MessageSquare size={10} />
                           仍不理解，继续追问AI
@@ -284,7 +359,11 @@ export default function QuizResultPage() {
                         setGeneratingOne(null);
                       }}
                       disabled={generatingOne === q.id}
-                      className="w-full py-2 bg-purple-100 text-purple-700 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                      className="w-full py-2 rounded-lg text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                      style={{ 
+                        backgroundColor: '#f3e8ff',
+                        color: '#7e22ce'
+                      }}
                     >
                       {generatingOne === q.id ? (
                         <>
@@ -307,30 +386,50 @@ export default function QuizResultPage() {
       </div>
 
       {/* Actions */}
-      <div className="w-full max-w-xs space-y-3">
-        <button
-          onClick={() => navigate('quiz')}
-          className="w-full bg-primary text-white font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md"
-        >
-          <RotateCcw size={16} />
-          再练一次
-        </button>
+      <div className={`w-full max-w-xs space-y-3 ${getAnimationClass(7)}`}>
+        <div className={getAnimationClass(8)}>
+          <button
+            onClick={() => navigate('quiz')}
+            className="w-full font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
+          >
+            <RotateCcw size={16} />
+            再练一次
+          </button>
+        </div>
 
-        <button
-          onClick={() => navigate('home')}
-          className="w-full bg-white text-text-secondary font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-border"
-        >
-          <Home size={16} />
-          返回首页
-        </button>
+        <div className={getAnimationClass(9)}>
+          <button
+            onClick={() => navigate('home')}
+            className="w-full font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2 border"
+            style={{ 
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border,
+              color: theme.textSecondary
+            }}
+          >
+            <Home size={16} />
+            返回首页
+          </button>
+        </div>
 
         {total - correct > 0 && (
-          <button
-            onClick={() => navigate('wrong-book')}
-            className="w-full bg-red-50 text-red-600 font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-red-100"
-          >
-            查看错题 ({total - correct}题)
-          </button>
+          <div className={getAnimationClass(10)}>
+            <button
+              onClick={() => navigate('wrong-book')}
+              className="w-full font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2 border"
+              style={{ 
+                backgroundColor: '#fee2e2',
+                borderColor: '#fecaca',
+                color: '#dc2626'
+              }}
+            >
+              查看错题 ({total - correct}题)
+            </button>
+          </div>
         )}
       </div>
     </div>

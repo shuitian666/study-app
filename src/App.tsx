@@ -18,10 +18,11 @@
  */
 
 import React, { Suspense, useMemo, useState, useEffect, useRef } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
+import { ThemeStyles } from '@/components/ui/ThemeStyles';
 import { allBackgrounds } from '@/pages/AvatarEdit';
 import { Loader2 } from 'lucide-react';
 
@@ -39,15 +40,15 @@ const QuizResultPage = React.lazy(() => import('@/pages/Quiz/QuizResult'));
 const WrongBookPage = React.lazy(() => import('@/pages/Quiz/WrongBook'));
 const KnowledgeMapPage = React.lazy(() => import('@/pages/KnowledgeMap'));
 const ReviewSessionPage = React.lazy(() => import('@/pages/Review'));
-const CheckinPage = React.lazy(() => import('@/pages/Checkin'));
-const AchievementsPage = React.lazy(() => import('@/pages/Achievements'));
-const ShopPage = React.lazy(() => import('@/pages/Shop'));
-const RankingPage = React.lazy(() => import('@/pages/Ranking'));
-const LotteryPage = React.lazy(() => import('@/pages/Lottery'));
+const CheckinPage = React.lazy(() => import('@/features/gamification/checkin'));
+const AchievementsPage = React.lazy(() => import('@/features/gamification/achievements'));
+const ShopPage = React.lazy(() => import('@/features/gamification/shop'));
+const RankingPage = React.lazy(() => import('@/features/gamification/ranking'));
+const LotteryPage = React.lazy(() => import('@/features/gamification/lottery'));
 const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
 const SettingsPage = React.lazy(() => import('@/pages/Settings'));
-const InventoryPage = React.lazy(() => import('@/pages/Inventory'));
-const MailPage = React.lazy(() => import('@/pages/Mail'));
+const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
+const MailPage = React.lazy(() => import('@/features/gamification/mail'));
 const AvatarEditPage = React.lazy(() => import('@/pages/AvatarEdit'));
 
 // 加载占位组件
@@ -58,23 +59,23 @@ const LoadingFallback = () => (
 );
 
 function AppContent() {
-  const { state, navigate } = useApp();
+  const { userState, navigate } = useUser();
   
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
-    const backgroundId = state.user?.background;
+    const backgroundId = userState.user?.background;
     if (!backgroundId) return 'linear-gradient(180deg, #ffffff, #f9fafb)';
     const bg = allBackgrounds.find(b => b.id === backgroundId);
     return bg?.gradient || 'linear-gradient(180deg, #ffffff, #f9fafb)';
-  }, [state.user?.background]);
+  }, [userState.user?.background]);
 
   // 获取当前背景图案类型
   const currentPattern = useMemo(() => {
-    const backgroundId = state.user?.background;
+    const backgroundId = userState.user?.background;
     if (!backgroundId) return undefined;
     const bg = allBackgrounds.find(b => b.id === backgroundId);
     return bg?.pattern;
-  }, [state.user?.background]);
+  }, [userState.user?.background]);
 
   // 渲染背景装饰图案
   const renderBackgroundPattern = (pattern?: string) => {
@@ -119,11 +120,34 @@ function AppContent() {
       );
     }
 
+    if (pattern === 'apple-blur') {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
+          {/* 苹果风格磨砂玻璃纹理 - 微妙的噪点效果 */}
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="noiseFilter">
+                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+                <feColorMatrix type="saturate" values="0"/>
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="0.05"/>
+                </feComponentTransfer>
+              </filter>
+            </defs>
+            <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+          </svg>
+          {/* 微妙的渐变光晕 */}
+          <div className="absolute top-0 left-1/4 w-1/2 h-32 bg-white/30 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-1/2 h-32 bg-white/20 rounded-full blur-3xl"></div>
+        </div>
+      );
+    }
+
     return null;
   };
 
   const renderPage = () => {
-    switch (state.currentPage) {
+    switch (userState.currentPage) {
       case 'login': return <LoginPage />;
       case 'home': return <HomePage />;
       case 'profile': return <ProfilePage />;
@@ -151,14 +175,14 @@ function AppContent() {
     }
   };
 
-  const isFullScreen = state.currentPage === 'login' || state.currentPage === 'quiz-result' || state.currentPage === 'ai-chat' 
-    || state.currentPage === 'quiz-session' || state.currentPage === 'knowledge-detail' || state.currentPage === 'add-knowledge' 
-    || state.currentPage === 'import-knowledge' || state.currentPage === 'review-session' || state.currentPage === 'wrong-book';
+  const isFullScreen = userState.currentPage === 'login' || userState.currentPage === 'quiz-result' || userState.currentPage === 'ai-chat' 
+    || userState.currentPage === 'quiz-session' || userState.currentPage === 'knowledge-detail' || userState.currentPage === 'add-knowledge' 
+    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'review-session' || userState.currentPage === 'wrong-book';
 
   // 五个主页面用于循环滑动切换
   const mainTabs = ['home', 'knowledge', 'quiz', 'knowledge-map', 'profile'] as const;
   type MainTab = typeof mainTabs[number];
-  const currentIndex = mainTabs.indexOf(state.currentPage as MainTab);
+  const currentIndex = mainTabs.indexOf(userState.currentPage as MainTab);
   const isMainTab = currentIndex >= 0;
 
   // 检测是否为大屏幕（电脑）启用滑动切换，小屏幕（手机）保持原有方式
@@ -175,20 +199,20 @@ function AppContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 如果非大屏幕/非主页面，使用原有布局
-  if (!isLargeScreen || !isMainTab || isFullScreen) {
+  // 暂时禁用大屏幕布局，测试按钮点击问题
+  if (true || !isLargeScreen || !isMainTab || isFullScreen) {
     return (
       <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
         <div className="w-full max-w-[480px] flex flex-col relative">
           {renderBackgroundPattern(currentPattern)}
-          <div className="flex-1 overflow-y-auto z-10">
-            <div className="pb-4">
+          <div className="flex-1 overflow-y-auto relative z-10">
+            <div className="pb-20 safe-bottom">
               <Suspense fallback={<LoadingFallback />}>
                 {renderPage()}
               </Suspense>
             </div>
           </div>
-          {state.isLoggedIn && <TabBar />}
+          {userState.isLoggedIn && <TabBar />}
           <AchievementPopup />
           <LotteryDrawModal />
         </div>
@@ -229,7 +253,19 @@ function AppContent() {
   };
 
   const getOpacity = (pageOffset: -1 | 0 | 1) => {
-    return pageOffset === 0 ? 1 : 0.4;
+    if (pageOffset === 0) return 1;
+    // 未拖动时两边页面完全透明
+    if (!isDragging && offsetX === 0) return 0;
+    // 拖动时根据偏移量计算透明度
+    const baseOpacity = 0.4;
+    if (pageOffset === -1 && offsetX > 0) {
+      // 向右拖动时显示左侧页面
+      return Math.min(baseOpacity, offsetX / (pageWidth * 0.5));
+    } else if (pageOffset === 1 && offsetX < 0) {
+      // 向左拖动时显示右侧页面
+      return Math.min(baseOpacity, Math.abs(offsetX) / (pageWidth * 0.5));
+    }
+    return 0;
   };
 
   // 拖动结束处理：超过阈值则切换，否则回弹
@@ -250,6 +286,11 @@ function AppContent() {
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // 检查点击目标是否是可点击元素（按钮、链接等）
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
+      return; // 不启动拖动
+    }
     setIsDragging(true);
     setStartX(e.clientX);
   };
@@ -263,6 +304,11 @@ function AppContent() {
   const handleMouseLeave = () => finishSwipe();
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // 检查触摸目标是否是可点击元素（按钮、链接等）
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
+      return; // 不启动拖动
+    }
     setIsDragging(true);
     setStartX(e.touches[0].clientX);
   };
@@ -274,22 +320,26 @@ function AppContent() {
 
   const handleTouchEnd = () => finishSwipe();
 
-  // 按钮点击切换：带动画，滑到位再更新索引，全程三张都可见
+  // 按钮点击切换：带动画，滑到位再更新索引
   const goToPrev = () => {
+    setIsDragging(true);
     const targetOffset = pageWidth; // 向右滑一个页面宽度
     setOffsetX(targetOffset);
     setTimeout(() => {
       navigate(mainTabs[prevIndex]);
       setOffsetX(0);
+      setIsDragging(false);
     }, 400);
   };
 
   const goToNext = () => {
+    setIsDragging(true);
     const targetOffset = -pageWidth; // 向左滑一个页面宽度
     setOffsetX(targetOffset);
     setTimeout(() => {
       navigate(mainTabs[nextIndex]);
       setOffsetX(0);
+      setIsDragging(false);
     }, 400);
   };
 
@@ -377,7 +427,7 @@ function AppContent() {
         </div>
 
         {/* 底部导航保持居中 */}
-        {state.isLoggedIn && (
+        {userState.isLoggedIn && (
           <div className="relative z-10 max-w-[520px] mx-auto bg-white">
             <TabBar />
           </div>
@@ -392,6 +442,7 @@ function AppContent() {
 export default function App() {
   return (
     <div className="app-shell bg-transparent">
+      <ThemeStyles />
       <AppContent />
     </div>
   );

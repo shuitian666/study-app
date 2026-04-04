@@ -1,4 +1,5 @@
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { ShoppingBag, Star, Check, Gift, Copy, CheckCircle } from 'lucide-react';
 import type { ShopItemType } from '@/types';
@@ -10,6 +11,9 @@ const TYPE_LABELS: Record<ShopItemType, string> = {
   background: '背景板',
   theme_skin: '主题皮肤',
   ai_skin: 'AI助手皮肤',
+  theme: '主题',
+  vip_card: 'VIP会员',
+  coin_bag: '金币袋',
 };
 
 // 兑换码配置
@@ -21,28 +25,75 @@ const REDEMPTION_CODES = [
 ];
 
 export default function ShopPage() {
-  const { state, dispatch, navigate } = useApp();
+  const { userState, userDispatch, navigate } = useUser();
+  const { gameState, gameDispatch } = useGame();
   const [tab, setTab] = useState<ShopItemType | 'all' | 'redeem'>('all');
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const coins = state.user?.totalPoints ?? 0;
+  const coins = userState.user?.totalPoints ?? 0;
+  
+  // 检查物品是否已在背包中（用于非可堆叠物品）
+  const isOwned = (item: typeof gameState.shopItems[0]) => {
+    // 可堆叠物品（补签卡等）不显示"已拥有"
+    if (item.type === 'makeup_card' || item.type === 'coin_bag' || item.type === 'vip_card') {
+      return false;
+    }
+    // 检查背包中是否有该物品
+    return userState.inventory.items.some(i => i.name === item.name);
+  };
+  
   const filtered = tab === 'all' 
-    ? state.shopItems 
+    ? gameState.shopItems 
     : tab === 'redeem' 
       ? [] 
-      : state.shopItems.filter(i => i.type === tab);
+      : gameState.shopItems.filter(i => i.type === tab);
 
   const handleBuy = (itemId: string) => {
-    dispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
+    const item = gameState.shopItems.find(i => i.id === itemId);
+    if (!item) return;
+    // 可堆叠物品可以重复购买，非可堆叠物品检查是否已拥有
+    if (item.type !== 'makeup_card' && item.type !== 'coin_bag' && item.type !== 'vip_card') {
+      if (isOwned(item)) return;
+    }
+    if (coins < item.price) return;
+    
+    // 消耗星币
+    userDispatch({ 
+      type: 'UPDATE_USER', 
+      payload: { totalPoints: coins - item.price } 
+    });
+    
+    // 将物品添加到背包
+    // 类型映射：商店类型 -> 背包类型
+    const typeMapping: Record<string, string> = {
+      'theme_skin': 'theme',
+      'ai_skin': 'theme',
+    };
+    const inventoryItem = {
+      id: `inv-${item.id}-${Date.now()}`,
+      type: (typeMapping[item.type] || item.type) as any,
+      name: item.name,
+      description: item.description || `购买获得: ${item.name}`,
+      icon: item.icon,
+      rarity: item.rarity || 'N',
+      quantity: 1,
+      obtainedAt: new Date().toISOString(),
+      source: 'shop' as const,
+      usable: item.type === 'makeup_card' || item.type === 'vip_card',
+    };
+    userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
+    
+    // 购买物品
+    gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
   };
 
   const handleRedeem = () => {
     if (!redeemInput.trim()) return;
     const code = redeemInput.trim();
     
-    if (state.redeemedCodes.includes(code)) {
+    if (gameState.redeemedCodes.includes(code)) {
       setRedeemMessage({ type: 'error', text: '该兑换码已使用' });
       return;
     }
@@ -53,7 +104,7 @@ export default function ShopPage() {
       return;
     }
     
-    dispatch({ type: 'REDEEM_CODE', payload: code });
+    gameDispatch({ type: 'REDEEM_CODE', payload: code });
     setRedeemMessage({ type: 'success', text: `兑换成功！${validCode.reward}` });
     setRedeemInput('');
   };
@@ -126,7 +177,7 @@ export default function ShopPage() {
             <h4 className="text-sm font-medium mb-2 text-text-secondary">可用兑换码</h4>
             <div className="space-y-2">
               {REDEMPTION_CODES.map(item => {
-                const isUsed = state.redeemedCodes.includes(item.code);
+                const isUsed = gameState.redeemedCodes.includes(item.code);
                 return (
                   <div 
                     key={item.code}
@@ -217,7 +268,7 @@ export default function ShopPage() {
                   <Star size={10} fill="currentColor" />
                   {item.price}
                 </button>
-              ) : item.owned ? (
+              ) : isOwned(item) ? (
                 <div className="flex items-center gap-1 text-accent text-xs font-medium">
                   <Check size={12} />
                   已拥有

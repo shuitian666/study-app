@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useLearning } from '@/store/LearningContext';
 import { generateQuestionExplanation, generateQuiz } from '@/services/aiService';
 
 /**
@@ -7,12 +7,12 @@ import { generateQuestionExplanation, generateQuiz } from '@/services/aiService'
  * Call this when user starts learning a new stage
  */
 export function usePreGenerate() {
-  const { state, dispatch } = useApp();
+  const { learningState, learningDispatch } = useLearning();
 
   const getSavedExplanation = useCallback((questionId: string): string | null => {
-    const saved = state.questionExplanations.find(e => e.questionId === questionId);
+    const saved = learningState.questionExplanations.find(e => e.questionId === questionId);
     return saved ? saved.explanation : null;
-  }, [state.questionExplanations]);
+  }, [learningState.questionExplanations]);
 
   /**
    * Pre-generate explanations for existing questions
@@ -39,7 +39,7 @@ export function usePreGenerate() {
           correctAnswer: [],
         });
 
-        dispatch({
+        learningDispatch({
           type: 'SAVE_QUESTION_EXPLANATION',
           payload: {
             questionId: q.id,
@@ -58,7 +58,7 @@ export function usePreGenerate() {
       // Small delay to avoid overwhelming the API
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-  }, [dispatch, getSavedExplanation]);
+  }, [learningDispatch, getSavedExplanation]);
 
   /**
    * Generate new questions for the next stage
@@ -70,7 +70,7 @@ export function usePreGenerate() {
     count: number = 5,
     onProgress?: (current: number, total: number) => void
   ): Promise<void> => {
-    const kps = state.knowledgePoints.filter(kp => 
+    const kps = learningState.knowledgePoints.filter(kp => 
       knowledgePointIds.includes(kp.id) || (subjectId && kp.subjectId === subjectId)
     );
     
@@ -79,11 +79,11 @@ export function usePreGenerate() {
         const result = await generateQuiz(
           knowledgePointIds,
           kps,
-          state.questions
+          learningState.questions
         );
 
         if (result.question) {
-          dispatch({
+          learningDispatch({
             type: 'AI_ADD_GENERATED_QUESTION',
             payload: result.question,
           });
@@ -95,7 +95,7 @@ export function usePreGenerate() {
             correctAnswer: result.question.correctAnswers,
           });
 
-          dispatch({
+          learningDispatch({
             type: 'SAVE_QUESTION_EXPLANATION',
             payload: {
               questionId: result.question.id,
@@ -115,7 +115,7 @@ export function usePreGenerate() {
       // Delay between generations
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-  }, [state.knowledgePoints, state.questions, dispatch]);
+  }, [learningState.knowledgePoints, learningState.questions, learningDispatch]);
 
   /**
    * 按需生成单个题目的解析（用户点击才生成，不预先生成）
@@ -141,7 +141,7 @@ export function usePreGenerate() {
       subjectName,
     });
 
-    dispatch({
+    learningDispatch({
       type: 'SAVE_QUESTION_EXPLANATION',
       payload: {
         questionId,
@@ -153,7 +153,7 @@ export function usePreGenerate() {
     });
 
     return explanation;
-  }, [dispatch, getSavedExplanation]);
+  }, [learningDispatch, getSavedExplanation]);
 
   return {
     getSavedExplanation,

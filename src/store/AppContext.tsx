@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================
  * 全局状态管理 - AppContext
  * ============================================================================
@@ -417,43 +417,8 @@ function reducer(state: AppState, action: Action): AppState {
             usable: true,
           }];
         }
-      } else if (
-        result.reward.type === 'avatar_frame' || 
-        result.reward.type === 'background' || 
-        result.reward.type === 'title'
-      ) {
-        // 装饰物品/称号 - 检查是否已有，已有则补偿
-        if (state.user) {
-          const existing = newInventoryItems.find(i => i.name === (result.reward as any).name);
-          if (existing) {
-            // 重复获得，补偿星币（按稀有度）
-            let compensation = 0;
-            switch ((result.reward as any).rarity) {
-              case 'N': compensation = 10; break;
-              case 'R': compensation = 30; break;
-              case 'SR': compensation = 60; break;
-              case 'SSR': compensation = 150; break;
-              default: compensation = 10;
-            }
-            newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-            console.log(`[DRAW_REGULAR] 重复获得 ${(result.reward as any).name}，补偿 ${compensation} 星币`);
-          } else {
-            // 新物品添加到背包
-            newInventoryItems.push({
-              id: `inv-regular-${result.reward.id}-${Date.now()}`,
-              type: result.reward.type as any,
-              name: (result.reward as any).name || '',
-              description: (result.reward as any).description || '',
-              icon: (result.reward as any).icon || '📦',
-              rarity: (result.reward as any).rarity || 'N',
-              quantity: 1,
-              obtainedAt: new Date().toISOString(),
-              source: 'lottery',
-              usable: false,
-            });
-          }
-        }
       }
+
       let newPity: LotteryPityState;
       if (result.tier === 'SSR') {
         newPity = { sinceLastSSR: 0, sinceLastSR: 0 };
@@ -473,7 +438,7 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'DRAW_UP': {
       if (state.drawBalance.up <= 0) return state;
-      const { item, isNew } = action.payload;
+      const { item } = action.payload;
       let newInventoryItems = [...state.inventory.items];
       let newUser = state.user;
       let newUpPool = state.upPool;
@@ -484,57 +449,20 @@ function reducer(state: AppState, action: Action): AppState {
         items: newUpPool.items.map(i => i.id === item.id ? { ...i, owned: true } : i),
       };
 
-      // 检查是否已经拥有该装饰物品，如果已有则给星币补偿
-      // 称号(title)、头像框(avatar_frame)、背景(background)都需要补偿
-      if (
-        (item.type === 'avatar_frame' || item.type === 'background' || item.type === 'title') 
-        && state.user
-      ) {
-        const existingInv = state.inventory.items.find(i => i.name === item.name);
-        if (existingInv) {
-          // 已经拥有，按稀有度等级补偿星币 ✅ 称号也纳入等级系统补偿
-          let compensation = 0;
-          switch (item.rarity) {
-            case 'N': compensation = 10; break;
-            case 'R': compensation = 30; break;
-            case 'SR': compensation = 60; break;
-            case 'SSR': compensation = 150; break;
-            default: compensation = 10;
-          }
-          newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-          console.log(`[DRAW_UP] 重复获得 ${item.name}，补偿 ${compensation} 星币`);
-        } else {
-          // 新获得，添加到背包
-          const invItem: InventoryItem = {
-            id: `inv-up-${item.id}-${Date.now()}`,
-            type: item.type as any,
-            name: item.name,
-            description: item.description,
-            icon: item.icon,
-            rarity: item.rarity,
-            quantity: 1,
-            obtainedAt: new Date().toISOString(),
-            source: 'lottery',
-            usable: false,
-          };
-          newInventoryItems = [...state.inventory.items, invItem];
-        }
-      } else {
-        // 非装饰物品正常添加到背包
-        const invItem: InventoryItem = {
-          id: `inv-up-${item.id}-${Date.now()}`,
-          type: item.type as any,
-          name: item.name,
-          description: item.description,
-          icon: item.icon,
-          rarity: item.rarity,
-          quantity: 1,
-          obtainedAt: new Date().toISOString(),
-          source: 'lottery',
-          usable: false,
-        };
-        newInventoryItems = [...state.inventory.items, invItem];
-      }
+      // 非装饰物品正常添加到背包
+      const invItem: InventoryItem = {
+        id: `inv-up-${item.id}-${Date.now()}`,
+        type: item.type as any,
+        name: item.name,
+        description: item.description,
+        icon: item.icon,
+        rarity: item.rarity,
+        quantity: 1,
+        obtainedAt: new Date().toISOString(),
+        source: 'lottery',
+        usable: false,
+      };
+      newInventoryItems = [...state.inventory.items, invItem];
 
       let newPity: LotteryPityState;
       if (item.rarity === 'SSR') {
@@ -1168,6 +1096,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'RECORD_HISTORY', payload: {} });
     }
   }, [state.isLoggedIn]);
+
+  // ========== 自动检测成就解锁 ==========
+  useEffect(() => {
+    if (!state.isLoggedIn) return;
+
+    const stats = getLearningStats();
+    const totalKnowledge = stats.totalKnowledgePoints;
+    const totalCheckins = state.checkin.totalCheckins;
+    const totalQuizzes = stats.totalQuizzes;
+    const makeupUsed = state.checkin.totalCheckins - state.checkin.records.filter(r => r.type !== 'makeup').length;
+    const perfectQuizzesCount = state.quizResults.filter(q => q.score === 100).length;
+
+    // 遍历所有未解锁成就，检查条件
+    state.achievements.forEach(ach => {
+      if (ach.unlocked) return;
+
+      let met = false;
+      const cond = ach.condition;
+      
+      switch (cond.type) {
+        case 'total_knowledge':
+          met = totalKnowledge >= cond.value;
+          break;
+        case 'total_checkins':
+          met = totalCheckins >= cond.value;
+          break;
+        case 'total_quizzes':
+          met = totalQuizzes >= cond.value;
+          break;
+        case 'makeup_used':
+          met = makeupUsed >= cond.value;
+          break;
+        case 'one_session_correct':
+          met = perfectQuizzesCount >= cond.value;
+          break;
+        // 原有条件已经在其他地方处理了
+        default:
+          break;
+      }
+
+      if (met) {
+        dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: ach.id });
+      }
+    });
+  }, [
+    state.isLoggedIn,
+    state.knowledgePoints.length,
+    state.checkin.totalCheckins,
+    state.quizResults.length,
+    state.achievements
+  ]);
 
   return (
     <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>

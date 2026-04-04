@@ -468,12 +468,6 @@ export async function askQuestionStreaming(
 
 // ===== 2. Generate Quiz =====
 
-export interface GenerateSmartQuizResult {
-  question: Question | null;
-  selectedKnowledgePoint?: string;
-  mode: 'random' | 'smart';
-}
-
 export async function generateQuiz(
   knowledgePointIds: string[],
   knowledgePoints: KnowledgePoint[],
@@ -493,7 +487,8 @@ export async function generateQuiz(
         .map(kp => ({
           id: kp.id,
           name: kp.name,
-          masteryLevel: kp.proficiency,
+          subjectId: kp.subjectId,
+          masteryLevel: kp.proficiency as unknown as number,
           wrongCount: 0,
           lastReviewedAt: kp.lastReviewedAt || '',
         }));

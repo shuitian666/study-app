@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
+import { useTheme } from '@/store/ThemeContext';
 import { allFrames, allBackgrounds } from '@/pages/AvatarEdit';
-import { PageHeader } from '@/components/ui/Common';
 import { Calendar, Gift, Ticket, Flame, BookOpen, CheckCircle, Sparkles, Gift as GiftIcon, X, Copy, Check } from 'lucide-react';
 import { STREAK_REWARDS } from '@/data/incentive-mock';
 import TeamPanel from './TeamPanel';
@@ -21,6 +23,28 @@ function getLast7Days(): string[] {
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
+// 生成当月日历数据
+function generateCalendar(year: number, month: number) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = firstDay.getDay(); // 0 是周日
+  
+  // 转换为周一开头（中国日历习惯）
+  const paddedDays: Array<{ date: Date; dateStr: string; day: number } | null> = Array.from({ length: (startingDayOfWeek + 6) % 7 }, () => null);
+  
+  for (let i = 1; i <= daysInMonth; i++) {
+    const date = new Date(year, month, i);
+    paddedDays.push({
+      date,
+      dateStr: date.toISOString().slice(0, 10),
+      day: i
+    });
+  }
+  
+  return paddedDays;
+}
+
 // 兑换码配置
 const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number; unlockAllFrames: boolean; unlockAllBackgrounds: boolean }> = {
   '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0, unlockAllFrames: false, unlockAllBackgrounds: false },
@@ -29,10 +53,55 @@ const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; 
 };
 
 export default function CheckinPage() {
-  const { state, dispatch, navigate } = useApp();
-  const { checkin, team, drawBalance, lastCheckinReward, redeemedCodes, quizResults } = state;
+  const { userState, userDispatch, navigate } = useUser();
+  const { learningState } = useLearning();
+  const { gameState, gameDispatch } = useGame();
+  const { theme } = useTheme();
+  const { checkin, team, drawBalance, lastCheckinReward, redeemedCodes } = gameState;
+  const { quizResults, todayReviewItems, todayNewItems } = learningState;
+  const { user } = userState;
   const today = getToday();
   const todayChecked = checkin.records.some(r => r.date === today);
+
+  // 打卡日历状态
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth());
+  
+  // 已打卡日期集合（用于快速判断）
+  const checkedDates = new Set(checkin.records.map(r => r.date));
+  
+  // 生成当月日历
+  const calendarDays = generateCalendar(currentYear, currentMonth);
+  
+  // 切换月份
+  const prevMonth = () => {
+    let newYear = currentYear;
+    let newMonth = currentMonth - 1;
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    setCurrentYear(newYear);
+    setCurrentMonth(newMonth);
+  };
+  
+  const nextMonth = () => {
+    let newYear = currentYear;
+    let newMonth = currentMonth + 1;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    }
+    setCurrentYear(newYear);
+    setCurrentMonth(newMonth);
+  };
+  
+  const goToToday = () => {
+    const now = new Date();
+    setCurrentYear(now.getFullYear());
+    setCurrentMonth(now.getMonth());
+  };
 
   // 计算今日答题数量
   const todayResults = quizResults.filter(r => 
@@ -41,16 +110,16 @@ export default function CheckinPage() {
   const todayQuestions = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
   
   // 学习目标
-  const dailyGoal = state.user?.dailyGoal ?? 10;
-  const dailyNewGoal = state.user?.dailyNewGoal ?? 10;
+  const dailyGoal = user?.dailyGoal ?? 10;
+  const dailyNewGoal = user?.dailyNewGoal ?? 10;
   const goalProgress = Math.min((todayQuestions / dailyGoal) * 100, 100);
   const goalAchieved = todayQuestions >= dailyGoal;
 
   // 复习完成检查
-  const reviewCompleted = state.todayReviewItems.length === 0 || state.todayReviewItems.every(r => r.completed);
+  const reviewCompleted = todayReviewItems.length === 0 || todayReviewItems.every(r => r.completed);
   
   // 新学完成检查：已完成的新学数 >= 每日新学目标
-  const completedNewCount = state.todayNewItems.filter(r => r.completed).length;
+  const completedNewCount = todayNewItems.filter(r => r.completed).length;
   const newLearnCompleted = completedNewCount >= dailyNewGoal;
 
   // 签到条件：复习完成 + 新学完成 OR 完成做题目标
@@ -76,7 +145,7 @@ export default function CheckinPage() {
       setRedeemMessage({ type: 'error', text: '无效的兑换码' });
       return;
     }
-    dispatch({ type: 'REDEEM_CODE', payload: code });
+    gameDispatch({ type: 'REDEEM_CODE', payload: code });
     
     // 解锁所有头像框和背景
     const now = new Date().toISOString();
@@ -85,7 +154,7 @@ export default function CheckinPage() {
       if (reward.unlockAllFrames) {
         // 解锁所有头像框
         allFrames.forEach(frame => {
-          dispatch({
+          userDispatch({
             type: 'ADD_INVENTORY_ITEM',
             payload: {
               id: `avatar-frame-${frame.icon}`,
@@ -107,7 +176,7 @@ export default function CheckinPage() {
         if (unlockMessage) unlockMessage += ' + ';
         // 解锁所有背景
         allBackgrounds.forEach(bg => {
-          dispatch({
+          userDispatch({
             type: 'ADD_INVENTORY_ITEM',
             payload: {
               id: `background-${bg.id}`,
@@ -144,7 +213,7 @@ export default function CheckinPage() {
 
   const performCheckin = (type: 'normal' | 'team') => {
     if (!canCheckin) return;
-    dispatch({
+    gameDispatch({
       type: 'CHECKIN',
       payload: { date: today, type, teamId: type === 'team' ? team?.id : undefined },
     });
@@ -152,70 +221,98 @@ export default function CheckinPage() {
 
   const handleMakeup = (date: string) => {
     if (checkin.makeupCards <= 0) return;
-    dispatch({ type: 'CHECKIN', payload: { date, type: 'makeup' } });
+    gameDispatch({ type: 'CHECKIN', payload: { date, type: 'makeup' } });
+  };
+
+  // 处理签到奖励中的星币
+  const handleDismissReward = () => {
+    // 如果有星币奖励，添加到用户账户
+    if (lastCheckinReward?.streakCoins && lastCheckinReward.streakCoins > 0 && user) {
+      userDispatch({
+        type: 'UPDATE_USER',
+        payload: { totalPoints: user.totalPoints + lastCheckinReward.streakCoins }
+      });
+      console.log(`[签到奖励] 获得 ${lastCheckinReward.streakCoins} 星币`);
+    }
+    gameDispatch({ type: 'DISMISS_CHECKIN_REWARD' });
+  };
+
+  // 根据主题获取圆角大小
+  const getBorderRadius = (size: 'small' | 'medium' | 'large' = 'medium') => {
+    const radiusMap: Record<string, Record<string, string>> = {
+      small: { sm: '12px', md: '16px', lg: '20px' },
+      medium: { sm: '16px', md: '20px', lg: '24px' },
+      large: { sm: '20px', md: '24px', lg: '28px' },
+      cute: { sm: '20px', md: '24px', lg: '32px' }
+    };
+    return radiusMap[theme.borderRadius][size];
   };
 
   return (
     <div className="page-scroll pb-4">
-      <PageHeader title="每日签到" onBack={() => navigate('home')} />
+      {/* 渐变头部背景 */}
+      <div className="bg-gradient-to-br" style={{ backgroundImage: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`, color: 'white', padding: '16px 24px 28px 24px', borderRadius: '0 0 32px 32px', marginBottom: '16px' }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold">每日签到</h2>
+            <p className="text-white/70 text-sm mt-1">坚持学习，每日进步</p>
+          </div>
+          <button
+            onClick={() => navigate('home')}
+            className="p-2 bg-white/20 rounded-full active:bg-white/30 transition-colors"
+          >
+            <span className="text-white text-sm">返回</span>
+          </button>
+        </div>
+      </div>
 
       {/* Streak header */}
-      <div className="bg-gradient-to-br from-secondary to-orange-500 text-white mx-4 mt-3 rounded-2xl p-5">
+      <div className="bg-white border border-border shadow-sm mx-4 p-5" style={{ borderRadius: getBorderRadius('large') }}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="flex items-center gap-1.5 mb-1">
-              <Flame size={18} />
-              <span className="text-lg font-bold">连续签到 {checkin.streak} 天</span>
+              <Flame size={18} className="text-orange-500" />
+              <span className="text-lg font-bold text-text-primary">连续签到 {checkin.streak} 天</span>
             </div>
-
-            <p className="text-white/70 text-xs">累计签到 {checkin.totalCheckins} 天</p>
+            <p className="text-text-muted text-xs">累计签到 {checkin.totalCheckins} 天</p>
           </div>
-
-          <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
-            <Ticket size={14} />
-            <span className="text-sm">补签卡 x{checkin.makeupCards}</span>
+          <div className="flex items-center gap-1 bg-orange-100 rounded-full px-3 py-1">
+            <Ticket size={14} className="text-orange-500" />
+            <span className="text-sm text-orange-600">补签卡 x{checkin.makeupCards}</span>
           </div>
-
         </div>
-
 
         {/* Checkin button(s) */}
         {todayChecked ? (
-          <div className="w-full py-3 rounded-xl bg-white/20 text-white/60 text-center text-sm font-medium">
+          <div className="w-full py-3 rounded-xl bg-green-100 text-green-600 text-center text-sm font-medium">
             今日已签到 ✓
           </div>
-
         ) : !canCheckin ? (
-          <div className="w-full py-3 rounded-xl bg-white/10 text-white/50 text-center text-sm cursor-default">
+          <div className="w-full py-3 rounded-xl bg-gray-100 text-text-muted text-center text-sm cursor-default">
             完成学习任务后可签到
           </div>
-
         ) : hasActiveTeam && bothReady ? (
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => performCheckin('normal')}
-              className="py-3 rounded-xl bg-white/30 text-white text-sm font-medium active:scale-[0.97] transition-transform"
+              className="py-3 rounded-xl bg-orange-100 text-orange-600 text-sm font-medium active:scale-[0.97] transition-transform"
             >
               独立签到
             </button>
-
             <button
               onClick={() => performCheckin('team')}
-              className="py-3 rounded-xl bg-white text-orange-600 shadow-lg text-sm font-medium active:scale-[0.97] transition-transform"
+              className="py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg text-sm font-medium active:scale-[0.97] transition-transform"
             >
               组队签到
             </button>
-
           </div>
-
         ) : (
           <button
             onClick={() => performCheckin('normal')}
-            className="w-full py-3 rounded-xl bg-white text-orange-600 shadow-lg font-medium text-sm active:scale-[0.97] transition-transform"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg font-medium text-sm active:scale-[0.97] transition-transform"
           >
             立即签到
           </button>
-
         )}
       </div>
 
@@ -250,7 +347,7 @@ export default function CheckinPage() {
             </div>
 
             <button
-              onClick={() => dispatch({ type: 'DISMISS_CHECKIN_REWARD' })}
+              onClick={handleDismissReward}
               className="text-amber-400 text-xs px-1"
             >
               ✕
@@ -262,30 +359,109 @@ export default function CheckinPage() {
 
       )}
 
+      {/* 打卡日历 */}
+      <div className="mx-4 mt-3 bg-white border border-border shadow-md p-4" style={{ borderRadius: '20px' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-text-primary font-semibold text-sm flex items-center gap-1.5">
+            <Calendar size={16} className="text-primary" />
+            打卡日历
+          </h3>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={prevMonth}
+              className="p-2 rounded-lg hover:bg-gray-50 text-text-muted transition-colors"
+              style={{ borderRadius: '12px' }}
+            >
+              ‹
+            </button>
+            <button
+              onClick={goToToday}
+              className="px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-lg font-medium hover:bg-primary/20 transition-colors"
+              style={{ borderRadius: '12px' }}
+            >
+              {currentYear}年{currentMonth + 1}月
+            </button>
+            <button 
+              onClick={nextMonth}
+              className="p-2 rounded-lg hover:bg-gray-50 text-text-muted transition-colors"
+              style={{ borderRadius: '12px' }}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+
+        {/* 星期表头 */}
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {WEEKDAYS.map(day => (
+            <div key={day} className="text-center text-xs font-medium text-text-muted py-2">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* 日期格子 */}
+        <div className="grid grid-cols-7 gap-2">
+          {calendarDays.map((day, index) => {
+            if (!day) return <div key={index} className="aspect-square" />;
+            
+            const isChecked = checkedDates.has(day.dateStr);
+            const isToday = day.dateStr === today;
+            
+            return (
+              <div
+                key={index}
+                className={`aspect-square flex items-center justify-center relative transition-all duration-300 hover:scale-105 cursor-pointer ${
+                  isChecked
+                    ? 'bg-green-50 text-green-600 font-medium'
+                    : 'bg-gray-50 text-text-muted hover:bg-gray-100'
+                } ${
+                  isToday
+                    ? 'ring-2 ring-primary ring-offset-2'
+                    : ''
+                }`}
+                style={{ 
+                  borderRadius: '12px',
+                  boxShadow: isChecked 
+                    ? 'inset 0 0 0 1px rgba(16, 185, 129, 0.2), 0 2px 4px rgba(16, 185, 129, 0.1)'
+                    : 'none'
+                }}
+              >
+                {isChecked ? <CheckCircle size={16} className="text-green-500" /> : <span className="text-sm">{day.day}</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between mt-4 text-xs text-text-muted">
+          <span>本月已打卡：{Array.from(checkedDates).filter(d => {
+            const [y, m] = d.split('-');
+            return Number(y) === currentYear && Number(m) === currentMonth + 1;
+          }).length} 天</span>
+          <span>累计：{checkin.totalCheckins} 天</span>
+        </div>
+      </div>
 
       {/* Draw balance card - link to lottery */}
       <div
-        className="mx-4 mt-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-4 active:opacity-90 transition-opacity cursor-pointer"
+        className="mx-4 mt-3 bg-white border border-border shadow-sm p-4 active:opacity-90 transition-opacity cursor-pointer"
+        style={{ borderRadius: getBorderRadius('large') }}
         onClick={() => navigate('lottery')}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <Sparkles size={20} className="text-white" />
+            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+              <Sparkles size={20} className="text-indigo-500" />
             </div>
-
             <div>
-              <h4 className="text-white font-semibold text-sm">我的抽签</h4>
+              <h4 className="text-text-primary font-semibold text-sm">我的抽签</h4>
               <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-white/80 text-xs">常规 {drawBalance.regular} 次</span>
-                <span className="text-white/80 text-xs">UP池 {drawBalance.up} 次</span>
+                <span className="text-text-muted text-xs">常规 {drawBalance.regular} 次</span>
+                <span className="text-text-muted text-xs">UP池 {drawBalance.up} 次</span>
               </div>
-
             </div>
-
           </div>
-
-          <span className="text-white/60 text-xs">去抽签 &gt;</span>
+          <span className="text-primary text-xs">去抽签 &gt;</span>
         </div>
 
       </div>
@@ -295,18 +471,19 @@ export default function CheckinPage() {
       <div className="mx-4 mt-3">
         <button
           onClick={() => setShowRedeemModal(true)}
-          className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl p-4 flex items-center justify-between active:opacity-90 transition-opacity"
+          className="w-full bg-white border border-border shadow-sm text-text-primary p-4 flex items-center justify-between active:opacity-90 transition-opacity"
+          style={{ borderRadius: getBorderRadius('large') }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <GiftIcon size={20} className="text-white" />
+            <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+              <GiftIcon size={20} className="text-pink-500" />
             </div>
             <div className="text-left">
               <div className="font-semibold text-sm">兑换码</div>
-              <div className="text-white/80 text-xs">输入兑换码获得奖励</div>
+              <div className="text-text-muted text-xs">输入兑换码获得奖励</div>
             </div>
           </div>
-          <span className="text-white/60 text-xs">兑换 &gt;</span>
+          <span className="text-primary text-xs">兑换 &gt;</span>
         </button>
       </div>
 
@@ -389,7 +566,7 @@ export default function CheckinPage() {
           今日学习目标
         </h3>
 
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm space-y-3">
+        <div className="bg-white p-4 border border-border shadow-sm space-y-3" style={{ borderRadius: getBorderRadius('large') }}>
           {/* 做题进度 */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -453,7 +630,7 @@ export default function CheckinPage() {
           本周签到
         </h3>
 
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+        <div className="bg-white p-4 border border-border shadow-sm" style={{ borderRadius: getBorderRadius('large') }}>
           <div className="grid grid-cols-7 gap-1">
             {last7.map((date, i) => {
               const record = checkin.records.find(r => r.date === date);
@@ -508,7 +685,7 @@ export default function CheckinPage() {
           连续签到奖励
         </h3>
 
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+        <div className="bg-white p-4 border border-border shadow-sm" style={{ borderRadius: getBorderRadius('large') }}>
           <div className="flex justify-between">
             {STREAK_REWARDS.map(r => {
               const reached = checkin.streak >= r.days;

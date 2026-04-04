@@ -1,19 +1,48 @@
-import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useState, useEffect } from 'react';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import type { ProficiencyLevel } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { Undo2 } from 'lucide-react';
 
 export default function AddKnowledgePage() {
-  const { state, dispatch, navigate, undo, _canUndo } = useApp();
+  const { navigate } = useUser();
+  const { learningState, learningDispatch, undo, _canUndo } = useLearning();
+  const { theme } = useTheme();
+
+  // 动画效果 - 使用次级界面动画设置
+  const [animationEffect, setAnimationEffect] = useState(() => {
+    const saved = localStorage.getItem('sub-animation-effect');
+    return saved || 'fade-in';
+  });
+
+  // 监听动画效果变化
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sub-animation-effect' && e.newValue) {
+        setAnimationEffect(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // 获取动画类名
+  const getAnimationClass = (delay: number) => {
+    const baseClass = `scroll-${animationEffect}`;
+    const delayClass = `reveal-delay-${delay}`;
+    return `${baseClass} ${delayClass}`;
+  };
   const [name, setName] = useState('');
   const [explanation, setExplanation] = useState('');
-  const [subjectId, setSubjectId] = useState(state.subjects[0]?.id ?? '');
+  const [subjectId, setSubjectId] = useState(learningState.subjects[0]?.id ?? '');
   const [chapterId, setChapterId] = useState('');
   const [proficiency, setProficiency] = useState<ProficiencyLevel>('none');
 
-  const chapters = state.chapters.filter(c => c.subjectId === subjectId);
+  const chapters = learningState.chapters.filter(c => c.subjectId === subjectId);
 
   const handleSubmit = () => {
     if (!name.trim() || !subjectId) return;
@@ -30,7 +59,7 @@ export default function AddKnowledgePage() {
       reviewCount: 0,
       createdAt: new Date().toISOString(),
     };
-    dispatch({ type: 'ADD_KNOWLEDGE_POINT', payload: newKP });
+    learningDispatch({ type: 'ADD_KNOWLEDGE_POINT', payload: newKP });
     navigate('knowledge');
   };
 
@@ -43,26 +72,31 @@ export default function AddKnowledgePage() {
           <button
             onClick={undo}
             disabled={!_canUndo}
-            className="p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ backgroundColor: theme.border }}
             title="撤销"
           >
-            <Undo2 size={18} className="text-gray-600" />
+            <Undo2 size={18} style={{ color: theme.textSecondary }} />
           </button>
         }
       />
 
-      <div className="px-4 pt-4 space-y-4">
+      <div className={`px-4 pt-4 space-y-4 ${getAnimationClass(1)}`}>
         {/* Subject select */}
         <div>
-          <label className="text-xs font-medium text-text-secondary mb-1.5 block">学科</label>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textSecondary }}>学科</label>
           <div className="flex gap-2 flex-wrap">
-            {state.subjects.map(s => (
+            {learningState.subjects.map(s => (
               <button
                 key={s.id}
                 onClick={() => { setSubjectId(s.id); setChapterId(''); }}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  subjectId === s.id ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
+                  subjectId === s.id ? 'text-white' : ''
                 }`}
+                style={{
+                  backgroundColor: subjectId === s.id ? theme.primary : theme.border,
+                  color: subjectId === s.id ? '#ffffff' : theme.textSecondary
+                }}
               >
                 {s.icon} {s.name}
               </button>
@@ -73,15 +107,19 @@ export default function AddKnowledgePage() {
         {/* Chapter select */}
         {chapters.length > 0 && (
           <div>
-            <label className="text-xs font-medium text-text-secondary mb-1.5 block">章节</label>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textSecondary }}>章节</label>
             <div className="flex gap-2 flex-wrap">
               {chapters.map(c => (
                 <button
                   key={c.id}
                   onClick={() => setChapterId(c.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    chapterId === c.id ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
+                    chapterId === c.id ? 'text-white' : ''
                   }`}
+                  style={{
+                    backgroundColor: chapterId === c.id ? theme.primary : theme.border,
+                    color: chapterId === c.id ? '#ffffff' : theme.textSecondary
+                  }}
                 >
                   {c.name}
                 </button>
@@ -92,43 +130,50 @@ export default function AddKnowledgePage() {
 
         {/* Knowledge name */}
         <div>
-          <label className="text-xs font-medium text-text-secondary mb-1.5 block">知识点名称</label>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textSecondary }}>知识点名称</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="例如：三角函数的基本性质"
-            className="w-full border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors"
+            className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+            style={{ 
+              backgroundColor: theme.bgCard, 
+              border: `1px solid ${theme.border}`,
+              color: theme.textPrimary
+            }}
           />
         </div>
 
         {/* Explanation */}
         <div>
-          <label className="text-xs font-medium text-text-secondary mb-1.5 block">知识点讲解</label>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textSecondary }}>知识点讲解</label>
           <textarea
             value={explanation}
             onChange={e => setExplanation(e.target.value)}
             placeholder="详细解释这个知识点的含义..."
             rows={4}
-            className="w-full border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors resize-none"
+            className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
+            style={{ 
+              backgroundColor: theme.bgCard, 
+              border: `1px solid ${theme.border}`,
+              color: theme.textPrimary
+            }}
           />
         </div>
 
         {/* Proficiency select */}
         <div>
-          <label className="text-xs font-medium text-text-secondary mb-1.5 block">当前掌握程度</label>
+          <label className="text-xs font-medium mb-1.5 block" style={{ color: theme.textSecondary }}>当前掌握程度</label>
           <div className="flex gap-2 flex-wrap">
             {(Object.keys(PROFICIENCY_MAP) as ProficiencyLevel[]).map(level => (
               <button
                 key={level}
                 onClick={() => setProficiency(level)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  proficiency === level
-                    ? 'text-white'
-                    : 'bg-gray-100 text-text-secondary'
-                }`}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors`}
                 style={{
-                  backgroundColor: proficiency === level ? PROFICIENCY_MAP[level].color : undefined,
+                  backgroundColor: proficiency === level ? PROFICIENCY_MAP[level].color : theme.border,
+                  color: proficiency === level ? '#ffffff' : theme.textSecondary
                 }}
               >
                 {PROFICIENCY_MAP[level].label}
@@ -141,7 +186,8 @@ export default function AddKnowledgePage() {
         <button
           onClick={handleSubmit}
           disabled={!name.trim() || !subjectId}
-          className="w-full bg-primary text-white font-medium py-3 rounded-xl text-sm disabled:opacity-50 active:opacity-80 transition-opacity"
+          className="w-full font-medium py-3 rounded-xl text-sm disabled:opacity-50 active:opacity-80 transition-opacity"
+          style={{ backgroundColor: theme.primary, color: '#ffffff' }}
         >
           添加知识点
         </button>

@@ -1,4 +1,5 @@
-import { useApp } from '@/store/AppContext';
+import { useGame } from '@/store/GameContext';
+import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
 import { allFrames } from '@/pages/AvatarEdit';
 import { useState } from 'react';
@@ -7,10 +8,11 @@ import { Clock, Brain, Trophy } from 'lucide-react';
 type RankTab = 'studyTime' | 'masterCount';
 
 export default function RankingPage() {
-  const { state, navigate } = useApp();
+  const { gameState } = useGame();
+  const { navigate } = useUser();
   const [tab, setTab] = useState<RankTab>('studyTime');
 
-  const rankings = state.rankings[tab];
+  const rankings = gameState.rankings[tab];
   const tabConfig: Record<RankTab, { label: string; icon: typeof Clock; unit: string }> = {
     studyTime: { label: '学习时长', icon: Clock, unit: '分钟' },
     masterCount: { label: '掌握数量', icon: Brain, unit: '个' },

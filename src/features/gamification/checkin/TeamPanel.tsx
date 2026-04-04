@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { allFrames } from '@/pages/AvatarEdit';
 import { Users, Copy, Check, UserPlus, X, Loader2 } from 'lucide-react';
 import { createTeam } from '@/services/teamService';
 import { createSimulatedTeammate, startTeammateSimulation, type SimulationHandle } from '@/services/teamSimulator';
 
 export default function TeamPanel() {
-  const { state, dispatch } = useApp();
-  const team = state.team;
+  const { userState } = useUser();
+  const { getTaskCompletionRate } = useLearning();
+  const { gameState, gameDispatch } = useGame();
+  const team = gameState.team;
   const [inviteInput, setInviteInput] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -19,19 +23,18 @@ export default function TeamPanel() {
     if (team?.status === 'active' && team.members.some(m => m.isSimulated)) {
       simRef.current = startTeammateSimulation(
         (progress) => {
-          dispatch({ type: 'UPDATE_TEAMMATE_PROGRESS', payload: progress });
+          gameDispatch({ type: 'UPDATE_TEAMMATE_PROGRESS', payload: progress });
         },
       );
     }
     return () => { simRef.current?.stop(); };
-  }, [team?.status, team?.id, dispatch]);
+  }, [team?.status, team?.id, gameDispatch]);
 
   // Update self progress in team whenever task completion changes
-  const { getTaskCompletionRate } = useApp();
   const { rate } = getTaskCompletionRate();
   useEffect(() => {
     if (team?.status === 'active') {
-      dispatch({
+      gameDispatch({
         type: 'SET_TEAM',
         payload: {
           ...team,
@@ -45,19 +48,19 @@ export default function TeamPanel() {
     }
   // Only react to rate changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rate]);
+  }, [rate, team, gameDispatch]);
 
   const handleCreateTeam = async () => {
-    if (!state.user) return;
+    if (!userState.user) return;
     setLoading(true);
-    const newTeam = await createTeam(state.user.id, state.user.nickname, state.user.avatar);
-    dispatch({ type: 'SET_TEAM', payload: newTeam });
+    const newTeam = await createTeam(userState.user.id, userState.user.nickname, userState.user.avatar);
+    gameDispatch({ type: 'SET_TEAM', payload: newTeam });
     setLoading(false);
 
     // Simulate teammate joining after delay
     setTimeout(() => {
       const teammate = createSimulatedTeammate();
-      dispatch({
+      gameDispatch({
         type: 'SET_TEAM',
         payload: {
           ...newTeam,
@@ -69,17 +72,17 @@ export default function TeamPanel() {
   };
 
   const handleJoinTeam = () => {
-    if (!state.user || !inviteInput.trim()) return;
+    if (!userState.user || !inviteInput.trim()) return;
     // MVP: simulate joining - create team with self + simulated partner
     const teammate = createSimulatedTeammate();
     const selfMember = {
-      id: state.user.id,
-      name: state.user.nickname,
-      avatar: state.user.avatar,
+      id: userState.user.id,
+      name: userState.user.nickname,
+      avatar: userState.user.avatar,
       isSimulated: false,
       progress: { taskCompletionRate: rate, studyMinutes: 0, isReady: rate >= 0.8, lastUpdated: new Date().toISOString() },
     };
-    dispatch({
+    gameDispatch({
       type: 'SET_TEAM',
       payload: {
         id: `team-${Date.now()}`,
@@ -104,7 +107,7 @@ export default function TeamPanel() {
 
   const handleDissolve = () => {
     simRef.current?.stop();
-    dispatch({ type: 'DISSOLVE_TEAM' });
+    gameDispatch({ type: 'DISSOLVE_TEAM' });
   };
 
   // Render: no team
@@ -204,11 +207,11 @@ export default function TeamPanel() {
           {/* Self */}
           <div className="flex flex-col items-center gap-1.5">
             <div className="relative">
-              {state.user?.avatarFrame ? (
+              {userState.user?.avatarFrame ? (
                 (() => {
-                  const frameConfig = allFrames.find(f => f.icon === state.user!.avatarFrame);
+                  const frameConfig = allFrames.find(f => f.icon === userState.user!.avatarFrame);
                   if (!frameConfig) return null;
-                  const isCustomAvatar = state.user?.avatar?.startsWith('data:') || state.user?.avatar?.startsWith('http');
+                  const isCustomAvatar = userState.user?.avatar?.startsWith('data:') || userState.user?.avatar?.startsWith('http');
                   return (
                     <div
                       className={`w-16 h-16 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
@@ -222,9 +225,9 @@ export default function TeamPanel() {
                         self?.progress.isReady ? 'border-accent' : 'border-white/50'
                       }`}>
                         {isCustomAvatar ? (
-                          <img src={state.user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
+                          <img src={userState.user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
                         ) : (
-                          <span className="text-2xl">{state.user?.avatar || '👤'}</span>
+                          <span className="text-2xl">{userState.user?.avatar || '👤'}</span>
                         )}
                       </div>
                       {frameConfig.decorations && frameConfig.decorations.length > 0 && (
@@ -254,7 +257,7 @@ export default function TeamPanel() {
                 <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
                   self?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
                 }`}>
-                  {state.user?.avatar || '👤'}
+                  {userState.user?.avatar || '👤'}
                 </div>
               )}
               {self?.progress.isReady && (
@@ -263,7 +266,7 @@ export default function TeamPanel() {
                 </div>
               )}
             </div>
-            <span className="text-xs font-medium truncate max-w-[60px]">{state.user?.nickname || '我'}</span>
+            <span className="text-xs font-medium truncate max-w-[60px]">{userState.user?.nickname || '我'}</span>
             <span className="text-[10px] text-text-muted">{Math.round((self?.progress.taskCompletionRate ?? 0) * 100)}%</span>
           </div>
 

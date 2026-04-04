@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Backpack, Package, Gift, Ticket, Sparkles, Crown } from 'lucide-react';
 
@@ -20,18 +20,50 @@ const typeConfig = {
   vip_card: { icon: '👑', label: 'VIP卡' },
 };
 
+// 可重复的道具类型
+const STACKABLE_TYPES = ['makeup_card', 'coin_bag', 'vip_card'];
+
 export default function InventoryPage() {
-  const { state, dispatch, navigate } = useApp();
+  const { userState, userDispatch, navigate } = useUser();
   const [filterType, setFilterType] = useState<string | null>(null);
 
-  const items = state.inventory.items;
+  const items = userState.inventory.items;
+
+  // 对物品进行处理：可重复道具堆叠，不可重复道具去重
+  const processedItems = (() => {
+    const stackableMap = new Map<string, typeof items[0]>();
+    const nonStackableSet = new Set<string>();
+    const result: typeof items = [];
+
+    items.forEach(item => {
+      if (STACKABLE_TYPES.includes(item.type)) {
+        // 可重复道具：按名称堆叠
+        const existing = stackableMap.get(item.name);
+        if (existing) {
+          existing.quantity += item.quantity;
+        } else {
+          stackableMap.set(item.name, { ...item });
+        }
+      } else {
+        // 不可重复道具：按名称去重
+        if (!nonStackableSet.has(item.name)) {
+          nonStackableSet.add(item.name);
+          result.push({ ...item, quantity: 1 });
+        }
+      }
+    });
+
+    // 合并可重复道具
+    result.push(...stackableMap.values());
+    return result;
+  })();
 
   const filteredItems = filterType
-    ? items.filter(i => i.type === filterType)
-    : items;
+    ? processedItems.filter(i => i.type === filterType)
+    : processedItems;
 
   const handleUseItem = (itemId: string) => {
-    dispatch({ type: 'USE_INVENTORY_ITEM', payload: itemId });
+    userDispatch({ type: 'USE_INVENTORY_ITEM', payload: itemId });
   };
 
   return (
@@ -150,7 +182,11 @@ export default function InventoryPage() {
 
                   {/* 数量和使用按钮 */}
                   <div className="flex items-center justify-between mt-auto">
-                    <span className="text-xs text-text-muted">数量: <b className="text-text-primary">x{item.quantity}</b></span>
+                    {STACKABLE_TYPES.includes(item.type) ? (
+                      <span className="text-xs text-text-muted">数量: <b className="text-text-primary">x{item.quantity}</b></span>
+                    ) : (
+                      <span className="text-xs text-text-muted">已拥有</span>
+                    )}
                     {item.usable && item.quantity > 0 && (
                       <button
                         onClick={() => handleUseItem(item.id)}

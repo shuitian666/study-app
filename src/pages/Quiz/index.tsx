@@ -1,16 +1,57 @@
-import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useState, useEffect } from 'react';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
 import { PageHeader, EmptyState } from '@/components/ui/Common';
 import { Play, RotateCcw, AlertCircle, BookOpen, Sparkles, Compass } from 'lucide-react';
 
 export type LearningIntention = 'mixed' | 'new' | 'review' | 'weak' | 'custom';
 
 export default function QuizPage() {
-  const { state, navigate } = useApp();
+  const { navigate } = useUser();
+  const { learningState } = useLearning();
+  const { theme } = useTheme();
   const [selectedIntention, setSelectedIntention] = useState<LearningIntention>('mixed');
+  const [animationEffect, setAnimationEffect] = useState<string>('slide-up');
 
-  const subjectsWithQuestions = state.subjects.filter(s =>
-    state.questions.some(q => q.subjectId === s.id)
+  useEffect(() => {
+    const savedEffect = localStorage.getItem('main-animation-effect');
+    if (savedEffect) {
+      setAnimationEffect(savedEffect);
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'main-animation-effect' && e.newValue) {
+        setAnimationEffect(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const getAnimationClass = (index: number) => {
+    switch (animationEffect) {
+      case 'fade-in':
+        return `scroll-fade-in delay-${index}`;
+      case 'scale-in':
+        return `scroll-scale-in delay-${index}`;
+      case 'rotate-in':
+        return `scroll-rotate-in delay-${index}`;
+      case 'bounce-in':
+        return `scroll-bounce-in delay-${index}`;
+      case 'slide-left':
+        return `scroll-slide-left delay-${index}`;
+      case 'slide-right':
+        return `scroll-slide-right delay-${index}`;
+      case 'slide-up':
+      default:
+        return `scroll-slide-up delay-${index}`;
+    }
+  };
+
+  const subjectsWithQuestions = learningState.subjects.filter(s =>
+    learningState.questions.some(q => q.subjectId === s.id)
   );
 
   return (
@@ -18,32 +59,39 @@ export default function QuizPage() {
       <PageHeader title="刷题中心" />
 
       {/* Wrong Book Entry */}
-      {state.wrongRecords.length > 0 && (
-        <div className="px-4 pt-3">
+      {learningState.wrongRecords.length > 0 && (
+        <div className={`px-4 pt-3 ${getAnimationClass(1)}`}>
           <button
             onClick={() => navigate('wrong-book')}
-            className="w-full bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-5 border border-red-100 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between active:scale-[0.98]"
+            className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between active:scale-[0.98]"
+            style={{ 
+              background: 'linear-gradient(90deg, #fee2e2 0%, #fed7aa 100%)',
+              borderColor: '#fecaca'
+            }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertCircle size={24} className="text-red-500" />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fecaca' }}>
+                <AlertCircle size={24} style={{ color: '#dc2626' }} />
               </div>
               <div className="text-left">
-                <div className="text-base font-semibold text-red-800">错题本</div>
-                <div className="text-sm text-red-500 mt-0.5">{state.wrongRecords.length} 道错题等待复习</div>
+                <div className="text-base font-semibold" style={{ color: '#991b1b' }}>错题本</div>
+                <div className="text-sm mt-0.5" style={{ color: '#dc2626' }}>{learningState.wrongRecords.length} 道错题等待复习</div>
               </div>
             </div>
-            <RotateCcw size={20} className="text-red-400" />
+            <RotateCcw size={20} style={{ color: '#f87171' }} />
           </button>
         </div>
       )}
 
       {/* 学习倾向选择 - 用户可以指定今天学习重点 */}
-      <div className="px-4 pt-5">
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-100 mb-5">
+      <div className={`px-4 pt-5 ${getAnimationClass(2)}`}>
+        <div className="rounded-2xl p-4 border mb-5" style={{ 
+          background: 'linear-gradient(90deg, #eff6ff 0%, #f5f3ff 100%)',
+          borderColor: '#dbeafe'
+        }}>
           <div className="flex items-center gap-2 mb-3">
-            <Compass size={16} className="text-blue-600" />
-            <h3 className="text-sm font-semibold text-blue-800">今日学习倾向</h3>
+            <Compass size={16} style={{ color: '#2563eb' }} />
+            <h3 className="text-sm font-semibold" style={{ color: '#1e40af' }}>今日学习倾向</h3>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {([
@@ -55,64 +103,69 @@ export default function QuizPage() {
               <button
                 key={key}
                 onClick={() => setSelectedIntention(key)}
-                className={`p-2 rounded-xl border text-left transition-all ${
-                  selectedIntention === key
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'bg-white border-blue-200 text-text-primary'
-                }`}
+                className="p-2 rounded-xl border text-left transition-all"
+                style={{
+                  backgroundColor: selectedIntention === key ? '#2563eb' : theme.bgCard,
+                  borderColor: selectedIntention === key ? '#2563eb' : '#dbeafe',
+                  color: selectedIntention === key ? '#ffffff' : theme.textPrimary
+                }}
               >
                 <div className="text-sm font-medium">{label}</div>
-                <div className={`text-xs ${selectedIntention === key ? 'text-blue-100' : 'text-text-muted'}`}>
+                <div className="text-xs" style={{ color: selectedIntention === key ? '#bfdbfe' : theme.textMuted }}>
                   {desc}
                 </div>
               </button>
             ))}
           </div>
           {selectedIntention !== 'mixed' && (
-            <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
+            <div className="mt-2 text-xs flex items-center gap-1" style={{ color: '#2563eb' }}>
               <Sparkles size={12} />
               AI会根据你的学习倾向智能调整出题优先级
             </div>
           )}
         </div>
 
-        <h3 className="text-base font-semibold mb-4">选择学科开始测试</h3>
+        <h3 className="text-base font-semibold mb-4" style={{ color: theme.textPrimary }}>选择学科开始测试</h3>
 
         {subjectsWithQuestions.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen size={48} className="text-gray-300 mx-auto" />}
-            title="暂无题目"
-            description="请先添加知识点和题目"
-          />
+          <div className={getAnimationClass(3)}>
+            <EmptyState
+              icon={<BookOpen size={48} style={{ color: theme.textMuted }} className="mx-auto" />}
+              title="暂无题目"
+              description="请先添加知识点和题目"
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {subjectsWithQuestions.map(subject => {
-              const questionCount = state.questions.filter(q => q.subjectId === subject.id).length;
-              const kpCount = state.knowledgePoints.filter(k => k.subjectId === subject.id).length;
+            {subjectsWithQuestions.map((subject, index) => {
+              const questionCount = learningState.questions.filter(q => q.subjectId === subject.id).length;
+              const kpCount = learningState.knowledgePoints.filter(k => k.subjectId === subject.id).length;
               return (
-                <button
-                  key={subject.id}
-                  onClick={() => navigate('quiz-session', { subjectId: subject.id })}
-                  className="w-full bg-white rounded-2xl p-5 border border-border shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
-                      style={{ backgroundColor: subject.color + '15', color: subject.color }}
-                    >
-                      {subject.icon}
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold text-base">{subject.name}</div>
-                      <div className="text-sm text-text-muted mt-1">
-                        {questionCount} 道题 · {kpCount} 个知识点
+                <div key={subject.id} className={getAnimationClass(3 + index)}>
+                  <button
+                    onClick={() => navigate('quiz-session', { subjectId: subject.id })}
+                    className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]"
+                    style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl"
+                        style={{ backgroundColor: subject.color + '15', color: subject.color }}
+                      >
+                        {subject.icon}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-semibold text-base" style={{ color: theme.textPrimary }}>{subject.name}</div>
+                        <div className="text-sm mt-1" style={{ color: theme.textMuted }}>
+                          {questionCount} 道题 · {kpCount} 个知识点
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Play size={20} className="text-primary" fill="currentColor" />
-                  </div>
-                </button>
+                    <div className="p-3 rounded-full" style={{ backgroundColor: `${theme.primary}10` }}>
+                      <Play size={20} style={{ color: theme.primary }} fill="currentColor" />
+                    </div>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -120,31 +173,39 @@ export default function QuizPage() {
       </div>
 
       {/* Recent Quiz Results */}
-      {state.quizResults.length > 0 && (
-        <div className="px-4 mt-6 mb-8">
-          <h3 className="text-base font-semibold mb-4">最近测试记录</h3>
+      {learningState.quizResults.length > 0 && (
+        <div className={`px-4 mt-6 mb-8 ${getAnimationClass(4)}`}>
+          <h3 className="text-base font-semibold mb-4" style={{ color: theme.textPrimary }}>最近测试记录</h3>
           <div className="space-y-3">
-            {state.quizResults.slice(-5).reverse().map(result => {
-              const subject = state.subjects.find(s => s.id === result.subjectId);
+            {learningState.quizResults.slice(-5).reverse().map((result, index) => {
+              const subject = learningState.subjects.find(s => s.id === result.subjectId);
               const percentage = (result.correctCount / result.totalQuestions) * 100;
               return (
-                <div key={result.id} className="bg-white rounded-2xl p-4 border border-border shadow-sm flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold">{subject?.icon} {subject?.name}</div>
-                    <div className="text-xs text-text-muted mt-0.5">
-                      {result.correctCount}/{result.totalQuestions} 题正确
+                <div key={result.id} className={getAnimationClass(5 + index)}>
+                  <div className="rounded-2xl p-4 border shadow-sm flex items-center justify-between" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{subject?.icon} {subject?.name}</div>
+                      <div className="text-xs mt-0.5" style={{ color: theme.textMuted }}>
+                        {result.correctCount}/{result.totalQuestions} 题正确
+                      </div>
+                      {/* Progress bar */}
+                      <div className="mt-2 w-full rounded-full h-1.5" style={{ backgroundColor: theme.border }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{ 
+                            width: `${percentage}%`,
+                            backgroundColor: percentage >= 80 ? '#10b981' : percentage >= 60 ? '#f59e0b' : '#ef4444'
+                          }}
+                        />
+                      </div>
                     </div>
-                    {/* Progress bar */}
-                    <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
-                      <div
-                        className={`h-full rounded-full ${percentage >= 80 ? 'bg-green-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        style={{ width: `${percentage}%` }}
-                      />
+                    <div className="text-xl font-bold ml-4 px-3 py-1 rounded-xl" style={{
+                      backgroundColor: result.score >= 80 ? '#d1fae5' : result.score >= 60 ? '#fef3c7' : '#fee2e2',
+                      color: result.score >= 80 ? '#059669' : result.score >= 60 ? '#d97706' : '#dc2626'
+                    }}>
+                      {result.score}
+                      <span className="text-xs font-normal">分</span>
                     </div>
-                  </div>
-                  <div className={`text-xl font-bold ml-4 px-3 py-1 rounded-xl ${result.score >= 80 ? 'bg-green-50 text-green-600' : result.score >= 60 ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'}`}>
-                    {result.score}
-                    <span className="text-xs font-normal">分</span>
                   </div>
                 </div>
               );

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import { Sparkles } from 'lucide-react';
 import type { User } from '@/types';
 
 export default function LoginPage() {
-  const { dispatch } = useApp();
+  const { userDispatch } = useUser();
   const [loading, setLoading] = useState(false);
 
   const handleWechatLogin = () => {
@@ -31,7 +31,7 @@ export default function LoginPage() {
         unlockedAiSkins: ['🤖'],
         unlockedBackgrounds: [],
       };
-      dispatch({ type: 'LOGIN', payload: mockUser });
+      userDispatch({ type: 'LOGIN', payload: mockUser });
       setLoading(false);
     }, 800);
   };

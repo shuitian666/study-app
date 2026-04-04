@@ -11,8 +11,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useApp } from '@/store/AppContext';
-import { PageHeader } from '@/components/ui/Common';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
 import type { AIConfig } from '@/types';
 import { getAIConfig, setAIConfig } from '@/services/aiClient';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle } from 'lucide-react';
@@ -21,7 +22,9 @@ import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle } f
 const DEFAULT_DOUBAN_MODEL = 'doubao-lite-32k';
 
 export default function SettingsPage() {
-  const { state, dispatch, navigate } = useApp();
+  const { userDispatch, navigate } = useUser();
+  const { learningState } = useLearning();
+  const { theme } = useTheme();
   
   // 读取已保存配置
   const savedConfig = getAIConfig();
@@ -90,23 +93,47 @@ export default function SettingsPage() {
   });
   const [goalAchieved, setGoalAchieved] = useState(false);
   const [todayCompleted, setTodayCompleted] = useState(0);
+  
+  // 主界面动画效果状态（首页、知识库、图谱、我的、刷题中心）
+  const [mainAnimationEffect, setMainAnimationEffect] = useState(() => {
+    const saved = localStorage.getItem('main-animation-effect');
+    return saved || 'slide-up';
+  });
+
+  // 次级界面动画效果状态（学习、复习、导入等内页）
+  const [subAnimationEffect, setSubAnimationEffect] = useState(() => {
+    const saved = localStorage.getItem('sub-animation-effect');
+    return saved || 'fade-in';
+  });
 
   // 计算今日完成数量
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const todayResults = state.quizResults.filter(r => r.completedAt.startsWith(today));
+    const todayResults = learningState.quizResults.filter(r => r.completedAt.startsWith(today));
     const total = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
     setTodayCompleted(total);
     setGoalAchieved(total >= dailyGoal);
-  }, [state.quizResults, dailyGoal]);
+  }, [learningState.quizResults, dailyGoal]);
 
   // 保存学习目标
   const handleSaveGoal = () => {
     localStorage.setItem('daily-question-goal', String(dailyGoal));
-    dispatch({ 
+    userDispatch({ 
       type: 'SET_DAILY_GOAL', 
       payload: dailyGoal 
     });
+  };
+  
+  // 保存主界面动画效果
+  const handleSaveMainAnimationEffect = (effect: string) => {
+    localStorage.setItem('main-animation-effect', effect);
+    setMainAnimationEffect(effect);
+  };
+
+  // 保存次级界面动画效果
+  const handleSaveSubAnimationEffect = (effect: string) => {
+    localStorage.setItem('sub-animation-effect', effect);
+    setSubAnimationEffect(effect);
   };
 
   // 销号处理
@@ -117,24 +144,47 @@ export default function SettingsPage() {
     localStorage.clear();
     
     // 彻底重置状态
-    dispatch({ type: 'RESET_ALL' });
+    userDispatch({ type: 'RESET_ALL' });
     navigate('login');
   };
 
   const isDoubanMode = aiMode === 'douban';
 
+  // 根据主题获取圆角大小
+  const getBorderRadius = (size: 'small' | 'medium' | 'large' = 'medium') => {
+    const radiusMap: Record<string, Record<string, string>> = {
+      small: { sm: '12px', md: '16px', lg: '20px' },
+      medium: { sm: '16px', md: '20px', lg: '24px' },
+      large: { sm: '20px', md: '24px', lg: '28px' },
+      cute: { sm: '20px', md: '24px', lg: '32px' }
+    };
+    return radiusMap[theme.borderRadius][size];
+  };
+
   return (
     <div className="page-scroll pb-4">
-      <PageHeader title="设置" onBack={() => navigate('profile')} />
+      {/* 渐变头部背景 */}
+      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-6 rounded-b-[40px] mb-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">设置</h2>
+          <button
+            onClick={() => navigate('profile')}
+            className="p-2 bg-white/20 rounded-full active:bg-white/30 transition-colors"
+          >
+            <span className="text-white text-sm">返回</span>
+          </button>
+        </div>
+        <p className="text-white/70 text-sm mt-1">个性化您的学习体验</p>
+      </div>
 
       {/* AI设置 */}
-      <div className="px-4 mt-4">
+      <div className="px-4">
         <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
           <Bot size={16} className="text-primary" />
           AI配置
         </h3>
 
-        <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-white border border-border shadow-sm overflow-hidden" style={{ borderRadius: getBorderRadius('large') }}>
           {/* 当前状态显示 */}
           <div className="p-4 flex items-center justify-between border-b border-border">
             <div className="flex items-center gap-3">
@@ -298,7 +348,7 @@ export default function SettingsPage() {
           学习目标
         </h3>
 
-        <div className="bg-white rounded-2xl border border-border shadow-sm p-4">
+        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
           {/* 当前进度 */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs text-text-muted mb-2">
@@ -354,14 +404,99 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* 动画效果设置 - 主界面 */}
+      <div className="px-4 mt-4">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          <Sparkles size={16} className="text-secondary" />
+          主界面动画效果
+        </h3>
+
+        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
+          <div className="text-xs text-text-muted mb-3">应用于：首页、知识库、图谱、我的、刷题中心</div>
+
+          <div className="space-y-2">
+            {[
+              { value: 'slide-up', label: '向上滑动', desc: '经典的向上滑入效果' },
+              { value: 'fade-in', label: '淡入', desc: '简单的透明度变化' },
+              { value: 'scale-in', label: '缩放', desc: '从小到大的缩放效果' },
+              { value: 'rotate-in', label: '旋转', desc: '带旋转的滑入效果' },
+              { value: 'bounce-in', label: '弹跳', desc: '带有弹跳效果的滑入' },
+              { value: 'slide-left', label: '从左滑入', desc: '从左侧滑入' },
+              { value: 'slide-right', label: '从右滑入', desc: '从右侧滑入' }
+            ].map((effect) => (
+              <button
+                key={effect.value}
+                onClick={() => handleSaveMainAnimationEffect(effect.value)}
+                className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
+                  mainAnimationEffect === effect.value
+                    ? 'border-secondary bg-secondary/5'
+                    : 'border-border bg-white hover:border-secondary/30'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">{effect.label}</div>
+                    <div className="text-xs text-text-muted">{effect.desc}</div>
+                  </div>
+                  {mainAnimationEffect === effect.value && <Check size={18} className="text-secondary" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 动画效果设置 - 次级界面 */}
+      <div className="px-4 mt-4">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          <Sparkles size={16} className="text-accent" />
+          学习界面动画效果
+        </h3>
+
+        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
+          <div className="text-xs text-text-muted mb-3">应用于：学习、复习、导入、错题本等内页</div>
+
+          <div className="space-y-2">
+            {[
+              { value: 'slide-up', label: '向上滑动', desc: '经典的向上滑入效果' },
+              { value: 'fade-in', label: '淡入', desc: '简单的透明度变化' },
+              { value: 'scale-in', label: '缩放', desc: '从小到大的缩放效果' },
+              { value: 'rotate-in', label: '旋转', desc: '带旋转的滑入效果' },
+              { value: 'bounce-in', label: '弹跳', desc: '带有弹跳效果的滑入' },
+              { value: 'slide-left', label: '从左滑入', desc: '从左侧滑入' },
+              { value: 'slide-right', label: '从右滑入', desc: '从右侧滑入' }
+            ].map((effect) => (
+              <button
+                key={effect.value}
+                onClick={() => handleSaveSubAnimationEffect(effect.value)}
+                className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
+                  subAnimationEffect === effect.value
+                    ? 'border-accent bg-accent/5'
+                    : 'border-border bg-white hover:border-accent/30'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">{effect.label}</div>
+                    <div className="text-xs text-text-muted">{effect.desc}</div>
+                  </div>
+                  {subAnimationEffect === effect.value && <Check size={18} className="text-accent" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* 提示信息 */}
       <div className="px-4 mt-4">
-        <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
+        <div className="bg-blue-50 p-3 text-xs text-blue-700" style={{ borderRadius: getBorderRadius('medium') }}>
           <div className="font-medium mb-1">提示</div>
           <ul className="space-y-1 text-blue-600">
             <li>• <strong>豆包AI</strong>：需要网络，智能程度高</li>
             <li>• <strong>离线模式</strong>：无需联网，功能有限</li>
             <li>• 完成{dailyGoal}题可达成今日学习目标</li>
+            <li>• 主界面和学习界面可分别设置不同的动画效果</li>
           </ul>
         </div>
       </div>
@@ -370,7 +505,8 @@ export default function SettingsPage() {
       <div className="px-4 mt-6 mb-4">
         <button
           onClick={() => setShowDestroyConfirm(true)}
-          className="w-full py-3 bg-red-50 text-red-600 text-sm font-medium rounded-xl flex items-center justify-center gap-2 border border-red-200"
+          className="w-full py-3 bg-red-50 text-red-600 text-sm font-medium flex items-center justify-center gap-2 border border-red-200"
+          style={{ borderRadius: getBorderRadius('large') }}
         >
           <Trash2 size={16} />
           注销账号

@@ -17,8 +17,9 @@
  * ============================================================================
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/review';
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP } from '@/types';
@@ -28,8 +29,34 @@ import { ProgressBar } from '@/components/ui/Common';
 
 export default function HomePage() {
 
-  const { state, dispatch, getLearningStats, navigate } = useApp();
+  const { state, dispatch, getLearningStats } = useApp();
+  const { navigate } = useUser();
   const stats = getLearningStats();
+  
+  // 动画效果 - 使用主界面动画设置
+  const [animationEffect, setAnimationEffect] = useState(() => {
+    const saved = localStorage.getItem('main-animation-effect');
+    return saved || 'slide-up';
+  });
+
+  // 监听动画效果变化
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'main-animation-effect' && e.newValue) {
+        setAnimationEffect(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+  
+  // 获取动画类名
+  const getAnimationClass = (delay: number) => {
+    const baseClass = `scroll-${animationEffect}`;
+    const delayClass = `reveal-delay-${delay}`;
+    return `${baseClass} ${delayClass}`;
+  };
 
   useEffect(() => {
     // Pass existingNewItems to preserve completed state when regenerating
@@ -99,7 +126,7 @@ export default function HomePage() {
 
 
       {/* Today's Tasks */}
-      <div className="px-4 -mt-4">
+      <div className={`px-4 mt-4 ${getAnimationClass(1)}`}>
         <div className="bg-white rounded-2xl shadow-md p-4 border border-border">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm flex items-center gap-1.5">
@@ -191,7 +218,7 @@ export default function HomePage() {
 
 
       {/* Learning Overview */}
-      <div className="px-4 mt-4">
+      <div className={`px-4 mt-4 ${getAnimationClass(2)}`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm flex items-center gap-1.5">
             <TrendingUp size={16} className="text-primary" />
@@ -232,7 +259,7 @@ export default function HomePage() {
 
 
       {/* Incentive Shortcuts */}
-      <div className="px-4 mt-4">
+      <div className={`px-4 mt-4 ${getAnimationClass(3)}`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm">每日福利</h3>
 
@@ -281,7 +308,7 @@ export default function HomePage() {
 
 
       {/* Quick Actions */}
-      <div className="px-4 mt-4">
+      <div className={`px-4 mt-4 ${getAnimationClass(4)}`}>
         <h3 className="font-semibold text-sm mb-3">快速开始</h3>
 
         <div className="grid grid-cols-2 gap-3">
@@ -342,7 +369,7 @@ export default function HomePage() {
 
       {/* Weak Subjects */}
       {stats.weakSubjects.length > 0 && (
-        <div className="px-4 mt-4">
+        <div className={`px-4 mt-4 ${getAnimationClass(5)}`}>
           <div className="bg-red-50 rounded-2xl p-4 border border-red-100">
             <h4 className="text-sm font-medium text-red-700 mb-2">⚠️ 薄弱学科提醒</h4>
 

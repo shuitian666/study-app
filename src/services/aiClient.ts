@@ -2,7 +2,7 @@
  * AI 后端通信层 — HTTP 客户端 + SSE 流式读取 + 配置管理
  * 支持：Ollama、火山引擎、MiniMax、豆包API
  */
-import type { AIConfig, AIProvider, ProviderInfo, Question } from '@/types';
+import type { AIConfig, AIProvider, ProviderInfo, Question, StudyReportParams } from '@/types';
 
 export const API_BASE = 'http://localhost:3001/api';
 const CONFIG_KEY = 'ai-config';
@@ -179,17 +179,6 @@ export async function fetchEncouragement(params: {
 }
 
 // ===== 获取学习报告 =====
-
-export interface StudyReportParams {
-  knowledgeStats: Array<{
-    name: string;
-    masteryLevel: number;
-    wrongCount: number;
-  }>;
-  totalKnowledgePoints: number;
-  masteredCount: number;
-  subjectName: string;
-}
 
 export async function fetchStudyReport(params: StudyReportParams): Promise<any> {
   const config = getUserAIConfig();

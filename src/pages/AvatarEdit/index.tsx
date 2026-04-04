@@ -15,11 +15,11 @@
  */
 
 import { useState, useRef, useMemo } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Sparkles, Upload, X } from 'lucide-react';
 
-type TabType = 'avatar' | 'frame' | 'background';
+type TabType = 'avatar' | 'frame' | 'background' | 'title';
 
 export const rarityConfig = {
   N: { label: '普通', color: '#9ca3af', gradient: 'linear-gradient(135deg, #94a3b8, #64748b)' },
@@ -78,6 +78,7 @@ export const allBackgrounds: BackgroundConfig[] = [
   { id: 'bg-n-3', name: '薄荷绿', rarity: 'N', gradient: 'linear-gradient(180deg, #dcfce7, #86efac)' },
   { id: 'bg-n-4', name: '暖米色', rarity: 'N', gradient: 'linear-gradient(180deg, #fffbeb, #fef3c7)' },
   { id: 'bg-n-5', name: '浅烟灰', rarity: 'N', gradient: 'linear-gradient(180deg, #f3f4f6, #e5e7eb)' },
+  { id: 'bg-n-6', name: '苹果风', rarity: 'N', gradient: 'linear-gradient(180deg, #f2f2f7, #e5e5ea)', pattern: 'apple-blur' },
   { id: 'bg-r-1', name: '星空夜', rarity: 'R', gradient: 'linear-gradient(180deg, #1e1b4b, #312e81)', pattern: 'stars' },
   { id: 'bg-r-2', name: '森林极光', rarity: 'R', gradient: 'linear-gradient(180deg, #064e3b, #065f46, #047857)', pattern: 'aurora' },
   { id: 'bg-r-3', name: '橘光晚霞', rarity: 'R', gradient: 'linear-gradient(180deg, #fef2f2, #fecaca, #fca5a5)', pattern: 'clouds' },
@@ -91,16 +92,44 @@ export const allBackgrounds: BackgroundConfig[] = [
   { id: 'bg-ssr-3', name: '幻彩云境', rarity: 'SSR', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 25%, #4facfe 50%, #00f2fe 75%, #a78bfa 100%)', pattern: 'rainbow' },
 ];
 
+export interface TitleConfig {
+  id: string;
+  name: string;
+  icon: string;
+  rarity: RarityType;
+  gradient: string;
+  textColor: string;
+}
+
+export const allTitles: TitleConfig[] = [
+  { id: 'title-n-1', name: '初学者', icon: '📚', rarity: 'N', gradient: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', textColor: '#475569' },
+  { id: 'title-n-2', name: '求知者', icon: '🔍', rarity: 'N', gradient: 'linear-gradient(135deg, #fef3c7, #fde68a)', textColor: '#92400e' },
+  { id: 'title-n-3', name: '奋进者', icon: '🚀', rarity: 'N', gradient: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', textColor: '#1e40af' },
+  { id: 'title-r-1', name: '学霸', icon: '🏆', rarity: 'R', gradient: 'linear-gradient(135deg, #fef3c7, #fbbf24)', textColor: '#92400e' },
+  { id: 'title-r-2', name: '探索者', icon: '🧭', rarity: 'R', gradient: 'linear-gradient(135deg, #d1fae5, #6ee7b7)', textColor: '#065f46' },
+  { id: 'title-r-3', name: '坚持者', icon: '💪', rarity: 'R', gradient: 'linear-gradient(135deg, #fecaca, #f87171)', textColor: '#991b1b' },
+  { id: 'title-r-4', name: '夜读人', icon: '🌙', rarity: 'R', gradient: 'linear-gradient(135deg, #e0e7ff, #818cf8)', textColor: '#3730a3' },
+  { id: 'title-sr-1', name: '知识达人', icon: '🌟', rarity: 'SR', gradient: 'linear-gradient(135deg, #fef3c7, #f59e0b)', textColor: '#78350f' },
+  { id: 'title-sr-2', name: '学习之星', icon: '⭐', rarity: 'SR', gradient: 'linear-gradient(135deg, #fce7f3, #f472b6)', textColor: '#9d174d' },
+  { id: 'title-sr-3', name: '智慧之星', icon: '💎', rarity: 'SR', gradient: 'linear-gradient(135deg, #c7d2fe, #818cf8)', textColor: '#3730a3' },
+  { id: 'title-sr-4', name: '全能学霸', icon: '🎓', rarity: 'SR', gradient: 'linear-gradient(135deg, #dcfce7, #34d399)', textColor: '#065f46' },
+  { id: 'title-ssr-1', name: '学神', icon: '👑', rarity: 'SSR', gradient: 'linear-gradient(135deg, #fef3c7, #fbbf24, #f59e0b)', textColor: '#78350f' },
+  { id: 'title-ssr-2', name: '学术巨匠', icon: '🎯', rarity: 'SSR', gradient: 'linear-gradient(135deg, #fecaca, #f87171, #ef4444)', textColor: '#991b1b' },
+  { id: 'title-ssr-3', name: '传奇学者', icon: '🏅', rarity: 'SSR', gradient: 'linear-gradient(135deg, #c7d2fe, #818cf8, #6366f1)', textColor: '#3730a3' },
+  { id: 'title-ssr-4', name: '终极学霸', icon: '🏆', rarity: 'SSR', gradient: 'linear-gradient(135deg, #dcfce7, #34d399, #10b981)', textColor: '#065f46' },
+];
+
 const defaultAvatars = ['👤', '🦊', '🐰', '🐼', '🦁', '🐨', '🐯', '🐸', '🦄', '🐲', '🐱', '🐶', '🦋', '🌟', '💎', '🎭'];
 
 export default function AvatarEditPage() {
-  const { state, dispatch, navigate } = useApp();
-  const user = state.user;
+  const { userState, userDispatch, navigate } = useUser();
+  const user = userState.user;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<TabType>('avatar');
   const [previewFrame, setPreviewFrame] = useState<FrameConfig | null>(null);
   const [previewBg, setPreviewBg] = useState<BackgroundConfig | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<TitleConfig | null>(null);
 
   const currentFrame = useMemo(() => 
     previewFrame || allFrames.find(f => f.icon === user?.avatarFrame)
@@ -110,9 +139,13 @@ export default function AvatarEditPage() {
     previewBg?.gradient || (user?.background ? allBackgrounds.find(bg => bg.id === user.background)?.gradient : null) || 'linear-gradient(180deg, #ffffff, #f9fafb)'
   , [previewBg, user?.background]);
 
+  const currentTitle = useMemo(() => 
+    previewTitle || allTitles.find(t => t.id === user?.activeTitle)
+  , [previewTitle, user?.activeTitle]);
+
   const handleSelectAvatar = (avatar: string) => {
     if (!user) return;
-    dispatch({
+    userDispatch({
       type: 'UPDATE_USER',
       payload: { avatar, customAvatarUrl: undefined }
     });
@@ -125,7 +158,7 @@ export default function AvatarEditPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const customUrl = event.target?.result as string;
-      dispatch({
+      userDispatch({
         type: 'UPDATE_USER',
         payload: { avatar: customUrl, customAvatarUrl: customUrl }
       });
@@ -135,7 +168,7 @@ export default function AvatarEditPage() {
 
   const handleSelectFrame = (frame: FrameConfig | null) => {
     if (!user) return;
-    dispatch({
+    userDispatch({
       type: 'UPDATE_USER',
       payload: { avatarFrame: frame?.icon || null }
     });
@@ -144,7 +177,7 @@ export default function AvatarEditPage() {
 
   const handleSelectBackground = (bg: BackgroundConfig | null) => {
     if (!user) return;
-    dispatch({
+    userDispatch({
       type: 'UPDATE_USER',
       payload: { 
         background: bg?.id || null,
@@ -154,10 +187,19 @@ export default function AvatarEditPage() {
     setPreviewBg(null);
   };
 
+  const handleSelectTitle = (title: TitleConfig | null) => {
+    if (!user) return;
+    userDispatch({
+      type: 'UPDATE_USER',
+      payload: { activeTitle: title?.id || undefined }
+    });
+    setPreviewTitle(null);
+  };
+
   // 从背包中检查是否已拥有该头像框
   const isFrameUnlocked = (frame: FrameConfig) => {
-    // 所有稀有度都检查背包
-    const hasInInventory = state.inventory.items.some(
+    // 所有稀有度都检查背包，使用名称匹配
+    const hasInInventory = userState.inventory.items.some(
       item => item.type === 'avatar_frame' && item.name === frame.name
     );
     // 兼容旧数据：同时检查原来的解锁列表
@@ -165,11 +207,20 @@ export default function AvatarEditPage() {
     return hasInInventory || oldUnlocked;
   };
 
+  // 从背包中检查是否已拥有该称号
+  const isTitleUnlocked = (title: TitleConfig) => {
+    // 检查背包，使用名称匹配
+    const hasInInventory = userState.inventory.items.some(
+      item => item.type === 'title' && item.name === title.name
+    );
+    return hasInInventory;
+  };
+
   // 从背包中检查是否已拥有该背景
   const isBackgroundUnlocked = (bg: BackgroundConfig) => {
-    // 所有稀有度都检查背包
-    const hasInInventory = state.inventory.items.some(
-      item => item.type === 'background' && (item.id.startsWith(`inv-${bg.id}`) || item.name === bg.name)
+    // 所有稀有度都检查背包，使用名称匹配
+    const hasInInventory = userState.inventory.items.some(
+      item => item.type === 'background' && item.name === bg.name
     );
     // 兼容旧数据：同时检查原来的解锁列表
     const oldUnlocked = user?.unlockedBackgrounds?.includes(bg.id);
@@ -279,6 +330,29 @@ export default function AvatarEditPage() {
       );
     }
 
+    if (pattern === 'apple-blur') {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-40">
+          {/* 苹果风格磨砂玻璃纹理 - 微妙的噪点效果 */}
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="noiseFilter">
+                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+                <feColorMatrix type="saturate" values="0"/>
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="0.05"/>
+                </feComponentTransfer>
+              </filter>
+            </defs>
+            <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+          </svg>
+          {/* 微妙的渐变光晕 */}
+          <div className="absolute top-0 left-1/4 w-1/2 h-32 bg-white/30 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-1/2 h-32 bg-white/20 rounded-full blur-3xl"></div>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -286,6 +360,7 @@ export default function AvatarEditPage() {
     { key: 'avatar' as TabType, label: '头像', icon: '👤' },
     { key: 'frame' as TabType, label: '头像框', icon: '🖼️' },
     { key: 'background' as TabType, label: '背景', icon: '🎨' },
+    { key: 'title' as TabType, label: '称号', icon: '🏷️' },
   ];
 
   return (
@@ -329,6 +404,14 @@ export default function AvatarEditPage() {
         {currentFrame && (
           <span className="text-xs mt-1 px-2 py-0.5 rounded-full" style={{ color: rarityConfig[currentFrame.rarity].color, backgroundColor: 'rgba(255,255,255,0.8)' }}>
             {currentFrame.name}
+          </span>
+        )}
+        {currentTitle && (
+          <span className="text-sm mt-2 px-3 py-1.5 rounded-full font-medium shadow-sm" style={{ 
+            background: currentTitle.gradient,
+            color: currentTitle.textColor
+          }}>
+            {currentTitle.icon} {currentTitle.name}
           </span>
         )}
       </div>
@@ -550,6 +633,76 @@ export default function AvatarEditPage() {
         </div>
       )}
 
+      {activeTab === 'title' && (
+        <div className="mx-4 mt-4">
+          <h3 className="text-sm font-medium text-text-muted mb-3">选择称号</h3>
+          
+          <div className="mb-4">
+            <p className="text-xs text-text-muted mb-2">无称号</p>
+            <button
+              onClick={() => handleSelectTitle(null)}
+              className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
+                !user?.activeTitle && !previewTitle
+                  ? 'ring-2 ring-primary bg-white'
+                  : 'bg-white border-2 border-dashed border-gray-300 text-gray-400'
+              }`}
+            >
+              <span>不显示称号</span>
+            </button>
+          </div>
+
+          {(['N', 'R', 'SR', 'SSR'] as RarityType[]).map(rarity => {
+            const titles = allTitles.filter(t => t.rarity === rarity);
+            const config = rarityConfig[rarity];
+            
+            return (
+              <div key={rarity} className="mb-4">
+                <p className="text-xs font-medium mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
+                  {config.label} ({titles.filter(t => isTitleUnlocked(t)).length}/{titles.length})
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {titles.map(title => {
+                    const unlocked = isTitleUnlocked(title);
+                    const selected = user?.activeTitle === title.id && !previewTitle;
+                    
+                    return (
+                      <div key={title.id} className="flex flex-col items-center">
+                        <button
+                          onClick={() => unlocked ? handleSelectTitle(title) : setPreviewTitle(title)}
+                          disabled={!unlocked}
+                          className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
+                            selected
+                              ? 'ring-2 ring-primary'
+                              : unlocked
+                              ? 'hover:scale-105'
+                              : 'opacity-60'
+                          }`}
+                          style={{ background: title.gradient }}
+                        >
+                          <span>{title.icon}</span>
+                          <span className="text-sm font-medium" style={{ color: title.textColor }}>
+                            {title.name}
+                          </span>
+                          {!unlocked && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
+                              <Sparkles size={16} className="text-white" />
+                            </div>
+                          )}
+                        </button>
+                        {selected && (
+                          <span className="text-[8px] text-primary font-medium mt-1">使用中</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="mx-4 mt-6">
         <h3 className="text-sm font-medium text-text-muted mb-3">稀有度说明</h3>
         <div className="space-y-2">
@@ -579,4 +732,3 @@ export default function AvatarEditPage() {
     </div>
   );
 }
-

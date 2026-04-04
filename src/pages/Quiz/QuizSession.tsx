@@ -8,35 +8,75 @@
  * 3. 完成整个阶段后才显示结算界面
  * 4. 达成学习目标后仍可继续学习
  * 
- * @depends src/hooks/usePreGenerate.ts | src/services/aiService.ts | src/store/AppContext.tsx
+ * @depends src/hooks/usePreGenerate.ts | src/services/aiService.ts | src/store/LearningContext.tsx | src/store/UserContext.tsx
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { calculateNewProficiency } from '@/utils/review';
-import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Zap, Loader2, MessageSquare } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Loader2, MessageSquare } from 'lucide-react';
 import type { Question, QuizAnswer } from '@/types';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
 
 export default function QuizSessionPage() {
 
-  const { state, dispatch, navigate } = useApp();
-  const subjectId = state.pageParams.subjectId;
-  const knowledgePointId = state.pageParams.knowledgePointId;
-  const { preGenerateExplanations } = usePreGenerate();
-  
-  // Pre-generation state
-  const [preGenProgress, setPreGenProgress] = useState<{ current: number; total: number } | null>(null);
+  const { userState, navigate } = useUser();
+  const { learningState, learningDispatch } = useLearning();
+  const { theme } = useTheme();
+
+  // 动画效果 - 使用次级界面动画设置
+  const [animationEffect, setAnimationEffect] = useState<string>('fade-in');
+  const subjectId = userState.pageParams.subjectId;
+  const knowledgePointId = userState.pageParams.knowledgePointId;
+
+  useEffect(() => {
+    const savedEffect = localStorage.getItem('sub-animation-effect');
+    if (savedEffect) {
+      setAnimationEffect(savedEffect);
+    }
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'sub-animation-effect' && e.newValue) {
+        setAnimationEffect(e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const getAnimationClass = (index: number) => {
+    switch (animationEffect) {
+      case 'fade-in':
+        return `scroll-fade-in delay-${index}`;
+      case 'scale-in':
+        return `scroll-scale-in delay-${index}`;
+      case 'rotate-in':
+        return `scroll-rotate-in delay-${index}`;
+      case 'bounce-in':
+        return `scroll-bounce-in delay-${index}`;
+      case 'slide-left':
+        return `scroll-slide-left delay-${index}`;
+      case 'slide-right':
+        return `scroll-slide-right delay-${index}`;
+      case 'slide-up':
+      default:
+        return `scroll-slide-up delay-${index}`;
+    }
+  };
+
 
   const questions = useMemo(() => {
-    let qs = state.questions.filter(q => q.subjectId === subjectId);
+    let qs = learningState.questions.filter(q => q.subjectId === subjectId);
     if (knowledgePointId) {
       qs = qs.filter(q => q.knowledgePointId === knowledgePointId);
     }
     // Shuffle
     return [...qs].sort(() => Math.random() - 0.5).slice(0, 10);
-  }, [state.questions, subjectId, knowledgePointId]);
+  }, [learningState.questions, subjectId, knowledgePointId]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
@@ -47,7 +87,7 @@ export default function QuizSessionPage() {
   const [stageResults, setStageResults] = useState<{ questionId: string; isCorrect: boolean; selectedAnswers: string[] }[]>([]);
 
   const currentQuestion: Question | undefined = questions[currentIndex];
-  const relatedKP = state.knowledgePoints.find(k => k.id === currentQuestion?.knowledgePointId);
+  const relatedKP = learningState.knowledgePoints.find(k => k.id === currentQuestion?.knowledgePointId);
   const [generatingExplanation, setGeneratingExplanation] = useState<string | null>(null);
   const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
 
@@ -64,8 +104,8 @@ export default function QuizSessionPage() {
     if (!currentQuestion) return;
     
     setGeneratingExplanation(currentQuestion.id);
-    const relatedKP = state.knowledgePoints.find(kp => kp.id === currentQuestion.knowledgePointId);
-    const subject = state.subjects.find(s => s.id === subjectId);
+    const relatedKP = learningState.knowledgePoints.find(kp => kp.id === currentQuestion.knowledgePointId);
+    const subject = learningState.subjects.find(s => s.id === subjectId);
     
     await generateExplanationOnDemand(
       currentQuestion.id,
@@ -116,12 +156,12 @@ export default function QuizSessionPage() {
     // Update proficiency
     if (relatedKP) {
       const newProf = calculateNewProficiency(relatedKP.proficiency, correct);
-      dispatch({ type: 'UPDATE_PROFICIENCY', payload: { id: relatedKP.id, proficiency: newProf } });
+      learningDispatch({ type: 'UPDATE_PROFICIENCY', payload: { id: relatedKP.id, proficiency: newProf } });
     }
 
     // Add wrong record
     if (!correct) {
-      dispatch({
+      learningDispatch({
         type: 'ADD_WRONG_RECORD',
         payload: {
           id: `wr-${Date.now()}`,
@@ -148,7 +188,7 @@ export default function QuizSessionPage() {
       const correctCount = allAnswers.filter(a => a.isCorrect).length;
       const score = Math.round((correctCount / allAnswers.length) * 100);
 
-      dispatch({
+      learningDispatch({
         type: 'ADD_QUIZ_RESULT',
         payload: {
           id: `qr-${Date.now()}`,
@@ -169,7 +209,7 @@ export default function QuizSessionPage() {
         correct: String(correctCount), 
         total: String(allAnswers.length),
         subjectId: subjectId ?? '',
-        stage: state.pageParams.stage ?? '1',
+        stage: userState.pageParams.stage ?? '1',
         stageResults: JSON.stringify(stageResults)
       });
     }
@@ -186,7 +226,7 @@ export default function QuizSessionPage() {
 
   if (!currentQuestion) return null;
 
-  const subject = state.subjects.find(s => s.id === subjectId);
+  const subject = learningState.subjects.find(s => s.id === subjectId);
 
   return (
     <div className="page-scroll pb-4">
@@ -195,31 +235,15 @@ export default function QuizSessionPage() {
         onBack={() => navigate('quiz')}
       />
 
-      {/* Pre-generation progress indicator */}
-      {preGenProgress && preGenProgress.current < preGenProgress.total && (
-        <div className="px-4 pt-2">
-          <div className="bg-purple-50 rounded-xl p-3 border border-purple-200 flex items-center gap-3">
-            <Zap size={16} className="text-purple-600 animate-pulse" />
-            <div className="flex-1">
-              <div className="text-xs text-purple-700 font-medium">AI正在预生成解析...</div>
-              <div className="w-full bg-purple-200 rounded-full h-1.5 mt-1.5 overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 rounded-full transition-all duration-300"
-                  style={{ width: `${(preGenProgress.current / preGenProgress.total) * 100}%` }}
-                />
-              </div>
-            </div>
-            <span className="text-xs text-purple-600">{preGenProgress.current}/{preGenProgress.total}</span>
-          </div>
-        </div>
-      )}
-
       {/* Progress bar */}
-      <div className="px-4 pt-2">
-        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+      <div className={`px-4 pt-2 ${getAnimationClass(1)}`}>
+        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ backgroundColor: theme.border }}>
           <div
-            className="h-full bg-primary rounded-full transition-all duration-300"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+            className="h-full rounded-full transition-all duration-300"
+            style={{ 
+              width: `${((currentIndex + 1) / questions.length) * 100}%`,
+              backgroundColor: theme.primary
+            }}
           />
         </div>
       </div>
@@ -227,17 +251,21 @@ export default function QuizSessionPage() {
 
       {/* Review knowledge point before answering */}
       {relatedKP && !showKnowledge && !showResult && (
-        <div className="px-4 pt-3">
+        <div className={`px-4 pt-3 ${getAnimationClass(2)}`}>
           <button
             onClick={() => setShowKnowledge(!showKnowledge)}
-            className="w-full bg-blue-50 rounded-xl p-3 border border-blue-100 flex items-center justify-between"
+            className="w-full rounded-xl p-3 border flex items-center justify-between"
+            style={{ 
+              backgroundColor: '#eff6ff',
+              borderColor: '#dbeafe'
+            }}
           >
-            <div className="flex items-center gap-2 text-sm text-blue-700">
+            <div className="flex items-center gap-2 text-sm" style={{ color: '#1e40af' }}>
               <BookOpen size={14} />
               <span>先回顾知识点：{relatedKP.name}</span>
             </div>
 
-            <ChevronRight size={14} className="text-blue-400" />
+            <ChevronRight size={14} style={{ color: '#60a5fa' }} />
           </button>
 
         </div>
@@ -246,13 +274,17 @@ export default function QuizSessionPage() {
 
 
       {showKnowledge && relatedKP && (
-        <div className="px-4 pt-2">
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-            <h4 className="text-sm font-medium text-blue-800 mb-1">{relatedKP.name}</h4>
-            <p className="text-xs text-blue-600 leading-relaxed">{relatedKP.explanation}</p>
+        <div className={`px-4 pt-2 ${getAnimationClass(3)}`}>
+          <div className="rounded-xl p-4 border" style={{ 
+            backgroundColor: '#eff6ff',
+            borderColor: '#dbeafe'
+          }}>
+            <h4 className="text-sm font-medium mb-1" style={{ color: '#1e40af' }}>{relatedKP.name}</h4>
+            <p className="text-xs leading-relaxed" style={{ color: '#2563eb' }}>{relatedKP.explanation}</p>
             <button
               onClick={() => setShowKnowledge(false)}
-              className="mt-2 text-xs text-blue-500 underline"
+              className="mt-2 text-xs underline"
+              style={{ color: '#3b82f6' }}
             >
               收起
             </button>
@@ -264,13 +296,13 @@ export default function QuizSessionPage() {
       )}
 
       {/* Question */}
-      <div className="px-4 pt-4">
-        <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
-          <div className="text-xs text-text-muted mb-2">
+      <div className={`px-4 pt-4 ${getAnimationClass(4)}`}>
+        <div className="rounded-2xl p-5 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="text-xs mb-2" style={{ color: theme.textMuted }}>
             {currentQuestion.type === 'single_choice' ? '单选题' : '多选题'}
           </div>
 
-          <p className="text-base font-medium leading-relaxed mb-4">{currentQuestion.stem}</p>
+          <p className="text-base font-medium leading-relaxed mb-4" style={{ color: theme.textPrimary }}>{currentQuestion.stem}</p>
 
           {/* Options - 动态标签支持更多选项 */}
           <div className="space-y-2.5">
@@ -281,45 +313,53 @@ export default function QuizSessionPage() {
               // 强制清除任何前缀，统一显示格式
               const cleanText = opt.text.replace(/^[A-G]\.\s*/, '').trim();
 
-              let optionStyle = 'bg-gray-50 border-gray-200';
+              let optionStyle = {};
               if (showResult) {
                 if (isCorrectOption) {
-                  optionStyle = 'bg-green-50 border-green-300';
+                  optionStyle = { backgroundColor: '#f0fdf4', borderColor: '#dcfce7' };
                 } else if (isSelected && !isCorrectOption) {
-                  optionStyle = 'bg-red-50 border-red-300';
+                  optionStyle = { backgroundColor: '#fef2f2', borderColor: '#fee2e2' };
+                } else {
+                  optionStyle = { backgroundColor: theme.bgCard, borderColor: theme.border };
                 }
               } else if (isSelected) {
-                optionStyle = 'bg-primary/10 border-primary';
+                optionStyle = { backgroundColor: `${theme.primary}10`, borderColor: theme.primary };
+              } else {
+                optionStyle = { backgroundColor: theme.bgCard, borderColor: theme.border };
               }
 
-
               return (
-                <button
-                  key={opt.id}
-                  onClick={() => handleSelectOption(opt.id)}
-                  disabled={showResult}
-                  className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${optionStyle}`}
-                >
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                    showResult && isCorrectOption
-                      ? 'bg-green-500 text-white'
-                      : showResult && isSelected && !isCorrectOption
-                        ? 'bg-red-500 text-white'
-                        : isSelected
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-200 text-text-secondary'
-                  }`}>
-                    {showResult && isCorrectOption ? <CheckCircle size={16} /> :
-                     showResult && isSelected && !isCorrectOption ? <XCircle size={16} /> :
-                     labels[i]}
-                  </span>
+                <div key={opt.id} className={getAnimationClass(5 + i)}>
+                  <button
+                    onClick={() => handleSelectOption(opt.id)}
+                    disabled={showResult}
+                    className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left"
+                    style={optionStyle}
+                  >
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0`} style={{
+                      backgroundColor: showResult && isCorrectOption
+                        ? '#22c55e' : showResult && isSelected && !isCorrectOption
+                          ? '#f87171' : isSelected
+                            ? theme.primary : theme.border,
+                      color: showResult || isSelected ? '#ffffff' : theme.textSecondary
+                    }}>
+                      {showResult && isCorrectOption ? <CheckCircle size={16} /> :
+                       showResult && isSelected && !isCorrectOption ? <XCircle size={16} /> :
+                       labels[i]}
+                    </span>
 
-                  <div className="flex-1">
-                    <span className="text-xs font-medium text-text-muted mr-2">{labels[i]}.</span>
-                    <span className="text-sm">{cleanText}</span>
-                  </div>
-                </button>
-
+                    <div className="flex-1">
+                      <span className="text-xs font-medium mr-2" style={{ color: theme.textMuted }}>{labels[i]}.</span>
+                      <span className="text-sm font-semibold" style={{ 
+                        color: showResult && isCorrectOption 
+                          ? '#16a34a' 
+                          : showResult && isSelected && !isCorrectOption 
+                            ? '#dc2626' 
+                            : theme.textPrimary 
+                      }}>{cleanText}</span>
+                    </div>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -329,21 +369,26 @@ export default function QuizSessionPage() {
 
       {/* Stage result - simplified, no detailed settlement per question */}
       {showResult && currentQuestion && (
-        <div className="px-4 pt-3">
+        <div className={`px-4 pt-3 ${getAnimationClass(6)}`}>
           {/* 简洁的结果提示 */}
-          <div className={`rounded-2xl p-4 border ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className="rounded-2xl p-4 border" style={{ 
+            backgroundColor: isCorrect ? '#f0fdf4' : '#fef2f2',
+            borderColor: isCorrect ? '#dcfce7' : '#fee2e2'
+          }}>
             <div className="flex items-center gap-3">
               {isCorrect ? (
-                <CheckCircle size={24} className="text-green-600" />
+                <CheckCircle size={24} style={{ color: '#22c55e' }} />
               ) : (
-                <XCircle size={24} className="text-red-600" />
+                <XCircle size={24} style={{ color: '#f87171' }} />
               )}
               <div className="flex-1">
-                <span className={`font-medium text-sm ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                <span className="font-medium text-sm" style={{ 
+                  color: isCorrect ? '#16a34a' : '#dc2626'
+                }}>
                   {isCorrect ? '回答正确！' : '回答错误'}
                 </span>
                 {!isCorrect && (
-                  <p className="text-xs text-text-secondary mt-1">
+                  <p className="text-xs mt-1" style={{ color: theme.textMuted }}>
                     正确答案: {currentQuestion.correctAnswers.map(a => {
                       const idx = currentQuestion.options.findIndex(o => o.id === a);
                       return String.fromCharCode(65 + idx);
@@ -357,7 +402,10 @@ export default function QuizSessionPage() {
           {/* AI解析：用户点击才生成，放在这里正好，答完题就可以看 */}
           <div className="mt-3">
             {currentExplanation ? (
-              <div className="text-sm text-purple-700 bg-purple-50 rounded-xl p-3">
+              <div className="text-sm rounded-xl p-3" style={{ 
+                color: '#7e22ce',
+                backgroundColor: '#f3e8ff'
+              }}>
                 <div className="font-medium mb-1">AI解析：</div>
                 {currentExplanation}
               </div>
@@ -365,7 +413,11 @@ export default function QuizSessionPage() {
               <button
                 onClick={handleGenerateExplanation}
                 disabled={generatingExplanation === currentQuestion.id}
-                className="w-full py-2.5 bg-purple-100 text-purple-700 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ 
+                  backgroundColor: '#f3e8ff',
+                  color: '#7e22ce'
+                }}
               >
                 {generatingExplanation === currentQuestion.id ? (
                   <>
@@ -393,7 +445,8 @@ export default function QuizSessionPage() {
                     knowledgePointId: currentQuestion.knowledgePointId
                   });
                 }}
-                className="text-xs text-blue-600 flex items-center gap-1 px-2 py-1 rounded-md hover:bg-blue-50"
+                className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"
+                style={{ color: '#2563eb' }}
               >
                 <MessageSquare size={10} />
                 仍不理解，继续追问AI
@@ -406,12 +459,16 @@ export default function QuizSessionPage() {
 
 
       {/* Action buttons */}
-      <div className="px-4 pt-4 pb-8">
+      <div className={`px-4 pt-4 pb-8 ${getAnimationClass(7)}`}>
         {!showResult ? (
           <button
             onClick={handleSubmitAnswer}
             disabled={selectedAnswers.length === 0}
-            className="w-full bg-primary text-white font-medium py-3 rounded-xl text-sm shadow-md active:opacity-80 transition-opacity disabled:opacity-50"
+            className="w-full font-medium py-3 rounded-xl text-sm shadow-md active:opacity-80 transition-opacity disabled:opacity-50"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
           >
             确认答案
           </button>
@@ -419,7 +476,11 @@ export default function QuizSessionPage() {
         ) : (
           <button
             onClick={handleNext}
-            className="w-full bg-primary text-white font-medium py-3 rounded-xl text-sm shadow-md active:opacity-80 transition-opacity"
+            className="w-full font-medium py-3 rounded-xl text-sm shadow-md active:opacity-80 transition-opacity"
+            style={{ 
+              backgroundColor: theme.primary,
+              color: '#ffffff'
+            }}
           >
             {currentIndex < questions.length - 1 ? '下一题' : '查看结果'}
           </button>

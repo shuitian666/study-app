@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { useApp, isValidRedeemCode } from '@/store/AppContext';
+import { useUser } from '@/store/UserContext';
+import { useGame, isValidRedeemCode } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Sparkles, Clock, Star, Gift } from 'lucide-react';
 import { drawLottery, LOTTERY_TIERS, drawFromUpPool } from '@/utils/lottery';
+import type { LotteryResult, UpPoolResult } from '@/types';
 
 type PoolTab = 'regular' | 'up';
 
@@ -13,8 +15,9 @@ const RARITY_COLORS: Record<string, { bg: string; text: string; border: string }
 };
 
 export default function LotteryPage() {
-  const { state, dispatch, navigate } = useApp();
-  const { drawBalance, upPool, checkin } = state;
+  const { navigate } = useUser();
+  const { gameState, gameDispatch } = useGame();
+  const { drawBalance, upPool, checkin, redeemedCodes } = gameState;
   const [activeTab, setActiveTab] = useState<PoolTab>('regular');
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemMsg, setRedeemMsg] = useState<{ text: string; ok: boolean } | null>(null);
@@ -23,10 +26,32 @@ export default function LotteryPage() {
   const handleRegularDraw = () => {
     if (drawBalance.regular <= 0) return;
     const { result } = drawLottery(checkin.lotteryPity);
-    dispatch({ type: 'DRAW_REGULAR', payload: result });
-    dispatch({
+    gameDispatch({ type: 'DRAW_REGULAR', payload: result });
+    gameDispatch({
       type: 'SHOW_LOTTERY_POPUP',
       payload: { show: true, result, pool: 'regular', phase: 'shaking' },
+    });
+  };
+
+  // ---- Regular pool 10 draws ----
+  const handleRegularDrawTen = () => {
+    if (drawBalance.regular < 10) return;
+    const results: LotteryResult[] = [];
+    let currentPity = checkin.lotteryPity;
+    
+    // 连续抽取10次，每次更新保底计数
+    for (let i = 0; i < 10; i++) {
+      const { result, newPity } = drawLottery(currentPity);
+      results.push(result);
+      gameDispatch({ type: 'DRAW_REGULAR', payload: result });
+      currentPity = newPity;
+    }
+    
+    // 弹出结果汇总，显示最后一次
+    const lastResult = results[9];
+    gameDispatch({
+      type: 'SHOW_LOTTERY_POPUP',
+      payload: { show: true, result: lastResult, pool: 'regular', phase: 'shaking', isTenDraw: true, allResults: results },
     });
   };
 
@@ -34,10 +59,30 @@ export default function LotteryPage() {
   const handleUpDraw = () => {
     if (drawBalance.up <= 0) return;
     const result = drawFromUpPool(upPool);
-    dispatch({ type: 'DRAW_UP', payload: result });
-    dispatch({
+    gameDispatch({ type: 'DRAW_UP', payload: result });
+    gameDispatch({
       type: 'SHOW_LOTTERY_POPUP',
       payload: { show: true, result, pool: 'up', phase: 'shaking' },
+    });
+  };
+
+  // ---- UP pool 10 draws ----
+  const handleUpDrawTen = () => {
+    if (drawBalance.up < 10) return;
+    const results: UpPoolResult[] = [];
+    for (let i = 0; i < 10; i++) {
+      results.push(drawFromUpPool(upPool));
+    }
+    // 依次派发：最后一个结果弹出展示
+    for (let i = 0; i < 9; i++) {
+      gameDispatch({ type: 'DRAW_UP', payload: results[i] });
+    }
+    // 最后一个结果弹出动画
+    const lastResult = results[9];
+    gameDispatch({ type: 'DRAW_UP', payload: lastResult });
+    gameDispatch({
+      type: 'SHOW_LOTTERY_POPUP',
+      payload: { show: true, result: lastResult, pool: 'up', phase: 'shaking', isTenDraw: true, allResults: results },
     });
   };
 
@@ -45,7 +90,7 @@ export default function LotteryPage() {
   const handleRedeem = () => {
     const code = redeemInput.trim();
     if (!code) return;
-    if (state.redeemedCodes.includes(code)) {
+    if (redeemedCodes.includes(code)) {
       setRedeemMsg({ text: '该兑换码已使用过', ok: false });
       setTimeout(() => setRedeemMsg(null), 3000);
       return;
@@ -55,7 +100,7 @@ export default function LotteryPage() {
       setTimeout(() => setRedeemMsg(null), 3000);
       return;
     }
-    dispatch({ type: 'REDEEM_CODE', payload: code });
+    gameDispatch({ type: 'REDEEM_CODE', payload: code });
     setRedeemInput('');
     setRedeemMsg({ text: '兑换成功!', ok: true });
     setTimeout(() => setRedeemMsg(null), 3000);
@@ -138,25 +183,46 @@ export default function LotteryPage() {
             </div>
           </div>
 
-          {/* Draw button */}
-          <button
-            onClick={handleRegularDraw}
-            disabled={drawBalance.regular <= 0}
-            className={`w-full mt-4 py-3.5 rounded-2xl text-sm font-semibold transition-all ${
-              drawBalance.regular > 0
-                ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg shadow-primary/30 active:scale-[0.97]'
-                : 'bg-gray-100 text-text-muted cursor-not-allowed'
-            }`}
-          >
-            {drawBalance.regular > 0 ? (
-              <span className="flex items-center justify-center gap-2">
-                <Sparkles size={16} />
-                抽签一次（剩余 {drawBalance.regular} 次）
-              </span>
-            ) : (
-              '暂无抽签次数'
-            )}
-          </button>
+          {/* Draw buttons - 单抽 + 十连抽 */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <button
+              onClick={handleRegularDraw}
+              disabled={drawBalance.regular <= 0}
+              className={`py-3.5 rounded-2xl text-sm font-semibold transition-all ${
+                drawBalance.regular > 0
+                  ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-lg shadow-primary/30 active:scale-[0.97]'
+                  : 'bg-gray-100 text-text-muted cursor-not-allowed'
+              }`}
+            >
+              {drawBalance.regular > 0 ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Sparkles size={14} />
+                  单抽
+                </span>
+              ) : (
+                '次数不足'
+              )}
+            </button>
+
+            <button
+              onClick={handleRegularDrawTen}
+              disabled={drawBalance.regular < 10}
+              className={`py-3.5 rounded-2xl text-sm font-semibold transition-all ${
+                drawBalance.regular >= 10
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30 active:scale-[0.97]'
+                  : 'bg-gray-100 text-text-muted cursor-not-allowed'
+              }`}
+            >
+              {drawBalance.regular >= 10 ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Star size={14} />
+                  十连抽 ({drawBalance.regular})
+                </span>
+              ) : (
+                '需要10次'
+              )}
+            </button>
+          </div>
 
           <p className="text-[10px] text-text-muted text-center mt-2">
             每日签到+1次 | 组队签到额外+1次
@@ -207,25 +273,46 @@ export default function LotteryPage() {
             </div>
           </div>
 
-          {/* UP draw button */}
-          <button
-            onClick={handleUpDraw}
-            disabled={drawBalance.up <= 0}
-            className={`w-full mt-4 py-3.5 rounded-2xl text-sm font-semibold transition-all ${
-              drawBalance.up > 0
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 active:scale-[0.97]'
-                : 'bg-gray-100 text-text-muted cursor-not-allowed'
-            }`}
-          >
-            {drawBalance.up > 0 ? (
-              <span className="flex items-center justify-center gap-2">
-                <Star size={16} />
-                UP池抽签（剩余 {drawBalance.up} 次）
-              </span>
-            ) : (
-              '暂无UP池抽签次数'
-            )}
-          </button>
+          {/* UP draw buttons - 单抽 + 十连抽 */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <button
+              onClick={handleUpDraw}
+              disabled={drawBalance.up <= 0}
+              className={`py-3.5 rounded-2xl text-sm font-semibold transition-all ${
+                drawBalance.up > 0
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/30 active:scale-[0.97]'
+                  : 'bg-gray-100 text-text-muted cursor-not-allowed'
+              }`}
+            >
+              {drawBalance.up > 0 ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Star size={14} />
+                  单抽
+                </span>
+              ) : (
+                '次数不足'
+              )}
+            </button>
+
+            <button
+              onClick={handleUpDrawTen}
+              disabled={drawBalance.up < 10}
+              className={`py-3.5 rounded-2xl text-sm font-semibold transition-all ${
+                drawBalance.up >= 10
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30 active:scale-[0.97]'
+                  : 'bg-gray-100 text-text-muted cursor-not-allowed'
+              }`}
+            >
+              {drawBalance.up >= 10 ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Sparkles size={14} />
+                  十连抽 ({drawBalance.up})
+                </span>
+              ) : (
+                '需要10次'
+              )}
+            </button>
+          </div>
 
           <p className="text-[10px] text-text-muted text-center mt-2">
             连续签到里程碑可获得UP池抽签次数
