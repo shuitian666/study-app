@@ -5,7 +5,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { Undo2, Redo2 } from 'lucide-react';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
-import type { ProficiencyLevel } from '@/types';
+import type { ProficiencyLevel, KnowledgePoint } from '@/types';
 import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, CreditCard as FlashCardIcon, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
 
 const sourceConfig = {
@@ -485,7 +485,7 @@ export default function KnowledgePage() {
 
 // 闪卡全屏视图
 interface FlashcardViewProps {
-  cards: typeof filteredKPs;
+  cards: KnowledgePoint[];
   currentIndex: number;
   isFlipped: boolean;
   onClose: () => void;
@@ -551,9 +551,8 @@ function FlashcardView({ cards, currentIndex, isFlipped, onClose, onFlip, onPrev
                 <div 
                   className="text-lg leading-relaxed" 
                   style={{ color: theme.textPrimary }}
-                  dangerouslySetInnerHTML={card.description ? { __html: card.description } : undefined}
+                  dangerouslySetInnerHTML={{ __html: card.explanation }}
                 >
-                  {!card.description && card.notes}
                 </div>
                 <p className="text-sm text-text-muted mt-4">点击卡片翻回去</p>
               </>

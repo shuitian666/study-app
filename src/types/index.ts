@@ -217,6 +217,7 @@ export type PageName =
   | 'profile'
   | 'settings'
   | 'login'
+  | 'daily-question'
   | 'subject-detail'
   | 'knowledge-detail'
   | 'quiz-session'

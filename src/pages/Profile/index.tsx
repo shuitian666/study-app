@@ -4,7 +4,7 @@ import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP } from '@/types';
-import type { ProficiencyLevel, KnowledgePoint, QuizResult } from '@/types';
+import type { ProficiencyLevel } from '@/types';
 import { allFrames, allTitles } from '@/pages/AvatarEdit';
 import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail, X } from 'lucide-react';
 
@@ -359,10 +359,6 @@ export default function ProfilePage() {
                 const newDate = new Date(summaryDate);
                 newDate.setMonth(newDate.getMonth() + 1);
                 setSummaryDate(newDate);
-              };
-              
-              const goToToday = () => {
-                setSummaryDate(new Date());
               };
               
               // 格式化日期显示
