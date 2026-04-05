@@ -576,7 +576,7 @@ export const themes: Record<string, ThemeConfig> = {
     textPrimary: '#f8fafc',
     textSecondary: '#cbd5e1',
     textMuted: '#94a3b8',
-    border: 'rgba(255, 255, 255, 0.2)',
+    border: 'rgba(255, 255, 255, 0.25)',
     profNone: '#f87171',
     profRusty: '#fbbf24',
     profNormal: '#60a5fa',
@@ -614,7 +614,7 @@ export const themes: Record<string, ThemeConfig> = {
     textPrimary: '#f8fafc',
     textSecondary: '#dcfce7',
     textMuted: '#94a3b8',
-    border: 'rgba(255, 255, 255, 0.2)',
+    border: 'rgba(255, 255, 255, 0.25)',
     profNone: '#ef4444',
     profRusty: '#f59e0b',
     profNormal: '#6366f1',
@@ -766,7 +766,7 @@ export const themes: Record<string, ThemeConfig> = {
     textPrimary: '#f8fafc',
     textSecondary: '#cbd5e1',
     textMuted: '#94a3b8',
-    border: 'rgba(255, 255, 255, 0.2)',
+    border: 'rgba(255, 255, 255, 0.25)',
     profNone: '#f87171',
     profRusty: '#fbbf24',
     profNormal: '#60a5fa',
@@ -819,3 +819,30 @@ export const getThemeByBackgroundId = (backgroundId?: string): ThemeConfig => {
   
   return themes.default;
 };
+
+// ===== Flashcard Learning Types =====
+
+// Study record for flashcard learning
+export interface StudyRecord {
+  date: string;           // ISO date string
+  type: 'flashcard';      // Always 'flashcard' for flashcard records
+  score: number;          // 100/80/60/40...
+  knowledgePointId: string;
+}
+
+// Quiz record for question answers
+export interface QuizRecord {
+  date: string;           // ISO date string
+  questionId: string;
+  correct: boolean;
+  score: number;         // 100/80/60/40...
+  knowledgePointId: string;
+}
+
+// Extended KnowledgePoint with learning records
+export interface KnowledgePointExtended extends KnowledgePoint {
+  studyRecords: StudyRecord[];
+  quizRecords: QuizRecord[];
+  currentScore: number;  // Combined score 0-100
+  memoryTip?: string;    // Memory tip/hint
+}
