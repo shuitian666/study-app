@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { useUser } from '@/store/UserContext';
+import { useTheme } from '@/store/ThemeContext';
 import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/review';
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP } from '@/types';
@@ -31,8 +32,12 @@ export default function HomePage() {
 
   const { state, dispatch, getLearningStats } = useApp();
   const { navigate } = useUser();
+  const { theme } = useTheme();
   const stats = getLearningStats();
-  
+
+  // 本地缓存鼓励语，避免每次渲染随机变化
+  const [fallbackEncouragement] = useState(() => getEncouragement());
+
   // 动画效果 - 使用主界面动画设置
   const [animationEffect, setAnimationEffect] = useState(() => {
     const saved = localStorage.getItem('main-animation-effect');
@@ -62,9 +67,9 @@ export default function HomePage() {
     // Pass existingNewItems to preserve completed state when regenerating
     const { review, newItems } = generateTodayReviewPlan(state.knowledgePoints, state.todayNewItems);
     dispatch({ type: 'SET_REVIEW_ITEMS', payload: { review, newItems } });
-  }, [state.knowledgePoints, dispatch]);
+  }, [state.knowledgePoints, state.todayNewItems, dispatch]);
 
-  // Daily smart encouragement
+  // Daily smart encouragement - only run when date or key values change
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (state.dailyEncouragementDate !== today) {
@@ -72,9 +77,9 @@ export default function HomePage() {
         dispatch({ type: 'SET_DAILY_ENCOURAGEMENT', payload: { text, date: today } });
       });
     }
-  }, [state.dailyEncouragementDate, stats, state.wrongRecords.length, state.checkin.streak, dispatch]);
+  }, [state.dailyEncouragementDate, state.wrongRecords.length, state.checkin.streak, dispatch]);
 
-  const encouragementText = state.dailyEncouragement ?? getEncouragement();
+  const encouragementText = state.dailyEncouragement ?? fallbackEncouragement;
 
   const reviewPending = state.todayReviewItems.filter(r => !r.completed).length;
   const completedNew = state.todayNewItems.filter(r => r.completed).length;
@@ -99,11 +104,16 @@ export default function HomePage() {
   return (
     <div className="page-scroll pb-4">
       {/* Header Greeting */}
-      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-8 rounded-b-3xl">
+      <div
+        className="text-white px-6 pt-16 pb-10 rounded-b-3xl overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
+        }}
+      >
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-bold">{getGreeting()}</h2>
-            <p className="text-white/70 text-sm mt-0.5">{state.user?.nickname ?? '同学'}</p>
+            <p className="text-sm mt-0.5" style={{ color: '#ffffff' }}>{state.user?.nickname ?? '同学'}</p>
           </div>
 
           <div className="bg-white/20 rounded-full px-3 py-1">
@@ -118,7 +128,7 @@ export default function HomePage() {
           className="w-full bg-white/10 rounded-xl p-3 flex items-start gap-2 active:bg-white/20 transition-colors text-left"
         >
           <Sparkles size={16} className="text-secondary-light mt-0.5 shrink-0" />
-          <p className="text-sm text-white/90 flex-1">{encouragementText}</p>
+          <p className="text-sm flex-1" style={{ color: '#ffffff' }}>{encouragementText}</p>
           <ChevronRight size={14} className="text-white/50 mt-0.5 shrink-0" />
         </button>
 
@@ -127,7 +137,13 @@ export default function HomePage() {
 
       {/* Today's Tasks */}
       <div className={`px-4 mt-4 ${getAnimationClass(1)}`}>
-        <div className="bg-white rounded-2xl shadow-md p-4 border border-border">
+        <div 
+          className="rounded-2xl shadow-md p-4 border"
+          style={{
+            backgroundColor: theme.bgCard,
+            borderColor: theme.border
+          }}
+        >
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm flex items-center gap-1.5">
               <Target size={16} className="text-primary" />
@@ -152,18 +168,26 @@ export default function HomePage() {
               }}
               className={`rounded-xl p-3 text-left border transition-transform active:scale-[0.97] ${
                 reviewPending > 0 
-                  ? 'bg-gradient-to-br from-orange-50 to-amber-50 border-orange-100' 
-                  : 'bg-gray-50 border-gray-100'
+                  ? 'bg-gradient-to-br' 
+                  : 'bg-opacity-50'
               }`}
+              style={{
+                background: reviewPending > 0 
+                  ? `linear-gradient(135deg, ${theme.secondaryLight}20, ${theme.secondary}20)` 
+                  : theme.bgCard,
+                borderColor: reviewPending > 0 
+                  ? `${theme.secondary}40` 
+                  : theme.border
+              }}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <Brain size={14} className={reviewPending > 0 ? 'text-orange-500' : 'text-gray-400'} />
-                <span className={`text-xs font-medium ${reviewPending > 0 ? 'text-orange-700' : 'text-gray-400'}`}>待复习</span>
+                <Brain size={14} style={{ color: reviewPending > 0 ? theme.secondary : theme.textMuted }} />
+                <span className="text-xs font-medium" style={{ color: reviewPending > 0 ? theme.secondary : theme.textMuted }}>待复习</span>
               </div>
 
-              <div className={`text-2xl font-bold ${reviewPending > 0 ? 'text-orange-600' : 'text-gray-400'}`}>{reviewPending}</div>
+              <div className="text-2xl font-bold" style={{ color: reviewPending > 0 ? theme.secondary : theme.textMuted }}>{reviewPending}</div>
 
-              <div className={`text-[10px] mt-0.5 ${reviewPending > 0 ? 'text-orange-400' : 'text-gray-400'}`}>个知识点</div>
+              <div className="text-[10px] mt-0.5" style={{ color: reviewPending > 0 ? theme.secondaryLight : theme.textMuted }}>个知识点</div>
 
             </button>
 
@@ -177,30 +201,36 @@ export default function HomePage() {
                   navigate('review-session', { type: 'new' });
                 }
               }}
-              className={`rounded-xl p-3 text-left border transition-transform active:scale-[0.97] ${
-                freeLearningMode
-                  ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
+              className={`rounded-xl p-3 text-left border transition-transform active:scale-[0.97] bg-gradient-to-br`}
+              style={{
+                background: freeLearningMode
+                  ? `linear-gradient(135deg, ${theme.success}20, ${theme.accent}20)`
                   : reviewPending > 0 || completedNew < dailyNewGoal
-                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100' 
-                    : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
-              }`}
+                    ? `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}20)` 
+                    : `linear-gradient(135deg, ${theme.success}20, ${theme.accent}20)`,
+                borderColor: freeLearningMode
+                  ? `${theme.success}40`
+                  : reviewPending > 0 || completedNew < dailyNewGoal
+                    ? `${theme.primary}40` 
+                    : `${theme.success}40`
+              }}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 {freeLearningMode ? (
-                  <CheckCircle size={14} className="text-green-500" />
+                  <CheckCircle size={14} style={{ color: theme.success }} />
                 ) : (
-                  <Play size={14} className="text-blue-500" />
+                  <Play size={14} style={{ color: theme.primary }} />
                 )}
-                <span className={`text-xs font-medium ${freeLearningMode ? 'text-green-700' : 'text-blue-700'}`}>
+                <span className="text-xs font-medium" style={{ color: freeLearningMode ? theme.success : theme.primary }}>
                   {freeLearningMode ? '自由学习' : '开始学习'}
                 </span>
               </div>
 
-              <div className={`text-2xl font-bold ${freeLearningMode ? 'text-green-600' : 'text-blue-600'}`}>
+              <div className="text-2xl font-bold" style={{ color: freeLearningMode ? theme.success : theme.primary }}>
                 {freeLearningMode ? '🎉' : reviewPending > 0 ? `${reviewPending}` : `${completedNew}/${dailyNewGoal}`}
               </div>
 
-              <div className={`text-[10px] mt-0.5 ${freeLearningMode ? 'text-green-400' : 'text-blue-400'}`}>
+              <div className="text-[10px] mt-0.5" style={{ color: freeLearningMode ? theme.accent : theme.primaryLight }}>
                 {freeLearningMode 
                   ? '目标已完成，自由学习' 
                   : reviewPending > 0 
@@ -221,21 +251,27 @@ export default function HomePage() {
       <div className={`px-4 mt-4 ${getAnimationClass(2)}`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm flex items-center gap-1.5">
-            <TrendingUp size={16} className="text-primary" />
+            <TrendingUp size={16} style={{ color: theme.primary }} />
             学习总览
           </h3>
 
-          <button onClick={() => navigate('profile')} className="text-xs text-primary flex items-center gap-0.5">
+          <button onClick={() => navigate('profile')} className="text-xs flex items-center gap-0.5" style={{ color: theme.primary }}>
             详情 <ChevronRight size={12} />
           </button>
 
         </div>
 
 
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
-          <div className="flex items-center justify-between text-xs text-text-muted mb-2">
-            <span>掌握度分布</span>
-            <span>共 {stats.totalKnowledgePoints} 个知识点</span>
+        <div 
+          className="rounded-2xl p-4 border shadow-sm"
+          style={{
+            backgroundColor: theme.bgCard,
+            borderColor: theme.border
+          }}
+        >
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span style={{ color: theme.textSecondary }}>掌握度分布</span>
+            <span style={{ color: theme.textSecondary }}>共 {stats.totalKnowledgePoints} 个知识点</span>
           </div>
 
           <ProgressBar value={stats.masteredCount + stats.normalCount} max={stats.totalKnowledgePoints} color="bg-accent" />
@@ -246,7 +282,7 @@ export default function HomePage() {
                   {d.count}
                 </div>
 
-                <div className="text-[10px] text-text-muted">{PROFICIENCY_MAP[d.level].label}</div>
+                <div className="text-[10px]" style={{ color: theme.textSecondary }}>{PROFICIENCY_MAP[d.level].label}</div>
 
               </div>
 
@@ -268,37 +304,53 @@ export default function HomePage() {
         <div className="grid grid-cols-4 gap-2">
           <button
             onClick={() => navigate('checkin')}
-            className="bg-white rounded-xl p-3 border border-border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            className="rounded-xl p-3 border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
-            <CalendarCheck size={20} className="text-orange-500" />
-            <span className="text-[11px] font-medium">签到</span>
+            <CalendarCheck size={20} style={{ color: theme.iconColors.checkin }} />
+            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>签到</span>
 
           </button>
 
           <button
             onClick={() => navigate('achievements')}
-            className="bg-white rounded-xl p-3 border border-border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            className="rounded-xl p-3 border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
-            <Trophy size={20} className="text-yellow-500" />
-            <span className="text-[11px] font-medium">成就</span>
+            <Trophy size={20} style={{ color: theme.iconColors.achievement }} />
+            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>成就</span>
 
           </button>
 
           <button
             onClick={() => navigate('shop')}
-            className="bg-white rounded-xl p-3 border border-border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            className="rounded-xl p-3 border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
-            <ShoppingBag size={20} className="text-purple-500" />
-            <span className="text-[11px] font-medium">商城</span>
+            <ShoppingBag size={20} style={{ color: theme.iconColors.shop }} />
+            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>商城</span>
 
           </button>
 
           <button
             onClick={() => navigate('ranking')}
-            className="bg-white rounded-xl p-3 border border-border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            className="rounded-xl p-3 border shadow-sm flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
-            <Medal size={20} className="text-blue-500" />
-            <span className="text-[11px] font-medium">排行</span>
+            <Medal size={20} style={{ color: theme.iconColors.ranking }} />
+            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>排行</span>
 
           </button>
 
@@ -314,52 +366,85 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => navigate('quiz')}
-            className="bg-white rounded-2xl p-4 border border-border shadow-sm text-left active:scale-[0.97] transition-transform"
+            className="rounded-2xl p-4 border shadow-sm text-left active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
             <div className="text-2xl mb-2">📝</div>
-            <div className="font-medium text-sm">开始刷题</div>
-            <div className="text-xs text-text-muted mt-0.5">选择题测试</div>
+            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>开始刷题</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>选择题测试</div>
 
           </button>
 
           <button
             onClick={() => navigate('knowledge')}
-            className="bg-white rounded-2xl p-4 border border-border shadow-sm text-left active:scale-[0.97] transition-transform"
+            className="rounded-2xl p-4 border shadow-sm text-left active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
             <div className="text-2xl mb-2">📚</div>
-            <div className="font-medium text-sm">知识库</div>
-            <div className="text-xs text-text-muted mt-0.5">管理知识点</div>
+            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>知识库</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>管理知识点</div>
 
           </button>
 
           <button
             onClick={() => navigate('knowledge-map')}
-            className="bg-white rounded-2xl p-4 border border-border shadow-sm text-left active:scale-[0.97] transition-transform"
+            className="rounded-2xl p-4 border shadow-sm text-left active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
             <div className="text-2xl mb-2">🗺️</div>
-            <div className="font-medium text-sm">知识图谱</div>
-            <div className="text-xs text-text-muted mt-0.5">可视化学习进度</div>
+            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>知识图谱</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>可视化学习进度</div>
 
           </button>
 
           <button
             onClick={() => navigate('quiz', { tab: 'wrong' })}
-            className="bg-white rounded-2xl p-4 border border-border shadow-sm text-left active:scale-[0.97] transition-transform"
+            className="rounded-2xl p-4 border shadow-sm text-left active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
           >
             <div className="text-2xl mb-2">❌</div>
-            <div className="font-medium text-sm">错题本</div>
-            <div className="text-xs text-text-muted mt-0.5">{state.wrongRecords.length} 道错题</div>
+            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>错题本</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>{state.wrongRecords.length} 道错题</div>
 
           </button>
 
           <button
             onClick={() => navigate('ai-chat')}
-            className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-4 border border-violet-100 shadow-sm text-left active:scale-[0.97] transition-transform"
+            className="rounded-2xl p-4 border shadow-sm text-left active:scale-[0.97] transition-transform"
+            style={{
+              background: `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}10)`,
+              borderColor: `${theme.primary}40`
+            }}
           >
-            <Bot size={24} className="text-violet-500 mb-2" />
-            <div className="font-medium text-sm">AI 问答</div>
-            <div className="text-xs text-text-muted mt-0.5">智能学习助手</div>
+            <Bot size={24} style={{ color: theme.primary }} className="mb-2" />
+            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>AI 问答</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>智能学习助手</div>
 
+          </button>
+
+          <button
+            onClick={() => navigate('flashcard-learning')}
+            className="rounded-2xl p-4 border shadow-sm text-left active:scale-[0.97] transition-transform"
+            style={{
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border
+            }}
+          >
+            <div className="text-2xl mb-2">🧠</div>
+            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>闪记学习</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>记忆卡片式学习</div>
           </button>
 
         </div>
@@ -370,12 +455,25 @@ export default function HomePage() {
       {/* Weak Subjects */}
       {stats.weakSubjects.length > 0 && (
         <div className={`px-4 mt-4 ${getAnimationClass(5)}`}>
-          <div className="bg-red-50 rounded-2xl p-4 border border-red-100">
-            <h4 className="text-sm font-medium text-red-700 mb-2">⚠️ 薄弱学科提醒</h4>
+          <div 
+            className="rounded-2xl p-4 border"
+            style={{
+              backgroundColor: `${theme.danger}20`,
+              borderColor: `${theme.danger}40`
+            }}
+          >
+            <h4 className="text-sm font-medium mb-2" style={{ color: theme.danger }}>⚠️ 薄弱学科提醒</h4>
 
             <div className="flex flex-wrap gap-2">
               {stats.weakSubjects.map(s => (
-                <span key={s} className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">{s}</span>
+                <span 
+                  key={s} 
+                  className="text-xs px-2 py-1 rounded-full"
+                  style={{
+                    backgroundColor: `${theme.danger}30`,
+                    color: theme.danger
+                  }}
+                >{s}</span>
               ))}
             </div>
 
