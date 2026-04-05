@@ -7,10 +7,10 @@
  * ============================================================================
  */
 
-import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
 import type {
-  Subject, Chapter, KnowledgePoint, Question, QuizResult, WrongRecord, 
-  ReviewItem, LearningStats, ProficiencyLevel, QuestionExplanation
+  Subject, Chapter, KnowledgePoint, KnowledgePointExtended, Question, QuizResult, WrongRecord,
+  ReviewItem, LearningStats, ProficiencyLevel, QuestionExplanation, StudyRecord, QuizRecord
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
@@ -21,7 +21,7 @@ import { getKnowledgeData, hasKnowledgeData, storeKnowledgeData } from '@/servic
 export interface LearningState {
   subjects: Subject[];
   chapters: Chapter[];
-  knowledgePoints: KnowledgePoint[];
+  knowledgePoints: KnowledgePointExtended[];
   questions: Question[];
   quizResults: QuizResult[];
   wrongRecords: WrongRecord[];
@@ -75,7 +75,11 @@ type LearningAction =
   | { type: 'REDO' }
   | { type: 'RECORD_HISTORY' }
   | { type: 'SET_KNOWLEDGE_DATA'; payload: { subjects: Subject[]; chapters: Chapter[]; knowledgePoints: KnowledgePoint[]; questions: Question[] } }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'RECORD_FLASHCARD_STUDY'; payload: { knowledgePointId: string; score: number } }
+  | { type: 'RECORD_QUIZ_ANSWER'; payload: { knowledgePointId: string; questionId: string; correct: boolean; score: number } }
+  | { type: 'UPDATE_KNOWLEDGE_POINT_SCORE'; payload: { id: string; score: number } }
+  | { type: 'SET_MEMORY_TIP'; payload: { knowledgePointId: string; tip: string } };
 
 function learningReducer(state: LearningState, action: LearningAction): LearningState {
   switch (action.type) {
@@ -84,14 +88,14 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
     case 'ADD_CHAPTER':
       return { ...state, chapters: [...state.chapters, action.payload] };
     case 'ADD_KNOWLEDGE_POINT':
-      return { ...state, knowledgePoints: [...state.knowledgePoints, action.payload] };
+      return { ...state, knowledgePoints: [...state.knowledgePoints, action.payload as KnowledgePointExtended] };
     case 'DELETE_KNOWLEDGE_POINT':
       return { ...state, knowledgePoints: state.knowledgePoints.filter(kp => kp.id !== action.payload) };
     case 'UPDATE_KNOWLEDGE_POINT':
       return {
         ...state,
         knowledgePoints: state.knowledgePoints.map(kp =>
-          kp.id === action.payload.id ? { ...kp, ...action.payload } : kp
+          kp.id === action.payload.id ? { ...kp, ...action.payload } as KnowledgePointExtended : kp
         ),
       };
     case 'UPDATE_PROFICIENCY': {
@@ -199,7 +203,7 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ...state,
         subjects: action.payload.subjects,
         chapters: action.payload.chapters,
-        knowledgePoints: action.payload.knowledgePoints,
+        knowledgePoints: action.payload.knowledgePoints as KnowledgePointExtended[],
         questions: action.payload.questions,
       };
     case 'SET_LOADING':
@@ -207,9 +211,78 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ...state,
         isLoading: action.payload,
       };
+    case 'RECORD_FLASHCARD_STUDY': {
+      const { knowledgePointId, score } = action.payload;
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp => {
+          if (kp.id !== knowledgePointId) return kp;
+          const newRecord: StudyRecord = { date: now, type: 'flashcard', score, knowledgePointId };
+          const studyRecords = [...(kp.studyRecords || []), newRecord];
+          const newScore = kp.currentScore
+            ? kp.currentScore * 0.5 + score * 0.5
+            : score;
+          return { ...kp, studyRecords, currentScore: newScore };
+        }),
+      };
+    }
+    case 'RECORD_QUIZ_ANSWER': {
+      const { knowledgePointId, questionId, correct, score } = action.payload;
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp => {
+          if (kp.id !== knowledgePointId) return kp;
+          const newRecord: QuizRecord = { date: now, questionId, correct, score, knowledgePointId };
+          const quizRecords = [...(kp.quizRecords || []), newRecord];
+          const newScore = kp.currentScore
+            ? kp.currentScore * 0.5 + score * 0.5
+            : score;
+          return { ...kp, quizRecords, currentScore: newScore };
+        }),
+      };
+    }
+    case 'UPDATE_KNOWLEDGE_POINT_SCORE': {
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp =>
+          kp.id === action.payload.id
+            ? { ...kp, currentScore: action.payload.score }
+            : kp
+        ),
+      };
+    }
+    case 'SET_MEMORY_TIP': {
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp =>
+          kp.id === action.payload.knowledgePointId
+            ? { ...kp, memoryTip: action.payload.tip }
+            : kp
+        ),
+      };
+    }
     default:
       return state;
   }
+}
+
+// ---------- Action Creators ----------
+export function recordFlashcardStudy(knowledgePointId: string, score: number) {
+  return { type: 'RECORD_FLASHCARD_STUDY', payload: { knowledgePointId, score } };
+}
+
+export function recordQuizAnswer(knowledgePointId: string, questionId: string, correct: boolean, score: number) {
+  return { type: 'RECORD_QUIZ_ANSWER', payload: { knowledgePointId, questionId, correct, score } };
+}
+
+export function updateKnowledgePointScore(id: string, score: number) {
+  return { type: 'UPDATE_KNOWLEDGE_POINT_SCORE', payload: { id, score } };
+}
+
+export function setMemoryTip(knowledgePointId: string, tip: string) {
+  return { type: 'SET_MEMORY_TIP', payload: { knowledgePointId, tip } };
 }
 
 // ---------- Context ----------
@@ -325,7 +398,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     }
   }, [learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions]);
 
-  const getLearningStats = (): LearningStats => {
+  const getLearningStats = useCallback((): LearningStats => {
     const kps = learningState.knowledgePoints;
     const masteredCount = kps.filter(k => k.proficiency === 'master').length;
     const normalCount = kps.filter(k => k.proficiency === 'normal').length;
@@ -360,44 +433,46 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       streakDays: 0, // 从UserContext获取
       weakSubjects,
     };
-  };
+  }, [learningState.knowledgePoints, learningState.quizResults, learningState.subjects]);
 
-  const getTaskCompletionRate = () => {
+  const getTaskCompletionRate = useCallback(() => {
     const allTasks = [...learningState.todayReviewItems, ...learningState.todayNewItems];
     const total = allTasks.length;
     const done = allTasks.filter(t => t.completed).length;
     const rate = total === 0 ? 1 : done / total;
     return { done, total, rate };
-  };
+  }, [learningState.todayReviewItems, learningState.todayNewItems]);
 
-  const undo = () => {
+  const undo = useCallback(() => {
     if (learningState._canUndo) {
       learningDispatch({ type: 'UNDO' });
     }
-  };
+  }, [learningState._canUndo, learningDispatch]);
 
-  const redo = () => {
+  const redo = useCallback(() => {
     if (learningState._canRedo) {
       learningDispatch({ type: 'REDO' });
     }
-  };
+  }, [learningState._canRedo, learningDispatch]);
 
-  const recordHistory = () => {
+  const recordHistory = useCallback(() => {
     learningDispatch({ type: 'RECORD_HISTORY' });
-  };
+  }, [learningDispatch]);
+
+  const contextValue = useMemo(() => ({
+    learningState,
+    learningDispatch,
+    getLearningStats,
+    getTaskCompletionRate,
+    undo,
+    redo,
+    recordHistory,
+    _canUndo: learningState._canUndo,
+    _canRedo: learningState._canRedo
+  }), [learningState, learningDispatch, getLearningStats, getTaskCompletionRate, undo, redo, recordHistory]);
 
   return (
-    <LearningContext.Provider value={{
-      learningState,
-      learningDispatch,
-      getLearningStats,
-      getTaskCompletionRate,
-      undo,
-      redo,
-      recordHistory,
-      _canUndo: learningState._canUndo,
-      _canRedo: learningState._canRedo
-    }}>
+    <LearningContext.Provider value={contextValue}>
       {children}
     </LearningContext.Provider>
   );
