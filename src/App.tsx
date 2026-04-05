@@ -17,7 +17,7 @@
  * ============================================================================
  */
 
-import React, { Suspense, useMemo, useState, useEffect, useRef } from 'react';
+import React, { Suspense, useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '@/store/UserContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
@@ -50,6 +50,7 @@ const SettingsPage = React.lazy(() => import('@/pages/Settings'));
 const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
 const MailPage = React.lazy(() => import('@/features/gamification/mail'));
 const AvatarEditPage = React.lazy(() => import('@/pages/AvatarEdit'));
+const FlashcardLearningPage = React.lazy(() => import('@/pages/FlashcardLearning'));
 
 // 加载占位组件
 const LoadingFallback = () => (
@@ -77,8 +78,8 @@ function AppContent() {
     return bg?.pattern;
   }, [userState.user?.background]);
 
-  // 渲染背景装饰图案
-  const renderBackgroundPattern = (pattern?: string) => {
+  // 渲染背景装饰图案 - 使用 useCallback 优化
+  const renderBackgroundPattern = useCallback((pattern?: string) => {
     if (!pattern) return null;
 
     if (pattern === 'stars' || pattern === 'galaxy') {
@@ -144,7 +145,7 @@ function AppContent() {
     }
 
     return null;
-  };
+  }, []);
 
   const renderPage = () => {
     switch (userState.currentPage) {
@@ -171,6 +172,7 @@ function AppContent() {
       case 'inventory': return <InventoryPage />;
       case 'mail': return <MailPage />;
       case 'avatar-edit': return <AvatarEditPage />;
+      case 'flashcard-learning': return <FlashcardLearningPage />;
       default: return <HomePage />;
     }
   };
@@ -199,8 +201,8 @@ function AppContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 暂时禁用大屏幕布局，测试按钮点击问题
-  if (true || !isLargeScreen || !isMainTab || isFullScreen) {
+  // 恢复大屏幕布局，启用左右换页效果
+  if (!isLargeScreen || !isMainTab || isFullScreen) {
     return (
       <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
         <div className="w-full max-w-[480px] flex flex-col relative">
@@ -382,7 +384,7 @@ function AppContent() {
               zIndex: 2
             }}
           >
-            <div className="w-full h-full overflow-y-auto pb-[70px]">
+            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
               <Suspense fallback={<LoadingFallback />}>
                 {renderMainTab(mainTabs[currentIndex])}
               </Suspense>

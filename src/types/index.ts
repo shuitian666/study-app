@@ -234,7 +234,8 @@ export type PageName =
   | 'ai-chat'
   | 'inventory'
   | 'mail'
-  | 'avatar-edit';
+  | 'avatar-edit'
+  | 'flashcard-learning';
 
 // ===== 激励体系 =====
 
