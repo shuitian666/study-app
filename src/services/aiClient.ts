@@ -5,8 +5,8 @@
 import type { AIConfig, AIProvider, ProviderInfo, Question, StudyReportParams } from '@/types';
 
 export const API_BASE = 'http://localhost:3001/api';
+export const DOUBAN_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const CONFIG_KEY = 'ai-config';
-const DOUBAN_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 
 // ===== 配置管理 (localStorage) =====
 

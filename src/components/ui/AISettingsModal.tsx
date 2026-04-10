@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { X, Check, Eye, EyeOff, Key } from 'lucide-react';
-import type { AIProvider } from '@/types';
+import type { AIProvider, AIConfig } from '@/types';
 import { getAIConfig, setAIConfig, resetBackendCache } from '@/services/aiClient';
 
 interface AISettingsModalProps {
@@ -16,46 +16,35 @@ const PROVIDER_LABELS: Record<AIProvider, { name: string; desc: string; placehol
   openclaw: { name: 'OpenClaw', desc: '本地 OpenClaw 服务', placeholder: '' },
 };
 
-export default function AISettingsModal({ show, onClose }: AISettingsModalProps) {
-  const [config, setConfig] = useState(getAIConfig());
-  const [mode, setMode] = useState<'local' | 'cloud'>(config.provider === 'ollama' ? 'local' : 'cloud');
+function AISettingsModalInner({ onClose }: { onClose: () => void }) {
+  const [config, setConfig] = useState<AIConfig>(getAIConfig);
   const [showApiKey, setShowApiKey] = useState(false);
 
-  // 云端配置
-  const [apiKey, setApiKey] = useState(config.apiKey || '');
-  const [modelId, setModelId] = useState(config.modelId || '');
-  const [groupId, setGroupId] = useState(config.groupId || '');
+  const mode: 'local' | 'cloud' = config.provider === 'ollama' ? 'local' : 'cloud';
 
-  useEffect(() => {
-    if (show) {
-      setConfig(getAIConfig());
-      setApiKey(config.apiKey || '');
-      setModelId(config.modelId || '');
-      setGroupId(config.groupId || '');
-      setMode(config.provider === 'ollama' ? 'local' : 'cloud');
+  const handleModeChange = useCallback((newMode: 'local' | 'cloud') => {
+    if (newMode === 'local') {
+      setConfig(prev => ({ ...prev, provider: 'ollama' }));
     }
-  }, [show, config.apiKey, config.modelId, config.groupId]);
+  }, []);
 
-  const handleSave = () => {
-    const newConfig = {
-      ...config,
-      provider: mode === 'local' ? 'ollama' : config.provider,
-      apiKey: apiKey || undefined,
-      modelId: modelId || undefined,
-      groupId: groupId || undefined,
-    };
-    setAIConfig(newConfig);
-    setConfig(newConfig);
+  const handleSelectProvider = useCallback((provider: AIProvider) => {
+    setConfig(prev => ({ ...prev, provider, presetId: undefined }));
+  }, []);
+
+  const handleApiKeyChange = useCallback((value: string) => {
+    setConfig(prev => ({ ...prev, apiKey: value || undefined }));
+  }, []);
+
+  const handleModelIdChange = useCallback((value: string) => {
+    setConfig(prev => ({ ...prev, modelId: value || undefined }));
+  }, []);
+
+  const handleSave = useCallback(() => {
+    setAIConfig(config);
     resetBackendCache();
     onClose();
-  };
-
-  const handleSelectProvider = (provider: AIProvider) => {
-    setConfig({ ...config, provider, presetId: undefined });
-    setMode(provider === 'ollama' ? 'local' : 'cloud');
-  };
-
-  if (!show) return null;
+  }, [config, onClose]);
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -72,7 +61,7 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
         <div className="p-4 border-b border-border">
           <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
             <button
-              onClick={() => setMode('local')}
+              onClick={() => handleModeChange('local')}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                 mode === 'local' ? 'bg-white shadow text-primary' : 'text-text-muted'
               }`}
@@ -80,7 +69,7 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
               本地模式
             </button>
             <button
-              onClick={() => setMode('cloud')}
+              onClick={() => handleModeChange('cloud')}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                 mode === 'cloud' ? 'bg-white shadow text-primary' : 'text-text-muted'
               }`}
@@ -129,8 +118,8 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
               <div className="relative">
                 <input
                   type={showApiKey ? 'text' : 'password'}
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
+                  value={config.apiKey || ''}
+                  onChange={e => handleApiKeyChange(e.target.value)}
                   placeholder="sk-xxxxx"
                   className="w-full px-3 py-2 pr-10 text-sm border border-border rounded-lg outline-none focus:border-primary"
                 />
@@ -147,8 +136,8 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
               <div className="text-xs text-text-muted mb-1">模型 ID (可选)</div>
               <input
                 type="text"
-                value={modelId}
-                onChange={e => setModelId(e.target.value)}
+                value={config.modelId || ''}
+                onChange={e => handleModelIdChange(e.target.value)}
                 placeholder="如: doubao-pro-32k"
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg outline-none focus:border-primary"
               />
@@ -161,7 +150,7 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
           <div className="p-4">
             <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
               本地模式需要先运行后端服务：
-              <code className="block mt-1 bg-blue-100 rounded p-1">node server/index.js</code>
+              <code className="block mt-1 bg-blue-100 rounded p-1"> node server/index.js</code>
             </div>
           </div>
         )}
@@ -178,4 +167,10 @@ export default function AISettingsModal({ show, onClose }: AISettingsModalProps)
       </div>
     </div>
   );
+}
+
+// Wrapper that remounts when show changes to reset state
+export default function AISettingsModal({ show, onClose }: AISettingsModalProps) {
+  if (!show) return null;
+  return <AISettingsModalInner key={String(show)} onClose={onClose} />;
 }

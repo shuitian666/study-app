@@ -89,7 +89,6 @@ type GameAction =
   | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
   | { type: 'DISMISS_ACHIEVEMENT_POPUP' }
   | { type: 'BUY_SHOP_ITEM'; payload: string }
-  | { type: 'ADD_COINS'; payload: number }
   | { type: 'SET_TEAM'; payload: TeamState | null }
   | { type: 'UPDATE_TEAMMATE_PROGRESS'; payload: TeamMemberProgress }
   | { type: 'DISSOLVE_TEAM' }
@@ -155,7 +154,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           regular: state.drawBalance.regular + regularTickets,
           up: state.drawBalance.up + upTickets,
         },
-        lastCheckinReward: { regularTickets, upTickets, streakCoins, streakLabel },
+        lastCheckinReward: { regularTickets, upTickets, streakCoins: 0, streakLabel },
         team: state.team && action.payload.type === 'team'
           ? { ...state.team, todayCheckedIn: true }
           : state.team,
@@ -266,14 +265,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       } else if (item.type === 'makeup_card') {
         // 补签卡可以堆叠，梯度涨价
         let newShopItems = [...state.shopItems];
-        
+
         // 计算下一次价格梯度：1->30, 2->50, 3->80, 4+->120
         let nextPrice = 30;
         // 更新商店中补签卡的价格
-        newShopItems = newShopItems.map(i => 
+        newShopItems = newShopItems.map(i =>
           i.id === action.payload ? { ...i, price: nextPrice } : i
         );
-        
+
         return {
           ...state,
           shopItems: newShopItems,
@@ -288,8 +287,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
     }
-    case 'ADD_COINS':
-      return state;
 
     case 'REDEEM_CODE': {
       const code = action.payload;

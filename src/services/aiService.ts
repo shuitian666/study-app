@@ -26,11 +26,8 @@ import {
   checkBackendAvailable, getAIConfig,
   streamChat, fetchQuiz, fetchEncouragement,
   fetchDoubanExplanation, fetchStudyReport, fetchDailySuggestion, fetchKnowledgeExplain,
-  API_BASE,
+  API_BASE, DOUBAN_API_URL,
 } from '@/services/aiClient';
-
-// ===== 豆包API配置 =====
-const DOUBAN_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 
 // ===== Helper: simulate network delay (mock 模式) =====
 function delay(ms: number): Promise<void> {

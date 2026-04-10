@@ -66,11 +66,16 @@ export default function KnowledgeMapPage() {
   return (
     <div className="page-scroll pb-4">
       {/* 渐变头部背景 */}
-      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-6 rounded-b-[40px] mb-4">
+      <div
+        className="text-white px-6 pt-16 pb-8 rounded-b-3xl mb-4 overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
+        }}
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">知识图谱</h2>
         </div>
-        <p className="text-white/70 text-sm mt-1">可视化掌握知识进度</p>
+        <p className="text-sm mt-1" style={{ color: '#ffffff' }}>可视化掌握知识进度</p>
       </div>
 
       {/* Legend */}
@@ -79,7 +84,7 @@ export default function KnowledgeMapPage() {
           {(['none', 'rusty', 'normal', 'master'] as const).map(level => (
             <div key={level} className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PROFICIENCY_MAP[level].color }} />
-              <span className="text-[10px]" style={{ color: theme.textMuted }}>{PROFICIENCY_MAP[level].label}</span>
+              <span className="text-[10px]" style={{ color: theme.textSecondary }}>{PROFICIENCY_MAP[level].label}</span>
             </div>
           ))}
         </div>

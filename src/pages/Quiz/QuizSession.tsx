@@ -72,11 +72,21 @@ export default function QuizSessionPage() {
   const questions = useMemo(() => {
     let qs = learningState.questions.filter(q => q.subjectId === subjectId);
     if (knowledgePointId) {
-      qs = qs.filter(q => q.knowledgePointId === knowledgePointId);
+      // 先找知识点直接关联的题目
+      let directQs = qs.filter(q => q.knowledgePointId === knowledgePointId);
+      if (directQs.length > 0) {
+        qs = directQs;
+      } else {
+        // 如果没有直接关联的题目，找同一章节的题目
+        const kp = learningState.knowledgePoints.find(k => k.id === knowledgePointId);
+        if (kp?.chapterId) {
+          qs = qs.filter(q => !q.knowledgePointId && q.chapterId === kp.chapterId);
+        }
+      }
     }
     // Shuffle
     return [...qs].sort(() => Math.random() - 0.5).slice(0, 10);
-  }, [learningState.questions, subjectId, knowledgePointId]);
+  }, [learningState.questions, learningState.knowledgePoints, subjectId, knowledgePointId]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
@@ -439,8 +449,30 @@ export default function QuizSessionPage() {
             <div className="mt-2 flex justify-end">
               <button
                 onClick={() => {
-                  navigate('ai-chat', { 
-                    context: `关于这道题：${currentQuestion.stem}，我对解析还有疑问，请进一步讲解`,
+                  // 构建完整的题目上下文
+                  const optionsText = currentQuestion.options.map((opt, idx) => {
+                    const label = String.fromCharCode(65 + idx);
+                    return `${label}. ${opt.text.replace(/^[A-G]\.\s*/, '').trim()}`;
+                  }).join('\n');
+
+                  const correctLabels = currentQuestion.correctAnswers.map(a => {
+                    const idx = currentQuestion.options.findIndex(o => o.id === a);
+                    return String.fromCharCode(65 + idx);
+                  }).join('、');
+
+                  const fullContext = `题目：${currentQuestion.stem}
+
+选项：
+${optionsText}
+
+正确答案：${correctLabels}
+
+AI解析：${currentExplanation}
+
+我对这道题的解析还有疑问，请进一步详细讲解。`;
+
+                  navigate('ai-chat', {
+                    questionContext: fullContext,
                     subjectId: subjectId,
                     knowledgePointId: currentQuestion.knowledgePointId
                   });

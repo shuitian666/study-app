@@ -194,7 +194,7 @@ export default function ReviewSessionPage() {
           </button>
 
           {showExplanation && (
-            <div className="rounded-xl p-4 border mb-3" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+            <div className="rounded-xl p-4 border mb-3" style={{ backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}30` }}>
               <p className="text-sm leading-relaxed" style={{ color: theme.textSecondary }}>{currentKP.explanation}</p>
             </div>
           )}
@@ -243,8 +243,8 @@ export default function ReviewSessionPage() {
                 style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)' }}>
-                    <Sparkles size={18} style={{ color: '#22c55e' }} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${theme.success}20` }}>
+                    <Sparkles size={18} style={{ color: theme.success }} />
                   </div>
                   <div className="text-left">
                     <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>刷题巩固</div>
@@ -259,7 +259,7 @@ export default function ReviewSessionPage() {
               <button
                 onClick={() => handleNextAction('next_stage')}
                 className="w-full rounded-xl p-4 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform text-white"
-                style={{ background: `linear-gradient(to right, ${theme.primary}, #6366f1)` }}
+                style={{ background: `linear-gradient(to right, ${theme.primary}, ${theme.primaryLight})` }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}>

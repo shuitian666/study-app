@@ -34,7 +34,7 @@ const PROVIDER_NAMES: Record<string, string> = {
 };
 
 export default function AIChatPage() {
-  const { navigate } = useUser();
+  const { userState, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
   const { aiChatState, aiChatDispatch } = useAIChat();
   const [input, setInput] = useState('');
@@ -43,9 +43,32 @@ export default function AIChatPage() {
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [backendMode, setBackendMode] = useState<'checking' | 'online' | 'offline'>('checking');
+  const hasSentInitialQuestion = useRef(false);
 
   // 解构 aiChat 对象便于使用
   const { messages, isLoading } = aiChatState.aiChat;
+
+  // 检查是否有题目上下文传入，如果有则自动发送
+  useEffect(() => {
+    const questionContext = userState.pageParams.questionContext;
+    if (questionContext && !hasSentInitialQuestion.current && messages.length === 0) {
+      hasSentInitialQuestion.current = true;
+
+      // 立即发送题目上下文
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'user',
+        content: questionContext,
+        timestamp: new Date().toISOString(),
+      };
+      aiChatDispatch({ type: 'AI_SEND_MESSAGE', payload: userMsg });
+
+      // 清空pageParams避免重复发送
+      setTimeout(() => {
+        navigate('ai-chat', {});
+      }, 100);
+    }
+  }, [userState.pageParams, messages.length, aiChatDispatch, navigate]);
 
   useEffect(() => {
     const config = getAIConfig();

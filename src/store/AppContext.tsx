@@ -153,7 +153,7 @@ function calculateStreak(records: { date: string }[]): number {
 }
 
 // ---------- Actions ----------
-type Action =
+export type Action =
   | { type: 'LOGIN'; payload: User }
   | { type: 'LOGOUT' }
   | { type: 'RESET_ALL' }
@@ -210,7 +210,11 @@ type Action =
   // Undo/Redo actions
   | { type: 'UNDO' }
   | { type: 'REDO' }
-  | { type: 'RECORD_HISTORY'; payload: Partial<AppState> };
+  | { type: 'RECORD_HISTORY'; payload: Partial<AppState> }
+  // Sync actions from LearningContext
+  | { type: 'SYNC_QUIZ_RESULTS'; payload: QuizResult[] }
+  | { type: 'SYNC_WRONG_RECORDS'; payload: WrongRecord[] }
+  | { type: 'SYNC_REVIEW_ITEMS'; payload: { review: ReviewItem[]; newItems: ReviewItem[] } };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -299,7 +303,7 @@ function reducer(state: AppState, action: Action): AppState {
         const reviewCompleted = reviewItems.length === 0 || reviewItems.every(r => r.completed);
 
         // 每日新学目标完成检查
-        const dailyNewGoal = state.user?.dailyGoal ?? 10;
+        const dailyNewGoal = state.user?.dailyNewGoal ?? 15;
         const newItems = state.todayNewItems;
         const completedNewCount = newItems.filter(r => r.completed).length;
         const newLearnCompleted = completedNewCount >= dailyNewGoal;
@@ -373,9 +377,14 @@ function reducer(state: AppState, action: Action): AppState {
           regular: state.drawBalance.regular + regularTickets,
           up: state.drawBalance.up + upTickets,
         },
-        user: streakCoins > 0 && state.user
-          ? { ...state.user, totalPoints: state.user.totalPoints + streakCoins }
-          : state.user,
+        // 签到成功时同步更新 learningDays（非补签）
+        user: state.user
+          ? {
+              ...state.user,
+              totalPoints: streakCoins > 0 ? state.user.totalPoints + streakCoins : state.user.totalPoints,
+              learningDays: isMakeup ? state.user.learningDays : state.user.learningDays + 1,
+            }
+          : null,
         lastCheckinReward: { regularTickets, upTickets, streakCoins, streakLabel },
         team: state.team && action.payload.type === 'team'
           ? { ...state.team, todayCheckedIn: true }
@@ -963,6 +972,18 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
+    // Sync actions from LearningContext
+    case 'SYNC_QUIZ_RESULTS':
+      return { ...state, quizResults: action.payload };
+    case 'SYNC_WRONG_RECORDS':
+      return { ...state, wrongRecords: action.payload };
+    case 'SYNC_REVIEW_ITEMS':
+      return {
+        ...state,
+        todayReviewItems: action.payload.review,
+        todayNewItems: action.payload.newItems
+      };
+
     default:
       return state;
   }
@@ -1015,13 +1036,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, getInitialState);
   const isFirstRender = useRef(true);
 
+  // 注册 dispatch 到同步注册表，让 LearningContext 可以同步状态
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    }
+    // 注册 dispatch 用于跨 Context 同步
+    import('./syncRegistry').then(({ registerAppDispatch }) => {
+      registerAppDispatch(dispatch);
+    });
+  }, [dispatch]);
+
   // 持久化状态到 localStorage
+  // 注意：checkin 由 GameContext 管理，AppContext 保存时需要保留 GameContext 的 checkin 数据
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    saveState(state as unknown as Record<string, unknown>);
+    // 从 localStorage 读取 GameContext 保存的 checkin（最新的签到数据）
+    const saved = loadState();
+    const currentCheckin = saved?.checkin;
+
+    // 构建保存状态，确保不覆盖 GameContext 的 checkin
+    const stateToSave = {
+      ...(state as unknown as Record<string, unknown>),
+      // 保留 localStorage 中 GameContext 的 checkin，不使用 AppContext 的 stale checkin
+      checkin: currentCheckin ?? state.checkin,
+    };
+
+    saveState(stateToSave);
   }, [state]);
 
   const getLearningStats = (): LearningStats => {
@@ -1103,9 +1147,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const stats = getLearningStats();
     const totalKnowledge = stats.totalKnowledgePoints;
-    const totalCheckins = state.checkin.totalCheckins;
     const totalQuizzes = stats.totalQuizzes;
-    const makeupUsed = state.checkin.totalCheckins - state.checkin.records.filter(r => r.type !== 'makeup').length;
+
+    // 从 localStorage 读取 GameContext 的 checkin 数据（权威数据源）
+    const savedState = loadState();
+    const checkinData = savedState?.checkin as { records: { date: string; type: string }[]; streak: number; totalCheckins: number } | undefined;
+    const checkinRecords = checkinData?.records || [];
+    const checkinStreak = checkinData?.streak || 0;
+    const checkinTotal = checkinData?.totalCheckins || 0;
+    const makeupUsed = checkinTotal - checkinRecords.filter(r => r.type !== 'makeup').length;
     const perfectQuizzesCount = state.quizResults.filter(q => q.score === 100).length;
 
     // 遍历所有未解锁成就，检查条件
@@ -1114,25 +1164,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       let met = false;
       const cond = ach.condition;
-      
+
       switch (cond.type) {
+        // 初次学习 - 完成第一次知识点学习
+        case 'first_learn':
+          met = state.todayReviewItems.some(r => r.completed) || state.todayNewItems.some(r => r.completed);
+          break;
+        // 首次签到
+        case 'first_checkin':
+          met = checkinTotal >= cond.value;
+          break;
+        // 连续学习天数
+        case 'streak_days':
+          met = checkinStreak >= cond.value;
+          break;
+        // 掌握知识点数量
+        case 'master_count':
+          met = stats.masteredCount >= cond.value;
+          break;
+        // 累计知识点数量（含未掌握的）
         case 'total_knowledge':
           met = totalKnowledge >= cond.value;
           break;
+        // 累计签到天数
         case 'total_checkins':
-          met = totalCheckins >= cond.value;
+          met = checkinTotal >= cond.value;
           break;
+        // 累计测验次数
         case 'total_quizzes':
           met = totalQuizzes >= cond.value;
           break;
+        // 使用补签卡次数
         case 'makeup_used':
           met = makeupUsed >= cond.value;
           break;
+        // 满分测验（任意一次得100分）
+        case 'perfect_quiz':
+          met = perfectQuizzesCount >= cond.value;
+          break;
+        // 连续满分次数（10次满分）
         case 'one_session_correct':
           met = perfectQuizzesCount >= cond.value;
           break;
-        // 原有条件已经在其他地方处理了
-        default:
+        // 错题本清零：曾有过错题，现在全部清除了
+        case 'clear_wrong':
+          met = state.quizResults.length > 0 && state.wrongRecords.length === 0;
           break;
       }
 
@@ -1144,7 +1220,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.isLoggedIn,
     state.knowledgePoints.length,
     state.checkin.totalCheckins,
+    state.checkin.streak,
     state.quizResults.length,
+    state.wrongRecords.length,
+    state.todayReviewItems,
+    state.todayNewItems,
     state.achievements
   ]);
 

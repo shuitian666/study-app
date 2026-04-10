@@ -1,48 +1,163 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #6366f1;
-  --color-primary-light: #818cf8;
-  --color-primary-dark: #4f46e5;
-  --color-secondary: #f59e0b;
-  --color-secondary-light: #fbbf24;
-  --color-accent: #10b981;
-  --color-accent-light: #34d399;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-success: #10b981;
-  --color-bg: #f8fafc;
-  --color-bg-card: #ffffff;
-  --color-text-primary: #1e293b;
-  --color-text-secondary: #64748b;
-  --color-text-muted: #94a3b8;
-  --color-border: #e2e8f0;
+  /* 核心颜色 - 使用 CSS 变量以便运行时动态切换 */
+  --color-primary: var(--color-primary-var);
+  --color-primary-light: var(--color-primary-light-var);
+  --color-primary-dark: var(--color-primary-dark-var);
+  --color-secondary: var(--color-secondary-var);
+  --color-secondary-light: var(--color-secondary-light-var);
+  --color-accent: var(--color-accent-var);
+  --color-accent-light: var(--color-accent-light-var);
+  --color-danger: var(--color-danger-var);
+  --color-warning: var(--color-warning-var);
+  --color-success: var(--color-success-var);
+  --color-bg: var(--color-bg-var);
+  --color-bg-card: var(--color-bg-card-var);
+  --color-text-primary: var(--color-text-primary-var);
+  --color-text-secondary: var(--color-text-secondary-var);
+  --color-text-muted: var(--color-text-muted-var);
+  --color-border: var(--color-border-var);
 
-  --color-prof-none: #ef4444;
-  --color-prof-rusty: #f59e0b;
-  --color-prof-normal: #3b82f6;
-  --color-prof-master: #10b981;
+  /* Surface 层级颜色 - Fluid Scholar 风格 */
+  --color-surface: var(--color-surface-var);
+  --color-surface-container-low: var(--color-surface-container-low-var);
+  --color-surface-container-high: var(--color-surface-container-high-var);
+  --color-surface-container-highest: var(--color-surface-container-highest-var);
+  --color-surface-container-lowest: var(--color-surface-container-lowest-var);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
-  
+  /* 特殊颜色 */
+  --color-tertiary: var(--color-tertiary-var);
+  --color-tertiary-container: var(--color-tertiary-container-var);
+  --color-tertiary-fixed: var(--color-tertiary-fixed-var);
+  --color-primary-fixed: var(--color-primary-fixed-var);
+  --color-secondary-fixed: var(--color-secondary-fixed-var);
+  --color-on-surface: var(--color-on-surface-var);
+  --color-on-surface-variant: var(--color-on-surface-variant-var);
+  --color-outline-variant: var(--color-outline-variant-var);
+
+  --color-prof-none: var(--color-prof-none-var);
+  --color-prof-rusty: var(--color-prof-rusty-var);
+  --color-prof-normal: var(--color-prof-normal-var);
+  --color-prof-master: var(--color-prof-master-var);
+
+  /* 扩展颜色映射 */
+  --color-white: var(--color-surface-container-lowest-var);
+  --color-gray-50: var(--color-surface-container-low-var);
+  --color-gray-100: var(--color-surface-container-high-var);
+  --color-gray-200: var(--color-outline-variant-var);
+
+  /* 字体 */
+  --font-sans: 'Inter', 'PingFang SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-headline: 'Plus Jakarta Sans', 'Inter', 'PingFang SC', 'Noto Sans SC', sans-serif;
+
   /* 字体大小 */
-  --font-size-xs: 0.75rem;    /* 12px */
-  --font-size-sm: 0.875rem;   /* 14px */
-  --font-size-base: 1rem;      /* 16px */
-  --font-size-lg: 1.125rem;    /* 18px */
-  --font-size-xl: 1.25rem;     /* 20px */
-  --font-size-2xl: 1.5rem;     /* 24px */
-  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
   /* 字重 */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  
+  --font-weight-extrabold: 800;
+
   /* 行高 */
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.75;
+
+  /* 圆角 - Fluid Scholar 风格 */
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-3xl: 3rem;
+  --radius-full: 9999px;
+}
+
+/* 默认值 - 经典浅色主题 */
+:root {
+  --color-primary-var: #6366f1;
+  --color-primary-light-var: #818cf8;
+  --color-primary-dark-var: #4f46e5;
+  --color-secondary-var: #f59e0b;
+  --color-secondary-light-var: #fbbf24;
+  --color-accent-var: #10b981;
+  --color-accent-light-var: #34d399;
+  --color-danger-var: #ef4444;
+  --color-warning-var: #f59e0b;
+  --color-success-var: #10b981;
+  --color-bg-var: #f8fafc;
+  --color-bg-card-var: #ffffff;
+  --color-text-primary-var: #1e293b;
+  --color-text-secondary-var: #64748b;
+  --color-text-muted-var: #94a3b8;
+  --color-border-var: #e2e8f0;
+  --color-prof-none-var: #ef4444;
+  --color-prof-rusty-var: #f59e0b;
+  --color-prof-normal-var: #3b82f6;
+  --color-prof-master-var: #10b981;
+
+  /* Surface 层级 */
+  --color-surface-var: #f8f9fa;
+  --color-surface-container-low-var: #f3f4f5;
+  --color-surface-container-high-var: #e7e8e9;
+  --color-surface-container-highest-var: #e1e3e4;
+  --color-surface-container-lowest-var: #ffffff;
+  --color-on-surface-var: #191c1d;
+  --color-on-surface-variant-var: #454652;
+  --color-outline-variant-var: #c5c5d4;
+  --color-tertiary-var: #73008e;
+  --color-tertiary-container-var: #9026ac;
+  --color-tertiary-fixed-var: #fdd6ff;
+  --color-primary-fixed-var: #dee0ff;
+  --color-secondary-fixed-var: #ffdfa0;
+}
+
+/* Fluid Scholar 主题变量 */
+[data-theme="fluidScholar"] {
+  --color-primary-var: #24389c;
+  --color-primary-light-var: #4355b9;
+  --color-primary-dark-var: #1a2656;
+  --color-secondary-var: #795900;
+  --color-secondary-light-var: #ffbf00;
+  --color-accent-var: #10b981;
+  --color-accent-light-var: #34d399;
+  --color-danger-var: #ba1a1a;
+  --color-warning-var: #f59e0b;
+  --color-success-var: #10b981;
+  --color-bg-var: #f8f9fa;
+  --color-bg-card-var: #ffffff;
+  --color-text-primary-var: #191c1d;
+  --color-text-secondary-var: #454652;
+  --color-text-muted-var: #757684;
+  --color-border-var: #c5c5d4;
+  --color-prof-none-var: #ef4444;
+  --color-prof-rusty-var: #f59e0b;
+  --color-prof-normal-var: #3b82f6;
+  --color-prof-master-var: #10b981;
+
+  /* Surface 层级 - Fluid Scholar */
+  --color-surface-var: #f8f9fa;
+  --color-surface-container-low-var: #f3f4f5;
+  --color-surface-container-high-var: #e7e8e9;
+  --color-surface-container-highest-var: #e1e3e4;
+  --color-surface-container-lowest-var: #ffffff;
+  --color-on-surface-var: #191c1d;
+  --color-on-surface-variant-var: #454652;
+  --color-outline-variant-var: #c5c5d4;
+  --color-tertiary-var: #73008e;
+  --color-tertiary-container-var: #9026ac;
+  --color-tertiary-fixed-var: #fdd6ff;
+  --color-primary-fixed-var: #dee0ff;
+  --color-secondary-fixed-var: #ffdfa0;
 }
 
 * {
@@ -60,7 +175,7 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
-  background-color: #e8eaed;
+  background-color: var(--color-surface-var);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

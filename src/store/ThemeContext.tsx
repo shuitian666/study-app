@@ -22,14 +22,20 @@ export const useTheme = () => {
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userState } = useUser();
-  
-  // 根据当前背景ID获取主题
+
+  // 根据当前背景ID和主题风格获取主题
   const theme = useMemo(() => {
-    return getThemeByBackgroundId(userState.user?.background ?? undefined);
-  }, [userState.user?.background]);
-  
+    return getThemeByBackgroundId(userState.user?.background ?? undefined, userState.user?.themeStyle);
+  }, [userState.user?.background, userState.user?.themeStyle]);
+
   // 判断是否为深色主题
   const isDark = useMemo(() => {
+    // 如果是 Fluid Scholar 主题，根据背景的暗色程度判断
+    if (userState.user?.themeStyle === 'fluidScholar') {
+      // Fluid Scholar 主题整体偏亮，但不是纯白
+      const bgColor = theme.bg;
+      return bgColor.includes('#1a2656') || bgColor.includes('rgba(30, 30, 30');
+    }
     // 基于主题的bg颜色判断是否为深色
     const bgColor = theme.bg;
     if (bgColor.startsWith('rgba')) {
@@ -38,8 +44,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     // 对于其他颜色，简单判断是否包含深色关键词
     return bgColor.includes('1e1b4b') || bgColor.includes('064e3b') || bgColor.includes('1e3a5f');
-  }, [theme.bg]);
-  
+  }, [theme.bg, userState.user?.themeStyle]);
+
   return (
     <ThemeContext.Provider value={{ theme, isDark }}>
       {children}

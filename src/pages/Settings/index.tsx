@@ -16,13 +16,13 @@ import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import type { AIConfig } from '@/types';
 import { getAIConfig, setAIConfig } from '@/services/aiClient';
-import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle } from 'lucide-react';
+import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle, Palette } from 'lucide-react';
 
 // 豆包默认模型
 const DEFAULT_DOUBAN_MODEL = 'doubao-lite-32k';
 
 export default function SettingsPage() {
-  const { userDispatch, navigate } = useUser();
+  const { userState, userDispatch, navigate } = useUser();
   const { learningState } = useLearning();
   const { theme } = useTheme();
   
@@ -106,6 +106,11 @@ export default function SettingsPage() {
     return saved || 'fade-in';
   });
 
+  // 主题风格状态 ('default' | 'fluidScholar')
+  const [themeStyle, setThemeStyle] = useState(() => {
+    return userState.user?.themeStyle || 'default';
+  });
+
   // 计算今日完成数量
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -136,6 +141,15 @@ export default function SettingsPage() {
     setSubAnimationEffect(effect);
   };
 
+  // 保存主题风格
+  const handleSaveThemeStyle = (style: string) => {
+    userDispatch({
+      type: 'UPDATE_USER',
+      payload: { themeStyle: style }
+    });
+    setThemeStyle(style);
+  };
+
   // 销号处理
   const handleDestroyAccount = () => {
     if (destroyConfirmText !== '确认销号') return;
@@ -164,17 +178,22 @@ export default function SettingsPage() {
   return (
     <div className="page-scroll pb-4">
       {/* 渐变头部背景 */}
-      <div className="bg-gradient-to-br from-primary to-primary-dark text-white px-5 pt-10 pb-6 rounded-b-[40px] mb-4">
+      <div 
+        className="text-white px-5 pt-16 pb-6 rounded-b-[40px] mb-4 overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
+        }}
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">设置</h2>
           <button
             onClick={() => navigate('profile')}
             className="p-2 bg-white/20 rounded-full active:bg-white/30 transition-colors"
           >
-            <span className="text-white text-sm">返回</span>
+            <span className="text-sm" style={{ color: '#ffffff' }}>返回</span>
           </button>
         </div>
-        <p className="text-white/70 text-sm mt-1">个性化您的学习体验</p>
+        <p className="text-sm mt-1" style={{ color: '#ffffff' }}>个性化您的学习体验</p>
       </div>
 
       {/* AI设置 */}
@@ -488,6 +507,83 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* 主题风格设置 */}
+      <div className="px-4 mt-4">
+        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+          <Palette size={16} className="text-primary" />
+          主题风格
+        </h3>
+
+        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
+          <div className="text-xs text-text-muted mb-3">选择主题风格后，将统一应用于所有背景</div>
+
+          <div className="space-y-2">
+            {/* 经典风格 */}
+            <button
+              onClick={() => handleSaveThemeStyle('default')}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                themeStyle === 'default'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-white hover:border-primary/30'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+                  >
+                    <span className="text-white text-lg">🎨</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">经典风格</div>
+                    <div className="text-xs text-text-muted">多彩主题，各背景有独立配色</div>
+                  </div>
+                </div>
+                {themeStyle === 'default' && <Check size={18} className="text-primary" />}
+              </div>
+            </button>
+
+            {/* Fluid Scholar 风格 */}
+            <button
+              onClick={() => handleSaveThemeStyle('fluidScholar')}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                themeStyle === 'fluidScholar'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-white hover:border-primary/30'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #24389c, #73008e)' }}
+                  >
+                    <span className="text-white text-lg">✨</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Fluid Scholar</div>
+                    <div className="text-xs text-text-muted">专业编辑风格，统一配色适配所有背景</div>
+                  </div>
+                </div>
+                {themeStyle === 'fluidScholar' && <Check size={18} className="text-primary" />}
+              </div>
+              {/* 风格预览 */}
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#24389c' }} />
+                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#4355b9' }} />
+                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#73008e' }} />
+                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#9026ac' }} />
+                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#ffdfa0' }} />
+                </div>
+                <span className="text-[10px] text-text-muted">深靛蓝 + 紫色 + 琥珀色</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 提示信息 */}
       <div className="px-4 mt-4">
         <div className="bg-blue-50 p-3 text-xs text-blue-700" style={{ borderRadius: getBorderRadius('medium') }}>
@@ -497,6 +593,7 @@ export default function SettingsPage() {
             <li>• <strong>离线模式</strong>：无需联网，功能有限</li>
             <li>• 完成{dailyGoal}题可达成今日学习目标</li>
             <li>• 主界面和学习界面可分别设置不同的动画效果</li>
+            <li>• Fluid Scholar 风格将统一配色，适配所有背景</li>
           </ul>
         </div>
       </div>

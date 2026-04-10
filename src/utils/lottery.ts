@@ -76,6 +76,25 @@ export function drawLottery(pity: LotteryPityState): {
 
 export function drawFromUpPool(config: UpPoolConfig): UpPoolResult {
   const items = config.items;
+
+  // Defensive check: if no items, return a default
+  if (!items || items.length === 0) {
+    return {
+      item: {
+        id: 'default',
+        name: '谢谢参与',
+        description: '感谢您的参与',
+        icon: '🎁',
+        type: 'avatar_frame',
+        rarity: 'N',
+        probability: 1,
+        owned: false,
+      },
+      isNew: true,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   const rand = Math.random();
   let cumulative = 0;
 

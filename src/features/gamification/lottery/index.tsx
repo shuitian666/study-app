@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useGame, isValidRedeemCode } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
@@ -22,6 +22,38 @@ export default function LotteryPage() {
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemMsg, setRedeemMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
+  // 安全的 upPool items - 防御性检查
+  const safeUpPoolItems = useMemo(() => {
+    if (!upPool || !Array.isArray(upPool.items) || upPool.items.length === 0) {
+      return [];
+    }
+    return upPool.items;
+  }, [upPool]);
+
+  // 安全的 upPool 名称
+  const safeUpPoolName = useMemo(() => {
+    if (!upPool || typeof upPool.name !== 'string') {
+      return '限时奖池';
+    }
+    return upPool.name;
+  }, [upPool]);
+
+  // 安全的 upPool 描述
+  const safeUpPoolDesc = useMemo(() => {
+    if (!upPool || typeof upPool.description !== 'string') {
+      return '限时UP奖池';
+    }
+    return upPool.description;
+  }, [upPool]);
+
+  // 安全的 upPool banner
+  const safeUpPoolBanner = useMemo(() => {
+    if (!upPool || typeof upPool.banner !== 'string') {
+      return '🎁';
+    }
+    return upPool.banner;
+  }, [upPool]);
+
   // ---- Regular pool draw ----
   const handleRegularDraw = () => {
     if (drawBalance.regular <= 0) return;
@@ -38,7 +70,7 @@ export default function LotteryPage() {
     if (drawBalance.regular < 10) return;
     const results: LotteryResult[] = [];
     let currentPity = checkin.lotteryPity;
-    
+
     // 连续抽取10次，每次更新保底计数
     for (let i = 0; i < 10; i++) {
       const { result, newPity } = drawLottery(currentPity);
@@ -46,7 +78,7 @@ export default function LotteryPage() {
       gameDispatch({ type: 'DRAW_REGULAR', payload: result });
       currentPity = newPity;
     }
-    
+
     // 弹出结果汇总，显示最后一次
     const lastResult = results[9];
     gameDispatch({
@@ -237,8 +269,8 @@ export default function LotteryPage() {
           <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h3 className="text-white font-bold text-base">{upPool.banner} {upPool.name}</h3>
-                <p className="text-white/70 text-xs mt-0.5">{upPool.description}</p>
+                <h3 className="text-white font-bold text-base">{safeUpPoolBanner} {safeUpPoolName}</h3>
+                <p className="text-white/70 text-xs mt-0.5">{safeUpPoolDesc}</p>
               </div>
               <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
                 <Clock size={12} className="text-white/80" />
@@ -250,27 +282,33 @@ export default function LotteryPage() {
           {/* UP pool items */}
           <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
             <h3 className="text-sm font-semibold mb-3">限时奖品</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {upPool.items.map(item => {
-                const rc = RARITY_COLORS[item.rarity];
-                return (
-                  <div key={item.id} className={`rounded-xl p-3 border ${rc.border} ${rc.bg} relative`}>
-                    {item.owned && (
-                      <div className="absolute top-1.5 right-1.5 bg-accent text-white text-[8px] px-1.5 py-0.5 rounded-full">
-                        已拥有
+            {safeUpPoolItems.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {safeUpPoolItems.map(item => {
+                  const rc = RARITY_COLORS[item.rarity] || RARITY_COLORS.R;
+                  return (
+                    <div key={item.id} className={`rounded-xl p-3 border ${rc.border} ${rc.bg} relative`}>
+                      {item.owned && (
+                        <div className="absolute top-1.5 right-1.5 bg-accent text-white text-[8px] px-1.5 py-0.5 rounded-full">
+                          已拥有
+                        </div>
+                      )}
+                      <div className="text-2xl mb-1">{item.icon}</div>
+                      <p className={`text-xs font-semibold ${rc.text}`}>{item.name}</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">{item.description}</p>
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <span className={`text-[9px] font-bold ${rc.text}`}>{item.rarity}</span>
+                        <span className="text-[9px] text-text-muted">{(item.probability * 100).toFixed(0)}%</span>
                       </div>
-                    )}
-                    <div className="text-2xl mb-1">{item.icon}</div>
-                    <p className={`text-xs font-semibold ${rc.text}`}>{item.name}</p>
-                    <p className="text-[10px] text-text-muted mt-0.5">{item.description}</p>
-                    <div className="flex items-center gap-1 mt-1.5">
-                      <span className={`text-[9px] font-bold ${rc.text}`}>{item.rarity}</span>
-                      <span className="text-[9px] text-text-muted">{(item.probability * 100).toFixed(0)}%</span>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-text-muted text-sm">
+                暂无可用奖品
+              </div>
+            )}
           </div>
 
           {/* UP draw buttons - 单抽 + 十连抽 */}

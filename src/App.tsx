@@ -177,9 +177,10 @@ function AppContent() {
     }
   };
 
-  const isFullScreen = userState.currentPage === 'login' || userState.currentPage === 'quiz-result' || userState.currentPage === 'ai-chat' 
-    || userState.currentPage === 'quiz-session' || userState.currentPage === 'knowledge-detail' || userState.currentPage === 'add-knowledge' 
-    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'review-session' || userState.currentPage === 'wrong-book';
+  const isFullScreen = userState.currentPage === 'login' || userState.currentPage === 'quiz-result' || userState.currentPage === 'ai-chat'
+    || userState.currentPage === 'quiz-session' || userState.currentPage === 'knowledge-detail' || userState.currentPage === 'add-knowledge'
+    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'review-session' || userState.currentPage === 'wrong-book'
+    || userState.currentPage === 'flashcard-learning';
 
   // 五个主页面用于循环滑动切换
   const mainTabs = ['home', 'knowledge', 'quiz', 'knowledge-map', 'profile'] as const;
@@ -214,7 +215,7 @@ function AppContent() {
               </Suspense>
             </div>
           </div>
-          {userState.isLoggedIn && <TabBar />}
+          {userState.isLoggedIn && !isFullScreen && <TabBar />}
           <AchievementPopup />
           <LotteryDrawModal />
         </div>

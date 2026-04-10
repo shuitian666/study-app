@@ -14,7 +14,7 @@ import type {
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
-import { saveState, loadState } from './persistence';
+import { saveState, loadState, deepMergeState } from './persistence';
 import { getKnowledgeData, hasKnowledgeData, storeKnowledgeData } from '@/services/indexedDBService';
 
 // ---------- State ----------
@@ -79,7 +79,8 @@ type LearningAction =
   | { type: 'RECORD_FLASHCARD_STUDY'; payload: { knowledgePointId: string; score: number } }
   | { type: 'RECORD_QUIZ_ANSWER'; payload: { knowledgePointId: string; questionId: string; correct: boolean; score: number } }
   | { type: 'UPDATE_KNOWLEDGE_POINT_SCORE'; payload: { id: string; score: number } }
-  | { type: 'SET_MEMORY_TIP'; payload: { knowledgePointId: string; tip: string } };
+  | { type: 'SET_MEMORY_TIP'; payload: { knowledgePointId: string; tip: string } }
+  | { type: 'UPDATE_FSRS_CARD'; payload: { knowledgePointId: string; updates: Partial<KnowledgePointExtended> } };
 
 function learningReducer(state: LearningState, action: LearningAction): LearningState {
   switch (action.type) {
@@ -198,14 +199,53 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         _canRedo: newHistoryIndex < state._history.length - 1,
       };
     }
-    case 'SET_KNOWLEDGE_DATA':
+    case 'SET_KNOWLEDGE_DATA': {
+      // 合并知识库数据：下载的数据与现有数据合并（按ID去重）
+      const existingKPIds = new Set(state.knowledgePoints.map(kp => kp.id));
+      const newKPIds = new Set(action.payload.knowledgePoints.map(kp => kp.id));
+
+      // 找出本地有但下载数据没有的（保留本地独有的）
+      const localOnlyKP = state.knowledgePoints.filter(kp => !newKPIds.has(kp.id));
+      // 找出下载有但本地没有的（新增的）
+      const newOnlyKP = action.payload.knowledgePoints.filter(kp => !existingKPIds.has(kp.id)) as KnowledgePointExtended[];
+      // 合并：本地独有 + (本地和下载都有的，用下载的更新) + 下载独有的
+      const mergedKP = [
+        ...localOnlyKP,
+        ...state.knowledgePoints.filter(kp => newKPIds.has(kp.id)).map(existing => {
+          const downloaded = action.payload.knowledgePoints.find(kp => kp.id === existing.id);
+          return downloaded ? { ...existing, ...downloaded } as KnowledgePointExtended : existing;
+        }),
+        ...newOnlyKP
+      ];
+
+      // 同样合并 subjects 和 chapters
+      const existingSubjectIds = new Set(state.subjects.map(s => s.id));
+      const mergedSubjects = [
+        ...state.subjects,
+        ...action.payload.subjects.filter(s => !existingSubjectIds.has(s.id))
+      ];
+
+      const existingChapterIds = new Set(state.chapters.map(c => c.id));
+      const mergedChapters = [
+        ...state.chapters,
+        ...action.payload.chapters.filter(c => !existingChapterIds.has(c.id))
+      ];
+
+      // 合并 questions
+      const existingQuestionIds = new Set(state.questions.map(q => q.id));
+      const mergedQuestions = [
+        ...state.questions,
+        ...action.payload.questions.filter(q => !existingQuestionIds.has(q.id))
+      ];
+
       return {
         ...state,
-        subjects: action.payload.subjects,
-        chapters: action.payload.chapters,
-        knowledgePoints: action.payload.knowledgePoints as KnowledgePointExtended[],
-        questions: action.payload.questions,
+        subjects: mergedSubjects,
+        chapters: mergedChapters,
+        knowledgePoints: mergedKP,
+        questions: mergedQuestions,
       };
+    }
     case 'SET_LOADING':
       return {
         ...state,
@@ -263,6 +303,16 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ),
       };
     }
+    case 'UPDATE_FSRS_CARD': {
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp =>
+          kp.id === action.payload.knowledgePointId
+            ? { ...kp, ...action.payload.updates }
+            : kp
+        ),
+      };
+    }
     default:
       return state;
   }
@@ -283,6 +333,22 @@ export function updateKnowledgePointScore(id: string, score: number) {
 
 export function setMemoryTip(knowledgePointId: string, tip: string) {
   return { type: 'SET_MEMORY_TIP', payload: { knowledgePointId, tip } };
+}
+
+// FSRS 相关 Action
+export function updateFsrsCard(
+  knowledgePointId: string,
+  updates: Partial<Pick<
+    KnowledgePointExtended,
+    'fsrsStability' | 'fsrsDifficulty' | 'fsrsState' |
+    'fsrsLearningSteps' | 'fsrsLapses' | 'fsrsReps' |
+    'nextReviewAt' | 'lastReviewedAt'
+  >>
+) {
+  return {
+    type: 'UPDATE_FSRS_CARD',
+    payload: { knowledgePointId, updates }
+  };
 }
 
 // ---------- Context ----------
@@ -330,6 +396,7 @@ function getInitialLearningState(): LearningState {
 export function LearningProvider({ children }: { children: ReactNode }) {
   const [learningState, learningDispatch] = useReducer(learningReducer, undefined, getInitialLearningState);
   const isFirstRender = useRef(true);
+  const isIndexedDBLoaded = useRef(false);
 
   // 加载IndexedDB中的知识库数据
   useEffect(() => {
@@ -339,15 +406,17 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         const hasData = await hasKnowledgeData();
         if (hasData) {
           const data = await getKnowledgeData();
-          learningDispatch({ 
-            type: 'SET_KNOWLEDGE_DATA', 
-            payload: data 
+          learningDispatch({
+            type: 'SET_KNOWLEDGE_DATA',
+            payload: data
           });
+          console.log('[LearningContext] Loaded from IndexedDB:', data.knowledgePoints.length, 'knowledge points');
         }
       } catch (error) {
         console.error('Failed to load knowledge data from IndexedDB:', error);
       } finally {
         learningDispatch({ type: 'SET_LOADING', payload: false });
+        isIndexedDBLoaded.current = true;
       }
     };
 
@@ -357,15 +426,14 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // 持久化状态到 localStorage
+  // 持久化状态到 localStorage - 使用深度合并防止覆盖其他 Context 的数据
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
     const currentState = loadState();
-    saveState({
-      ...currentState,
+    const mergedState = deepMergeState(currentState || {}, {
       subjects: learningState.subjects,
       chapters: learningState.chapters,
       knowledgePoints: learningState.knowledgePoints,
@@ -376,24 +444,55 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       todayNewItems: learningState.todayNewItems,
       questionExplanations: learningState.questionExplanations,
     });
+    saveState(mergedState);
+    console.log('[LearningContext] Saved to localStorage, kp count:', learningState.knowledgePoints.length);
   }, [learningState]);
+
+  // 同步学习状态到 AppContext（用于 Home 页和签到条件判定）
+  useEffect(() => {
+    if (isFirstRender.current) return;
+
+    // 动态导入避免循环依赖
+    import('./syncRegistry').then(({ getAppDispatch }) => {
+      const appDispatch = getAppDispatch();
+      if (appDispatch) {
+        appDispatch({ type: 'SYNC_QUIZ_RESULTS', payload: learningState.quizResults });
+        appDispatch({ type: 'SYNC_WRONG_RECORDS', payload: learningState.wrongRecords });
+        appDispatch({
+          type: 'SYNC_REVIEW_ITEMS',
+          payload: {
+            review: learningState.todayReviewItems,
+            newItems: learningState.todayNewItems
+          }
+        });
+      }
+    });
+  }, [
+    learningState.quizResults,
+    learningState.wrongRecords,
+    learningState.todayReviewItems,
+    learningState.todayNewItems
+  ]);
 
   // 当知识库数据变化时，同步到IndexedDB
   useEffect(() => {
     const saveKnowledgeData = async () => {
       try {
+        const kpCount = learningState.knowledgePoints.length;
+        console.log('[IndexedDB] Saving knowledge data:', { kpCount, subjects: learningState.subjects.length, chapters: learningState.chapters.length });
         await storeKnowledgeData({
           subjects: learningState.subjects,
           chapters: learningState.chapters,
           knowledgePoints: learningState.knowledgePoints,
           questions: learningState.questions,
         });
+        console.log('[IndexedDB] Save complete, kpCount:', learningState.knowledgePoints.length);
       } catch (error) {
-        console.error('Failed to save knowledge data to IndexedDB:', error);
+        console.error('[IndexedDB] Failed to save knowledge data:', error);
       }
     };
 
-    if (!isFirstRender.current) {
+    if (!isFirstRender.current && isIndexedDBLoaded.current) {
       saveKnowledgeData();
     }
   }, [learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions]);

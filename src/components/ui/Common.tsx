@@ -24,18 +24,26 @@ export function PageHeader({
   rightAction?: React.ReactNode;
 }) {
   const { theme, isDark } = useTheme();
-  
+
+  // 计算半透明背景色
+  const bgOpacity = isDark ? 0.1 : 0.95;
+  const bgColor = isDark ? `rgba(255, 255, 255, ${bgOpacity})` : `rgba(255, 255, 255, ${bgOpacity})`;
+
   return (
-    <div className="sticky top-0 z-40 backdrop-blur-sm border-b transition-all duration-300" style={{ 
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.95)',
-      borderColor: theme.border
-    }}>
+    <div
+      className="sticky top-0 z-40 backdrop-blur-sm border-b transition-all duration-300"
+      style={{
+        backgroundColor: bgColor,
+        borderColor: theme.border
+      }}
+    >
       <div className="flex items-center justify-between h-12 px-4">
         <div className="w-16">
           {onBack && (
-            <button 
-              onClick={onBack} 
-              className="text-text-secondary text-sm flex items-center gap-1 transition-all duration-200 hover:text-primary active:scale-95"
+            <button
+              onClick={onBack}
+              className="text-sm flex items-center gap-1 transition-all duration-200 active:scale-95"
+              style={{ color: theme.textSecondary }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
               返回
@@ -43,7 +51,7 @@ export function PageHeader({
           )}
         </div>
 
-        <h1 className="text-base font-semibold text-text-primary">{title}</h1>
+        <h1 className="text-base font-semibold" style={{ color: theme.textPrimary }}>{title}</h1>
 
         <div className="w-16 flex justify-end">{rightAction}</div>
 
@@ -75,19 +83,30 @@ export function ProgressBar({ value, max, color = 'bg-primary' }: { value: numbe
 }
 
 export function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  const { theme, isDark } = useTheme();
-  
+  const { theme } = useTheme();
+
   return (
-    <div 
-      className="rounded-xl p-3 text-center border transition-all duration-300 hover:shadow-md active:scale-98"
-      style={{ 
+    <div
+      className="text-center transition-all duration-300 hover:shadow-md active:scale-98"
+      style={{
         backgroundColor: theme.bgCard,
-        borderColor: theme.border,
-        boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+        borderRadius: 'var(--card-radius)',
+        padding: 'var(--card-padding)',
+        boxShadow: theme.cardShadow !== 'none'
+          ? '0 2px 8px rgba(0, 0, 0, 0.1)'
+          : 'none',
+        border: theme.isFluidScholar ? '1px solid var(--color-outline-variant-var)' : `1px solid ${theme.border}`,
       }}
     >
-      <div className={`text-xl font-bold ${color ?? 'text-primary'}`}>{value}</div>
-      <div className="text-xs text-text-muted mt-0.5">{label}</div>
+      <div
+        className="text-xl font-bold"
+        style={{ color: color || theme.primary }}
+      >
+        {value}
+      </div>
+      <div className="text-xs mt-0.5" style={{ color: theme.textMuted }}>
+        {label}
+      </div>
     </div>
   );
 }
@@ -147,12 +166,13 @@ export function Button({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 ${sizeClasses[size]}`}
+      className={`font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 ${sizeClasses[size]}`}
       style={{
         backgroundColor: disabled ? 'rgba(0, 0, 0, 0.1)' : style.backgroundColor,
         color: disabled ? 'rgba(0, 0, 0, 0.4)' : style.color,
         border: style.border,
-        cursor: disabled ? 'not-allowed' : 'pointer'
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        borderRadius: 'var(--button-radius)',
       }}
       onMouseEnter={(e) => {
         if (!disabled) {
@@ -220,15 +240,19 @@ export function Card({
   children: React.ReactNode;
   className?: string;
 }) {
-  const { theme, isDark } = useTheme();
-  
+  const { theme } = useTheme();
+
   return (
-    <div 
-      className={`rounded-2xl border p-4 transition-all duration-300 hover:shadow-md ${className}`}
+    <div
+      className={`transition-all duration-300 hover:shadow-md ${className}`}
       style={{
         backgroundColor: theme.bgCard,
-        borderColor: theme.border,
-        boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.2)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
+        borderRadius: 'var(--card-radius)',
+        padding: 'var(--card-padding)',
+        boxShadow: theme.cardShadow !== 'none'
+          ? (theme.cardShadow === 'md' ? '0 4px 12px -2px rgba(0, 0, 0, 0.1)' : theme.cardShadow)
+          : 'none',
+        border: theme.isFluidScholar ? '1px solid var(--color-outline-variant-var)' : `1px solid ${theme.border}`,
       }}
     >
       {children}

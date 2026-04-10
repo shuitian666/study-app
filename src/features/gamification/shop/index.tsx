@@ -1,5 +1,5 @@
 import { useUser } from '@/store/UserContext';
-import { useGame } from '@/store/GameContext';
+import { useGame, isValidRedeemCode } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { ShoppingBag, Star, Check, Gift, Copy, CheckCircle } from 'lucide-react';
 import type { ShopItemType } from '@/types';
@@ -16,13 +16,12 @@ const TYPE_LABELS: Record<ShopItemType, string> = {
   coin_bag: '金币袋',
 };
 
-// 兑换码配置
-const REDEMPTION_CODES = [
-  { code: '学习使我快乐', reward: 'UP抽数 +10', description: '坚持学习的好伙伴' },
-  { code: '勤奋好学', reward: 'UP抽数 +5', description: '学习使人进步' },
-  { code: '知识就是力量', reward: 'UP抽数 +3', description: '加油学习吧' },
-  { code: '每日一学', reward: '常规抽签 +5', description: '每天进步一点' },
-];
+// 兑换码配置（与 GameContext 中的保持一致）
+const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
+  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
+  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
+  '创作者体验': { upDraws: 99, regularDraws: 99, coins: 9999 },
+};
 
 export default function ShopPage() {
   const { userState, userDispatch, navigate } = useUser();
@@ -33,7 +32,7 @@ export default function ShopPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const coins = userState.user?.totalPoints ?? 0;
-  
+
   // 检查物品是否已在背包中（用于非可堆叠物品）
   const isOwned = (item: typeof gameState.shopItems[0]) => {
     // 可堆叠物品（补签卡等）不显示"已拥有"
@@ -43,11 +42,11 @@ export default function ShopPage() {
     // 检查背包中是否有该物品
     return userState.inventory.items.some(i => i.name === item.name);
   };
-  
-  const filtered = tab === 'all' 
-    ? gameState.shopItems 
-    : tab === 'redeem' 
-      ? [] 
+
+  const filtered = tab === 'all'
+    ? gameState.shopItems
+    : tab === 'redeem'
+      ? []
       : gameState.shopItems.filter(i => i.type === tab);
 
   const handleBuy = (itemId: string) => {
@@ -58,13 +57,19 @@ export default function ShopPage() {
       if (isOwned(item)) return;
     }
     if (coins < item.price) return;
-    
+
     // 消耗星币
-    userDispatch({ 
-      type: 'UPDATE_USER', 
-      payload: { totalPoints: coins - item.price } 
+    userDispatch({
+      type: 'UPDATE_USER',
+      payload: { totalPoints: coins - item.price }
     });
-    
+
+    // 补签卡不添加到背包，直接增加补签卡数量
+    if (item.type === 'makeup_card') {
+      gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
+      return;
+    }
+
     // 将物品添加到背包
     // 类型映射：商店类型 -> 背包类型
     const typeMapping: Record<string, string> = {
@@ -81,10 +86,10 @@ export default function ShopPage() {
       quantity: 1,
       obtainedAt: new Date().toISOString(),
       source: 'shop' as const,
-      usable: item.type === 'makeup_card' || item.type === 'vip_card',
+      usable: item.type === 'vip_card',
     };
     userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
-    
+
     // 购买物品
     gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
   };
@@ -92,21 +97,38 @@ export default function ShopPage() {
   const handleRedeem = () => {
     if (!redeemInput.trim()) return;
     const code = redeemInput.trim();
-    
+
     if (gameState.redeemedCodes.includes(code)) {
-      setRedeemMessage({ type: 'error', text: '该兑换码已使用' });
+      setRedeemMessage({ type: 'error', text: '该兑换码已使用过' });
+      setTimeout(() => setRedeemMessage(null), 3000);
       return;
     }
-    
-    const validCode = REDEMPTION_CODES.find(c => c.code === code);
-    if (!validCode) {
+
+    if (!isValidRedeemCode(code)) {
       setRedeemMessage({ type: 'error', text: '无效的兑换码' });
+      setTimeout(() => setRedeemMessage(null), 3000);
       return;
     }
-    
+
+    // 使用 GameContext 的兑换码系统
     gameDispatch({ type: 'REDEEM_CODE', payload: code });
-    setRedeemMessage({ type: 'success', text: `兑换成功！${validCode.reward}` });
+
+    const reward = REDEMPTION_CODES[code];
+    let rewardText = '';
+    if (reward.upDraws > 0) rewardText += `UP抽签 +${reward.upDraws} `;
+    if (reward.regularDraws > 0) rewardText += `常规抽签 +${reward.regularDraws} `;
+    if (reward.coins > 0) {
+      rewardText += `星币 +${reward.coins}`;
+      // 直接给星币
+      userDispatch({
+        type: 'UPDATE_USER',
+        payload: { totalPoints: (userState.user?.totalPoints ?? 0) + reward.coins }
+      });
+    }
+
+    setRedeemMessage({ type: 'success', text: `兑换成功！${rewardText.trim()}` });
     setRedeemInput('');
+    setTimeout(() => setRedeemMessage(null), 3000);
   };
 
   const handleCopyCode = (code: string) => {
@@ -176,11 +198,15 @@ export default function ShopPage() {
           <div className="mb-4">
             <h4 className="text-sm font-medium mb-2 text-text-secondary">可用兑换码</h4>
             <div className="space-y-2">
-              {REDEMPTION_CODES.map(item => {
-                const isUsed = gameState.redeemedCodes.includes(item.code);
+              {Object.entries(REDEMPTION_CODES).map(([code, reward]) => {
+                const isUsed = gameState.redeemedCodes.includes(code);
+                let rewardText = '';
+                if (reward.upDraws > 0) rewardText += `UP抽+${reward.upDraws} `;
+                if (reward.regularDraws > 0) rewardText += `常规+${reward.regularDraws} `;
+                if (reward.coins > 0) rewardText += `${reward.coins}星币`;
                 return (
-                  <div 
-                    key={item.code}
+                  <div
+                    key={code}
                     className={`bg-white rounded-xl p-3 border ${
                       isUsed ? 'border-gray-200 opacity-60' : 'border-pink-200'
                     }`}
@@ -188,21 +214,20 @@ export default function ShopPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm">{item.code}</span>
+                          <span className="font-mono font-bold text-sm">{code}</span>
                           {isUsed ? (
                             <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">已使用</span>
                           ) : (
                             <button
-                              onClick={() => handleCopyCode(item.code)}
+                              onClick={() => handleCopyCode(code)}
                               className="p-1 bg-pink-50 rounded text-pink-600 hover:bg-pink-100"
                             >
-                              {copied === item.code ? <CheckCircle size={14} /> : <Copy size={14} />}
+                              {copied === code ? <CheckCircle size={14} /> : <Copy size={14} />}
                             </button>
                           )}
                         </div>
-                        <p className="text-xs text-text-muted mt-1">{item.description}</p>
                       </div>
-                      <span className="text-sm font-medium text-pink-600">{item.reward}</span>
+                      <span className="text-sm font-medium text-pink-600">{rewardText.trim()}</span>
                     </div>
                   </div>
                 );

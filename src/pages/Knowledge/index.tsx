@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { Undo2, Redo2 } from 'lucide-react';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
-import type { ProficiencyLevel, KnowledgePoint } from '@/types';
-import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, CreditCard as FlashCardIcon, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import type { ProficiencyLevel } from '@/types';
+import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, BookMarked, Cloud } from 'lucide-react';
+import { TopAppBar, FloatingAIPanel } from '@/components/layout';
+import CloudDownloadModal from '@/components/ui/CloudDownloadModal';
 
 const sourceConfig = {
   manual: {
@@ -42,12 +44,11 @@ export default function KnowledgePage() {
   const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'proficiency'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  
-  // 闪卡模式
-  const [flashcardMode, setFlashcardMode] = useState(false);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-  
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [showCloudModal, setShowCloudModal] = useState(false);
+
+  const uiStyle = theme.uiStyle || 'playful';
+
   // 动画效果 - 使用主界面动画设置
   const [animationEffect, setAnimationEffect] = useState(() => {
     const saved = localStorage.getItem('main-animation-effect');
@@ -103,28 +104,52 @@ export default function KnowledgePage() {
     }
   };
 
+  // 从云端导入知识库 - 打开弹窗
+  const handleCloudImport = () => {
+    setShowCloudModal(true);
+  };
+
+  // 处理从云端弹窗导入的数据
+  const handleCloudImportData = (knowledgePoints: any[], questions: any[]) => {
+    // 构建导入数据
+    const importData = {
+      subjects: learningState.subjects,
+      chapters: learningState.chapters,
+      knowledgePoints,
+      questions
+    };
+
+    // 更新状态
+    learningDispatch({ type: 'SET_KNOWLEDGE_DATA', payload: importData });
+
+    setImportMessage(`成功导入 ${knowledgePoints.length} 个知识点！`);
+    setTimeout(() => setImportMessage(null), 3000);
+  };
+
   const subjects = learningState.subjects;
   const allKPs = learningState.knowledgePoints;
 
-  const filteredKPs = allKPs
-    .filter(kp => {
-      if (selectedSubject && kp.subjectId !== selectedSubject) return false;
-      if (filterProf !== 'all' && kp.proficiency !== filterProf) return false;
-      if (searchQuery && !kp.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === 'name') {
-        cmp = a.name.localeCompare(b.name);
-      } else if (sortBy === 'createdAt') {
-        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      } else if (sortBy === 'proficiency') {
-        const profOrder = { none: 0, rusty: 1, normal: 2, master: 3 };
-        cmp = profOrder[a.proficiency] - profOrder[b.proficiency];
-      }
-      return sortOrder === 'asc' ? cmp : -cmp;
-    });
+  const filteredKPs = useMemo(() => {
+    return allKPs
+      .filter(kp => {
+        if (selectedSubject && kp.subjectId !== selectedSubject) return false;
+        if (filterProf !== 'all' && kp.proficiency !== filterProf) return false;
+        if (searchQuery && !kp.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        let cmp = 0;
+        if (sortBy === 'name') {
+          cmp = a.name.localeCompare(b.name);
+        } else if (sortBy === 'createdAt') {
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        } else if (sortBy === 'proficiency') {
+          const profOrder = { none: 0, rusty: 1, normal: 2, master: 3 };
+          cmp = profOrder[a.proficiency] - profOrder[b.proficiency];
+        }
+        return sortOrder === 'asc' ? cmp : -cmp;
+      });
+  }, [allKPs, selectedSubject, filterProf, searchQuery, sortBy, sortOrder]);
 
   const grouped = filteredKPs.reduce<Record<string, typeof filteredKPs>>((acc, kp) => {
     const chapter = learningState.chapters.find(c => c.id === kp.chapterId);
@@ -134,6 +159,193 @@ export default function KnowledgePage() {
     return acc;
   }, {});
 
+  // 计算统计数据
+  const stats = useMemo(() => {
+    const totalKPs = learningState.knowledgePoints.length;
+    const masteredKPs = learningState.knowledgePoints.filter(kp => kp.proficiency === 'master').length;
+    const normalKPs = learningState.knowledgePoints.filter(kp => kp.proficiency === 'normal').length;
+    const rustyKPs = learningState.knowledgePoints.filter(kp => kp.proficiency === 'rusty').length;
+    const noneKPs = learningState.knowledgePoints.filter(kp => kp.proficiency === 'none').length;
+    return { totalKPs, masteredKPs, normalKPs, rustyKPs, noneKPs };
+  }, [learningState.knowledgePoints]);
+
+  // ===== Scholar 风格渲染 =====
+  if (uiStyle === 'scholar') {
+    return (
+      <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
+        <TopAppBar />
+
+        <div className="px-6 pt-6 space-y-6 pb-32">
+          {/* Page Title */}
+          <div>
+            <h2
+              className="text-2xl font-bold mb-1"
+              style={{ color: theme.textPrimary, fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
+              {isSelectMode ? `已选择 ${selectedIds.size} 项` : '知识库'}
+            </h2>
+            <p className="text-sm" style={{ color: theme.textSecondary }}>
+              {isSelectMode ? '选择要操作的知识点了' : '管理你的知识点和学习资源'}
+            </p>
+          </div>
+
+          {/* Stats Bento Grid */}
+          <div className="grid grid-cols-4 gap-3">
+            {/* Total */}
+            <div
+              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', boxShadow: 'none' }}
+            >
+              <BookMarked size={18} style={{ color: theme.primary || '#24389c' }} className="mb-1" />
+              <span className="text-xl font-bold" style={{ color: theme.onSurface || '#191c1d' }}>{stats.totalKPs}</span>
+              <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>总计</span>
+            </div>
+
+            {/* Mastered */}
+            <div
+              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', boxShadow: 'none' }}
+            >
+              <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: theme.profMaster || '#10b981' }} />
+              <span className="text-xl font-bold" style={{ color: theme.onSurface || '#191c1d' }}>{stats.masteredKPs}</span>
+              <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>掌握</span>
+            </div>
+
+            {/* Normal */}
+            <div
+              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', boxShadow: 'none' }}
+            >
+              <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: theme.profNormal || '#3b82f6' }} />
+              <span className="text-xl font-bold" style={{ color: theme.onSurface || '#191c1d' }}>{stats.normalKPs}</span>
+              <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>熟悉</span>
+            </div>
+
+            {/* Needs Review */}
+            <div
+              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', boxShadow: 'none' }}
+            >
+              <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: theme.profRusty || '#f59e0b' }} />
+              <span className="text-xl font-bold" style={{ color: theme.onSurface || '#191c1d' }}>{stats.rustyKPs + stats.noneKPs}</span>
+              <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>待巩固</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('add-knowledge')}
+              className="flex-1 py-3 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              style={{ backgroundColor: theme.primary || '#24389c' }}
+            >
+              <Plus size={18} className="text-white" />
+              <span className="text-sm font-semibold text-white">添加知识</span>
+            </button>
+            <button
+              onClick={() => navigate('import-knowledge')}
+              className="py-3 px-4 rounded-2xl border flex items-center justify-center gap-2"
+              style={{ borderColor: theme.outlineVariant || '#c5c5d4' }}
+            >
+              <Upload size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} />
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: theme.onSurfaceVariant || '#454652' }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索知识点..."
+              className="w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-colors"
+              style={{
+                backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+                borderColor: theme.outlineVariant || '#c5c5d4',
+                color: theme.onSurface || '#191c1d',
+              }}
+            />
+          </div>
+
+          {/* Subject Filter */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setSelectedSubject(null)}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+              style={{
+                backgroundColor: !selectedSubject ? theme.primary : 'transparent',
+                color: !selectedSubject ? '#ffffff' : theme.onSurfaceVariant || '#454652',
+                border: `1px solid ${!selectedSubject ? theme.primary : theme.outlineVariant || '#c5c5d4'}`,
+              }}
+            >
+              全部
+            </button>
+            {learningState.subjects.map(subject => (
+              <button
+                key={subject.id}
+                onClick={() => setSelectedSubject(subject.id)}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                style={{
+                  backgroundColor: selectedSubject === subject.id ? theme.primary : 'transparent',
+                  color: selectedSubject === subject.id ? '#ffffff' : theme.onSurfaceVariant || '#454652',
+                  border: `1px solid ${selectedSubject === subject.id ? theme.primary : theme.outlineVariant || '#c5c5d4'}`,
+                }}
+              >
+                {subject.icon} {subject.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Knowledge Points List */}
+          <div className="space-y-2">
+            {filteredKPs.length === 0 ? (
+              <div className="p-8 rounded-2xl text-center" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
+                <BookOpen size={40} style={{ color: theme.onSurfaceVariant || '#454652' }} className="mx-auto mb-2" />
+                <p className="text-sm" style={{ color: theme.onSurfaceVariant || '#454652' }}>暂无知识点</p>
+                <p className="text-xs mt-1" style={{ color: theme.onSurfaceVariant || '#454652', opacity: 0.7 }}>点击上方添加知识按钮开始添加</p>
+              </div>
+            ) : (
+              filteredKPs.map(kp => {
+                const subject = learningState.subjects.find(s => s.id === kp.subjectId);
+                return (
+                  <button
+                    key={kp.id}
+                    onClick={() => navigate('knowledge-detail', { id: kp.id })}
+                    className="w-full p-4 rounded-2xl flex items-center justify-between active:scale-[0.98] transition-transform"
+                    style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', boxShadow: 'none' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                        style={{ backgroundColor: subject?.color + '20' || theme.surfaceContainerHigh }}
+                      >
+                        {subject?.icon || '📚'}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-semibold" style={{ color: theme.onSurface || '#191c1d' }}>{kp.name}</div>
+                        <div className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                          {subject?.name} · {kp.reviewCount}次复习
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ProficiencyBadge level={kp.proficiency} />
+                      <ChevronRight size={16} style={{ color: theme.onSurfaceVariant || '#454652' }} />
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <FloatingAIPanel />
+      </div>
+    );
+  }
+
+  // ===== Playful 风格渲染 =====
   return (
     <div className="page-scroll pb-4">
       <PageHeader
@@ -189,16 +401,11 @@ export default function KnowledgePage() {
                 <Upload size={18} className="text-blue-600" />
               </button>
               <button
-                onClick={() => {
-                  setCurrentCardIndex(0);
-                  setIsFlipped(false);
-                  setFlashcardMode(true);
-                }}
-                disabled={filteredKPs.length === 0}
-                className="p-1.5 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-30"
-                title="闪卡背诵"
+                onClick={handleCloudImport}
+                className="p-1.5 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                title="从云端导入"
               >
-                <FlashCardIcon size={18} className="text-amber-600" />
+                <Cloud size={18} className="text-green-600" />
               </button>
               <button
                 onClick={() => navigate('add-knowledge')}
@@ -461,125 +668,12 @@ export default function KnowledgePage() {
         )}
       </div>
 
-      {/* 全屏闪卡模式 */}
-      {flashcardMode && (
-        <FlashcardView 
-          cards={filteredKPs}
-          currentIndex={currentCardIndex}
-          isFlipped={isFlipped}
-          onClose={() => setFlashcardMode(false)}
-          onFlip={() => setIsFlipped(!isFlipped)}
-          onPrev={() => {
-            setCurrentCardIndex(Math.max(0, currentCardIndex - 1));
-            setIsFlipped(false);
-          }}
-          onNext={() => {
-            setCurrentCardIndex(Math.min(filteredKPs.length - 1, currentCardIndex + 1));
-            setIsFlipped(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-// 闪卡全屏视图
-interface FlashcardViewProps {
-  cards: KnowledgePoint[];
-  currentIndex: number;
-  isFlipped: boolean;
-  onClose: () => void;
-  onFlip: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-}
-
-function FlashcardView({ cards, currentIndex, isFlipped, onClose, onFlip, onPrev, onNext }: FlashcardViewProps) {
-  const { theme } = useTheme();
-  const card = cards[currentIndex];
-
-  // 获取圆角大小
-  const getBorderRadius = (size: 'small' | 'medium' | 'large') => {
-    const radiusMap: Record<string, Record<string, string>> = {
-      small: { sm: '12px', md: '16px', lg: '20px' },
-      medium: { sm: '16px', md: '20px', lg: '24px' },
-      large: { sm: '20px', md: '24px', lg: '28px' },
-    };
-    return radiusMap[theme.borderRadius][size];
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 flex flex-col">
-      {/* 头部 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="text-sm text-text-muted">
-          {currentIndex + 1} / {cards.length}
-        </div>
-        <button
-          onClick={onClose}
-          className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-medium"
-        >
-          关闭
-        </button>
-      </div>
-
-      {/* 闪卡主体 */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div
-          onClick={onFlip}
-          className="w-full max-w-xl min-h-[300px] p-8 border-2 shadow-xl cursor-pointer transition-all duration-300 hover:shadow-2xl flex items-center justify-center"
-          style={{
-            backgroundColor: isFlipped ? theme.bgCard : '#fafafa',
-            borderColor: isFlipped ? theme.primary : theme.border,
-            borderRadius: getBorderRadius('large'),
-          }}
-        >
-          <div className="text-center">
-            {!isFlipped ? (
-              // 正面：问题
-              <>
-                <div className="text-xs text-text-muted uppercase tracking-wide mb-3">知识点名称</div>
-                <h2 className="text-2xl font-bold" style={{ color: theme.textPrimary }}>
-                  {card.name}
-                </h2>
-                <p className="text-sm text-text-muted mt-4">点击卡片翻面看答案</p>
-              </>
-            ) : (
-              // 背面：答案/描述
-              <>
-                <div className="text-xs text-text-muted uppercase tracking-wide mb-3">知识解析</div>
-                <div 
-                  className="text-lg leading-relaxed" 
-                  style={{ color: theme.textPrimary }}
-                  dangerouslySetInnerHTML={{ __html: card.explanation }}
-                >
-                </div>
-                <p className="text-sm text-text-muted mt-4">点击卡片翻回去</p>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 底部导航 */}
-      <div className="flex items-center justify-center gap-4 px-4 py-6 border-t">
-        <button
-          onClick={onPrev}
-          disabled={currentIndex <= 0}
-          className="flex items-center gap-1 px-4 py-2 bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <ChevronLeft size={16} />
-          上一张
-        </button>
-        <button
-          onClick={onNext}
-          disabled={currentIndex >= cards.length - 1}
-          className="flex items-center gap-1 px-4 py-2 bg-primary text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          下一张
-          <ChevronRightIcon size={16} />
-        </button>
-      </div>
+      {/* Cloud Download Modal */}
+      <CloudDownloadModal
+        isOpen={showCloudModal}
+        onClose={() => setShowCloudModal(false)}
+        onImport={handleCloudImportData}
+      />
     </div>
   );
 }

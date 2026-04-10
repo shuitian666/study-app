@@ -1,10 +1,24 @@
 /**
- * 底部导航栏 - 5 个主 Tab: 首页/知识库/刷题/图谱/我的
- * hiddenPages 中的页面不显示 TabBar（如答题中、AI聊天等沉浸式页面）
- * 新增页面如需隐藏 TabBar → 在 hiddenPages 数组中添加对应 PageName
+ * ============================================================================
+ * 底部导航栏 (TabBar)
+ * ============================================================================
+ *
+ * 【功能】5 个主 Tab: 首页/知识库/刷题/图谱/我的
+ *
+ * 【hiddenPages 中的页面不显示 TabBar】
+ * - 答题中、AI聊天等沉浸式页面
+ * - 新增页面如需隐藏 TabBar → 在 hiddenPages 数组中添加对应 PageName
+ *
+ * 【双风格支持】
+ * - playful 风格：透明背景 + 简单激活高亮
+ * - scholar 风格：白色半透明 + backdrop-blur + 圆角胶囊激活 + 顶部细线
+ * ============================================================================
  */
+
 import { Home, BookOpen, PenTool, Network, User } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
+import { useTheme } from '@/store/ThemeContext';
+import { UILAYOUT_CONFIGS } from '@/types';
 import type { PageName } from '@/types';
 
 interface TabItem {
@@ -25,11 +39,86 @@ const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review
 
 export default function TabBar() {
   const { userState, navigate } = useUser();
+  const { theme } = useTheme();
+
+  const uiStyle = theme.uiStyle || 'playful';
+  const layoutConfig = UILAYOUT_CONFIGS[uiStyle];
 
   if (hiddenPages.includes(userState.currentPage)) {
     return null;
   }
 
+  // ===== Scholar 风格（Fluid Scholar）=====
+  if (uiStyle === 'scholar') {
+    return (
+      <nav
+        className="fixed bottom-0 left-0 w-full z-50 safe-bottom"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div
+          className="flex items-center justify-around px-4 py-3"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '3rem 3rem 0 0',
+            boxShadow: '0 -8px 24px -4px rgba(25, 28, 29, 0.06)',
+          }}
+        >
+          {tabs.map(tab => {
+            const isActive = userState.currentPage === tab.key;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => navigate(tab.key)}
+                className="flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-300"
+                style={{
+                  borderRadius: '20px',
+                  transform: isActive ? 'scale(0.9)' : 'scale(1)',
+                }}
+              >
+                {isActive ? (
+                  <div
+                    className="px-4 py-1.5 rounded-full"
+                    style={{
+                      backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff',
+                    }}
+                  >
+                    <Icon
+                      size={20}
+                      style={{ color: layoutConfig.tabBarActiveColor || '#24389c' }}
+                      strokeWidth={2.5}
+                    />
+                  </div>
+                ) : (
+                  <Icon
+                    size={20}
+                    style={{ color: theme.onSurfaceVariant || '#454652' }}
+                    strokeWidth={1.8}
+                  />
+                )}
+                <span
+                  className="text-[11px] font-bold tracking-wide"
+                  style={{
+                    color: isActive
+                      ? layoutConfig.tabBarActiveColor || '#24389c'
+                      : theme.onSurfaceVariant || '#454652',
+                  }}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // ===== Playful 风格（默认）=====
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom">
       {/* 苹果风格：底部半透明磨砂玻璃效果 */}

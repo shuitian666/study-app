@@ -1,8 +1,5 @@
-import { useTheme } from '@/store/ThemeContext';
-import { ChevronUp, ChevronDown } from 'lucide-react';
-
 interface FlashcardControlsProps {
-  hasDecided: boolean;  // true if user has selected 不会/有点印象/会
+  hasDecided: boolean;
   onSelect: (level: 'none' | 'rusty' | 'normal') => void;
   onPrev: () => void;
   onNext: () => void;
@@ -18,12 +15,9 @@ export default function FlashcardControls({
   canGoPrev,
   canGoNext,
 }: FlashcardControlsProps) {
-  const { theme } = useTheme();
-
   const buttonBaseClasses = "flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed";
 
   if (!hasDecided) {
-    // Show decision buttons: 不会 / 有点印象 / 会
     return (
       <div className="flex gap-3 px-4 pb-6">
         <button
@@ -51,7 +45,6 @@ export default function FlashcardControls({
     );
   }
 
-  // Show navigation buttons after decision
   return (
     <div className="flex gap-3 px-4 pb-6">
       <button
@@ -59,24 +52,22 @@ export default function FlashcardControls({
         disabled={!canGoPrev}
         className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-1 ${buttonBaseClasses}`}
         style={{
-          backgroundColor: canGoPrev ? `${theme.primary}15` : theme.border,
-          color: canGoPrev ? theme.primary : theme.textMuted,
+          backgroundColor: canGoPrev ? '#e0e7ff' : '#e5e7eb',
+          color: canGoPrev ? '#4f46e5' : '#9ca3af',
         }}
       >
-        <ChevronUp size={16} />
-        上一题
+        ↑ 上一题
       </button>
       <button
         onClick={onNext}
         disabled={!canGoNext}
         className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-1 ${buttonBaseClasses}`}
         style={{
-          backgroundColor: canGoNext ? theme.primary : theme.border,
-          color: canGoNext ? '#ffffff' : theme.textMuted,
+          backgroundColor: canGoNext ? '#4f46e5' : '#e5e7eb',
+          color: canGoNext ? '#ffffff' : '#9ca3af',
         }}
       >
-        下一题
-        <ChevronDown size={16} />
+        下一题 ↓
       </button>
     </div>
   );

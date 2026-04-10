@@ -55,25 +55,40 @@ async function storeData<T>(storeName: string, data: T[]): Promise<void> {
     const store = transaction.objectStore(storeName);
 
     // 清空现有数据
-    const clearRequest = store.clear();
-    clearRequest.onerror = () => reject(clearRequest.error);
+    store.clear();
 
-    clearRequest.onsuccess = () => {
-      // 批量添加数据
-      let count = 0;
-      data.forEach(item => {
-        const request = store.add(item);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-          count++;
-          if (count === data.length) {
-            resolve();
-          }
-        };
-      });
+    // 批量添加数据
+    if (data.length === 0) {
+      console.log(`[IndexedDB] ${storeName}: empty data, skipping`);
+      resolve();
+      return;
+    }
+
+    let completed = 0;
+    let errorOccurred = false;
+    data.forEach(item => {
+      const request = store.put(item);  // 使用 put 代替 add，支持更新
+      request.onerror = () => {
+        console.error(`[IndexedDB] ${storeName}: error putting item`, request.error);
+        errorOccurred = true;
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        completed++;
+        if (completed === data.length && !errorOccurred) {
+          console.log(`[IndexedDB] ${storeName}: saved ${completed} items`);
+          resolve();
+        }
+      };
+    });
+
+    transaction.oncomplete = () => {
+      console.log(`[IndexedDB] ${storeName}: transaction complete`);
     };
-
-    transaction.onerror = () => reject(transaction.error);
+    transaction.onerror = () => {
+      console.error(`[IndexedDB] ${storeName}: transaction error`, transaction.error);
+      reject(transaction.error);
+    };
   });
 }
 
@@ -85,8 +100,14 @@ async function getData<T>(storeName: string): Promise<T[]> {
     const store = transaction.objectStore(storeName);
     const request = store.getAll();
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => {
+      console.error(`[IndexedDB] ${storeName}: error reading`, request.error);
+      reject(request.error);
+    };
+    request.onsuccess = () => {
+      console.log(`[IndexedDB] ${storeName}: read ${request.result.length} items`);
+      resolve(request.result);
+    };
   });
 }
 

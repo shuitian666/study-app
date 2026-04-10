@@ -16,7 +16,14 @@ export default function KnowledgeDetailPage() {
   const kp = learningState.knowledgePoints.find(k => k.id === kpId);
   const subject = learningState.subjects.find(s => s.id === kp?.subjectId);
   const chapter = learningState.chapters.find(c => c.id === kp?.chapterId);
-  const relatedQuestions = learningState.questions.filter(q => q.knowledgePointId === kpId);
+
+  // 获取关联题目：优先找知识点直接关联的，如果没有则找同一章节的题目
+  const directQuestions = learningState.questions.filter(q => q.knowledgePointId === kpId);
+  const chapterQuestions = chapter
+    ? learningState.questions.filter(q => !q.knowledgePointId && q.chapterId === chapter.id)
+    : [];
+  const relatedQuestions = directQuestions.length > 0 ? directQuestions : chapterQuestions;
+  const isUsingChapterQuestions = directQuestions.length === 0 && chapterQuestions.length > 0;
   const [copied, setCopied] = useState(false);
 
   // 来源配置 - 使用主题适配的颜色
@@ -233,7 +240,9 @@ export default function KnowledgeDetailPage() {
 
       {/* Related Questions */}
       <div className="px-4 mt-4 mb-4">
-        <h3 className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>关联练习题 ({relatedQuestions.length})</h3>
+        <h3 className="text-sm font-semibold mb-2" style={{ color: theme.textPrimary }}>
+          {isUsingChapterQuestions ? `章节练习题 (来自「${chapter?.name}」)` : `关联练习题`} ({relatedQuestions.length})
+        </h3>
         {relatedQuestions.length > 0 ? (
           <div className="space-y-2">
             {relatedQuestions.map((q, i) => (

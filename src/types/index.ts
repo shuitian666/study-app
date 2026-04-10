@@ -38,6 +38,7 @@ export interface User {
   avatarFrame: string | null;  // 当前使用头像框的 icon
   aiSkin: string | null;  // 当前使用 AI 形象的 icon
   background: string | null;  // 当前使用背景的 id
+  themeStyle: string;  // 主题风格：'default' | 'fluidScholar'
   unlockedAvatars: string[];  // 已解锁的头像列表（emoji）
   unlockedFrames: string[];  // 已解锁的头像框列表（icon）
   unlockedAiSkins: string[];  // 已解锁的 AI 形象列表（icon）
@@ -89,7 +90,8 @@ export interface QuestionOption {
 
 export interface Question {
   id: string;
-  knowledgePointId: string;
+  knowledgePointId?: string;  // 可选：关联到具体知识点
+  chapterId?: string;          // 可选：关联到章节（最小分类）
   subjectId: string;
   type: QuestionType;
   stem: string;
@@ -483,13 +485,34 @@ export interface ThemeConfig {
   primary: string;
   primaryLight: string;
   primaryDark: string;
+  // Fluid Scholar Primary 组件
+  primaryContainer?: string;
+  onPrimary?: string;
+  onPrimaryContainer?: string;
+  primaryFixed?: string;
+  primaryFixedDim?: string;
+  inversePrimary?: string;
+  surfaceTint?: string;
   secondary: string;
   secondaryLight: string;
+  // Fluid Scholar Secondary 组件
+  secondaryContainer?: string;
+  onSecondary?: string;
+  onSecondaryContainer?: string;
+  secondaryFixed?: string;
+  secondaryFixedDim?: string;
+  onSecondaryFixed?: string;
+  onSecondaryFixedVariant?: string;
   accent: string;
   accentLight: string;
   danger: string;
   warning: string;
   success: string;
+  // Fluid Scholar Error 组件
+  error?: string;
+  errorContainer?: string;
+  onError?: string;
+  onErrorContainer?: string;
   bg: string;
   bgCard: string;
   textPrimary: string;
@@ -500,11 +523,11 @@ export interface ThemeConfig {
   profRusty: string;
   profNormal: string;
   profMaster: string;
-  // 新增：AI问答框样式
+  // AI问答框样式
   aiChatBg: string;
   aiChatBorder: string;
   aiChatIconColor: string;
-  // 新增：图标颜色
+  // 图标颜色
   iconColors: {
     checkin: string;
     achievement: string;
@@ -516,10 +539,78 @@ export interface ThemeConfig {
     wrongBook: string;
     aiChat: string;
   };
-  // 新增：圆角风格
+  // 圆角风格
   borderRadius: 'small' | 'medium' | 'large' | 'cute';
-  // 新增：阴影强度
+  // 阴影强度
   shadowIntensity: 'none' | 'light' | 'medium' | 'heavy';
+  // Fluid Scholar Surface 层级
+  isFluidScholar?: boolean;
+  surface?: string;
+  surfaceContainer?: string;
+  surfaceContainerLow?: string;
+  surfaceContainerHigh?: string;
+  surfaceContainerHighest?: string;
+  surfaceContainerLowest?: string;
+  surfaceDim?: string;
+  onSurface?: string;
+  onSurfaceVariant?: string;
+  outline?: string;
+  outlineVariant?: string;
+  tertiary?: string;
+  tertiaryContainer?: string;
+  tertiaryFixed?: string;
+  tertiaryFixedDim?: string;
+  onTertiary?: string;
+  onTertiaryContainer?: string;
+  onTertiaryFixed?: string;
+  onTertiaryFixedVariant?: string;
+  // Fluid Scholar 背景语义
+  background?: string;
+  onBackground?: string;
+  inverseSurface?: string;
+  inverseOnSurface?: string;
+
+  // ========== 布局变量 ==========
+  // 页面内边距
+  pagePadding?: string;
+  // 卡片内边距
+  cardPadding?: string;
+  // 卡片圆角
+  cardRadius?: string;
+  // 卡片阴影 (none | sm | md | lg)
+  cardShadow?: string;
+  // 按钮圆角
+  buttonRadius?: string;
+  // 间距
+  gapSm?: string;
+  gapMd?: string;
+  gapLg?: string;
+  // Section 间距
+  sectionGap?: string;
+  // UI 风格标记：playful=元气卡通风格，scholar=学院简洁风格
+  uiStyle?: 'playful' | 'scholar';
+}
+
+// UI 风格布局配置
+export interface UILayoutConfig {
+  // 头部样式
+  headerStyle: 'gradient' | 'appbar';  // gradient=渐变背景头部, appbar=顶部导航栏
+  headerBg?: string;  // 当 headerStyle=appbar 时使用
+  headerTextColor?: string;
+  // TabBar 样式
+  tabBarStyle: 'default' | 'pill';  // default=透明, pill=胶囊激活样式
+  tabBarBg?: string;
+  tabBarActiveBg?: string;
+  tabBarActiveColor?: string;
+  // 页面背景
+  pageBgStyle: 'gradient' | 'solid';  // gradient=渐变背景, solid=纯色背景
+  pageBgGradient?: string;
+  // 卡片样式
+  cardStyle: 'shadow' | 'surface';  // shadow=阴影卡片, surface=层叠背景色
+  // 动画效果
+  animationStyle: 'bounce' | 'simple';  // bounce=弹跳动画, simple=简洁淡入
+  // 快捷入口图标
+  quickIconStyle: 'emoji' | 'icon';  // emoji=emoji图标, icon=Lucide图标
 }
 
 export const themes: Record<string, ThemeConfig> = {
@@ -560,6 +651,33 @@ export const themes: Record<string, ThemeConfig> = {
     },
     borderRadius: 'medium',
     shadowIntensity: 'light',
+    // Surface 层级
+    isFluidScholar: false,
+    surface: '#f8f9fa',
+    surfaceContainerLow: '#f3f4f5',
+    surfaceContainerHigh: '#e7e8e9',
+    surfaceContainerHighest: '#e1e3e4',
+    surfaceContainerLowest: '#ffffff',
+    onSurface: '#191c1d',
+    onSurfaceVariant: '#454652',
+    outlineVariant: '#c5c5d4',
+    tertiary: '#73008e',
+    tertiaryContainer: '#9026ac',
+    tertiaryFixed: '#fdd6ff',
+    primaryFixed: '#dee0ff',
+    secondaryFixed: '#ffdfa0',
+    // 布局变量 - 默认主题
+    pagePadding: '16px',
+    cardPadding: '16px',
+    cardRadius: '12px',
+    cardShadow: 'md',
+    buttonRadius: '12px',
+    gapSm: '8px',
+    gapMd: '16px',
+    gapLg: '24px',
+    sectionGap: '24px',
+    // UI 风格
+    uiStyle: 'playful',
   },
   dark: {
     primary: '#818cf8',
@@ -598,6 +716,7 @@ export const themes: Record<string, ThemeConfig> = {
     },
     borderRadius: 'medium',
     shadowIntensity: 'light',
+    uiStyle: 'playful',
   },
   forest: {
     primary: '#10b981',
@@ -636,6 +755,7 @@ export const themes: Record<string, ThemeConfig> = {
     },
     borderRadius: 'medium',
     shadowIntensity: 'light',
+    uiStyle: 'playful',
   },
   warm: {
     primary: '#f97316',
@@ -712,6 +832,7 @@ export const themes: Record<string, ThemeConfig> = {
     },
     borderRadius: 'cute',
     shadowIntensity: 'light',
+    uiStyle: 'playful',
   },
   blue: {
     primary: '#3b82f6',
@@ -750,6 +871,7 @@ export const themes: Record<string, ThemeConfig> = {
     },
     borderRadius: 'medium',
     shadowIntensity: 'light',
+    uiStyle: 'playful',
   },
   aurora: {
     primary: '#8b5cf6',
@@ -788,10 +910,141 @@ export const themes: Record<string, ThemeConfig> = {
     },
     borderRadius: 'medium',
     shadowIntensity: 'light',
+    uiStyle: 'playful',
+  },
+  // Fluid Scholar 主题 - The Fluid Scholar 设计系统
+  fluidScholar: {
+    primary: '#24389c',
+    primaryLight: '#4355b9',
+    primaryDark: '#1a2656',
+    // Fluid Scholar 组件颜色
+    primaryContainer: '#3f51b5',
+    onPrimary: '#ffffff',
+    onPrimaryContainer: '#cacfff',
+    primaryFixed: '#dee0ff',
+    primaryFixedDim: '#bac3ff',
+    inversePrimary: '#bac3ff',
+    surfaceTint: '#4355b9',
+    secondary: '#795900',
+    secondaryLight: '#ffbf00',
+    secondaryContainer: '#ffbf00',
+    onSecondary: '#ffffff',
+    onSecondaryContainer: '#6d5000',
+    secondaryFixed: '#ffdfa0',
+    secondaryFixedDim: '#fbbc00',
+    onSecondaryFixed: '#261a00',
+    onSecondaryFixedVariant: '#5c4300',
+    accent: '#10b981',
+    accentLight: '#34d399',
+    danger: '#ba1a1a',
+    warning: '#f59e0b',
+    success: '#10b981',
+    // Fluid Scholar 错误色
+    error: '#ba1a1a',
+    errorContainer: '#ffdad6',
+    onError: '#ffffff',
+    onErrorContainer: '#93000a',
+    // 背景与文本
+    bg: '#f8f9fa',
+    bgCard: '#ffffff',
+    textPrimary: '#191c1d',
+    textSecondary: '#454652',
+    textMuted: '#757684',
+    border: '#c5c5d4',
+    // 熟练度
+    profNone: '#ef4444',
+    profRusty: '#f59e0b',
+    profNormal: '#3b82f6',
+    profMaster: '#10b981',
+    aiChatBg: 'linear-gradient(135deg, rgba(115, 0, 142, 0.15), rgba(144, 38, 172, 0.15))',
+    aiChatBorder: 'rgba(115, 0, 142, 0.3)',
+    aiChatIconColor: '#73008e',
+    iconColors: {
+      checkin: '#ff6b00',
+      achievement: '#ffbf00',
+      shop: '#9026ac',
+      ranking: '#3b82f6',
+      quiz: '#24389c',
+      knowledge: '#10b981',
+      knowledgeMap: '#73008e',
+      wrongBook: '#ba1a1a',
+      aiChat: '#73008e',
+    },
+    borderRadius: 'medium',
+    shadowIntensity: 'light',
+    // Fluid Scholar Surface 层级
+    isFluidScholar: true,
+    surface: '#f8f9fa',
+    surfaceContainer: '#edeeef',
+    surfaceContainerLow: '#f3f4f5',
+    surfaceContainerHigh: '#e7e8e9',
+    surfaceContainerHighest: '#e1e3e4',
+    surfaceContainerLowest: '#ffffff',
+    surfaceDim: '#d9dadb',
+    onSurface: '#191c1d',
+    onSurfaceVariant: '#454652',
+    outline: '#757684',
+    outlineVariant: '#c5c5d4',
+    tertiary: '#73008e',
+    tertiaryContainer: '#9026ac',
+    tertiaryFixed: '#fdd6ff',
+    tertiaryFixedDim: '#f3aeff',
+    onTertiary: '#ffffff',
+    onTertiaryContainer: '#f7c0ff',
+    onTertiaryFixed: '#340042',
+    onTertiaryFixedVariant: '#790096',
+    // Fluid Scholar 背景语义
+    background: '#f8f9fa',
+    onBackground: '#191c1d',
+    inverseSurface: '#2e3132',
+    inverseOnSurface: '#f0f1f2',
+    // Fluid Scholar 布局变量 - 清爽简洁风格
+    pagePadding: '24px',
+    cardPadding: '24px',
+    cardRadius: '16px',
+    cardShadow: 'none',  // 不靠阴影，靠背景色区分层级
+    buttonRadius: '20px',
+    gapSm: '12px',
+    gapMd: '16px',
+    gapLg: '32px',
+    sectionGap: '32px',
+    // UI 风格 - 学院简洁风格
+    uiStyle: 'scholar',
   },
 };
 
-export const getThemeByBackgroundId = (backgroundId?: string): ThemeConfig => {
+// UI 风格布局配置 - 提供两套布局方案的默认配置
+export const UILAYOUT_CONFIGS: Record<'playful' | 'scholar', UILayoutConfig> = {
+  playful: {
+    headerStyle: 'gradient',
+    tabBarStyle: 'default',
+    pageBgStyle: 'gradient',
+    cardStyle: 'shadow',
+    animationStyle: 'bounce',
+    quickIconStyle: 'emoji',
+  },
+  scholar: {
+    headerStyle: 'appbar',
+    headerBg: '#ffffff',
+    headerTextColor: '#191c1d',
+    tabBarStyle: 'pill',
+    tabBarBg: 'rgba(255, 255, 255, 0.8)',
+    tabBarActiveBg: '#dee0ff',
+    tabBarActiveColor: '#24389c',
+    pageBgStyle: 'solid',
+    pageBgGradient: '#f8f9fa',
+    cardStyle: 'surface',
+    animationStyle: 'simple',
+    quickIconStyle: 'icon',
+  },
+};
+
+export const getThemeByBackgroundId = (backgroundId?: string, themeStyle?: string): ThemeConfig => {
+  // 如果选择了 Fluid Scholar 主题风格，所有背景都使用同一个主题
+  if (themeStyle === 'fluidScholar') {
+    return themes.fluidScholar;
+  }
+
   if (!backgroundId) return themes.default;
   
   if (backgroundId.includes('bg-r-1') || backgroundId.includes('bg-ssr-1')) {
@@ -846,4 +1099,18 @@ export interface KnowledgePointExtended extends KnowledgePoint {
   quizRecords: QuizRecord[];
   currentScore: number;  // Combined score 0-100
   memoryTip?: string;    // Memory tip/hint
+
+  // ========== FSRS 间隔重复字段 ==========
+  // 记忆稳定性（天），表示在90%回忆率下的间隔
+  fsrsStability?: number;
+  // 难度 D ∈ [1, 10]，1最简单，10最难
+  fsrsDifficulty?: number;
+  // 卡片状态：New → Learning → Review → Relearning
+  fsrsState?: 'New' | 'Learning' | 'Review' | 'Relearning';
+  // 当前学习步骤（用于 Learning/Relearning 阶段）
+  fsrsLearningSteps?: number;
+  // 遗忘次数（答错+1）
+  fsrsLapses?: number;
+  // 复习次数
+  fsrsReps?: number;
 }

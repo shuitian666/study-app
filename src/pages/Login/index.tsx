@@ -4,19 +4,22 @@ import { Sparkles } from 'lucide-react';
 import type { User } from '@/types';
 
 export default function LoginPage() {
-  const { userDispatch } = useUser();
+  const { userState, userDispatch } = useUser();
   const [loading, setLoading] = useState(false);
 
   const handleWechatLogin = () => {
     setLoading(true);
     // Simulate WeChat login
     setTimeout(() => {
-      const mockUser: User = {
+      // 如果已有保存的用户数据，保留使用（不丢失 totalPoints 等）
+      // 只在首次登录时才创建默认用户
+      const existingUser = userState.user;
+      const mockUser: User = existingUser ?? {
         id: 'user-1',
         nickname: '学习达人',
         avatar: '👤',
         learningDays: 15,
-        totalPoints: 320,
+        totalPoints: 0,
         createdAt: new Date().toISOString(),
         dailyGoal: 10,
         dailyNewGoal: 15,
@@ -30,6 +33,7 @@ export default function LoginPage() {
         unlockedFrames: ['⬜', '🧊'],
         unlockedAiSkins: ['🤖'],
         unlockedBackgrounds: [],
+        themeStyle: 'default',
       };
       userDispatch({ type: 'LOGIN', payload: mockUser });
       setLoading(false);
