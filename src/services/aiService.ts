@@ -99,7 +99,7 @@ function mockGenerateQuiz(
   const usedIds = new Set(existingQuestions.map(q => q.id));
 
   const poolMatch = AI_QUIZ_POOL.find(
-    q => knowledgePointIds.includes(q.knowledgePointId) && !usedIds.has(q.id)
+    q => q.knowledgePointId && knowledgePointIds.includes(q.knowledgePointId) && !usedIds.has(q.id)
   );
   if (poolMatch) return { ...poolMatch, id: `ai-q-${Date.now()}` };
 

@@ -124,7 +124,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       let regularTickets = 0;
       let upTickets = 0;
-      let streakCoins = 0;
       let streakLabel: string | undefined;
 
       if (!isMakeup) {
@@ -136,7 +135,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       const streakReward = STREAK_REWARDS.find(r => r.days === streak);
       if (streakReward) {
-        streakCoins = streakReward.coins;
         upTickets = streakReward.upDraws;
         streakLabel = streakReward.label;
       }

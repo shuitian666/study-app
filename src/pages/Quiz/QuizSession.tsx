@@ -474,7 +474,7 @@ AI解析：${currentExplanation}
                   navigate('ai-chat', {
                     questionContext: fullContext,
                     subjectId: subjectId,
-                    knowledgePointId: currentQuestion.knowledgePointId
+                    ...(currentQuestion.knowledgePointId && { knowledgePointId: currentQuestion.knowledgePointId })
                   });
                 }}
                 className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"

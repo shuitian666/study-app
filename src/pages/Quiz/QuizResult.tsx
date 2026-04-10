@@ -330,10 +330,10 @@ export default function QuizResultPage() {
                         <button
                           onClick={() => {
                             // 打开追问模态框或者跳转到聊天
-                            navigate('ai-chat', { 
+                            navigate('ai-chat', {
                               context: `关于这道题：${q.stem}，我对解析还有疑问，请进一步讲解`,
                               subjectId: q.subjectId,
-                              knowledgePointId: q.knowledgePointId
+                              ...(q.knowledgePointId && { knowledgePointId: q.knowledgePointId })
                             });
                           }}
                           className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"

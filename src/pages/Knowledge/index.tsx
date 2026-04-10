@@ -44,7 +44,6 @@ export default function KnowledgePage() {
   const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'proficiency'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [importMessage, setImportMessage] = useState<string | null>(null);
   const [showCloudModal, setShowCloudModal] = useState(false);
 
   const uiStyle = theme.uiStyle || 'playful';
@@ -122,8 +121,6 @@ export default function KnowledgePage() {
     // 更新状态
     learningDispatch({ type: 'SET_KNOWLEDGE_DATA', payload: importData });
 
-    setImportMessage(`成功导入 ${knowledgePoints.length} 个知识点！`);
-    setTimeout(() => setImportMessage(null), 3000);
   };
 
   const subjects = learningState.subjects;

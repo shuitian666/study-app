@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -171,13 +171,10 @@ export default function CheckinPage() {
     })();
 
     // 计算奖励
-    const isMakeup = type === 'makeup';
     let streakCoins = 0;
-    if (!isMakeup) {
-      const streakReward = STREAK_REWARDS.find(r => r.days === tempStreak);
-      if (streakReward) {
-        streakCoins = streakReward.coins;
-      }
+    const streakReward = STREAK_REWARDS.find(r => r.days === tempStreak);
+    if (streakReward) {
+      streakCoins = streakReward.coins;
     }
 
     // 立即发放星币奖励
