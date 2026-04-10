@@ -98,6 +98,7 @@ export interface Question {
   options: QuestionOption[];
   correctAnswers: string[]; // option ids
   explanation: string;
+  imageUrl?: string;  // 可选：题目图片URL
 }
 
 // Quiz / Test
