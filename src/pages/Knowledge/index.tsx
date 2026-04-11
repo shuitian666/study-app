@@ -109,18 +109,23 @@ export default function KnowledgePage() {
   };
 
   // 处理从云端弹窗导入的数据
-  const handleCloudImportData = (knowledgePoints: any[], questions: any[]) => {
-    // 构建导入数据
+  const handleCloudImportData = (newSubjects: any[], chapters: any[], knowledgePoints: any[], questions: any[]) => {
+    // 构建导入数据 - 合并新subject和现有subject
+    const existingSubjectIds = new Set(learningState.subjects.map(s => s.id));
+    const mergedSubjects = [
+      ...learningState.subjects,
+      ...newSubjects.filter(s => !existingSubjectIds.has(s.id))
+    ];
+
     const importData = {
-      subjects: learningState.subjects,
-      chapters: learningState.chapters,
+      subjects: mergedSubjects,
+      chapters,
       knowledgePoints,
       questions
     };
 
     // 更新状态
     learningDispatch({ type: 'SET_KNOWLEDGE_DATA', payload: importData });
-
   };
 
   const subjects = learningState.subjects;

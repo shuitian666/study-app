@@ -306,16 +306,27 @@ export default function QuizSessionPage() {
       )}
 
       {/* Question */}
-      <div className={`px-4 pt-4 ${getAnimationClass(4)}`}>
-        <div className="rounded-2xl p-5 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-          <div className="text-xs mb-2" style={{ color: theme.textMuted }}>
+      <div className={`px-6 pt-5 ${getAnimationClass(4)}`} style={{ paddingLeft: '24px', paddingRight: '24px' }}>
+        <div className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, padding: '28px' }}>
+          <div className="text-sm mb-3" style={{ color: theme.textMuted, fontSize: '13px' }}>
             {currentQuestion.type === 'single_choice' ? '单选题' : '多选题'}
           </div>
 
-          <p className="text-base font-medium leading-relaxed mb-4" style={{ color: theme.textPrimary }}>{currentQuestion.stem}</p>
+          <p className="text-lg font-medium leading-relaxed mb-5" style={{ color: theme.textPrimary, fontSize: '17px', lineHeight: '1.7', marginBottom: '20px' }}>{currentQuestion.stem}</p>
+
+          {/* 题目图片 */}
+          {currentQuestion.imageUrl && (
+            <div className="mb-5" style={{ marginBottom: '20px' }}>
+              <img
+                src={currentQuestion.imageUrl}
+                alt="题目配图"
+                className="w-full max-h-72 object-contain rounded-xl bg-gray-50"
+              />
+            </div>
+          )}
 
           {/* Options - 动态标签支持更多选项 */}
-          <div className="space-y-2.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {currentQuestion.options.map((opt, i) => {
               const isSelected = selectedAnswers.includes(opt.id);
               const isCorrectOption = currentQuestion.correctAnswers.includes(opt.id);
@@ -343,8 +354,8 @@ export default function QuizSessionPage() {
                   <button
                     onClick={() => handleSelectOption(opt.id)}
                     disabled={showResult}
-                    className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left"
-                    style={optionStyle}
+                    className="w-full flex items-center gap-3 rounded-xl border-2 transition-all text-left"
+                    style={{ ...optionStyle, padding: '16px' }}
                   >
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0`} style={{
                       backgroundColor: showResult && isCorrectOption

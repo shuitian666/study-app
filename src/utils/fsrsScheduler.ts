@@ -221,11 +221,12 @@ export function isAgain(rating: RatingOption): boolean {
 
 /**
  * 判断是否应该显示"Easy"按钮
- * 首次学习时不显示Easy，因为还没有建立稳定记忆
+ * 新卡片首次学习时不显示Easy（reps=0），因为还没有建立稳定记忆
+ * 但已经从 Learning 阶段毕业的卡片可以显示
  */
 export function shouldShowEasy(cardInput: CardInput): boolean {
-  // 有过复习记录才显示 Easy
-  return cardInput.reps > 0;
+  // 有过复习记录，或已经从 Learning 阶段毕业到 Review 状态
+  return cardInput.reps > 0 || cardInput.state === State.Review;
 }
 
 /**

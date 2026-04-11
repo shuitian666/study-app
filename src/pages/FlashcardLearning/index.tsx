@@ -8,11 +8,11 @@
  * - Good 及以上才算掌握，进入下一张
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home, BookOpen, ChevronRight } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import {
   knowledgePointToCardInput,
@@ -74,6 +74,22 @@ export default function FlashcardLearningPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   // 不会的卡片的 ID 集合（用于检测重复）
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  // 是否显示知识点预览
+  const [showKnowledge, setShowKnowledge] = useState(false);
+  // 是否正在重现失败卡（用于显示提示）
+  const [isRevealingFailed, setIsRevealingFailed] = useState(false);
+  // 是否正在处理评分（用于防抖）
+  const [isSelecting, setIsSelecting] = useState(false);
+
+  // 使用 ref 存储最新状态，避免闭包陷阱
+  const queueRef = useRef(queue);
+  const failedIdsRef = useRef(failedIds);
+  const currentIdxRef = useRef(currentIdx);
+
+  // 同步 ref
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => { failedIdsRef.current = failedIds; }, [failedIds]);
+  useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
 
   // 初始化学习队列
   useEffect(() => {
@@ -129,11 +145,47 @@ export default function FlashcardLearningPage() {
   // 翻转卡片
   const handleFlip = useCallback(() => {
     setIsFlipped(prev => !prev);
+    // 翻转时关闭知识点预览和重现提示
+    setShowKnowledge(false);
+    setIsRevealingFailed(false);
+  }, []);
+
+  // 移动到下一张卡片（使用 ref 避免闭包陷阱）
+  const moveToNext = useCallback(() => {
+    const currentIndex = currentIdxRef.current;
+    const currentQueue = queueRef.current;
+    const currentFailedIds = failedIdsRef.current;
+
+    if (currentIndex < currentQueue.length - 1) {
+      // 还有卡片，检查下一张是否是失败卡
+      const nextCard = currentQueue[currentIndex + 1];
+      if (nextCard && currentFailedIds.has(nextCard.id)) {
+        // 下一张是失败卡，设置重现状态并直接跳转
+        setIsRevealingFailed(true);
+        setCurrentIdx(prev => prev + 1);
+      } else {
+        // 下一张是普通卡，直接前进
+        setCurrentIdx(prev => prev + 1);
+      }
+    } else if (currentFailedIds.size > 0) {
+      // 主队列空了，但有待重现的卡
+      // 从队列中移除失败卡，重置索引从头开始重现
+      const failedCards = currentQueue.filter(kp => currentFailedIds.has(kp.id));
+      setQueue(failedCards);
+      setFailedIds(new Set());
+      setCurrentIdx(0);
+      setIsRevealingFailed(true);
+    } else {
+      // 全部完成
+      setIsRevealingFailed(false);
+    }
   }, []);
 
   // 处理评分选择
   const handleSelect = useCallback((rating: RatingOption) => {
-    if (!currentKp) return;
+    // 防抖：如果正在处理中，直接返回
+    if (isSelecting || !currentKp) return;
+    setIsSelecting(true);
 
     const cardInput = knowledgePointToCardInput(currentKp);
     const result = reviewCard(cardInput, rating);
@@ -162,7 +214,11 @@ export default function FlashcardLearningPage() {
     // 设置滑动方向
     if (isAgain(rating)) {
       setSwipeDirection('left');
-      // 不会：把卡片 ID 加入失败列表，下次末尾再现
+      // 不会：把卡片 ID 加入失败列表，稍后重现
+      setFailedIds(prev => new Set(prev).add(currentKp.id));
+    } else if (rating === 'hard') {
+      setSwipeDirection('up');
+      // 困难：加入失败列表，需要加强记忆
       setFailedIds(prev => new Set(prev).add(currentKp.id));
     } else {
       setSwipeDirection('down');
@@ -173,26 +229,9 @@ export default function FlashcardLearningPage() {
       setIsFlipped(false);
       setSwipeDirection(null);
       moveToNext();
+      setIsSelecting(false);  // 解锁
     }, 200);
-  }, [currentKp, learningDispatch, learningState.todayReviewItems]);
-
-  // 移动到下一张卡片
-  const moveToNext = useCallback(() => {
-    if (currentIdx < queue.length - 1) {
-      // 还有卡片
-      setCurrentIdx(prev => prev + 1);
-    } else if (failedIds.size > 0) {
-      // 主队列空了，但有待重现的卡
-      // 筛选出失败的卡，重新加入队列末尾
-      const failedCards = queue.filter(kp => failedIds.has(kp.id));
-      setQueue(prev => [...prev, ...failedCards]);
-      setFailedIds(new Set());
-      // 索引已经在最后一位了，新卡加到末尾后需要+1
-      setCurrentIdx(prev => prev + failedCards.length);
-    } else {
-      // 全部完成
-    }
-  }, [currentIdx, queue, failedIds]);
+  }, [currentKp, learningDispatch, learningState.todayReviewItems, moveToNext, isSelecting]);
 
   // 上一张卡片
   const goToPrev = useCallback(() => {
@@ -327,6 +366,60 @@ export default function FlashcardLearningPage() {
         </div>
       </div>
 
+      {/* 失败卡重现提示 */}
+      {isRevealingFailed && (
+        <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
+          <div className="text-center text-xs py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+            📚 正在重现之前不会的卡片
+          </div>
+        </div>
+      )}
+
+      {/* 知识点预览按钮 - 仅在未翻转时显示 */}
+      {!isFlipped && (
+        <div className="px-4 pt-2">
+          <button
+            onClick={() => setShowKnowledge(!showKnowledge)}
+            className="w-full rounded-xl p-3 border flex items-center justify-between transition-all"
+            style={{
+              backgroundColor: showKnowledge ? '#eff6ff' : 'transparent',
+              borderColor: '#dbeafe'
+            }}
+          >
+            <div className="flex items-center gap-2 text-sm" style={{ color: '#1e40af' }}>
+              <BookOpen size={14} />
+              <span>先回顾知识点：{currentKp.name}</span>
+            </div>
+            <ChevronRight
+              size={14}
+              style={{
+                color: '#60a5fa',
+                transform: showKnowledge ? 'rotate(90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s'
+              }}
+            />
+          </button>
+
+          {showKnowledge && (
+            <div
+              className="mt-2 rounded-xl p-4 border text-sm"
+              style={{
+                backgroundColor: '#eff6ff',
+                borderColor: '#dbeafe',
+                color: '#1e40af'
+              }}
+            >
+              <p className="leading-relaxed">{currentKp.explanation || '暂无解析'}</p>
+              {currentKp.memoryTip && (
+                <p className="mt-2 text-xs" style={{ color: theme.textMuted }}>
+                  💡 记忆提示：{currentKp.memoryTip}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Card area with side navigation */}
       <div className="flex-1 flex items-center relative">
         {/* Left button - previous */}
@@ -437,6 +530,13 @@ export default function FlashcardLearningPage() {
             )}
           </button>
         </div>
+
+        {/* Relearning 状态提示 */}
+        {currentPreview && (currentPreview[Rating.Again]?.isRelearning || currentPreview[Rating.Hard]?.isRelearning) && (
+          <div className="mt-2 text-xs text-center py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+            🔄 进入重新学习模式
+          </div>
+        )}
 
         {/* Keyboard hints */}
         <div className="flex justify-center gap-4 mt-3 text-xs" style={{ color: theme.textMuted }}>

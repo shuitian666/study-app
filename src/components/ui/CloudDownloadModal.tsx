@@ -4,12 +4,12 @@
 
 import { useState, useEffect } from 'react';
 import { X, Cloud, CloudDownload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { getAvailableKnowledgeBases, downloadKnowledgeFromOSS, type KnowledgeSubject, type DownloadProgress } from '@/services/ossService';
+import { getAvailableKnowledgeBases, downloadKnowledgeFromOSS, getSubjectInfo, type KnowledgeSubject, type DownloadProgress } from '@/services/ossService';
 
 interface CloudDownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (knowledgePoints: any[], questions: any[]) => void;
+  onImport: (subjects: any[], chapters: any[], knowledgePoints: any[], questions: any[]) => void;
 }
 
 export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudDownloadModalProps) {
@@ -44,12 +44,28 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
       message: '准备下载...'
     });
 
-    const result = await downloadKnowledgeFromOSS(selectedId, setDownloadProgress);
+    // 同时获取subject信息和知识库数据
+    const [subjectInfo, result] = await Promise.all([
+      getSubjectInfo(selectedId),
+      downloadKnowledgeFromOSS(selectedId, setDownloadProgress)
+    ]);
 
     if (result && result.knowledgePoints.length > 0) {
+      // 构建subject数组
+      const subjectsToImport: any[] = [];
+      if (subjectInfo) {
+        subjectsToImport.push({
+          id: subjectInfo.id,
+          name: subjectInfo.name,
+          icon: subjectInfo.icon,
+          color: subjectInfo.color,
+          knowledgePointCount: subjectInfo.kpCount || 0
+        });
+      }
+
       // 延迟关闭，让用户看到成功消息
       setTimeout(() => {
-        onImport(result.knowledgePoints, result.questions);
+        onImport(subjectsToImport, result.chapters || [], result.knowledgePoints, result.questions);
         onClose();
         setDownloadProgress({ status: 'idle', progress: 0, message: '' });
       }, 1500);
@@ -85,7 +101,7 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary, #6b7280)' }}>
               选择知识库
             </label>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-80 overflow-y-auto">
               {subjects.map(subject => (
                 <button
                   key={subject.id}
@@ -95,17 +111,39 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
                   }`}
                   style={{
                     backgroundColor: selectedId === subject.id ? 'var(--primary-light, #eff6ff)' : 'var(--card-bg, #f9fafb)',
-                    borderColor: selectedId === subject.id ? 'var(--primary, #3b82f6)' : 'transparent',
+                    borderColor: selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'transparent',
                     border: '1px solid'
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-sm" style={{ color: 'var(--text-primary, #1f2937)' }}>
-                        {subject.name}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                        style={{ backgroundColor: (subject.color || 'var(--primary, #3b82f6)') + '20' }}
+                      >
+                        {subject.icon || '📚'}
                       </div>
-                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                        {subject.description}
+                      <div>
+                        <div className="font-medium text-sm" style={{ color: 'var(--text-primary, #1f2937)' }}>
+                          {subject.name}
+                        </div>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                          {subject.description}
+                        </div>
+                        {(subject.kpCount || subject.qCount) && (
+                          <div className="flex gap-3 mt-1">
+                            {subject.kpCount && (
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--primary-light, #eff6ff)', color: 'var(--primary, #3b82f6)' }}>
+                                {subject.kpCount} 知识点
+                              </span>
+                            )}
+                            {subject.qCount && (
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
+                                {subject.qCount} 题目
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div
@@ -113,8 +151,8 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
                         selectedId === subject.id ? 'border-transparent' : ''
                       }`}
                       style={{
-                        backgroundColor: selectedId === subject.id ? 'var(--primary, #3b82f6)' : 'transparent',
-                        borderColor: selectedId === subject.id ? 'var(--primary, #3b82f6)' : 'var(--border-color, #d1d5db)'
+                        backgroundColor: selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'transparent',
+                        borderColor: selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'var(--border-color, #d1d5db)'
                       }}
                     >
                       {selectedId === subject.id && (
@@ -191,7 +229,7 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
             disabled={!selectedId || downloadProgress.status === 'downloading'}
             className="flex-1 py-2.5 rounded-xl font-medium text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             style={{
-              backgroundColor: 'var(--primary, #3b82f6)',
+              backgroundColor: selectedId ? (subjects.find(s => s.id === selectedId)?.color || 'var(--primary, #3b82f6)') : 'var(--primary, #3b82f6)',
               color: '#ffffff'
             }}
           >
