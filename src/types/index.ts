@@ -238,7 +238,8 @@ export type PageName =
   | 'inventory'
   | 'mail'
   | 'avatar-edit'
-  | 'flashcard-learning';
+  | 'flashcard-learning'
+  | 'coin-bill';
 
 // ===== 激励体系 =====
 

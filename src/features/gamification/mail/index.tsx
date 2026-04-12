@@ -72,11 +72,21 @@ export default function MailPage() {
     // 1. Dispatch to GameContext to mark attachment as claimed and update mail state
     gameDispatch({ type: 'CLAIM_MAIL_ATTACHMENT', payload: { mailId, attachmentIndex } });
 
-    // 2. Handle coin rewards via UserContext
+    // 2. Handle coin rewards via UserContext and record bill
     if (attachment.type === 'coin' && userState.user) {
       userDispatch({
         type: 'UPDATE_USER',
         payload: { totalPoints: userState.user.totalPoints + attachment.quantity }
+      });
+      // 记录星币账单
+      gameDispatch({
+        type: 'ADD_COIN_BILL',
+        payload: {
+          type: 'mail_attachment',
+          amount: attachment.quantity,
+          description: `邮件附件: ${mail.title}`,
+          relatedId: mailId,
+        }
       });
     }
 
@@ -299,46 +309,98 @@ export default function MailPage() {
                 
                 {/* Attachments */}
                 {mail.attachments.length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <h5 className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                      <Gift size={12} /> 附件
+                      <Gift size={12} /> 附件列表
                     </h5>
-                    
-                    {mail.attachments.map((att, idx) => (
-                      <div 
-                        key={idx}
-                        className={`flex items-center justify-between p-3 rounded-xl border ${
-                          att.claimed ? 'border-gray-200 bg-gray-50' : 
-                          expired ? 'border-red-200 bg-red-50' :
-                          'border-amber-200 bg-amber-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {attachmentIcons[att.type] || <Gift size={14} />}
-                          <div>
-                            <p className="text-sm font-medium">{att.name}</p>
-                            <p className="text-xs text-gray-500">x{att.quantity}</p>
-                          </div>
-                        </div>
-                        
-                        {att.claimed ? (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <CheckCircle size={12} /> 已领取
-                          </span>
-                        ) : expired ? (
-                          <span className="text-xs text-red-500 flex items-center gap-1">
-                            <AlertTriangle size={12} /> 已过期
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleClaimAttachment(mail.id, idx)}
-                            className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg font-medium"
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {mail.attachments.map((att, idx) => {
+                        const isClaimed = att.claimed;
+                        const isExpiredType = expired;
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`relative rounded-2xl p-3 transition-all ${
+                              isClaimed
+                                ? 'bg-gray-50 border border-gray-100'
+                                : isExpiredType
+                                  ? 'bg-red-50/50 border border-red-100'
+                                  : att.type === 'coin'
+                                    ? 'bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200'
+                                    : 'bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200'
+                            }`}
                           >
-                            领取
-                          </button>
-                        )}
+                            {/* Claimed overlay */}
+                            {isClaimed && (
+                              <div className="absolute inset-0 bg-gray-50/80 rounded-2xl flex items-center justify-center">
+                                <CheckCircle size={24} className="text-gray-400" />
+                              </div>
+                            )}
+
+                            <div className="flex flex-col items-center text-center gap-1">
+                              {/* Icon */}
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                isClaimed
+                                  ? 'bg-gray-100'
+                                  : isExpiredType
+                                    ? 'bg-red-100'
+                                    : att.type === 'coin'
+                                      ? 'bg-amber-100'
+                                      : 'bg-emerald-100'
+                              }`}>
+                                {attachmentIcons[att.type] || <Gift size={20} />}
+                              </div>
+
+                              {/* Name & Quantity */}
+                              <p className={`text-sm font-medium ${
+                                isClaimed ? 'text-gray-400' : isExpiredType ? 'text-red-400' : 'text-gray-800'
+                              }`}>
+                                {att.name}
+                              </p>
+                              <p className={`text-xs ${
+                                isClaimed ? 'text-gray-300' : isExpiredType ? 'text-red-300' : 'text-gray-500'
+                              }`}>
+                                x{att.quantity}
+                              </p>
+
+                              {/* Status or Claim Button */}
+                              {isClaimed ? (
+                                <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                                  <CheckCircle size={10} /> 已领取
+                                </span>
+                              ) : isExpiredType ? (
+                                <span className="text-[10px] text-red-400 flex items-center gap-0.5">
+                                  <AlertTriangle size={10} /> 已过期
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleClaimAttachment(mail.id, idx)}
+                                  className={`mt-1 px-3 py-1 text-xs font-medium rounded-lg transition-all active:scale-95 ${
+                                    att.type === 'coin'
+                                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-200'
+                                      : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-200'
+                                  }`}
+                                >
+                                  领取
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Summary */}
+                    {!mail.claimed && !expired && (
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-100">
+                        <p className="text-xs text-amber-700 flex items-center gap-1">
+                          <Gift size={12} />
+                          {mail.attachments.filter(a => !a.claimed).length} 个附件待领取
+                        </p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
                 

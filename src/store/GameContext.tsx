@@ -25,6 +25,18 @@ export interface CheckinRewardInfo {
   streakLabel?: string;
 }
 
+// ---------- Coin Bill / 星币账单 ----------
+export type CoinBillType = 'mail_attachment' | 'shop_purchase' | 'lottery_reward' | 'compensation' | 'system';
+
+export interface CoinBillRecord {
+  id: string;
+  type: CoinBillType;
+  amount: number; // 正数为获得，负数为消耗
+  description: string;
+  timestamp: string;
+  relatedId?: string; // 关联ID，如邮件ID
+}
+
 // ---------- Redemption codes ----------
 const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
   '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
@@ -70,6 +82,8 @@ export interface GameState {
   // Inventory & Mail
   inventory: InventoryState;
   mail: MailState;
+  // Coin Bill / 星币账单
+  coinBills: CoinBillRecord[];
 }
 
 const initialGameState: GameState = {
@@ -86,6 +100,7 @@ const initialGameState: GameState = {
   redeemedCodes: [],
   inventory: { items: [] },
   mail: { mails: [], currentVersion: 1 },
+  coinBills: [],
 };
 
 // ---------- Actions ----------
@@ -113,7 +128,8 @@ type GameAction =
   | { type: 'UPDATE_MAIL'; payload: { id: string; changes: Partial<MailItem> } }
   | { type: 'DELETE_MAIL'; payload: string }
   | { type: 'MARK_MAIL_READ'; payload: string }
-  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } };
+  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
+  | { type: 'ADD_COIN_BILL'; payload: Omit<CoinBillRecord, 'id' | 'timestamp'> };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -409,6 +425,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'ADD_COIN_BILL': {
+      const newBill: CoinBillRecord = {
+        ...action.payload,
+        id: `bill-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+      };
+      // 只保留最近100条记录
+      const newBills = [newBill, ...state.coinBills].slice(0, 100);
+      return { ...state, coinBills: newBills };
+    }
+
     default:
       return state;
   }
@@ -439,6 +466,7 @@ function getInitialGameState(): GameState {
       redeemedCodes: saved.redeemedCodes ?? initialGameState.redeemedCodes,
       inventory: saved.inventory ?? initialGameState.inventory,
       mail: saved.mail ?? initialGameState.mail,
+      coinBills: saved.coinBills ?? initialGameState.coinBills,
     };
   }
   return initialGameState;
@@ -467,6 +495,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       redeemedCodes: gameState.redeemedCodes,
       inventory: gameState.inventory,
       mail: gameState.mail,
+      coinBills: gameState.coinBills,
     });
   }, [gameState]);
 

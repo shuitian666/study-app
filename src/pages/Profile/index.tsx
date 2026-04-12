@@ -29,7 +29,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 import { allFrames, allTitles } from '@/pages/AvatarEdit';
-import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
+import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail, Coins } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
 
 export function getBorderRadius(size: 'small' | 'large') {
@@ -581,6 +581,7 @@ export default function ProfilePage() {
             { icon: CalendarCheck, label: '每日签到', desc: `连续${gameState.checkin.streak}天`, color: 'text-orange-500', page: 'checkin' as const },
             { icon: Trophy, label: '我的成就', desc: `${gameState.achievements.filter(a => a.unlocked).length}/${gameState.achievements.length}`, color: 'text-yellow-500', page: 'achievements' as const },
             { icon: ShoppingBag, label: '星币商城', desc: `${user?.totalPoints ?? 0}星币`, color: 'text-purple-500', page: 'shop' as const },
+            { icon: Coins, label: '星币账单', desc: '查看收支记录', color: 'text-amber-500', page: 'coin-bill' as const },
             { icon: Medal, label: '排行榜', desc: '查看排名', color: 'text-blue-500', page: 'ranking' as const },
             { icon: Backpack, label: '背包', desc: `${gameState.inventory.items.length}件物品`, color: 'text-emerald-500', page: 'inventory' as const },
             { icon: Mail, label: '邮件', desc: `${gameState.mail.mails.filter(m => !m.read).length}未读`, color: 'text-rose-500', page: 'mail' as const, badge: gameState.mail.mails.filter(m => !m.read).length },
