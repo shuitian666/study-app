@@ -11,7 +11,8 @@ import { createContext, useContext, useReducer, useEffect, useRef, type ReactNod
 import type {
   CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
   TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
-  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState
+  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState,
+  InventoryState, InventoryItem, MailState, MailItem
 } from '@/types';
 import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
@@ -66,6 +67,9 @@ export interface GameState {
   lotteryPopup: LotteryPopup | null;
   // Redemption codes
   redeemedCodes: string[];
+  // Inventory & Mail
+  inventory: InventoryState;
+  mail: MailState;
 }
 
 const initialGameState: GameState = {
@@ -80,6 +84,8 @@ const initialGameState: GameState = {
   team: null,
   lotteryPopup: null,
   redeemedCodes: [],
+  inventory: { items: [] },
+  mail: { mails: [], currentVersion: 1 },
 };
 
 // ---------- Actions ----------
@@ -96,7 +102,17 @@ type GameAction =
   | { type: 'DRAW_UP'; payload: UpPoolResult }
   | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
   | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string };
+  | { type: 'REDEEM_CODE'; payload: string }
+  | { type: 'SET_INVENTORY'; payload: InventoryItem[] }
+  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
+  | { type: 'UPDATE_INVENTORY_ITEM'; payload: { id: string; changes: Partial<InventoryItem> } }
+  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
+  | { type: 'SET_MAIL'; payload: MailItem[] }
+  | { type: 'ADD_MAIL'; payload: MailItem }
+  | { type: 'UPDATE_MAIL'; payload: { id: string; changes: Partial<MailItem> } }
+  | { type: 'DELETE_MAIL'; payload: string }
+  | { type: 'MARK_MAIL_READ'; payload: string }
+  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -301,6 +317,88 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'SET_INVENTORY':
+      return { ...state, inventory: { items: action.payload } };
+
+    case 'ADD_INVENTORY_ITEM': {
+      const existingItem = state.inventory.items.find(item => item.id === action.payload.id);
+      if (existingItem) {
+        return {
+          ...state,
+          inventory: {
+            items: state.inventory.items.map(item =>
+              item.id === action.payload.id
+                ? { ...item, quantity: item.quantity + action.payload.quantity }
+                : item
+            ),
+          },
+        };
+      }
+      return { ...state, inventory: { items: [...state.inventory.items, action.payload] } };
+    }
+
+    case 'UPDATE_INVENTORY_ITEM':
+      return {
+        ...state,
+        inventory: {
+          items: state.inventory.items.map(item =>
+            item.id === action.payload.id ? { ...item, ...action.payload.changes } : item
+          ),
+        },
+      };
+
+    case 'REMOVE_INVENTORY_ITEM':
+      return { ...state, inventory: { items: state.inventory.items.filter(item => item.id !== action.payload) } };
+
+    case 'SET_MAIL':
+      return { ...state, mail: { mails: action.payload, currentVersion: state.mail.currentVersion } };
+
+    case 'ADD_MAIL':
+      return { ...state, mail: { mails: [...state.mail.mails, action.payload], currentVersion: state.mail.currentVersion } };
+
+    case 'UPDATE_MAIL':
+      return {
+        ...state,
+        mail: {
+          mails: state.mail.mails.map(mail =>
+            mail.id === action.payload.id ? { ...mail, ...action.payload.changes } : mail
+          ),
+          currentVersion: state.mail.currentVersion,
+        },
+      };
+
+    case 'DELETE_MAIL':
+      return { ...state, mail: { mails: state.mail.mails.filter(mail => mail.id !== action.payload), currentVersion: state.mail.currentVersion } };
+
+    case 'MARK_MAIL_READ':
+      return {
+        ...state,
+        mail: {
+          mails: state.mail.mails.map(mail =>
+            mail.id === action.payload ? { ...mail, read: true } : mail
+          ),
+          currentVersion: state.mail.currentVersion,
+        },
+      };
+
+    case 'CLAIM_MAIL_ATTACHMENT': {
+      const { mailId, attachmentIndex } = action.payload;
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          mails: state.mail.mails.map(mail => {
+            if (mail.id !== mailId) return mail;
+            const newAttachments = mail.attachments.map((a, idx) =>
+              idx === attachmentIndex ? { ...a, claimed: true } : a
+            );
+            return { ...mail, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
+          }),
+          currentVersion: state.mail.currentVersion,
+        },
+      };
+    }
+
     default:
       return state;
   }
@@ -329,6 +427,8 @@ function getInitialGameState(): GameState {
       upPool: saved.upPool ?? initialGameState.upPool,
       team: saved.team ?? initialGameState.team,
       redeemedCodes: saved.redeemedCodes ?? initialGameState.redeemedCodes,
+      inventory: saved.inventory ?? initialGameState.inventory,
+      mail: saved.mail ?? initialGameState.mail,
     };
   }
   return initialGameState;
@@ -355,6 +455,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       upPool: gameState.upPool,
       team: gameState.team,
       redeemedCodes: gameState.redeemedCodes,
+      inventory: gameState.inventory,
+      mail: gameState.mail,
     });
   }, [gameState]);
 
