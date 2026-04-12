@@ -49,6 +49,7 @@ const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
 const SettingsPage = React.lazy(() => import('@/pages/Settings'));
 const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
 const MailPage = React.lazy(() => import('@/features/gamification/mail'));
+const CoinBillPage = React.lazy(() => import('@/features/gamification/coin-bill'));
 const AvatarEditPage = React.lazy(() => import('@/pages/AvatarEdit'));
 const FlashcardLearningPage = React.lazy(() => import('@/pages/FlashcardLearning'));
 
@@ -171,6 +172,7 @@ function AppContent() {
       case 'settings': return <SettingsPage />;
       case 'inventory': return <InventoryPage />;
       case 'mail': return <MailPage />;
+      case 'coin-bill': return <CoinBillPage />;
       case 'avatar-edit': return <AvatarEditPage />;
       case 'flashcard-learning': return <FlashcardLearningPage />;
       default: return <HomePage />;
