@@ -1,8 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+
+// 开发模式测试邮件
+const DEV_TEST_MAIL = {
+  id: 'dev-test-mail-001',
+  title: '🎁 新手大礼包',
+  content: '恭喜你成为TRAE用户！这里有一份丰厚的新手礼包：\n\n- 100星币\n- 1张补签卡\n- 1个头像框\n\n快来领取吧！',
+  sender: '系统管理员',
+  sentAt: new Date().toISOString(),
+  read: false,
+  attachments: [
+    { type: 'coin' as const, name: '星币', quantity: 100, claimed: false },
+    { type: 'makeup_card' as const, name: '补签卡', quantity: 1, claimed: false },
+    { type: 'avatar_frame' as const, name: '萌新头像框', icon: '🌟', rarity: 'N' as const, quantity: 1, claimed: false },
+  ],
+  claimDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  systemMail: true,
+  claimed: false,
+  version: 1,
+};
 
 const attachmentIcons: Record<string, React.ReactNode> = {
   makeup_card: <Ticket size={14} className="text-blue-500" />,
@@ -16,6 +35,13 @@ export default function MailPage() {
   const { gameState, gameDispatch } = useGame();
   const [selectedMail, setSelectedMail] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'claimable'>('all');
+
+  // 开发模式：如果没有邮件，自动添加测试邮件
+  useEffect(() => {
+    if (import.meta.env.DEV && gameState.mail.mails.length === 0) {
+      gameDispatch({ type: 'ADD_MAIL', payload: DEV_TEST_MAIL });
+    }
+  }, []);
 
   const mails = gameState.mail.mails;
   const currentVersion = gameState.mail.currentVersion;
