@@ -16,9 +16,8 @@ import type {
   QuizResult, WrongRecord, ReviewItem, LearningStats, PageName, ProficiencyLevel,
   CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
   TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
-  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState,
+  DrawBalance, UpPoolConfig, UpPoolResult,
   ChatMessage, AIChatSession,
-  InventoryState, InventoryItem, MailState, MailItem,
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
@@ -82,11 +81,6 @@ export interface AppState {
   // Redemption codes
   /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.redeemedCodes */
   redeemedCodes: string[];
-  // ===== inventory/mail（已迁移至 GameContext）=====
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.inventory */
-  inventory: InventoryState;
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.mail */
-  mail: MailState;
   // AI features
   aiChat: AIChatSession;
   dailyEncouragement: string | null;
@@ -128,10 +122,6 @@ const initialState: AppState = {
   dailyEncouragement: null,
   dailyEncouragementDate: null,
   questionExplanations: [],
-  // Inventory / 背包
-  inventory: { items: [] },
-  // Mail / 邮件
-  mail: { mails: [], currentVersion: 1 },
   // Undo/Redo (not persisted)
   _history: [],
   _historyIndex: -1,
@@ -209,16 +199,6 @@ export type Action =
   | { type: 'DELETE_QUESTION_EXPLANATION'; payload: string }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
-  // Inventory actions
-  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
-  | { type: 'USE_INVENTORY_ITEM'; payload: string }
-  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
-  // Mail actions
-  | { type: 'ADD_MAIL'; payload: MailItem }
-  | { type: 'SET_MAILS'; payload: MailItem[] }
-  | { type: 'MARK_MAIL_READ'; payload: string }
-  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
-  | { type: 'UPDATE_MAIL_VERSION'; payload: number }
   // Undo/Redo actions
   | { type: 'UNDO' }
   | { type: 'REDO' }
@@ -407,103 +387,6 @@ function reducer(state: AppState, action: Action): AppState {
     case 'DISMISS_CHECKIN_REWARD':
       return { ...state, lastCheckinReward: null };
 
-    case 'DRAW_REGULAR': {
-      if (state.drawBalance.regular <= 0) return state;
-      const result = action.payload;
-      let newUser = state.user;
-      let newMakeupCards = state.checkin.makeupCards;
-      let newInventoryItems = [...state.inventory.items];
-      
-      if (result.reward.type === 'coins' && newUser) {
-        newUser = { ...newUser, totalPoints: newUser.totalPoints + result.reward.amount };
-      } else if (result.reward.type === 'makeup_card') {
-        // 补签卡可以堆叠，直接增加数量
-        newMakeupCards += result.reward.amount;
-        const existingMakeup = newInventoryItems.find(i => i.type === 'makeup_card');
-        if (existingMakeup) {
-          newInventoryItems = newInventoryItems.map(i =>
-            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + result.reward.amount } : i
-          );
-        } else {
-          newInventoryItems = [...newInventoryItems, {
-            id: `inv-makeup-${Date.now()}`,
-            type: 'makeup_card' as const,
-            name: '补签卡',
-            description: '可在忘记签到时补签',
-            icon: '📝',
-            rarity: 'R' as const,
-            quantity: result.reward.amount,
-            obtainedAt: new Date().toISOString(),
-            source: 'lottery' as const,
-            usable: true,
-          }];
-        }
-      }
-
-      let newPity: LotteryPityState;
-      if (result.tier === 'SSR') {
-        newPity = { sinceLastSSR: 0, sinceLastSR: 0 };
-      } else if (result.tier === 'SR') {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: 0 };
-      } else {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: state.checkin.lotteryPity.sinceLastSR + 1 };
-      }
-      return {
-        ...state,
-        user: newUser,
-        drawBalance: { ...state.drawBalance, regular: state.drawBalance.regular - 1 },
-        checkin: { ...state.checkin, makeupCards: newMakeupCards, lotteryPity: newPity },
-        inventory: { items: newInventoryItems },
-      };
-    }
-
-    case 'DRAW_UP': {
-      if (state.drawBalance.up <= 0) return state;
-      const { item } = action.payload;
-      let newInventoryItems = [...state.inventory.items];
-      let newUser = state.user;
-      let newUpPool = state.upPool;
-
-      // UP池物品标记为已拥有
-      newUpPool = {
-        ...newUpPool,
-        items: newUpPool.items.map(i => i.id === item.id ? { ...i, owned: true } : i),
-      };
-
-      // 非装饰物品正常添加到背包
-      const invItem: InventoryItem = {
-        id: `inv-up-${item.id}-${Date.now()}`,
-        type: item.type as any,
-        name: item.name,
-        description: item.description,
-        icon: item.icon,
-        rarity: item.rarity,
-        quantity: 1,
-        obtainedAt: new Date().toISOString(),
-        source: 'lottery',
-        usable: false,
-      };
-      newInventoryItems = [...state.inventory.items, invItem];
-
-      let newPity: LotteryPityState;
-      if (item.rarity === 'SSR') {
-        newPity = { sinceLastSSR: 0, sinceLastSR: 0 };
-      } else if (item.rarity === 'SR') {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: 0 };
-      } else {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: state.checkin.lotteryPity.sinceLastSR + 1 };
-      }
-
-      return {
-        ...state,
-        user: newUser,
-        drawBalance: { ...state.drawBalance, up: state.drawBalance.up - 1 },
-        upPool: newUpPool,
-        checkin: { ...state.checkin, lotteryPity: newPity },
-        inventory: { items: newInventoryItems },
-      };
-    }
-
     case 'SHOW_LOTTERY_POPUP':
       return { ...state, lotteryPopup: action.payload };
     case 'DISMISS_LOTTERY_POPUP':
@@ -540,100 +423,7 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case 'DISMISS_ACHIEVEMENT_POPUP':
       return { ...state, achievementPopup: null };
-    case 'BUY_SHOP_ITEM': {
-      let item = state.shopItems.find(i => i.id === action.payload);
-      if (!item || !state.user || state.user.totalPoints < item.price) return state;
 
-      // 检查背包中是否已经拥有该物品（装饰类），已经拥有就不能购买
-      if (item.type === 'avatar_frame' || item.type === 'background') {
-        const alreadyOwned = state.inventory.items.some(
-          invItem => invItem.name === item.name
-        );
-        if (alreadyOwned || item.owned) {
-          console.log('[BUY_SHOP_ITEM] 已经拥有该物品，无法重复购买');
-          return state;
-        }
-      }
-
-      // 将购买的物品添加到背包
-      let newInventoryItems = [...state.inventory.items];
-      let rarity: 'N' | 'R' | 'SR' | 'SSR' = 'R';
-      // 根据 ID 判断稀有度
-      if (item.id.startsWith('frame-n-') || item.id.startsWith('bg-n-')) rarity = 'N';
-      if (item.id.startsWith('frame-r-') || item.id.startsWith('bg-r-')) rarity = 'R';
-      if (item.id.startsWith('frame-sr-') || item.id.startsWith('bg-sr-')) rarity = 'SR';
-      if (item.id.startsWith('frame-ssr-') || item.id.startsWith('bg-ssr-')) rarity = 'SSR';
-      
-      // 如果是可堆叠物品（补签卡），梯度涨价
-      let newShopItems = [...state.shopItems];
-      if (item.type === 'makeup_card') {
-        // 计算当前已有数量
-        const existing = newInventoryItems.find(i => i.type === 'makeup_card');
-        const currentCount = existing ? existing.quantity : 0;
-        
-        // 检查用户余额是否够
-        if (state.user.totalPoints < item.price) return state;
-
-        // 增加数量到背包
-        if (existing) {
-          newInventoryItems = newInventoryItems.map(i =>
-            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + 1 } : i
-          );
-        } else {
-          newInventoryItems.push({
-            id: `inv-shop-${item.id}-${Date.now()}`,
-            type: item.type as any,
-            name: item.name,
-            description: item.description,
-            icon: item.icon,
-            rarity: 'R',
-            quantity: 1,
-            obtainedAt: new Date().toISOString(),
-            source: 'shop',
-            usable: true,
-          });
-        }
-
-        // 计算下一次价格梯度：1->30, 2->50, 3->80, 4+->120
-        let nextPrice = 30;
-        switch (currentCount + 1) {
-          case 1: nextPrice = 50; break;
-          case 2: nextPrice = 80; break;
-          default: nextPrice = 120; break;
-        }
-        // 更新商店中补签卡的价格
-        newShopItems = newShopItems.map(i => 
-          i.id === action.payload ? { ...i, price: nextPrice } : i
-        );
-      } else if (item.type === 'avatar_frame' || item.type === 'background') {
-        // 装饰类物品（头像框、背景等）添加到背包，按照正确稀有度
-        newInventoryItems.push({
-          id: `inv-shop-${item.id}-${Date.now()}`,
-          type: item.type as any,
-          name: item.name,
-          description: item.description,
-          icon: item.icon,
-          rarity,
-          quantity: 1,
-          obtainedAt: new Date().toISOString(),
-          source: 'shop',
-          usable: false,
-        });
-        // 标记为已拥有
-        newShopItems = newShopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i);
-      } else {
-        // 其他物品标记已拥有
-        newShopItems = newShopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i);
-      }
-
-      return {
-        ...state,
-        user: { ...state.user, totalPoints: state.user.totalPoints - item.price },
-        shopItems: newShopItems,
-        checkin: item.type === 'makeup_card' ? { ...state.checkin, makeupCards: state.checkin.makeupCards + 1 } : state.checkin,
-        inventory: { items: newInventoryItems },
-      };
-    }
     case 'ADD_COINS':
       return state.user ? { ...state, user: { ...state.user, totalPoints: state.user.totalPoints + action.payload } } : state;
 
@@ -746,194 +536,9 @@ function reducer(state: AppState, action: Action): AppState {
           ? { 
               ...state.user, 
               todayQuestions: action.payload.questionsCompleted, 
-              goalAchievedToday: action.payload.goalMet 
-            } 
+              goalAchievedToday: action.payload.goalMet
+            }
           : state.user,
-      };
-
-    // Inventory actions
-    case 'ADD_INVENTORY_ITEM': {
-      const existing = state.inventory.items.find(i => i.id === action.payload.id);
-      if (existing) {
-        return {
-          ...state,
-          inventory: {
-            items: state.inventory.items.map(i =>
-              i.id === action.payload.id ? { ...i, quantity: i.quantity + action.payload.quantity } : i
-            ),
-          },
-        };
-      }
-      return {
-        ...state,
-        inventory: {
-          items: [...state.inventory.items, action.payload],
-        },
-      };
-    }
-    case 'USE_INVENTORY_ITEM': {
-      const item = state.inventory.items.find(i => i.id === action.payload);
-      if (!item || item.quantity <= 0 || !item.usable) return state;
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.map(i =>
-            i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
-          ).filter(i => i.quantity > 0),
-        },
-      };
-    }
-    case 'REMOVE_INVENTORY_ITEM': {
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.filter(i => i.id !== action.payload),
-        },
-      };
-    }
-
-    // Mail actions
-    case 'ADD_MAIL': {
-      const exists = state.mail.mails.find(m => m.id === action.payload.id);
-      if (exists) return state;
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: [action.payload, ...state.mail.mails],
-        },
-      };
-    }
-    case 'SET_MAILS':
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: action.payload,
-        },
-      };
-    case 'MARK_MAIL_READ':
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m =>
-            m.id === action.payload ? { ...m, read: true } : m
-          ),
-        },
-      };
-    case 'CLAIM_MAIL_ATTACHMENT': {
-      const { mailId, attachmentIndex } = action.payload;
-      let newUser = state.user;
-      let newInventoryItems = [...state.inventory.items];
-
-      const mail = state.mail.mails.find(m => m.id === mailId);
-      if (mail && state.user) {
-        const attachment = mail.attachments[attachmentIndex];
-        if (attachment && !attachment.claimed) {
-          if (attachment.type === 'coin') {
-            // 金币直接加
-            newUser = { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity };
-          } else if (attachment.type === 'makeup_card') {
-            // 补签卡可以堆叠
-            const existing = newInventoryItems.find(i => i.type === 'makeup_card');
-            if (existing) {
-              newInventoryItems = newInventoryItems.map(i =>
-                i.type === 'makeup_card' ? { ...i, quantity: i.quantity + attachment.quantity } : i
-              );
-            } else {
-              newInventoryItems.push({
-                id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
-                name: attachment.name,
-                description: `来自邮件: ${mail.title}`,
-                icon: '🎁',
-                rarity: 'R',
-                quantity: attachment.quantity,
-                obtainedAt: new Date().toISOString(),
-                source: 'mail',
-                usable: true,
-              });
-            }
-          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
-            // 装饰物品 - 已有就补偿星币
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
-            if (existing) {
-              // 根据稀有度补偿
-              let compensation = 10;
-              const rarity = (attachment as any).rarity;
-              if (rarity) {
-                switch (rarity) {
-                  case 'N': compensation = 10; break;
-                  case 'R': compensation = 30; break;
-                  case 'SR': compensation = 60; break;
-                  case 'SSR': compensation = 150; break;
-                }
-              }
-              newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-              console.log(`[CLAIM_MAIL] 重复获得 ${attachment.name}，补偿 ${compensation} 星币`);
-            } else {
-              // 新物品添加到背包
-              newInventoryItems.push({
-                id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
-                name: attachment.name,
-                description: `来自邮件: ${mail.title}`,
-                icon: attachment.icon || '🎁',
-                rarity: (attachment as any).rarity || 'R',
-                quantity: 1,
-                obtainedAt: new Date().toISOString(),
-                source: 'mail',
-                usable: false,
-              });
-            }
-          } else {
-            // 其他物品正常处理
-            const invItem: InventoryItem = {
-              id: `inv-${Date.now()}-${attachmentIndex}`,
-              type: attachment.type as any,
-              name: attachment.name,
-              description: `来自邮件: ${mail.title}`,
-              icon: '🎁',
-              rarity: 'R',
-              quantity: attachment.quantity,
-              obtainedAt: new Date().toISOString(),
-              source: 'mail',
-              usable: true,
-            };
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
-            if (existing) {
-              existing.quantity += attachment.quantity;
-            } else {
-              newInventoryItems.push(invItem);
-            }
-          }
-        }
-      }
-
-      return {
-        ...state,
-        user: newUser,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m => {
-            if (m.id !== mailId) return m;
-            const newAttachments = m.attachments.map((a, idx) =>
-              idx === attachmentIndex ? { ...a, claimed: true } : a
-            );
-            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
-          }),
-        },
-        inventory: { items: newInventoryItems },
-      };
-    }
-    case 'UPDATE_MAIL_VERSION':
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          currentVersion: action.payload,
-        },
       };
 
     // Undo/Redo actions
@@ -945,7 +550,6 @@ function reducer(state: AppState, action: Action): AppState {
         chapters: state.chapters,
         knowledgePoints: state.knowledgePoints,
         questions: state.questions,
-        inventory: state.inventory,
       } as AppState);
       // Keep only last 50 history entries
       if (newHistory.length > 50) newHistory.shift();

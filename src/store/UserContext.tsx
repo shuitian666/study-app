@@ -2,14 +2,14 @@
  * ============================================================================
  * 用户状态管理 - UserContext
  * ============================================================================
- * 
- * 包含用户基本信息、页面导航、每日鼓励语、背包和邮件等状态
+ *
+ * 包含用户基本信息、页面导航、每日鼓励语等状态
  * ============================================================================
  */
 
 import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
 import type {
-  User, PageName, InventoryState, InventoryItem, MailState, MailItem,
+  User, PageName,
 } from '@/types';
 import { saveState, loadState } from './persistence';
 
@@ -21,14 +21,6 @@ export interface UserState {
   pageParams: Record<string, string>;
   dailyEncouragement: string | null;
   dailyEncouragementDate: string | null;
-  /**
-   * @deprecated 背包数据已迁移至 GameContext，请使用 useGame().gameState.inventory
-   */
-  inventory: InventoryState;
-  /**
-   * @deprecated 邮件数据已迁移至 GameContext，请使用 useGame().gameState.mail
-   */
-  mail: MailState;
   currentBackgroundMap: Record<string, string>;
   currentBackground: string;
   currentPattern: string | null;
@@ -41,8 +33,6 @@ const initialUserState: UserState = {
   pageParams: {},
   dailyEncouragement: null,
   dailyEncouragementDate: null,
-  inventory: { items: [] },
-  mail: { mails: [], currentVersion: 1 },
   currentBackgroundMap: {},
   currentBackground: 'default',
   currentPattern: null,
@@ -57,22 +47,6 @@ type UserAction =
   | { type: 'SET_DAILY_ENCOURAGEMENT'; payload: { text: string; date: string } }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
-  /** @deprecated 请使用 GameContext 的 ADD_INVENTORY_ITEM */
-  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
-  /** @deprecated 请使用 GameContext 的 USE_INVENTORY_ITEM */
-  | { type: 'USE_INVENTORY_ITEM'; payload: string }
-  /** @deprecated 请使用 GameContext 的 REMOVE_INVENTORY_ITEM */
-  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
-  /** @deprecated 请使用 GameContext 的 ADD_MAIL */
-  | { type: 'ADD_MAIL'; payload: MailItem }
-  /** @deprecated 请使用 GameContext 的 SET_MAIL */
-  | { type: 'SET_MAILS'; payload: MailItem[] }
-  /** @deprecated 请使用 GameContext 的 MARK_MAIL_READ */
-  | { type: 'MARK_MAIL_READ'; payload: string }
-  /** @deprecated 请使用 GameContext 的 CLAIM_MAIL_ATTACHMENT（配合UserContext的ADD_COINS） */
-  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
-  /** @deprecated 请使用 GameContext 的 UPDATE_MAIL_VERSION */
-  | { type: 'UPDATE_MAIL_VERSION'; payload: number }
   | { type: 'RESET_ALL' };
 
 function userReducer(state: UserState, action: UserAction): UserState {
@@ -107,204 +81,13 @@ function userReducer(state: UserState, action: UserAction): UserState {
     case 'UPDATE_TODAY_GOAL_STATUS':
       return {
         ...state,
-        user: state.user 
-          ? { 
-              ...state.user, 
-              todayQuestions: action.payload.questionsCompleted, 
-              goalAchievedToday: action.payload.goalMet 
-            } 
+        user: state.user
+          ? {
+              ...state.user,
+              todayQuestions: action.payload.questionsCompleted,
+              goalAchievedToday: action.payload.goalMet
+            }
           : state.user,
-      };
-    case 'ADD_INVENTORY_ITEM': {
-      /** @deprecated 游戏化物品请使用 GameContext */
-      console.warn('[DEPRECATED] ADD_INVENTORY_ITEM in UserContext, use GameContext instead');
-      const existing = state.inventory.items.find(i => i.id === action.payload.id);
-      if (existing) {
-        return {
-          ...state,
-          inventory: {
-            items: state.inventory.items.map(i =>
-              i.id === action.payload.id ? { ...i, quantity: i.quantity + action.payload.quantity } : i
-            ),
-          },
-        };
-      }
-      return {
-        ...state,
-        inventory: {
-          items: [...state.inventory.items, action.payload],
-        },
-      };
-    }
-    case 'USE_INVENTORY_ITEM': {
-      /** @deprecated 游戏化物品请使用 GameContext */
-      console.warn('[DEPRECATED] USE_INVENTORY_ITEM in UserContext, use GameContext instead');
-      const item = state.inventory.items.find(i => i.id === action.payload);
-      if (!item || item.quantity <= 0 || !item.usable) return state;
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.map(i =>
-            i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
-          ).filter(i => i.quantity > 0),
-        },
-      };
-    }
-    case 'REMOVE_INVENTORY_ITEM': {
-      /** @deprecated 游戏化物品请使用 GameContext */
-      console.warn('[DEPRECATED] REMOVE_INVENTORY_ITEM in UserContext, use GameContext instead');
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.filter(i => i.id !== action.payload),
-        },
-      };
-    }
-    case 'ADD_MAIL': {
-      /** @deprecated 游戏化邮件请使用 GameContext */
-      console.warn('[DEPRECATED] ADD_MAIL in UserContext, use GameContext instead');
-      const exists = state.mail.mails.find(m => m.id === action.payload.id);
-      if (exists) return state;
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: [action.payload, ...state.mail.mails],
-        },
-      };
-    }
-    case 'SET_MAILS':
-      /** @deprecated 游戏化邮件请使用 GameContext */
-      console.warn('[DEPRECATED] SET_MAILS in UserContext, use GameContext instead');
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: action.payload,
-        },
-      };
-    case 'MARK_MAIL_READ':
-      /** @deprecated 游戏化邮件请使用 GameContext */
-      console.warn('[DEPRECATED] MARK_MAIL_READ in UserContext, use GameContext instead');
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m =>
-            m.id === action.payload ? { ...m, read: true } : m
-          ),
-        },
-      };
-    case 'CLAIM_MAIL_ATTACHMENT': {
-      /** @deprecated 游戏化邮件请使用 GameContext，coins奖励请使用 UserContext */
-      console.warn('[DEPRECATED] CLAIM_MAIL_ATTACHMENT in UserContext, use GameContext instead');
-      const { mailId, attachmentIndex } = action.payload;
-      let newUser = state.user;
-      let newInventoryItems = [...state.inventory.items];
-
-      const mail = state.mail.mails.find(m => m.id === mailId);
-      if (mail && state.user) {
-        const attachment = mail.attachments[attachmentIndex];
-        if (attachment && !attachment.claimed) {
-          if (attachment.type === 'coin') {
-            newUser = { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity };
-          } else if (attachment.type === 'makeup_card') {
-            const existing = newInventoryItems.find(i => i.type === 'makeup_card');
-            if (existing) {
-              newInventoryItems = newInventoryItems.map(i =>
-                i.type === 'makeup_card' ? { ...i, quantity: i.quantity + attachment.quantity } : i
-              );
-            } else {
-              newInventoryItems.push({
-                id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
-                name: attachment.name,
-                description: `来自邮件: ${mail.title}`,
-                icon: '🎁',
-                rarity: 'R',
-                quantity: attachment.quantity,
-                obtainedAt: new Date().toISOString(),
-                source: 'mail',
-                usable: true,
-              });
-            }
-          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
-            if (existing) {
-              let compensation = 10;
-              const rarity = (attachment as any).rarity;
-              if (rarity) {
-                switch (rarity) {
-                  case 'N': compensation = 10; break;
-                  case 'R': compensation = 30; break;
-                  case 'SR': compensation = 60; break;
-                  case 'SSR': compensation = 150; break;
-                }
-              }
-              newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-              console.log(`[CLAIM_MAIL] 重复获得 ${attachment.name}，补偿 ${compensation} 星币`);
-            } else {
-              newInventoryItems.push({
-                id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
-                name: attachment.name,
-                description: `来自邮件: ${mail.title}`,
-                icon: attachment.icon || '🎁',
-                rarity: (attachment as any).rarity || 'R',
-                quantity: 1,
-                obtainedAt: new Date().toISOString(),
-                source: 'mail',
-                usable: false,
-              });
-            }
-          } else {
-            const invItem: InventoryItem = {
-              id: `inv-${Date.now()}-${attachmentIndex}`,
-              type: attachment.type as any,
-              name: attachment.name,
-              description: `来自邮件: ${mail.title}`,
-              icon: '🎁',
-              rarity: 'R',
-              quantity: attachment.quantity,
-              obtainedAt: new Date().toISOString(),
-              source: 'mail',
-              usable: true,
-            };
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
-            if (existing) {
-              existing.quantity += attachment.quantity;
-            } else {
-              newInventoryItems.push(invItem);
-            }
-          }
-        }
-      }
-
-      return {
-        ...state,
-        user: newUser,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m => {
-            if (m.id !== mailId) return m;
-            const newAttachments = m.attachments.map((a, idx) =>
-              idx === attachmentIndex ? { ...a, claimed: true } : a
-            );
-            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
-          }),
-        },
-        inventory: { items: newInventoryItems },
-      };
-    }
-    case 'UPDATE_MAIL_VERSION':
-      /** @deprecated 游戏化邮件请使用 GameContext */
-      console.warn('[DEPRECATED] UPDATE_MAIL_VERSION in UserContext, use GameContext instead');
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          currentVersion: action.payload,
-        },
       };
     case 'RESET_ALL':
       return initialUserState;
@@ -334,8 +117,6 @@ function getInitialUserState(): UserState {
       pageParams: saved.pageParams ?? initialUserState.pageParams,
       dailyEncouragement: saved.dailyEncouragement ?? initialUserState.dailyEncouragement,
       dailyEncouragementDate: saved.dailyEncouragementDate ?? initialUserState.dailyEncouragementDate,
-      inventory: saved.inventory ?? initialUserState.inventory,
-      mail: saved.mail ?? initialUserState.mail,
       currentBackgroundMap: saved.currentBackgroundMap ?? initialUserState.currentBackgroundMap,
       currentBackground: saved.currentBackground ?? initialUserState.currentBackground,
       currentPattern: saved.currentPattern ?? initialUserState.currentPattern,
