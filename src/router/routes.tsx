@@ -24,6 +24,11 @@ const Lottery = lazy(() => import('../features/gamification/lottery'));
 const Settings = lazy(() => import('../pages/Settings'));
 const Login = lazy(() => import('../pages/Login'));
 const AvatarEdit = lazy(() => import('../pages/AvatarEdit'));
+const KnowledgeMap = lazy(() => import('../pages/KnowledgeMap'));
+const Checkin = lazy(() => import('../features/gamification/checkin'));
+const Achievements = lazy(() => import('../features/gamification/achievements'));
+const Ranking = lazy(() => import('../features/gamification/ranking'));
+const ReviewSession = lazy(() => import('../pages/Review'));
 
 const PageLoading = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -67,6 +72,11 @@ export const router = createBrowserRouter([
       { path: 'settings', element: withLazy(Settings) },
       { path: 'login', element: withLazy(Login) },
       { path: 'avatar-edit', element: withLazy(AvatarEdit) },
+      { path: 'knowledge-map', element: withLazy(KnowledgeMap) },
+      { path: 'checkin', element: withLazy(Checkin) },
+      { path: 'achievements', element: withLazy(Achievements) },
+      { path: 'ranking', element: withLazy(Ranking) },
+      { path: 'review-session/:type?', element: withLazy(ReviewSession) },
     ],
   },
 ]);
