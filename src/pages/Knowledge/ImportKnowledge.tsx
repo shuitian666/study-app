@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Upload, FileJson, CheckCircle, AlertCircle, X, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -46,6 +47,7 @@ interface ImportResult {
 export default function ImportKnowledgePage() {
   const { navigate } = useUser();
   const { learningState, learningDispatch, recordHistory } = useLearning();
+  const { checkAchievements } = useGame();
   const { theme } = useTheme();
 
   // 动画效果 - 使用次级界面动画设置
@@ -309,7 +311,14 @@ export default function ImportKnowledgePage() {
       duplicateQ,
       invalidQ,
     });
-  }, [parsedData, parsedQuestions, validateItem, checkDuplicates, learningDispatch, learningState.questions, learningState.knowledgePoints, recordHistory]);
+
+    // Check achievements
+    if (successKP > 0) {
+      const kpCount = learningState.knowledgePoints.length;
+      const masteredCount = learningState.knowledgePoints.filter(kp => kp.proficiency === 'master').length;
+      checkAchievements({ knowledgePointCount: kpCount, masteredCount });
+    }
+  }, [parsedData, parsedQuestions, validateItem, checkDuplicates, learningDispatch, learningState.questions, learningState.knowledgePoints, recordHistory, checkAchievements]);
 
   const toggleExpand = useCallback((index: number) => {
     setExpandedItems(prev => {

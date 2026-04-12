@@ -14,6 +14,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { calculateNewProficiency } from '@/utils/review';
@@ -25,6 +26,7 @@ export default function QuizSessionPage() {
 
   const { userState, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
+  const { checkAchievements } = useGame();
   const { theme } = useTheme();
 
   // 动画效果 - 使用次级界面动画设置
@@ -184,6 +186,9 @@ export default function QuizSessionPage() {
         },
       });
     }
+
+    // Check achievements - 累计答题次数
+    checkAchievements({ totalQuizCount: learningState.quizResults.length + 1 });
   };
 
   const handleNext = () => {
@@ -210,6 +215,11 @@ export default function QuizSessionPage() {
           completedAt: new Date().toISOString(),
         },
       });
+
+      // 阶段结束，检测满分成就
+      if (score === 100) {
+        checkAchievements({ perfectQuizCount: 1 });
+      }
       
       // 传递所有题目结果用于最终解析显示
       const resultId = `qr-${Date.now()}`;

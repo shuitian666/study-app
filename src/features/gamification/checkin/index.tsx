@@ -48,7 +48,7 @@ function generateCalendar(year: number, month: number) {
 export default function CheckinPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState } = useLearning();
-  const { gameState, gameDispatch } = useGame();
+  const { gameState, gameDispatch, checkAchievements } = useGame();
   const { theme } = useTheme();
   const { checkin, team, drawBalance, lastCheckinReward } = gameState;
   const { quizResults, todayReviewItems, todayNewItems } = learningState;
@@ -183,6 +183,15 @@ export default function CheckinPage() {
         type: 'UPDATE_USER',
         payload: { totalPoints: user.totalPoints + streakCoins }
       });
+      // 记录星币账单
+      gameDispatch({
+        type: 'ADD_COIN_BILL',
+        payload: {
+          type: 'compensation',
+          amount: streakCoins,
+          description: `签到奖励: 连续${tempStreak}天`,
+        }
+      });
       console.log(`[签到奖励] 立即获得 ${streakCoins} 星币`);
     }
 
@@ -191,6 +200,9 @@ export default function CheckinPage() {
       type: 'CHECKIN',
       payload: { date: today, type, teamId: type === 'team' ? team?.id : undefined },
     });
+
+    // Check achievements - 签到后触发
+    checkAchievements({ currentStreak: tempStreak });
   };
 
   const handleMakeup = (date: string) => {

@@ -1,12 +1,13 @@
-﻿/**
+/**
  * ============================================================================
  * 全局状态管理 - AppContext
  * ============================================================================
- * 
+ *
  * @section ALL
- * @user:兑换码 @user:AI解析 @user:质疑功能 @user:预生成 @user:继续学习 @user:下一阶段
- * 
+ *
  * 【架构】React Context + useReducer（类 Redux 单向数据流）
+ *
+ * 注意：游戏化相关状态已迁移至 GameContext
  * ============================================================================
  */
 
@@ -14,39 +15,20 @@ import { createContext, useContext, useReducer, useEffect, useRef, type ReactNod
 import type {
   User, Subject, Chapter, KnowledgePoint, Question,
   QuizResult, WrongRecord, ReviewItem, LearningStats, PageName, ProficiencyLevel,
-  CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
-  TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
-  DrawBalance, UpPoolConfig, UpPoolResult,
   ChatMessage, AIChatSession,
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
-import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
-
-// ---------- Checkin reward info ----------
-export interface CheckinRewardInfo {
-  regularTickets: number;
-  upTickets: number;
-  streakCoins: number;
-  streakLabel?: string;
-}
-
-// ---------- Question Explanation ----------
-export interface QuestionExplanation {
-  questionId: string;
-  explanation: string;
-  createdAt: string;
-  updatedAt: string;
-  isUserModified: boolean;
-}
 
 // ---------- State ----------
 export interface AppState {
+  // User
   user: User | null;
   isLoggedIn: boolean;
   currentPage: PageName;
   pageParams: Record<string, string>;
+  // Learning data
   subjects: Subject[];
   chapters: Chapter[];
   knowledgePoints: KnowledgePoint[];
@@ -55,32 +37,6 @@ export interface AppState {
   wrongRecords: WrongRecord[];
   todayReviewItems: ReviewItem[];
   todayNewItems: ReviewItem[];
-  // ===== 游戏化字段（已迁移至 GameContext）=====
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.checkin */
-  checkin: CheckinState;
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.achievements */
-  achievements: Achievement[];
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.shopItems */
-  shopItems: ShopItem[];
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.rankings */
-  rankings: { studyTime: RankEntry[]; masterCount: RankEntry[] };
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.achievementPopup */
-  achievementPopup: AchievementPopup | null;
-  // Draw ticket system
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.drawBalance */
-  drawBalance: DrawBalance;
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.upPool */
-  upPool: UpPoolConfig;
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.lastCheckinReward */
-  lastCheckinReward: CheckinRewardInfo | null;
-  // Team & Lottery
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.team */
-  team: TeamState | null;
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.lotteryPopup */
-  lotteryPopup: LotteryPopup | null;
-  // Redemption codes
-  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.redeemedCodes */
-  redeemedCodes: string[];
   // AI features
   aiChat: AIChatSession;
   dailyEncouragement: string | null;
@@ -92,6 +48,15 @@ export interface AppState {
   _historyIndex: number;
   _canUndo: boolean;
   _canRedo: boolean;
+}
+
+// ---------- Question Explanation ----------
+export interface QuestionExplanation {
+  questionId: string;
+  explanation: string;
+  createdAt: string;
+  updatedAt: string;
+  isUserModified: boolean;
 }
 
 const initialState: AppState = {
@@ -107,17 +72,6 @@ const initialState: AppState = {
   wrongRecords: [],
   todayReviewItems: [],
   todayNewItems: [],
-  checkin: { records: [], streak: 0, makeupCards: 2, totalCheckins: 0, lotteryPity: { sinceLastSR: 0, sinceLastSSR: 0 } },
-  achievements: MOCK_ACHIEVEMENTS,
-  shopItems: MOCK_SHOP_ITEMS,
-  rankings: MOCK_RANKINGS,
-  achievementPopup: null,
-  drawBalance: { regular: 0, up: 0 },
-  upPool: MOCK_UP_POOL,
-  lastCheckinReward: null,
-  team: null,
-  lotteryPopup: null,
-  redeemedCodes: [],
   aiChat: { messages: [], isLoading: false, generatedQuestions: [] },
   dailyEncouragement: null,
   dailyEncouragementDate: null,
@@ -128,31 +82,6 @@ const initialState: AppState = {
   _canUndo: false,
   _canRedo: false,
 };
-
-// ---------- Redemption codes ----------
-const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
-  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
-  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
-  '全部解锁': { upDraws: 99, regularDraws: 99, coins: 9999 },
-};
-
-export function isValidRedeemCode(code: string): boolean {
-  return code in REDEMPTION_CODES;
-}
-
-// ---------- Helpers ----------
-function calculateStreak(records: { date: string }[]): number {
-  if (records.length === 0) return 0;
-  const sorted = [...records].map(r => r.date).sort().reverse();
-  let streak = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1]);
-    const curr = new Date(sorted[i]);
-    if (Math.round((prev.getTime() - curr.getTime()) / 86400000) === 1) streak++;
-    else break;
-  }
-  return streak;
-}
 
 // ---------- Actions ----------
 export type Action =
@@ -173,20 +102,6 @@ export type Action =
   | { type: 'SET_REVIEW_ITEMS'; payload: { review: ReviewItem[]; newItems: ReviewItem[] } }
   | { type: 'COMPLETE_REVIEW_ITEM'; payload: string }
   | { type: 'INCREMENT_LEARNING_DAYS' }
-  | { type: 'CHECKIN'; payload: { date: string; type: 'normal' | 'makeup' | 'team'; teamId?: string } }
-  | { type: 'DISMISS_CHECKIN_REWARD' }
-  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
-  | { type: 'DISMISS_ACHIEVEMENT_POPUP' }
-  | { type: 'BUY_SHOP_ITEM'; payload: string }
-  | { type: 'ADD_COINS'; payload: number }
-  | { type: 'SET_TEAM'; payload: TeamState | null }
-  | { type: 'UPDATE_TEAMMATE_PROGRESS'; payload: TeamMemberProgress }
-  | { type: 'DISSOLVE_TEAM' }
-  | { type: 'DRAW_REGULAR'; payload: LotteryResult }
-  | { type: 'DRAW_UP'; payload: UpPoolResult }
-  | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
-  | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string }
   | { type: 'AI_SEND_MESSAGE'; payload: ChatMessage }
   | { type: 'AI_RECEIVE_MESSAGE'; payload: ChatMessage }
   | { type: 'AI_SET_LOADING'; payload: boolean }
@@ -213,7 +128,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'LOGIN':
       return { ...state, user: action.payload, isLoggedIn: true, currentPage: 'home' };
     case 'LOGOUT':
-      return { ...state, user: null, isLoggedIn: false, currentPage: 'login', team: null };
+      return { ...state, user: null, isLoggedIn: false, currentPage: 'login' };
     case 'RESET_ALL':
       return { ...initialState };
     case 'NAVIGATE':
@@ -273,177 +188,6 @@ function reducer(state: AppState, action: Action): AppState {
       return state.user
         ? { ...state, user: { ...state.user, learningDays: state.user.learningDays + 1 } }
         : state;
-
-    case 'CHECKIN': {
-      const exists = state.checkin.records.some(r => r.date === action.payload.date);
-      if (exists) {
-        console.log('[CHECKIN] 已存在今日签到记录', action.payload.date);
-        return state;
-      }
-      const isMakeup = action.payload.type === 'makeup';
-      if (isMakeup && state.checkin.makeupCards <= 0) {
-        console.log('[CHECKIN] 补签卡不足');
-        return state;
-      }
-
-      if (action.payload.type !== 'makeup') {
-        // 【修复】与签到页面条件保持一致，只检查复习和每日新学目标
-        // 不检查自由学习的额外任务
-
-        // 复习完成检查
-        const reviewItems = state.todayReviewItems;
-        const reviewCompleted = reviewItems.length === 0 || reviewItems.every(r => r.completed);
-
-        // 每日新学目标完成检查
-        const dailyNewGoal = state.user?.dailyNewGoal ?? 15;
-        const newItems = state.todayNewItems;
-        const completedNewCount = newItems.filter(r => r.completed).length;
-        const newLearnCompleted = completedNewCount >= dailyNewGoal;
-
-        // 做题目标达成检查
-        const todayDate = action.payload.date;
-        const todayQuestions = state.quizResults
-          .filter(r => new Date(r.completedAt).toISOString().slice(0, 10) === todayDate)
-          .reduce((sum, r) => sum + r.totalQuestions, 0);
-        const dailyGoal = state.user?.dailyGoal ?? 10;
-        const goalAchieved = todayQuestions >= dailyGoal;
-
-        console.log('[CHECKIN] 条件检查:', {
-          reviewCompleted, newLearnCompleted, goalAchieved,
-          completedNewCount, dailyNewGoal,
-          todayQuestions, dailyGoal,
-          reviewItems: reviewItems.length,
-          newItems: newItems.length
-        });
-
-        // 满足以下任一条件即可签到：
-        // 1. 复习完成 + 每日新学目标完成
-        // 2. 做题目标达成
-        const canCheckin = (reviewCompleted && newLearnCompleted) || goalAchieved;
-        if (!canCheckin) {
-          console.log('[CHECKIN] 条件不满足，拒绝签到');
-          return state;
-        }
-        console.log('[CHECKIN] 条件满足，执行签到');
-      }
-
-      if (action.payload.type === 'team') {
-        if (!state.team || state.team.status !== 'active') return state;
-        const allReady = state.team.members.every(m => m.progress.isReady);
-        if (!allReady) return state;
-      }
-
-      const newRecord = { date: action.payload.date, type: action.payload.type, teamId: action.payload.teamId };
-      const newRecords = [...state.checkin.records, newRecord];
-      const streak = calculateStreak(newRecords);
-
-      let regularTickets = 0;
-      let upTickets = 0;
-      let streakCoins = 0;
-      let streakLabel: string | undefined;
-
-      if (!isMakeup) {
-        regularTickets = 1;
-        if (action.payload.type === 'team') {
-          regularTickets += 1;
-        }
-      }
-
-      const streakReward = STREAK_REWARDS.find(r => r.days === streak);
-      if (streakReward) {
-        streakCoins = streakReward.coins;
-        upTickets = streakReward.upDraws;
-        streakLabel = streakReward.label;
-      }
-
-      return {
-        ...state,
-        checkin: {
-          ...state.checkin,
-          records: newRecords,
-          streak,
-          makeupCards: isMakeup ? state.checkin.makeupCards - 1 : state.checkin.makeupCards,
-          totalCheckins: state.checkin.totalCheckins + 1,
-        },
-        drawBalance: {
-          regular: state.drawBalance.regular + regularTickets,
-          up: state.drawBalance.up + upTickets,
-        },
-        // 签到成功时同步更新 learningDays（非补签）
-        user: state.user
-          ? {
-              ...state.user,
-              totalPoints: streakCoins > 0 ? state.user.totalPoints + streakCoins : state.user.totalPoints,
-              learningDays: isMakeup ? state.user.learningDays : state.user.learningDays + 1,
-            }
-          : null,
-        lastCheckinReward: { regularTickets, upTickets, streakCoins, streakLabel },
-        team: state.team && action.payload.type === 'team'
-          ? { ...state.team, todayCheckedIn: true }
-          : state.team,
-      };
-    }
-
-    case 'DISMISS_CHECKIN_REWARD':
-      return { ...state, lastCheckinReward: null };
-
-    case 'SHOW_LOTTERY_POPUP':
-      return { ...state, lotteryPopup: action.payload };
-    case 'DISMISS_LOTTERY_POPUP':
-      return { ...state, lotteryPopup: null };
-
-    case 'SET_TEAM':
-      return { ...state, team: action.payload };
-    case 'UPDATE_TEAMMATE_PROGRESS': {
-      if (!state.team) return state;
-      return {
-        ...state,
-        team: {
-          ...state.team,
-          members: state.team.members.map(m =>
-            m.isSimulated ? { ...m, progress: action.payload } : m
-          ),
-        },
-      };
-    }
-    case 'DISSOLVE_TEAM':
-      return { ...state, team: null };
-
-    case 'UNLOCK_ACHIEVEMENT': {
-      const ach = state.achievements.find(a => a.id === action.payload);
-      if (!ach || ach.unlocked) return state;
-      return {
-        ...state,
-        achievements: state.achievements.map(a =>
-          a.id === action.payload ? { ...a, unlocked: true, unlockedAt: new Date().toISOString() } : a
-        ),
-        user: state.user ? { ...state.user, totalPoints: state.user.totalPoints + ach.reward.coins } : null,
-        achievementPopup: { achievement: { ...ach, unlocked: true, unlockedAt: new Date().toISOString() }, show: true },
-      };
-    }
-    case 'DISMISS_ACHIEVEMENT_POPUP':
-      return { ...state, achievementPopup: null };
-
-    case 'ADD_COINS':
-      return state.user ? { ...state, user: { ...state.user, totalPoints: state.user.totalPoints + action.payload } } : state;
-
-    case 'REDEEM_CODE': {
-      const code = action.payload;
-      if (state.redeemedCodes.includes(code)) return state;
-      const reward = REDEMPTION_CODES[code];
-      if (!reward) return state;
-      return {
-        ...state,
-        redeemedCodes: [...state.redeemedCodes, code],
-        drawBalance: {
-          regular: state.drawBalance.regular + reward.regularDraws,
-          up: state.drawBalance.up + reward.upDraws,
-        },
-        user: reward.coins > 0 && state.user
-          ? { ...state.user, totalPoints: state.user.totalPoints + reward.coins }
-          : state.user,
-      };
-    }
 
     case 'AI_SEND_MESSAGE':
       return {
@@ -532,10 +276,10 @@ function reducer(state: AppState, action: Action): AppState {
     case 'UPDATE_TODAY_GOAL_STATUS':
       return {
         ...state,
-        user: state.user 
-          ? { 
-              ...state.user, 
-              todayQuestions: action.payload.questionsCompleted, 
+        user: state.user
+          ? {
+              ...state.user,
+              todayQuestions: action.payload.questionsCompleted,
               goalAchievedToday: action.payload.goalMet
             }
           : state.user,
@@ -664,24 +408,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [dispatch]);
 
   // 持久化状态到 localStorage
-  // 注意：checkin 由 GameContext 管理，AppContext 保存时需要保留 GameContext 的 checkin 数据
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    // 从 localStorage 读取 GameContext 保存的 checkin（最新的签到数据）
-    const saved = loadState();
-    const currentCheckin = saved?.checkin;
-
-    // 构建保存状态，确保不覆盖 GameContext 的 checkin
-    const stateToSave = {
-      ...(state as unknown as Record<string, unknown>),
-      // 保留 localStorage 中 GameContext 的 checkin，不使用 AppContext 的 stale checkin
-      checkin: currentCheckin ?? state.checkin,
-    };
-
-    saveState(stateToSave);
+    saveState(state as unknown as Record<string, unknown>);
   }, [state]);
 
   const getLearningStats = (): LearningStats => {
@@ -756,93 +488,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'RECORD_HISTORY', payload: {} });
     }
   }, [state.isLoggedIn]);
-
-  // ========== 自动检测成就解锁 ==========
-  useEffect(() => {
-    if (!state.isLoggedIn) return;
-
-    const stats = getLearningStats();
-    const totalKnowledge = stats.totalKnowledgePoints;
-    const totalQuizzes = stats.totalQuizzes;
-
-    // 从 localStorage 读取 GameContext 的 checkin 数据（权威数据源）
-    const savedState = loadState();
-    const checkinData = savedState?.checkin as { records: { date: string; type: string }[]; streak: number; totalCheckins: number } | undefined;
-    const checkinRecords = checkinData?.records || [];
-    const checkinStreak = checkinData?.streak || 0;
-    const checkinTotal = checkinData?.totalCheckins || 0;
-    const makeupUsed = checkinTotal - checkinRecords.filter(r => r.type !== 'makeup').length;
-    const perfectQuizzesCount = state.quizResults.filter(q => q.score === 100).length;
-
-    // 遍历所有未解锁成就，检查条件
-    state.achievements.forEach(ach => {
-      if (ach.unlocked) return;
-
-      let met = false;
-      const cond = ach.condition;
-
-      switch (cond.type) {
-        // 初次学习 - 完成第一次知识点学习
-        case 'first_learn':
-          met = state.todayReviewItems.some(r => r.completed) || state.todayNewItems.some(r => r.completed);
-          break;
-        // 首次签到
-        case 'first_checkin':
-          met = checkinTotal >= cond.value;
-          break;
-        // 连续学习天数
-        case 'streak_days':
-          met = checkinStreak >= cond.value;
-          break;
-        // 掌握知识点数量
-        case 'master_count':
-          met = stats.masteredCount >= cond.value;
-          break;
-        // 累计知识点数量（含未掌握的）
-        case 'total_knowledge':
-          met = totalKnowledge >= cond.value;
-          break;
-        // 累计签到天数
-        case 'total_checkins':
-          met = checkinTotal >= cond.value;
-          break;
-        // 累计测验次数
-        case 'total_quizzes':
-          met = totalQuizzes >= cond.value;
-          break;
-        // 使用补签卡次数
-        case 'makeup_used':
-          met = makeupUsed >= cond.value;
-          break;
-        // 满分测验（任意一次得100分）
-        case 'perfect_quiz':
-          met = perfectQuizzesCount >= cond.value;
-          break;
-        // 连续满分次数（10次满分）
-        case 'one_session_correct':
-          met = perfectQuizzesCount >= cond.value;
-          break;
-        // 错题本清零：曾有过错题，现在全部清除了
-        case 'clear_wrong':
-          met = state.quizResults.length > 0 && state.wrongRecords.length === 0;
-          break;
-      }
-
-      if (met) {
-        dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: ach.id });
-      }
-    });
-  }, [
-    state.isLoggedIn,
-    state.knowledgePoints.length,
-    state.checkin.totalCheckins,
-    state.checkin.streak,
-    state.quizResults.length,
-    state.wrongRecords.length,
-    state.todayReviewItems,
-    state.todayNewItems,
-    state.achievements
-  ]);
 
   return (
     <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>

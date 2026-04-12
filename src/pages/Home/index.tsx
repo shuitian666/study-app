@@ -24,6 +24,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/review';
@@ -38,6 +39,7 @@ export default function HomePage() {
 
   const { state: appState, dispatch: appDispatch, getLearningStats } = useApp();
   const { learningState, learningDispatch } = useLearning();
+  const { gameState } = useGame();
   const { navigate } = useUser();
   const { theme } = useTheme();
   const stats = getLearningStats();
@@ -82,13 +84,13 @@ export default function HomePage() {
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (appState.dailyEncouragementDate !== today) {
-      getSmartEncouragement(stats, appState.wrongRecords.length, appState.checkin.streak)
+      getSmartEncouragement(stats, learningState.wrongRecords.length, gameState.checkin.streak)
         .then(text => {
           appDispatch({ type: 'SET_DAILY_ENCOURAGEMENT', payload: { text, date: today } });
         })
         .catch(() => {});
     }
-  }, [appState.dailyEncouragementDate, appState.wrongRecords.length, appState.checkin.streak, appDispatch]);
+  }, [appState.dailyEncouragementDate, learningState.wrongRecords.length, gameState.checkin.streak, appDispatch]);
 
   const encouragementText = appState.dailyEncouragement ?? fallbackEncouragement;
 
@@ -538,7 +540,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <div className="font-medium text-sm" style={{ color: theme.onSurface }}>错题本</div>
-                    <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>{appState.wrongRecords.length} 道错题</div>
+                    <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>{learningState.wrongRecords.length} 道错题</div>
                   </div>
                 </div>
               </button>
@@ -986,7 +988,7 @@ export default function HomePage() {
           >
             <div className="text-2xl mb-2">❌</div>
             <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>错题本</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>{appState.wrongRecords.length} 道错题</div>
+            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>{learningState.wrongRecords.length} 道错题</div>
           </button>
 
           <button

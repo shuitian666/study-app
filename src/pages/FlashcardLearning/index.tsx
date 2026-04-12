@@ -12,6 +12,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { ArrowLeft, Home, BookOpen, ChevronRight } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import {
@@ -62,6 +63,7 @@ export default function FlashcardLearningPage() {
   const { navigate } = useUser();
   const { theme } = useTheme();
   const { learningState, learningDispatch } = useLearning();
+  const { checkAchievements } = useGame();
 
   // 卡片翻转状态
   const [isFlipped, setIsFlipped] = useState(false);
@@ -223,6 +225,14 @@ export default function FlashcardLearningPage() {
     } else {
       setSwipeDirection('down');
     }
+
+    // Check achievements
+    const kps = learningState.knowledgePoints;
+    const masteredCount = kps.filter(kp => kp.proficiency === 'master').length;
+    checkAchievements({
+      knowledgePointCount: kps.length,
+      masteredCount,
+    });
 
     // 延迟后跳转到下一张
     setTimeout(() => {

@@ -130,6 +130,15 @@ export default function LotteryDrawModal() {
         type: 'UPDATE_USER',
         payload: { totalPoints: userRef.current.totalPoints + totalCoins }
       });
+      // 记录星币账单
+      gameDispatch({
+        type: 'ADD_COIN_BILL',
+        payload: {
+          type: 'lottery_reward',
+          amount: totalCoins,
+          description: '抽奖奖励',
+        }
+      });
       console.log(`[抽奖] 获得 ${totalCoins} 星币`);
     }
     

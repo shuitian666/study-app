@@ -63,6 +63,15 @@ export default function ShopPage() {
       type: 'UPDATE_USER',
       payload: { totalPoints: coins - item.price }
     });
+    // 记录星币账单（商城消费）
+    gameDispatch({
+      type: 'ADD_COIN_BILL',
+      payload: {
+        type: 'shop_purchase',
+        amount: -item.price,
+        description: `购买: ${item.name}`,
+      }
+    });
 
     // 补签卡不添加到背包，直接增加补签卡数量
     if (item.type === 'makeup_card') {

@@ -7,7 +7,7 @@
  * ============================================================================
  */
 
-import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import type {
   CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
   TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
@@ -46,6 +46,15 @@ const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; 
 
 export function isValidRedeemCode(code: string): boolean {
   return code in REDEMPTION_CODES;
+}
+
+// ---------- Achievement Check Context ----------
+export interface AchievementCheckContext {
+  knowledgePointCount?: number;
+  masteredCount?: number;
+  totalQuizCount?: number;
+  perfectQuizCount?: number;
+  currentStreak?: number;
 }
 
 // ---------- Helpers ----------
@@ -446,6 +455,7 @@ interface GameContextType {
   gameState: GameState;
   gameDispatch: React.Dispatch<GameAction>;
   isValidRedeemCode: (code: string) => boolean;
+  checkAchievements: (context?: AchievementCheckContext) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -499,8 +509,50 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, [gameState]);
 
+  // 成就检测函数（事件驱动模式）
+  const checkAchievements = useCallback((context?: AchievementCheckContext) => {
+    if (!context) return;
+
+    const {
+      knowledgePointCount = 0,
+      masteredCount = 0,
+      // totalQuizCount: 累计答题次数（暂无对应成就，保留接口扩展）
+      perfectQuizCount = 0,
+      currentStreak,
+    } = context;
+
+    const newUnlocks: string[] = [];
+
+    // 成就检测 - 根据实际成就ID调整
+    // 1. 初次学习 (ach-1): 知识点数 >= 1
+    if (knowledgePointCount >= 1) {
+      newUnlocks.push('ach-1');
+    }
+    // 2. 初窥门径 (ach-6): 掌握10个知识点
+    if (masteredCount >= 10) {
+      newUnlocks.push('ach-6');
+    }
+    // 3. 知识达人 (ach-5): 掌握50个知识点
+    if (masteredCount >= 50) {
+      newUnlocks.push('ach-5');
+    }
+    // 4. 满分达人 (ach-7): 获得满分
+    if (perfectQuizCount > 0) {
+      newUnlocks.push('ach-7');
+    }
+    // 5. 坚持一周 (ach-3): 连续签到7天
+    if (currentStreak && currentStreak >= 7) {
+      newUnlocks.push('ach-3');
+    }
+
+    // 触发解锁
+    newUnlocks.forEach(achId => {
+      gameDispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: achId });
+    });
+  }, [gameDispatch]);
+
   return (
-    <GameContext.Provider value={{ gameState, gameDispatch, isValidRedeemCode }}>
+    <GameContext.Provider value={{ gameState, gameDispatch, isValidRedeemCode, checkAchievements }}>
       {children}
     </GameContext.Provider>
   );
