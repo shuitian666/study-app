@@ -7,7 +7,8 @@
  * ============================================================================
  */
 
-import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type {
   User, PageName,
 } from '@/types';
@@ -128,6 +129,7 @@ function getInitialUserState(): UserState {
 export function UserProvider({ children }: { children: ReactNode }) {
   const [userState, userDispatch] = useReducer(userReducer, undefined, getInitialUserState);
   const isFirstRender = useRef(true);
+  const reactNavigate = useNavigate();
 
   // 持久化状态到 localStorage
   useEffect(() => {
@@ -139,9 +141,64 @@ export function UserProvider({ children }: { children: ReactNode }) {
     saveState({ ...currentState, ...userState });
   }, [userState]);
 
-  const navigate = (page: PageName, params?: Record<string, string>) => {
-    userDispatch({ type: 'NAVIGATE', payload: { page, params } });
-  };
+  // 兼容层 navigate - 将旧页面名称映射到 React Router
+  const navigate = useCallback((page: PageName, params?: Record<string, string>) => {
+    // 特殊处理带参数的页面
+    if (page === 'quiz-session') {
+      const { subjectId, knowledgePointId, stage } = params || {};
+      let path = '/quiz/session';
+      if (subjectId) path += `/${subjectId}`;
+      if (knowledgePointId) path += `/${knowledgePointId}`;
+      if (stage) path += `/${stage}`;
+      reactNavigate(path);
+      return;
+    }
+
+    if (page === 'knowledge-detail') {
+      const kpId = params?.kpId || params?.id || '';
+      reactNavigate(`/knowledge/${kpId}`);
+      return;
+    }
+
+    if (page === 'review-session') {
+      const type = params?.type || 'review';
+      reactNavigate(`/review-session/${type}`);
+      return;
+    }
+
+    // 基础路径映射
+    const pathMap: Record<string, string> = {
+      'home': '/',
+      'knowledge': '/knowledge',
+      'add-knowledge': '/knowledge/add',
+      'import-knowledge': '/knowledge/import',
+      'quiz': '/quiz',
+      'quiz-result': '/quiz/result',
+      'wrong-book': '/quiz/wrong-book',
+      'knowledge-map': '/knowledge-map',
+      'checkin': '/checkin',
+      'achievements': '/achievements',
+      'shop': '/shop',
+      'ranking': '/ranking',
+      'lottery': '/lottery',
+      'ai-chat': '/ai-chat',
+      'settings': '/settings',
+      'profile': '/profile',
+      'coin-bill': '/profile/coin-bill',
+      'inventory': '/gamification/inventory',
+      'mail': '/gamification/mail',
+      'avatar-edit': '/avatar-edit',
+      'flashcard-learning': '/flashcard',
+    };
+
+    const path = pathMap[page];
+    if (path) {
+      reactNavigate(path);
+    } else {
+      console.warn(`[navigate] Unknown page: ${page}`);
+      reactNavigate('/');
+    }
+  }, [reactNavigate]);
 
   return (
     <UserContext.Provider value={{ userState, userDispatch, navigate }}>
