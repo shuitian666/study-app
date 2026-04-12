@@ -40,7 +40,7 @@ export default function ShopPage() {
       return false;
     }
     // 检查背包中是否有该物品
-    return userState.inventory.items.some(i => i.name === item.name);
+    return gameState.inventory.items.some(i => i.name === item.name);
   };
 
   const filtered = tab === 'all'
@@ -88,7 +88,7 @@ export default function ShopPage() {
       source: 'shop' as const,
       usable: item.type === 'vip_card',
     };
-    userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
+    gameDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
 
     // 购买物品
     gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });

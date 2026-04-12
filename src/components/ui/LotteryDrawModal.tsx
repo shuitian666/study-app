@@ -80,7 +80,7 @@ export default function LotteryDrawModal() {
     
     // 获取当前背包中的物品名称列表
     const ownedItemNames = new Set(
-      userState.inventory.items.map(i => i.name)
+      gameState.inventory.items.map(i => i.name)
     );
     
     if (currentPopup.allResults) {
@@ -147,12 +147,12 @@ export default function LotteryDrawModal() {
         source: 'lottery' as const,
         usable: false,
       };
-      userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
+      gameDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
       console.log(`[抽奖] 获得物品: ${item.name}`);
     });
-    
+
     compensationAddedRef.current = true;
-  }, [phase, userDispatch, userState.inventory.items]);
+  }, [phase, gameDispatch, gameState.inventory.items]);
 
   if (!popup?.show || !popup.result) return null;
 

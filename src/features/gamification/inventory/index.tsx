@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useGame } from '@/store/GameContext';
 import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Backpack, Package, Gift, Ticket, Sparkles, Crown } from 'lucide-react';
@@ -24,10 +25,11 @@ const typeConfig = {
 const STACKABLE_TYPES = ['makeup_card', 'coin_bag', 'vip_card'];
 
 export default function InventoryPage() {
-  const { userState, userDispatch, navigate } = useUser();
+  const { gameState, gameDispatch } = useGame();
+  const { navigate } = useUser();
   const [filterType, setFilterType] = useState<string | null>(null);
 
-  const items = userState.inventory.items;
+  const items = gameState.inventory.items;
 
   // 对物品进行处理：可重复道具堆叠，不可重复道具去重
   const processedItems = (() => {
@@ -63,7 +65,7 @@ export default function InventoryPage() {
     : processedItems;
 
   const handleUseItem = (itemId: string) => {
-    userDispatch({ type: 'USE_INVENTORY_ITEM', payload: itemId });
+    gameDispatch({ type: 'USE_INVENTORY_ITEM', payload: itemId });
   };
 
   return (

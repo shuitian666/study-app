@@ -375,7 +375,7 @@ export default function ProfilePage() {
                 icon: <Backpack size={20} />,
                 iconColor: 'text-emerald-500',
                 label: '背包',
-                value: `${userState.inventory.items.length}件物品`,
+                value: `${gameState.inventory.items.length}件物品`,
                 onClick: () => navigate('inventory'),
               },
               {
@@ -383,7 +383,7 @@ export default function ProfilePage() {
                 icon: <Mail size={20} />,
                 iconColor: 'text-rose-500',
                 label: '邮件',
-                badge: userState.mail.mails.filter(m => !m.read).length,
+                badge: gameState.mail.mails.filter(m => !m.read).length,
                 onClick: () => navigate('mail'),
               },
             ]}
@@ -582,8 +582,8 @@ export default function ProfilePage() {
             { icon: Trophy, label: '我的成就', desc: `${gameState.achievements.filter(a => a.unlocked).length}/${gameState.achievements.length}`, color: 'text-yellow-500', page: 'achievements' as const },
             { icon: ShoppingBag, label: '星币商城', desc: `${user?.totalPoints ?? 0}星币`, color: 'text-purple-500', page: 'shop' as const },
             { icon: Medal, label: '排行榜', desc: '查看排名', color: 'text-blue-500', page: 'ranking' as const },
-            { icon: Backpack, label: '背包', desc: `${userState.inventory.items.length}件物品`, color: 'text-emerald-500', page: 'inventory' as const },
-            { icon: Mail, label: '邮件', desc: `${userState.mail.mails.filter(m => !m.read).length}未读`, color: 'text-rose-500', page: 'mail' as const, badge: userState.mail.mails.filter(m => !m.read).length },
+            { icon: Backpack, label: '背包', desc: `${gameState.inventory.items.length}件物品`, color: 'text-emerald-500', page: 'inventory' as const },
+            { icon: Mail, label: '邮件', desc: `${gameState.mail.mails.filter(m => !m.read).length}未读`, color: 'text-rose-500', page: 'mail' as const, badge: gameState.mail.mails.filter(m => !m.read).length },
           ]).map((item, i, arr) => {
             const Icon = item.icon;
             return (

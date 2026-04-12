@@ -105,6 +105,7 @@ type GameAction =
   | { type: 'REDEEM_CODE'; payload: string }
   | { type: 'SET_INVENTORY'; payload: InventoryItem[] }
   | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
+  | { type: 'USE_INVENTORY_ITEM'; payload: string }
   | { type: 'UPDATE_INVENTORY_ITEM'; payload: { id: string; changes: Partial<InventoryItem> } }
   | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
   | { type: 'SET_MAIL'; payload: MailItem[] }
@@ -346,6 +347,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           ),
         },
       };
+
+    case 'USE_INVENTORY_ITEM': {
+      const item = state.inventory.items.find(i => i.id === action.payload);
+      if (!item || item.quantity <= 0 || !item.usable) return state;
+      const newItems = state.inventory.items.map(i =>
+        i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
+      ).filter(i => i.quantity > 0);
+      return { ...state, inventory: { items: newItems } };
+    }
 
     case 'REMOVE_INVENTORY_ITEM':
       return { ...state, inventory: { items: state.inventory.items.filter(item => item.id !== action.payload) } };

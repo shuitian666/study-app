@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 
@@ -12,11 +13,12 @@ const attachmentIcons: Record<string, React.ReactNode> = {
 
 export default function MailPage() {
   const { userState, userDispatch, navigate } = useUser();
+  const { gameState, gameDispatch } = useGame();
   const [selectedMail, setSelectedMail] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'claimable'>('all');
 
-  const mails = userState.mail.mails;
-  const currentVersion = userState.mail.currentVersion;
+  const mails = gameState.mail.mails;
+  const currentVersion = gameState.mail.currentVersion;
 
   const filteredMails = mails.filter(mail => {
     if (filter === 'unread') return !mail.read;
@@ -28,14 +30,46 @@ export default function MailPage() {
   const claimableCount = mails.filter(m => !m.claimed && m.attachments.some(a => !a.claimed)).length;
 
   const handleOpenMail = (mailId: string) => {
-    if (!mails.find(m => m.id === mailId)?.read) {
-      userDispatch({ type: 'MARK_MAIL_READ', payload: mailId });
+    const mail = mails.find(m => m.id === mailId);
+    if (mail && !mail.read) {
+      gameDispatch({ type: 'MARK_MAIL_READ', payload: mailId });
     }
     setSelectedMail(mailId);
   };
 
   const handleClaimAttachment = (mailId: string, attachmentIndex: number) => {
-    userDispatch({ type: 'CLAIM_MAIL_ATTACHMENT', payload: { mailId, attachmentIndex } });
+    const mail = mails.find(m => m.id === mailId);
+    if (!mail) return;
+    const attachment = mail.attachments[attachmentIndex];
+    if (!attachment || attachment.claimed) return;
+
+    // 1. Dispatch to GameContext to mark attachment as claimed and update mail state
+    gameDispatch({ type: 'CLAIM_MAIL_ATTACHMENT', payload: { mailId, attachmentIndex } });
+
+    // 2. Handle coin rewards via UserContext
+    if (attachment.type === 'coin' && userState.user) {
+      userDispatch({
+        type: 'UPDATE_USER',
+        payload: { totalPoints: userState.user.totalPoints + attachment.quantity }
+      });
+    }
+
+    // 3. Handle item rewards via GameContext
+    if (attachment.type !== 'coin') {
+      const inventoryItem = {
+        id: `inv-${Date.now()}-${attachmentIndex}`,
+        type: attachment.type as any,
+        name: attachment.name,
+        description: `来自邮件: ${mail.title}`,
+        icon: attachment.icon || '🎁',
+        rarity: (attachment as any).rarity || 'R',
+        quantity: attachment.quantity,
+        obtainedAt: new Date().toISOString(),
+        source: 'mail' as const,
+        usable: attachment.type === 'makeup_card',
+      };
+      gameDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
+    }
   };
 
   const isExpired = (deadline: string) => new Date(deadline) < new Date();
