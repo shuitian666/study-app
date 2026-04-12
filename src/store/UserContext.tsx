@@ -21,7 +21,13 @@ export interface UserState {
   pageParams: Record<string, string>;
   dailyEncouragement: string | null;
   dailyEncouragementDate: string | null;
+  /**
+   * @deprecated 背包数据已迁移至 GameContext，请使用 useGame().gameState.inventory
+   */
   inventory: InventoryState;
+  /**
+   * @deprecated 邮件数据已迁移至 GameContext，请使用 useGame().gameState.mail
+   */
   mail: MailState;
   currentBackgroundMap: Record<string, string>;
   currentBackground: string;
@@ -51,13 +57,21 @@ type UserAction =
   | { type: 'SET_DAILY_ENCOURAGEMENT'; payload: { text: string; date: string } }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
+  /** @deprecated 请使用 GameContext 的 ADD_INVENTORY_ITEM */
   | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
+  /** @deprecated 请使用 GameContext 的 USE_INVENTORY_ITEM */
   | { type: 'USE_INVENTORY_ITEM'; payload: string }
+  /** @deprecated 请使用 GameContext 的 REMOVE_INVENTORY_ITEM */
   | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
+  /** @deprecated 请使用 GameContext 的 ADD_MAIL */
   | { type: 'ADD_MAIL'; payload: MailItem }
+  /** @deprecated 请使用 GameContext 的 SET_MAIL */
   | { type: 'SET_MAILS'; payload: MailItem[] }
+  /** @deprecated 请使用 GameContext 的 MARK_MAIL_READ */
   | { type: 'MARK_MAIL_READ'; payload: string }
+  /** @deprecated 请使用 GameContext 的 CLAIM_MAIL_ATTACHMENT（配合UserContext的ADD_COINS） */
   | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
+  /** @deprecated 请使用 GameContext 的 UPDATE_MAIL_VERSION */
   | { type: 'UPDATE_MAIL_VERSION'; payload: number }
   | { type: 'RESET_ALL' };
 
@@ -102,6 +116,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
           : state.user,
       };
     case 'ADD_INVENTORY_ITEM': {
+      /** @deprecated 游戏化物品请使用 GameContext */
+      console.warn('[DEPRECATED] ADD_INVENTORY_ITEM in UserContext, use GameContext instead');
       const existing = state.inventory.items.find(i => i.id === action.payload.id);
       if (existing) {
         return {
@@ -121,6 +137,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
       };
     }
     case 'USE_INVENTORY_ITEM': {
+      /** @deprecated 游戏化物品请使用 GameContext */
+      console.warn('[DEPRECATED] USE_INVENTORY_ITEM in UserContext, use GameContext instead');
       const item = state.inventory.items.find(i => i.id === action.payload);
       if (!item || item.quantity <= 0 || !item.usable) return state;
       return {
@@ -133,6 +151,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
       };
     }
     case 'REMOVE_INVENTORY_ITEM': {
+      /** @deprecated 游戏化物品请使用 GameContext */
+      console.warn('[DEPRECATED] REMOVE_INVENTORY_ITEM in UserContext, use GameContext instead');
       return {
         ...state,
         inventory: {
@@ -141,6 +161,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
       };
     }
     case 'ADD_MAIL': {
+      /** @deprecated 游戏化邮件请使用 GameContext */
+      console.warn('[DEPRECATED] ADD_MAIL in UserContext, use GameContext instead');
       const exists = state.mail.mails.find(m => m.id === action.payload.id);
       if (exists) return state;
       return {
@@ -152,6 +174,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
       };
     }
     case 'SET_MAILS':
+      /** @deprecated 游戏化邮件请使用 GameContext */
+      console.warn('[DEPRECATED] SET_MAILS in UserContext, use GameContext instead');
       return {
         ...state,
         mail: {
@@ -160,6 +184,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
         },
       };
     case 'MARK_MAIL_READ':
+      /** @deprecated 游戏化邮件请使用 GameContext */
+      console.warn('[DEPRECATED] MARK_MAIL_READ in UserContext, use GameContext instead');
       return {
         ...state,
         mail: {
@@ -170,6 +196,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
         },
       };
     case 'CLAIM_MAIL_ATTACHMENT': {
+      /** @deprecated 游戏化邮件请使用 GameContext，coins奖励请使用 UserContext */
+      console.warn('[DEPRECATED] CLAIM_MAIL_ATTACHMENT in UserContext, use GameContext instead');
       const { mailId, attachmentIndex } = action.payload;
       let newUser = state.user;
       let newInventoryItems = [...state.inventory.items];
@@ -269,6 +297,8 @@ function userReducer(state: UserState, action: UserAction): UserState {
       };
     }
     case 'UPDATE_MAIL_VERSION':
+      /** @deprecated 游戏化邮件请使用 GameContext */
+      console.warn('[DEPRECATED] UPDATE_MAIL_VERSION in UserContext, use GameContext instead');
       return {
         ...state,
         mail: {

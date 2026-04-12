@@ -56,31 +56,43 @@ export interface AppState {
   wrongRecords: WrongRecord[];
   todayReviewItems: ReviewItem[];
   todayNewItems: ReviewItem[];
-  // Incentive system
+  // ===== 游戏化字段（已迁移至 GameContext）=====
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.checkin */
   checkin: CheckinState;
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.achievements */
   achievements: Achievement[];
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.shopItems */
   shopItems: ShopItem[];
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.rankings */
   rankings: { studyTime: RankEntry[]; masterCount: RankEntry[] };
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.achievementPopup */
   achievementPopup: AchievementPopup | null;
   // Draw ticket system
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.drawBalance */
   drawBalance: DrawBalance;
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.upPool */
   upPool: UpPoolConfig;
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.lastCheckinReward */
   lastCheckinReward: CheckinRewardInfo | null;
   // Team & Lottery
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.team */
   team: TeamState | null;
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.lotteryPopup */
   lotteryPopup: LotteryPopup | null;
   // Redemption codes
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.redeemedCodes */
   redeemedCodes: string[];
+  // ===== inventory/mail（已迁移至 GameContext）=====
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.inventory */
+  inventory: InventoryState;
+  /** @deprecated 已迁移至 GameContext，请使用 useGame().gameState.mail */
+  mail: MailState;
   // AI features
   aiChat: AIChatSession;
   dailyEncouragement: string | null;
   dailyEncouragementDate: string | null;
   // Question explanations for persistence
   questionExplanations: QuestionExplanation[];
-  // Inventory / 背包
-  inventory: InventoryState;
-  // Mail / 邮件
-  mail: MailState;
   // Undo/Redo history (not persisted, in-memory only)
   _history: AppState[];
   _historyIndex: number;
