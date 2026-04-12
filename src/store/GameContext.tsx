@@ -11,8 +11,7 @@ import { createContext, useContext, useReducer, useEffect, useRef, type ReactNod
 import type {
   CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
   TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
-  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState,
-  InventoryState, InventoryItem, MailState, MailItem
+  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState
 } from '@/types';
 import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
@@ -67,10 +66,6 @@ export interface GameState {
   lotteryPopup: LotteryPopup | null;
   // Redemption codes
   redeemedCodes: string[];
-  // Inventory / 背包
-  inventory: InventoryState;
-  // Mail / 邮件
-  mail: MailState;
 }
 
 const initialGameState: GameState = {
@@ -85,10 +80,6 @@ const initialGameState: GameState = {
   team: null,
   lotteryPopup: null,
   redeemedCodes: [],
-  // Inventory / 背包
-  inventory: { items: [] },
-  // Mail / 邮件
-  mail: { mails: [], currentVersion: 1 },
 };
 
 // ---------- Actions ----------
@@ -105,19 +96,7 @@ type GameAction =
   | { type: 'DRAW_UP'; payload: UpPoolResult }
   | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
   | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string }
-  // Inventory actions
-  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
-  | { type: 'USE_INVENTORY_ITEM'; payload: string }
-  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
-  | { type: 'SYNC_INVENTORY'; payload: InventoryItem[] }
-  // Mail actions
-  | { type: 'ADD_MAIL'; payload: MailItem }
-  | { type: 'SET_MAILS'; payload: MailItem[] }
-  | { type: 'MARK_MAIL_READ'; payload: string }
-  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
-  | { type: 'UPDATE_MAIL_VERSION'; payload: number }
-  | { type: 'SYNC_MAIL'; payload: MailState };
+  | { type: 'REDEEM_CODE'; payload: string };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -322,188 +301,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    // ==================== INVENTORY ====================
-    case 'ADD_INVENTORY_ITEM': {
-      const existing = state.inventory.items.find(i => i.id === action.payload.id);
-      if (existing) {
-        return {
-          ...state,
-          inventory: {
-            items: state.inventory.items.map(i =>
-              i.id === action.payload.id ? { ...i, quantity: i.quantity + action.payload.quantity } : i
-            ),
-          },
-        };
-      }
-      return {
-        ...state,
-        inventory: {
-          items: [...state.inventory.items, action.payload],
-        },
-      };
-    }
-
-    case 'USE_INVENTORY_ITEM': {
-      const item = state.inventory.items.find(i => i.id === action.payload);
-      if (!item || item.quantity <= 0 || !item.usable) return state;
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.map(i =>
-            i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
-          ).filter(i => i.quantity > 0),
-        },
-      };
-    }
-
-    case 'REMOVE_INVENTORY_ITEM': {
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.filter(i => i.id !== action.payload),
-        },
-      };
-    }
-
-    case 'SYNC_INVENTORY': {
-      return {
-        ...state,
-        inventory: { items: action.payload },
-      };
-    }
-
-    // ==================== MAIL ====================
-    case 'ADD_MAIL': {
-      const exists = state.mail.mails.some(m => m.id === action.payload.id);
-      if (exists) return state;
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: [action.payload, ...state.mail.mails],
-        },
-      };
-    }
-
-    case 'SET_MAILS':
-      return {
-        ...state,
-        mail: { ...state.mail, mails: action.payload },
-      };
-
-    case 'MARK_MAIL_READ': {
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m =>
-            m.id === action.payload ? { ...m, read: true } : m
-          ),
-        },
-      };
-    }
-
-    case 'CLAIM_MAIL_ATTACHMENT': {
-      const { mailId, attachmentIndex } = action.payload;
-      let newInventoryItems = [...state.inventory.items];
-
-      const mail = state.mail.mails.find(m => m.id === mailId);
-      if (!mail) return state;
-
-      const attachment = mail.attachments[attachmentIndex];
-      if (!attachment || attachment.claimed) return state;
-
-      // 处理不同类型的附件
-      if (attachment.type === 'makeup_card') {
-        // 补签卡可以堆叠
-        const existing = newInventoryItems.find(i => i.type === 'makeup_card');
-        if (existing) {
-          newInventoryItems = newInventoryItems.map(i =>
-            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + attachment.quantity } : i
-          );
-        } else {
-          newInventoryItems.push({
-            id: `inv-${Date.now()}-${attachmentIndex}`,
-            type: attachment.type as any,
-            name: attachment.name,
-            description: `来自邮件: ${mail.title}`,
-            icon: '🎁',
-            rarity: 'R',
-            quantity: attachment.quantity,
-            obtainedAt: new Date().toISOString(),
-            source: 'mail',
-            usable: true,
-          });
-        }
-      } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
-        // 装饰物品 - 检查是否已有
-        const existing = newInventoryItems.find(i => i.name === attachment.name);
-        if (existing) {
-          // 已有就跳过（奖励在user端处理）
-        } else {
-          newInventoryItems.push({
-            id: `inv-${Date.now()}-${attachmentIndex}`,
-            type: attachment.type as any,
-            name: attachment.name,
-            description: `来自邮件: ${mail.title}`,
-            icon: attachment.icon || '🎁',
-            rarity: (attachment as any).rarity || 'R',
-            quantity: 1,
-            obtainedAt: new Date().toISOString(),
-            source: 'mail',
-            usable: false,
-          });
-        }
-      } else {
-        // 其他物品
-        const invItem: InventoryItem = {
-          id: `inv-${Date.now()}-${attachmentIndex}`,
-          type: attachment.type as any,
-          name: attachment.name,
-          description: `来自邮件: ${mail.title}`,
-          icon: '🎁',
-          rarity: 'R',
-          quantity: attachment.quantity,
-          obtainedAt: new Date().toISOString(),
-          source: 'mail',
-          usable: true,
-        };
-        const existing = newInventoryItems.find(i => i.name === attachment.name);
-        if (existing) {
-          existing.quantity += attachment.quantity;
-        } else {
-          newInventoryItems.push(invItem);
-        }
-      }
-
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m => {
-            if (m.id !== mailId) return m;
-            const newAttachments = m.attachments.map((a, idx) =>
-              idx === attachmentIndex ? { ...a, claimed: true } : a
-            );
-            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
-          }),
-        },
-        inventory: { items: newInventoryItems },
-      };
-    }
-
-    case 'UPDATE_MAIL_VERSION':
-      return {
-        ...state,
-        mail: { ...state.mail, currentVersion: action.payload },
-      };
-
-    case 'SYNC_MAIL':
-      return {
-        ...state,
-        mail: action.payload,
-      };
-
     default:
       return state;
   }
@@ -532,8 +329,6 @@ function getInitialGameState(): GameState {
       upPool: saved.upPool ?? initialGameState.upPool,
       team: saved.team ?? initialGameState.team,
       redeemedCodes: saved.redeemedCodes ?? initialGameState.redeemedCodes,
-      inventory: saved.inventory ?? initialGameState.inventory,
-      mail: saved.mail ?? initialGameState.mail,
     };
   }
   return initialGameState;
@@ -560,8 +355,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       upPool: gameState.upPool,
       team: gameState.team,
       redeemedCodes: gameState.redeemedCodes,
-      inventory: gameState.inventory,
-      mail: gameState.mail,
     });
   }, [gameState]);
 
