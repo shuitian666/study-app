@@ -43,11 +43,6 @@ export interface AppState {
   dailyEncouragementDate: string | null;
   // Question explanations for persistence
   questionExplanations: QuestionExplanation[];
-  // Undo/Redo history (not persisted, in-memory only)
-  _history: AppState[];
-  _historyIndex: number;
-  _canUndo: boolean;
-  _canRedo: boolean;
 }
 
 // ---------- Question Explanation ----------
@@ -76,11 +71,6 @@ const initialState: AppState = {
   dailyEncouragement: null,
   dailyEncouragementDate: null,
   questionExplanations: [],
-  // Undo/Redo (not persisted)
-  _history: [],
-  _historyIndex: -1,
-  _canUndo: false,
-  _canRedo: false,
 };
 
 // ---------- Actions ----------
@@ -114,10 +104,6 @@ export type Action =
   | { type: 'DELETE_QUESTION_EXPLANATION'; payload: string }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
-  // Undo/Redo actions
-  | { type: 'UNDO' }
-  | { type: 'REDO' }
-  | { type: 'RECORD_HISTORY'; payload: Partial<AppState> }
   // Sync actions from LearningContext
   | { type: 'SYNC_QUIZ_RESULTS'; payload: QuizResult[] }
   | { type: 'SYNC_WRONG_RECORDS'; payload: WrongRecord[] }
@@ -286,52 +272,6 @@ function reducer(state: AppState, action: Action): AppState {
       };
 
     // Undo/Redo actions
-    case 'RECORD_HISTORY': {
-      // Only record certain actions for undo (not navigation, not undo/redo)
-      const newHistory = state._history.slice(0, state._historyIndex + 1);
-      newHistory.push({
-        subjects: state.subjects,
-        chapters: state.chapters,
-        knowledgePoints: state.knowledgePoints,
-        questions: state.questions,
-      } as AppState);
-      // Keep only last 50 history entries
-      if (newHistory.length > 50) newHistory.shift();
-      return {
-        ...state,
-        _history: newHistory,
-        _historyIndex: newHistory.length - 1,
-        _canUndo: newHistory.length > 1,
-        _canRedo: false,
-      };
-    }
-    case 'UNDO': {
-      if (state._historyIndex <= 0 || state._history.length === 0) return state;
-      const prevState = state._history[state._historyIndex - 1];
-      const newHistoryIndex = state._historyIndex - 1;
-      return {
-        ...state,
-        ...prevState,
-        _history: state._history,
-        _historyIndex: newHistoryIndex,
-        _canUndo: newHistoryIndex > 0,
-        _canRedo: true,
-      };
-    }
-    case 'REDO': {
-      if (state._historyIndex >= state._history.length - 1) return state;
-      const nextState = state._history[state._historyIndex + 1];
-      const newHistoryIndex = state._historyIndex + 1;
-      return {
-        ...state,
-        ...nextState,
-        _history: state._history,
-        _historyIndex: newHistoryIndex,
-        _canUndo: true,
-        _canRedo: newHistoryIndex < state._history.length - 1,
-      };
-    }
-
     // Sync actions from LearningContext
     case 'SYNC_QUIZ_RESULTS':
       return { ...state, quizResults: action.payload };
@@ -356,12 +296,6 @@ interface AppContextType {
   getLearningStats: () => LearningStats;
   getTaskCompletionRate: () => { done: number; total: number; rate: number };
   navigate: (page: PageName, params?: Record<string, string>) => void;
-  // Undo/Redo
-  undo: () => void;
-  redo: () => void;
-  recordHistory: () => void;
-  _canUndo: boolean;
-  _canRedo: boolean;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -465,32 +399,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'NAVIGATE', payload: { page, params } });
   };
 
-  // Undo/Redo functions
-  const undo = () => {
-    if (state._canUndo) {
-      dispatch({ type: 'UNDO' });
-    }
-  };
-
-  const redo = () => {
-    if (state._canRedo) {
-      dispatch({ type: 'REDO' });
-    }
-  };
-
-  const recordHistory = () => {
-    dispatch({ type: 'RECORD_HISTORY', payload: {} });
-  };
-
-  // Initialize history on login
-  useEffect(() => {
-    if (state.isLoggedIn && state._history.length === 0) {
-      dispatch({ type: 'RECORD_HISTORY', payload: {} });
-    }
-  }, [state.isLoggedIn]);
-
   return (
-    <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>
+    <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate }}>
       {children}
     </AppContext.Provider>
   );
