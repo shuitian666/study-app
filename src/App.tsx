@@ -9,30 +9,48 @@
  * ============================================================================
  */
 
-import { useMemo, useCallback } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { useMemo, useCallback, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '@/store/UserContext';
+import { useTheme } from '@/store/ThemeContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
+import LoginPage from '@/pages/Login';
 import { allBackgrounds } from '@/pages/AvatarEdit';
 
-// 全屏页面路径前缀（不需要 TabBar）
-const fullScreenPaths = [
-  '/login',
-  '/quiz/session',
-  '/quiz/result',
-  '/quiz/wrong-book',
-  '/flashcard',
-  '/ai-chat',
-  '/knowledge/add',
-  '/knowledge/import',
-  '/review-session',
+// 全屏页面（不需要 TabBar）- playful 模式
+const playfulFullScreenPages = [
+  'login', 'quiz-result', 'ai-chat', 'quiz-session', 'knowledge-detail',
+  'add-knowledge', 'import-knowledge', 'review-session', 'wrong-book', 'flashcard-learning'
+];
+
+// 全屏页面 - scholar 模式（ai-chat 是主 tab，不全屏）
+const scholarFullScreenPages = [
+  'login', 'quiz-result', 'quiz-session', 'knowledge-detail',
+  'add-knowledge', 'import-knowledge', 'review-session', 'wrong-book', 'flashcard-learning'
 ];
 
 function AppContent() {
   const { userState } = useUser();
+  const { theme } = useTheme();
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+
+  const uiStyle = theme.uiStyle || 'playful';
+  const fullScreenPages = uiStyle === 'scholar' ? scholarFullScreenPages : playfulFullScreenPages;
+
+  // 应用级路由守卫：未登录强制回登录页，已登录访问登录页则回首页
+  useEffect(() => {
+    if (!userState.isLoggedIn && location.pathname !== '/login') {
+      routerNavigate('/login', { replace: true });
+      return;
+    }
+    if (userState.isLoggedIn && location.pathname === '/login') {
+      routerNavigate('/', { replace: true });
+    }
+  }, [userState.isLoggedIn, location.pathname, routerNavigate]);
 
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
@@ -117,25 +135,25 @@ function AppContent() {
     return null;
   }, []);
 
-  // 获取当前路由路径
-  const location = useLocation();
-
   // 判断是否为全屏页面
-  const isFullScreen = fullScreenPaths.some(path => location.pathname.startsWith(path))
-    || /^\/knowledge\/[^/]+$/.test(location.pathname); // /knowledge/:kpId 格式
+  const isFullScreen = fullScreenPages.includes(userState.currentPage);
 
   return (
     <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
       <div className="w-full max-w-[480px] flex flex-col relative">
         {renderBackgroundPattern(currentPattern)}
         <div className="flex-1 overflow-y-auto relative z-10">
-          <div className="pb-20 safe-bottom">
-            <Outlet />
-          </div>
+          {userState.isLoggedIn ? (
+            <div className="pb-20 safe-bottom">
+              <Outlet />
+            </div>
+          ) : (
+            <LoginPage />
+          )}
         </div>
         {userState.isLoggedIn && !isFullScreen && <TabBar />}
-        <AchievementPopup />
-        <LotteryDrawModal />
+        {userState.isLoggedIn && <AchievementPopup />}
+        {userState.isLoggedIn && <LotteryDrawModal />}
       </div>
     </div>
   );

@@ -3,20 +3,16 @@
  * 底部导航栏 (TabBar)
  * ============================================================================
  *
- * 【功能】4 个主 Tab: 首页/知识库/刷题/我的
+ * 【功能】
+ * - Scholar 风格：4 个主 Tab (HOME / LIBRARY / AI TUTOR / PROFILE)
+ * - Playful 风格：5 个主 Tab (首页/知识库/刷题/图谱/我的)
  *
  * 【hiddenPages 中的页面不显示 TabBar】
  * - 答题中、AI聊天等沉浸式页面
- * - 新增页面如需隐藏 TabBar → 在 hiddenPages 数组中添加对应 PageName
- *
- * 【双风格支持】
- * - playful 风格：透明背景 + 简单激活高亮
- * - scholar 风格：白色半透明 + backdrop-blur + 圆角胶囊激活 + 顶部细线
  * ============================================================================
  */
 
-import { Home, BookOpen, PenTool, User } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { Home, BookOpen, PenTool, Network, User, Sparkles } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { UILAYOUT_CONFIGS } from '@/types';
@@ -26,103 +22,99 @@ interface TabItem {
   key: PageName;
   label: string;
   icon: typeof Home;
+  scholarLabel?: string;
 }
 
 const tabs: TabItem[] = [
-  { key: 'home', label: '首页', icon: Home },
-  { key: 'knowledge', label: '知识库', icon: BookOpen },
+  { key: 'home', label: '首页', icon: Home, scholarLabel: 'HOME' },
+  { key: 'knowledge', label: '知识库', icon: BookOpen, scholarLabel: 'LIBRARY' },
   { key: 'quiz', label: '刷题', icon: PenTool },
-  { key: 'profile', label: '我的', icon: User },
+  { key: 'knowledge-map', label: '图谱', icon: Network },
+  { key: 'profile', label: '我的', icon: User, scholarLabel: 'PROFILE' },
 ];
 
-const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
+const scholarTabs: TabItem[] = [
+  { key: 'home', label: 'HOME', icon: Home },
+  { key: 'knowledge', label: 'LIBRARY', icon: BookOpen },
+  { key: 'ai-chat', label: 'AI TUTOR', icon: Sparkles },
+  { key: 'profile', label: 'PROFILE', icon: User },
+];
+
+const playfulHiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
+const scholarHiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'inventory', 'mail', 'import-knowledge'];
 
 export default function TabBar() {
-  const { navigate } = useUser();
+  const { userState, navigate } = useUser();
   const { theme } = useTheme();
-  const location = useLocation();
-
-  // 根据路由路径判断当前 active tab
-  const getActiveKey = (): PageName => {
-    const path = location.pathname;
-    if (path === '/') return 'home';
-    if (path.startsWith('/knowledge')) return 'knowledge';
-    if (path.startsWith('/quiz')) return 'quiz';
-    if (path.startsWith('/profile')) return 'profile';
-    return 'home';
-  };
-
-  const currentPage = getActiveKey();
 
   const uiStyle = theme.uiStyle || 'playful';
   const layoutConfig = UILAYOUT_CONFIGS[uiStyle];
+  const hiddenPages = uiStyle === 'scholar' ? scholarHiddenPages : playfulHiddenPages;
 
-  if (hiddenPages.includes(currentPage)) {
+  if (hiddenPages.includes(userState.currentPage)) {
     return null;
   }
 
-  // ===== Scholar 风格（Fluid Scholar）=====
   if (uiStyle === 'scholar') {
     return (
       <nav
-        className="fixed bottom-0 left-0 w-full z-50 safe-bottom"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
+        className="fixed bottom-0 left-0 w-full z-50"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div
-          className="flex items-center justify-around px-4 py-3"
+          className="flex items-center justify-around px-2 py-2"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '3rem 3rem 0 0',
-            boxShadow: '0 -8px 24px -4px rgba(25, 28, 29, 0.06)',
+            backgroundColor: 'rgba(255, 255, 255, 0.92)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            boxShadow: '0 -1px 0 rgba(197, 197, 212, 0.3), 0 -8px 24px -4px rgba(25, 28, 29, 0.04)',
           }}
         >
-          {tabs.map(tab => {
-            const isActive = currentPage === tab.key;
+          {scholarTabs.map(tab => {
+            const isActive = userState.currentPage === tab.key;
             const Icon = tab.icon;
             return (
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.key)}
-                className="flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-300"
-                style={{
-                  borderRadius: '20px',
-                  transform: isActive ? 'scale(0.9)' : 'scale(1)',
-                }}
+                className="flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-200"
               >
                 {isActive ? (
-                  <div
-                    className="px-4 py-1.5 rounded-full"
-                    style={{
-                      backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff',
-                    }}
-                  >
-                    <Icon
-                      size={20}
+                  <>
+                    <div
+                      className="px-5 py-2 rounded-full transition-all"
+                      style={{ backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff' }}
+                    >
+                      <Icon
+                        size={20}
+                        style={{ color: layoutConfig.tabBarActiveColor || '#24389c' }}
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                    <span
+                      className="text-[10px] font-bold tracking-wide"
                       style={{ color: layoutConfig.tabBarActiveColor || '#24389c' }}
-                      strokeWidth={2.5}
-                    />
-                  </div>
+                    >
+                      {tab.label}
+                    </span>
+                  </>
                 ) : (
-                  <Icon
-                    size={20}
-                    style={{ color: theme.onSurfaceVariant || '#454652' }}
-                    strokeWidth={1.8}
-                  />
+                  <>
+                    <div className="px-5 py-2">
+                      <Icon
+                        size={20}
+                        style={{ color: theme.onSurfaceVariant || '#454652' }}
+                        strokeWidth={1.8}
+                      />
+                    </div>
+                    <span
+                      className="text-[10px] tracking-wide"
+                      style={{ color: theme.onSurfaceVariant || '#454652' }}
+                    >
+                      {tab.label}
+                    </span>
+                  </>
                 )}
-                <span
-                  className="text-[11px] font-bold tracking-wide"
-                  style={{
-                    color: isActive
-                      ? layoutConfig.tabBarActiveColor || '#24389c'
-                      : theme.onSurfaceVariant || '#454652',
-                  }}
-                >
-                  {tab.label}
-                </span>
               </button>
             );
           })}
@@ -131,14 +123,12 @@ export default function TabBar() {
     );
   }
 
-  // ===== Playful 风格（默认）=====
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom">
-      {/* 苹果风格：底部半透明磨砂玻璃效果 */}
       <div className="bg-white/70 backdrop-blur-xl border-t border-white/20">
         <div className="flex items-center justify-around h-[56px]">
           {tabs.map(tab => {
-            const isActive = currentPage === tab.key;
+            const isActive = userState.currentPage === tab.key;
             const Icon = tab.icon;
             return (
               <button

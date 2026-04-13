@@ -14,6 +14,27 @@ import type {
 } from '@/types';
 import { saveState, loadState } from './persistence';
 
+const createGuestUser = (): User => ({
+  id: `guest_${Date.now()}`,
+  nickname: '游客',
+  avatar: '',
+  learningDays: 1,
+  totalPoints: 0,
+  createdAt: new Date().toISOString(),
+  dailyGoal: 10,
+  dailyNewGoal: 3,
+  todayQuestions: 0,
+  goalAchievedToday: false,
+  avatarFrame: null,
+  aiSkin: null,
+  background: null,
+  themeStyle: 'fluidScholar',
+  unlockedAvatars: ['👤'],
+  unlockedFrames: ['⬜'],
+  unlockedAiSkins: ['🤖'],
+  unlockedBackgrounds: [],
+});
+
 // ---------- State ----------
 export interface UserState {
   user: User | null;
@@ -41,7 +62,7 @@ const initialUserState: UserState = {
 
 // ---------- Actions ----------
 type UserAction =
-  | { type: 'LOGIN'; payload: User }
+  | { type: 'LOGIN'; payload: User | { id: 'guest'; nickname: '游客' } }
   | { type: 'LOGOUT' }
   | { type: 'NAVIGATE'; payload: { page: PageName; params?: Record<string, string> } }
   | { type: 'UPDATE_USER'; payload: Partial<User> }
@@ -52,13 +73,23 @@ type UserAction =
 
 function userReducer(state: UserState, action: UserAction): UserState {
   switch (action.type) {
-    case 'LOGIN':
+    case 'LOGIN': {
+      if (action.payload.id === 'guest') {
+        return {
+          ...state,
+          user: createGuestUser(),
+          isLoggedIn: true,
+          currentPage: 'home',
+        };
+      }
       // 登录后检查今日是否已答每日一题
       const todayKey = `daily-question-${new Date().toISOString().slice(0, 10)}`;
       const hasAnsweredToday = localStorage.getItem(todayKey) !== null;
       // 今天没答就先进每日一题，答完再进首页
       const targetPage = hasAnsweredToday ? 'home' : 'daily-question';
-      return { ...state, user: action.payload, isLoggedIn: true, currentPage: targetPage };
+      const loginUser = action.payload as User;
+      return { ...state, user: loginUser, isLoggedIn: true, currentPage: targetPage };
+    }
     case 'LOGOUT':
       return { ...state, user: null, isLoggedIn: false, currentPage: 'login' };
     case 'NAVIGATE':
@@ -112,8 +143,9 @@ function getInitialUserState(): UserState {
   if (saved) {
     return {
       ...initialUserState,
-      user: saved.user ?? initialUserState.user,
-      isLoggedIn: saved.isLoggedIn ?? initialUserState.isLoggedIn,
+      // 当前版本不恢复登录态，刷新后统一回到登录页
+      user: null,
+      isLoggedIn: false,
       currentPage: 'login',
       pageParams: saved.pageParams ?? initialUserState.pageParams,
       dailyEncouragement: saved.dailyEncouragement ?? initialUserState.dailyEncouragement,
@@ -143,6 +175,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // 兼容层 navigate - 将旧页面名称映射到 React Router
   const navigate = useCallback((page: PageName, params?: Record<string, string>) => {
+    // 先同步 Context 的当前页面，保证 TabBar/全屏判断与路由一致
+    userDispatch({ type: 'NAVIGATE', payload: { page, params } });
+
     // 特殊处理带参数的页面
     if (page === 'quiz-session') {
       const { subjectId, knowledgePointId, stage } = params || {};
@@ -198,7 +233,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.warn(`[navigate] Unknown page: ${page}`);
       reactNavigate('/');
     }
-  }, [reactNavigate]);
+  }, [reactNavigate, userDispatch]);
 
   return (
     <UserContext.Provider value={{ userState, userDispatch, navigate }}>
