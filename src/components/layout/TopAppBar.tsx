@@ -51,10 +51,11 @@ export default function TopAppBar({
     <header
       className={`sticky top-0 z-50 ${className}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.88)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderBottom: '1px solid rgba(197, 197, 212, 0.25)',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        borderBottom: '1px solid rgba(197, 197, 212, 0.22)',
+        boxShadow: '0 10px 30px -28px rgba(15, 23, 42, 0.4)',
       }}
     >
       <div className="flex items-center justify-between w-full px-5 py-3.5">
@@ -104,9 +105,9 @@ export default function TopAppBar({
                 </div>
               )}
               {/* Title */}
-              <div>
+              <div className="min-w-0">
                 <span
-                  className="font-extrabold text-[1.0625rem] tracking-tight"
+                  className="block font-extrabold text-[1.0625rem] tracking-tight truncate"
                   style={{
                     color: theme.primary || '#24389c',
                     fontFamily: '"Plus Jakarta Sans", "Noto Sans SC", sans-serif',
@@ -116,8 +117,12 @@ export default function TopAppBar({
                 </span>
                 {subtitle && (
                   <p
-                    className="text-[0.6875rem] font-semibold uppercase tracking-widest"
-                    style={{ color: theme.onSurfaceVariant || '#454652', lineHeight: 1 }}
+                    className="mt-1 inline-flex max-w-full rounded-full px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.18em]"
+                    style={{
+                      color: theme.onSurfaceVariant || '#454652',
+                      lineHeight: 1,
+                      backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
+                    }}
                   >
                     {subtitle}
                   </p>
@@ -138,7 +143,7 @@ export default function TopAppBar({
         </div>
 
         {/* 右侧区域 */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 rounded-full px-1 py-1" style={{ backgroundColor: theme.surfaceContainerLow || '#f3f4f5' }}>
           {rightContent ?? (
             <button
               onClick={() => navigate('settings')}

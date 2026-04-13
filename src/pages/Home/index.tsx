@@ -102,6 +102,10 @@ export default function HomePage() {
   const newGoalCompleted = completedNew >= dailyNewGoal;
   const hasPendingNew = learningState.todayNewItems.filter(r => !r.completed).length > 0;
   const freeLearningMode = reviewCompleted && newGoalCompleted && hasPendingNew;
+  const todayGoal = appState.user?.dailyGoal ?? 10;
+  const todayQuestions = appState.user?.todayQuestions ?? 0;
+  const todayProgress = Math.min(100, Math.round((todayQuestions / Math.max(todayGoal, 1)) * 100));
+  const reviewTotal = learningState.todayReviewItems.length;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -144,7 +148,7 @@ export default function HomePage() {
 
           {/* Bento Grid: Stats Cards */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Learning Time Card - With decorative icon */}
+            {/* Practice Progress Card */}
             <div
               className="col-span-1 p-6 rounded-2xl flex flex-col justify-between h-44 relative overflow-hidden group"
               style={{
@@ -159,7 +163,8 @@ export default function HomePage() {
               >
                 <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="1" style={{ opacity: 0.15 }}>
                   <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
+                  <path d="M8 12h8" />
+                  <path d="M12 8v8" />
                 </svg>
               </div>
               <div className="flex justify-between items-start relative z-10">
@@ -169,23 +174,24 @@ export default function HomePage() {
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
+                    <path d="M8 12h8" />
+                    <path d="M12 8v8" />
                   </svg>
                 </div>
-                <span className="text-green-600 text-xs font-bold">+12%</span>
+                <span className="text-xs font-bold" style={{ color: theme.primary || '#24389c' }}>{todayProgress}%</span>
               </div>
               <div className="relative z-10">
                 <div
                   className="text-2xl font-black"
                   style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
-                  12.5h
+                  {todayQuestions}/{todayGoal}
                 </div>
                 <div
                   className="text-xs font-medium uppercase tracking-wider"
                   style={{ color: theme.onSurfaceVariant || '#454652' }}
                 >
-                  本周学习时长
+                  今日练习进度
                 </div>
               </div>
             </div>
@@ -258,7 +264,11 @@ export default function HomePage() {
                     准备好进行 AI 辅导了吗？
                   </h3>
                   <p className="text-sm mt-1 opacity-90" style={{ color: theme.primaryFixed || '#dee0ff' }}>
-                    基于你的学习进度，AI 已为你生成今日专项练习。
+                    {reviewPending > 0
+                      ? `你还有 ${reviewPending} 个待复习知识点，适合先完成一轮巩固。`
+                      : newGoalCompleted
+                      ? '今日核心计划已经完成，可以直接进入 AI 问答延展学习。'
+                      : `距离今日新学目标还差 ${Math.max(dailyNewGoal - completedNew, 0)} 项。`}
                   </p>
                   <button
                     onClick={() => navigate('ai-chat')}
@@ -289,23 +299,29 @@ export default function HomePage() {
               <span className="text-sm font-bold" style={{ color: theme.primary }}>查看全部</span>
             </div>
             <div className="space-y-3">
-              {/* Task 1 - Completed */}
               <div
+                onClick={() => reviewTotal > 0 && navigate('review-session', { type: 'review' })}
                 className="p-5 rounded-lg flex items-center gap-4 transition-all active:scale-[0.98]"
                 style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}
               >
                 <div
                   className="w-6 h-6 rounded-md flex items-center justify-center"
-                  style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                  style={{
+                    backgroundColor: reviewCompleted ? theme.primary : 'transparent',
+                    color: '#ffffff',
+                    border: reviewCompleted ? 'none' : `2px solid ${theme.outlineVariant || '#c5c5d4'}`,
+                  }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  {reviewCompleted && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold" style={{ color: theme.onSurface }}>进阶雅思词汇</span>
-                    <span className="text-xs font-bold" style={{ color: theme.onSurfaceVariant }}>20/20</span>
+                    <span className="font-bold" style={{ color: theme.onSurface }}>今日复习</span>
+                    <span className="text-xs font-bold" style={{ color: theme.onSurfaceVariant }}>{Math.max(reviewTotal - reviewPending, 0)}/{reviewTotal || reviewPending}</span>
                   </div>
                   <div
                     className="h-2 w-full rounded-full overflow-hidden"
@@ -313,14 +329,17 @@ export default function HomePage() {
                   >
                     <div
                       className="h-full rounded-full"
-                      style={{ backgroundColor: theme.primary, width: '100%' }}
+                      style={{
+                        backgroundColor: theme.primary,
+                        width: `${reviewTotal > 0 ? (Math.max(reviewTotal - reviewPending, 0) / reviewTotal) * 100 : reviewCompleted ? 100 : 0}%`,
+                      }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Task 2 - In Progress */}
               <div
+                onClick={() => navigate('knowledge')}
                 className="p-5 rounded-lg flex items-center gap-4 transition-all active:scale-[0.98]"
                 style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}
               >
@@ -330,8 +349,8 @@ export default function HomePage() {
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold" style={{ color: theme.onSurface }}>流体动力学基础</span>
-                    <span className="text-xs font-bold" style={{ color: theme.onSurfaceVariant }}>12/30 分钟</span>
+                    <span className="font-bold" style={{ color: theme.onSurface }}>今日新学</span>
+                    <span className="text-xs font-bold" style={{ color: theme.onSurfaceVariant }}>{completedNew}/{dailyNewGoal}</span>
                   </div>
                   <div
                     className="h-2 w-full rounded-full overflow-hidden"
@@ -339,14 +358,14 @@ export default function HomePage() {
                   >
                     <div
                       className="h-full rounded-full"
-                      style={{ backgroundColor: theme.primary, width: '40%' }}
+                      style={{ backgroundColor: theme.primary, width: `${Math.min(100, (completedNew / Math.max(dailyNewGoal, 1)) * 100)}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Task 3 - Not Started */}
               <div
+                onClick={() => navigate('wrong-book')}
                 className="p-5 rounded-lg flex items-center gap-4 transition-all active:scale-[0.98]"
                 style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}
               >
@@ -356,8 +375,8 @@ export default function HomePage() {
                 />
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold" style={{ color: theme.onSurface }}>每日口语测试</span>
-                    <span className="text-xs font-bold" style={{ color: theme.onSurfaceVariant }}>0/1</span>
+                    <span className="font-bold" style={{ color: theme.onSurface }}>错题整理</span>
+                    <span className="text-xs font-bold" style={{ color: theme.onSurfaceVariant }}>{learningState.wrongRecords.length} 道</span>
                   </div>
                   <div
                     className="h-2 w-full rounded-full overflow-hidden"
@@ -365,7 +384,7 @@ export default function HomePage() {
                   >
                     <div
                       className="h-full rounded-full"
-                      style={{ backgroundColor: theme.primary, width: '0%' }}
+                      style={{ backgroundColor: theme.primary, width: `${learningState.wrongRecords.length > 0 ? 100 : 0}%`, opacity: learningState.wrongRecords.length > 0 ? 0.7 : 0.18 }}
                     />
                   </div>
                 </div>

@@ -312,7 +312,7 @@ export default function AIChatPage() {
         />
       )}
 
-      <div className="px-4 py-1.5 text-center shrink-0">
+      <div className="px-4 py-2 text-center shrink-0">
         <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${
           backendMode === 'online'
             ? 'bg-green-50 text-green-600'
@@ -330,30 +330,37 @@ export default function AIChatPage() {
 
       <div className="flex-1 overflow-y-auto pb-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full px-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-4">
-              <Sparkles size={28} className="text-violet-500" />
+          <div className="h-full px-6 pt-4">
+            <div
+              className="rounded-[28px] border p-6 text-center"
+              style={{
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.74))',
+                borderColor: 'rgba(255,255,255,0.82)',
+                boxShadow: '0 24px 48px -36px rgba(15,23,42,0.26)',
+              }}
+            >
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'linear-gradient(135deg, #e8edff, #f6e8ff)' }}>
+                <Sparkles size={28} className="text-violet-500" />
+              </div>
+
+              <h3 className="text-lg font-semibold mb-1" style={{ color: theme.onSurface || '#191c1d' }}>AI 学习助手</h3>
+              <p className="text-sm leading-7" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                可以让它解释知识点、拆题思路、补一题练习，或者把这次对话直接收进知识库。
+              </p>
+
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点'].map(q => (
+                  <button
+                    key={q}
+                    onClick={() => { setInput(q); }}
+                    className="text-xs px-3 py-2 rounded-full border active:opacity-70"
+                    style={{ backgroundColor: '#f8f7ff', color: '#6d28d9', borderColor: '#ebe7ff' }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
-
-            <h3 className="text-base font-semibold text-text-primary mb-1">AI 学习助手</h3>
-            <p className="text-sm text-text-muted leading-relaxed">
-              有什么不懂的知识点？问我吧！
-              <br />
-              我会帮你解答并出题测试。
-            </p>
-
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点'].map(q => (
-                <button
-                  key={q}
-                  onClick={() => { setInput(q); }}
-                  className="text-xs bg-violet-50 text-violet-600 px-3 py-1.5 rounded-full border border-violet-100 active:opacity-70"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-
           </div>
         ) : (
           <div className="pt-3">
@@ -385,7 +392,16 @@ export default function AIChatPage() {
           paddingBottom: uiStyle === 'scholar' ? 'calc(84px + env(safe-area-inset-bottom))' : 'calc(12px + env(safe-area-inset-bottom))',
         }}
       >
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2 rounded-[22px] border p-2"
+          style={uiStyle === 'scholar'
+            ? {
+                backgroundColor: '#f8f9fb',
+                borderColor: 'rgba(197,197,212,0.32)',
+                boxShadow: '0 16px 30px -28px rgba(15,23,42,0.2)',
+              }
+            : undefined}
+        >
           <input
             type="text"
             value={input}

@@ -163,6 +163,9 @@ export default function KnowledgePage() {
 
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
+    const masteredCount = allKPs.filter(kp => kp.proficiency === 'master' || kp.proficiency === 'normal').length;
+    const reviewCount = allKPs.filter(kp => kp.proficiency === 'rusty' || kp.proficiency === 'none').length;
+
     // 熟练度标签配置
     const profBadgeConfig: Record<string, { label: string; color: string; bg: string }> = {
       master: { label: '已熟练', color: '#0d6e49', bg: '#dcfce7' },
@@ -183,11 +186,61 @@ export default function KnowledgePage() {
         <TopAppBar />
 
         <div className="pt-5 pb-28 space-y-6">
+          <div className="px-6">
+            <div
+              className="rounded-[28px] p-5"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.74))',
+                border: '1px solid rgba(255,255,255,0.75)',
+                boxShadow: '0 22px 50px -34px rgba(15,23,42,0.25)',
+              }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[0.68rem] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                    knowledge workspace
+                  </div>
+                  <h2 className="mt-2 text-[1.75rem] font-extrabold tracking-tight" style={{ color: theme.onSurface || '#191c1d', fontFamily: '"Plus Jakarta Sans","Noto Sans SC",sans-serif' }}>
+                    把知识点整理得更清楚
+                  </h2>
+                  <p className="mt-2 text-sm leading-6" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                    快速筛选、回看近期内容，再把新资料继续收进同一套知识结构里。
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloudImport}
+                  className="shrink-0 rounded-full px-4 py-2 text-sm font-semibold"
+                  style={{ backgroundColor: theme.primaryFixed || '#dee0ff', color: theme.primary || '#24389c' }}
+                >
+                  云端导入
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                {[
+                  { label: '总知识点', value: allKPs.length },
+                  { label: '已掌握', value: masteredCount },
+                  { label: '待巩固', value: reviewCount },
+                ].map(item => (
+                  <div key={item.label} className="rounded-2xl px-4 py-3" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
+                    <div className="text-[0.68rem] uppercase tracking-[0.16em]" style={{ color: theme.onSurfaceVariant || '#454652' }}>{item.label}</div>
+                    <div className="mt-1 text-xl font-extrabold" style={{ color: theme.onSurface || '#191c1d' }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Search Bar */}
           <div className="px-6">
             <div
-              className="flex items-center gap-3 px-4 py-3"
-              style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', borderRadius: '3rem' }}
+              className="flex items-center gap-3 px-4 py-3 border"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.76)',
+                borderRadius: '999px',
+                borderColor: 'rgba(255,255,255,0.8)',
+                boxShadow: '0 18px 34px -30px rgba(15,23,42,0.22)',
+              }}
             >
               <Search size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} className="shrink-0" />
               <input
@@ -208,8 +261,8 @@ export default function KnowledgePage() {
                 <h3 className="font-bold text-base" style={{ color: theme.onSurface || '#191c1d', fontFamily: '"Plus Jakarta Sans","Noto Sans SC",sans-serif' }}>
                   知识分类
                 </h3>
-                <button className="text-sm font-semibold" style={{ color: theme.primary || '#24389c' }}>
-                  查看全部
+                <button className="text-sm font-semibold" style={{ color: theme.primary || '#24389c' }} onClick={() => setSelectedSubject(null)}>
+                  {selectedSubject ? '清除筛选' : '全部学科'}
                 </button>
               </div>
               <div className="flex gap-4 overflow-x-auto px-6 pb-2" style={{ scrollbarWidth: 'none' }}>
@@ -312,10 +365,16 @@ export default function KnowledgePage() {
                         {kp.explanation && (
                           <p className="text-xs line-clamp-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>{kp.explanation}</p>
                         )}
-                        {timeAgo && (
-                          <p className="text-xs mt-1" style={{ color: theme.outlineVariant || '#c5c5d4' }}>{timeAgo}</p>
-                        )}
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <p className="text-xs" style={{ color: theme.outlineVariant || '#c5c5d4' }}>
+                            {learningState.chapters.find(ch => ch.id === kp.chapterId)?.name || '未分类'}
+                          </p>
+                          {timeAgo && (
+                            <p className="text-xs" style={{ color: theme.outlineVariant || '#c5c5d4' }}>{timeAgo}</p>
+                          )}
+                        </div>
                       </div>
+                      <ChevronRight size={16} style={{ color: theme.outlineVariant || '#c5c5d4' }} className="shrink-0 mt-1" />
                     </button>
                   );
                 })}

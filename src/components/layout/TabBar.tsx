@@ -58,16 +58,17 @@ export default function TabBar() {
   if (uiStyle === 'scholar') {
     return (
       <nav
-        className="fixed bottom-0 left-0 w-full z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        className="fixed bottom-0 left-1/2 w-full max-w-[480px] -translate-x-1/2 z-50 px-4 pointer-events-none"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}
       >
         <div
-          className="flex items-center justify-around px-2 py-2"
+          className="pointer-events-auto flex items-center justify-around rounded-[28px] border px-2 py-2"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.92)',
+            backgroundColor: 'rgba(255, 255, 255, 0.86)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            boxShadow: '0 -1px 0 rgba(197, 197, 212, 0.3), 0 -8px 24px -4px rgba(25, 28, 29, 0.04)',
+            borderColor: 'rgba(197, 197, 212, 0.45)',
+            boxShadow: '0 20px 40px -24px rgba(15, 23, 42, 0.35), 0 1px 0 rgba(255,255,255,0.75) inset',
           }}
         >
           {scholarTabs.map(tab => {
@@ -77,13 +78,16 @@ export default function TabBar() {
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.key)}
-                className="flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-200"
+                className="flex flex-col items-center justify-center gap-1 flex-1 py-1.5 transition-all duration-200"
               >
                 {isActive ? (
                   <>
                     <div
-                      className="px-5 py-2 rounded-full transition-all"
-                      style={{ backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff' }}
+                      className="min-w-[52px] px-4 py-2 rounded-full transition-all"
+                      style={{
+                        backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff',
+                        boxShadow: '0 8px 20px -14px rgba(36, 56, 156, 0.65)',
+                      }}
                     >
                       <Icon
                         size={20}
@@ -100,7 +104,7 @@ export default function TabBar() {
                   </>
                 ) : (
                   <>
-                    <div className="px-5 py-2">
+                    <div className="min-w-[52px] px-4 py-2 rounded-full">
                       <Icon
                         size={20}
                         style={{ color: theme.onSurfaceVariant || '#454652' }}
@@ -124,9 +128,9 @@ export default function TabBar() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom">
-      <div className="bg-white/70 backdrop-blur-xl border-t border-white/20">
-        <div className="flex items-center justify-around h-[56px]">
+    <div className="fixed bottom-0 left-1/2 right-auto z-50 safe-bottom w-full max-w-[480px] -translate-x-1/2 px-3 pb-2">
+      <div className="rounded-[24px] border border-white/40 bg-white/72 backdrop-blur-xl shadow-[0_16px_40px_-24px_rgba(15,23,42,0.35)]">
+        <div className="flex items-center justify-around h-[60px] px-1.5">
           {tabs.map(tab => {
             const isActive = userState.currentPage === tab.key;
             const Icon = tab.icon;
@@ -134,7 +138,7 @@ export default function TabBar() {
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.key)}
-                className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 rounded-full mx-1 ${isActive ? 'bg-primary/10 scale-105' : 'active:opacity-60'}`}
+                className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 rounded-full mx-1 ${isActive ? 'bg-primary/10 scale-[1.03]' : 'active:opacity-60'}`}
               >
                 <Icon
                   size={isActive ? 22 : 20}

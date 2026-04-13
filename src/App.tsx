@@ -139,8 +139,26 @@ function AppContent() {
   const isFullScreen = fullScreenPages.includes(userState.currentPage);
 
   return (
-    <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
-      <div className="w-full max-w-[480px] flex flex-col relative">
+    <div className="absolute inset-0 flex justify-center">
+      <div className="w-full flex flex-col relative overflow-hidden" style={{ background: currentBackground }}>
+        {uiStyle === 'scholar' && (
+          <>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle at top left, rgba(255,255,255,0.75), transparent 32%), radial-gradient(circle at top right, rgba(222,224,255,0.6), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0))',
+              }}
+            />
+            <div
+              className="absolute left-[-12%] top-[8%] h-40 w-40 rounded-full blur-3xl pointer-events-none"
+              style={{ backgroundColor: 'rgba(255, 223, 160, 0.28)' }}
+            />
+            <div
+              className="absolute right-[-10%] top-[18%] h-48 w-48 rounded-full blur-3xl pointer-events-none"
+              style={{ backgroundColor: 'rgba(222, 224, 255, 0.32)' }}
+            />
+          </>
+        )}
         {renderBackgroundPattern(currentPattern)}
         <div className="flex-1 overflow-y-auto relative z-10">
           {userState.isLoggedIn ? (
@@ -161,9 +179,11 @@ function AppContent() {
 
 export default function App() {
   return (
-    <div className="app-shell bg-transparent">
+    <div className="app-shell min-h-screen bg-[radial-gradient(circle_at_top,_#f7f8fc_0%,_#edf2f8_48%,_#e9eef6_100%)] md:px-4 md:py-4">
       <ThemeStyles />
-      <AppContent />
+      <div className="relative mx-auto h-screen w-full max-w-[480px] overflow-hidden bg-white md:h-[calc(100vh-32px)] md:rounded-[32px] md:border md:border-white/70 md:shadow-[0_24px_80px_-28px_rgba(15,23,42,0.4)]">
+        <AppContent />
+      </div>
     </div>
   );
 }
