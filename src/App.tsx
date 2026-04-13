@@ -10,7 +10,7 @@
  */
 
 import { useMemo, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useUser } from '@/store/UserContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
@@ -18,10 +18,17 @@ import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
 import { allBackgrounds } from '@/pages/AvatarEdit';
 
-// 全屏页面（不需要 TabBar）
-const fullScreenPages = [
-  'login', 'quiz-result', 'ai-chat', 'quiz-session', 'knowledge-detail',
-  'add-knowledge', 'import-knowledge', 'review-session', 'wrong-book', 'flashcard-learning'
+// 全屏页面路径前缀（不需要 TabBar）
+const fullScreenPaths = [
+  '/login',
+  '/quiz/session',
+  '/quiz/result',
+  '/quiz/wrong-book',
+  '/flashcard',
+  '/ai-chat',
+  '/knowledge/add',
+  '/knowledge/import',
+  '/review-session',
 ];
 
 function AppContent() {
@@ -110,8 +117,12 @@ function AppContent() {
     return null;
   }, []);
 
+  // 获取当前路由路径
+  const location = useLocation();
+
   // 判断是否为全屏页面
-  const isFullScreen = fullScreenPages.includes(userState.currentPage);
+  const isFullScreen = fullScreenPaths.some(path => location.pathname.startsWith(path))
+    || /^\/knowledge\/[^/]+$/.test(location.pathname); // /knowledge/:kpId 格式
 
   return (
     <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>

@@ -3,7 +3,7 @@
  * 底部导航栏 (TabBar)
  * ============================================================================
  *
- * 【功能】5 个主 Tab: 首页/知识库/刷题/图谱/我的
+ * 【功能】4 个主 Tab: 首页/知识库/刷题/我的
  *
  * 【hiddenPages 中的页面不显示 TabBar】
  * - 答题中、AI聊天等沉浸式页面
@@ -15,7 +15,8 @@
  * ============================================================================
  */
 
-import { Home, BookOpen, PenTool, Network, User } from 'lucide-react';
+import { Home, BookOpen, PenTool, User } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { UILAYOUT_CONFIGS } from '@/types';
@@ -31,20 +32,32 @@ const tabs: TabItem[] = [
   { key: 'home', label: '首页', icon: Home },
   { key: 'knowledge', label: '知识库', icon: BookOpen },
   { key: 'quiz', label: '刷题', icon: PenTool },
-  { key: 'knowledge-map', label: '图谱', icon: Network },
   { key: 'profile', label: '我的', icon: User },
 ];
 
 const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
 
 export default function TabBar() {
-  const { userState, navigate } = useUser();
+  const { navigate } = useUser();
   const { theme } = useTheme();
+  const location = useLocation();
+
+  // 根据路由路径判断当前 active tab
+  const getActiveKey = (): PageName => {
+    const path = location.pathname;
+    if (path === '/') return 'home';
+    if (path.startsWith('/knowledge')) return 'knowledge';
+    if (path.startsWith('/quiz')) return 'quiz';
+    if (path.startsWith('/profile')) return 'profile';
+    return 'home';
+  };
+
+  const currentPage = getActiveKey();
 
   const uiStyle = theme.uiStyle || 'playful';
   const layoutConfig = UILAYOUT_CONFIGS[uiStyle];
 
-  if (hiddenPages.includes(userState.currentPage)) {
+  if (hiddenPages.includes(currentPage)) {
     return null;
   }
 
@@ -68,7 +81,7 @@ export default function TabBar() {
           }}
         >
           {tabs.map(tab => {
-            const isActive = userState.currentPage === tab.key;
+            const isActive = currentPage === tab.key;
             const Icon = tab.icon;
             return (
               <button
@@ -125,7 +138,7 @@ export default function TabBar() {
       <div className="bg-white/70 backdrop-blur-xl border-t border-white/20">
         <div className="flex items-center justify-around h-[56px]">
           {tabs.map(tab => {
-            const isActive = userState.currentPage === tab.key;
+            const isActive = currentPage === tab.key;
             const Icon = tab.icon;
             return (
               <button
