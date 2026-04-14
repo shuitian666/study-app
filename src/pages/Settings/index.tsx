@@ -15,7 +15,7 @@ import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import type { AIConfig } from '@/types';
-import { getAIConfig, setAIConfig } from '@/services/aiClient';
+import { DOUBAN_API_URL, fetchModels, getAIConfig, resetBackendCache, setAIConfig } from '@/services/aiClient';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle, Palette } from 'lucide-react';
 
 // 豆包默认模型
@@ -46,6 +46,9 @@ export default function SettingsPage() {
   
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [checkingConn, setCheckingConn] = useState(false);
+  const [connState, setConnState] = useState<'unknown' | 'ok' | 'fail'>('unknown');
+  const [connMessage, setConnMessage] = useState('尚未检测');
   
   // 销号确认弹窗
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
@@ -81,9 +84,70 @@ export default function SettingsPage() {
     }
     
     setAiMode(mode);
+    resetBackendCache();
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const runConnectionCheck = async () => {
+    setCheckingConn(true);
+    setConnState('unknown');
+    setConnMessage('检测中...');
+
+    try {
+      if (aiMode === 'offline') {
+        setConnState('ok');
+        setConnMessage('离线模式无需连接，可直接使用预设流程');
+        return;
+      }
+
+      if (aiMode === 'openclaw') {
+        const providers = await fetchModels();
+        const openclaw = providers.find(p => p.name === 'openclaw');
+        if (openclaw?.available) {
+          setConnState('ok');
+          setConnMessage('OpenClaw 连接正常');
+        } else {
+          setConnState('fail');
+          setConnMessage('OpenClaw 未连接，请检查本地服务与端口');
+        }
+        return;
+      }
+
+      if (!apiKey.trim() || !modelId.trim()) {
+        setConnState('fail');
+        setConnMessage('请先填写豆包 API Key 和模型 ID');
+        return;
+      }
+
+      const res = await fetch(`${DOUBAN_API_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey.trim()}`,
+        },
+        body: JSON.stringify({
+          model: modelId.trim(),
+          messages: [{ role: 'user', content: 'ping' }],
+          stream: false,
+          max_tokens: 1,
+        }),
+      });
+
+      if (res.ok) {
+        setConnState('ok');
+        setConnMessage('豆包连接正常，模型可用');
+      } else {
+        setConnState('fail');
+        setConnMessage(`豆包连接失败（HTTP ${res.status}）`);
+      }
+    } catch (error) {
+      setConnState('fail');
+      setConnMessage(`检测失败：${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setCheckingConn(false);
+    }
   };
   
   // 学习目标状态
@@ -221,7 +285,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="text-xs text-text-muted">
                   {aiMode === 'douban' 
-                    ? `使用 doubao-lite-32k 模型`
+                    ? `使用 ${modelId || DEFAULT_DOUBAN_MODEL} 模型`
                     : aiMode === 'openclaw'
                     ? '连接本地 OpenClaw 服务，使用本地知识库'
                     : '使用预设任务流，无AI能力'}
@@ -344,8 +408,28 @@ export default function SettingsPage() {
                     <div className="text-xs text-text-muted">无需联网，使用预设任务流</div>
                   </div>
                 </div>
-                {!isDoubanMode && <Check size={18} className="text-gray-400" />}
+                {aiMode === 'offline' && <Check size={18} className="text-gray-400" />}
               </div>
+            </button>
+
+            <div
+              className="rounded-xl px-3 py-2 text-xs"
+              style={{
+                backgroundColor:
+                  connState === 'ok' ? '#ecfdf5' : connState === 'fail' ? '#fef2f2' : '#f5f5f5',
+                color:
+                  connState === 'ok' ? '#166534' : connState === 'fail' ? '#991b1b' : '#4b5563',
+              }}
+            >
+              连接状态：{connMessage}
+            </div>
+
+            <button
+              onClick={runConnectionCheck}
+              disabled={checkingConn}
+              className="w-full py-2.5 bg-white border border-border text-sm rounded-xl font-medium active:opacity-80 disabled:opacity-50"
+            >
+              {checkingConn ? '检测中...' : '检测 AI 连接'}
             </button>
 
             {/* 保存按钮 */}

@@ -17,6 +17,26 @@ import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } f
 import { saveState, loadState, deepMergeState } from './persistence';
 import { getKnowledgeData, hasKnowledgeData, storeKnowledgeData } from '@/services/indexedDBService';
 
+function buildQuestionExplanationSeeds(
+  questions: Question[],
+  existing: QuestionExplanation[] = []
+): QuestionExplanation[] {
+  const existingIds = new Set(existing.map(e => e.questionId));
+  const now = new Date().toISOString();
+
+  const seeded = questions
+    .filter(q => !existingIds.has(q.id) && typeof q.explanation === 'string' && q.explanation.trim().length > 0)
+    .map(q => ({
+      questionId: q.id,
+      explanation: q.explanation,
+      createdAt: now,
+      updatedAt: now,
+      isUserModified: false,
+    }));
+
+  return [...existing, ...seeded];
+}
+
 // ---------- State ----------
 export interface LearningState {
   subjects: Subject[];
@@ -45,7 +65,7 @@ const initialLearningState: LearningState = {
   wrongRecords: [],
   todayReviewItems: [],
   todayNewItems: [],
-  questionExplanations: [],
+  questionExplanations: buildQuestionExplanationSeeds(MOCK_QUESTIONS),
   // Undo/Redo (not persisted)
   _history: [],
   _historyIndex: -1,
@@ -238,12 +258,18 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ...action.payload.questions.filter(q => !existingQuestionIds.has(q.id))
       ];
 
+      const mergedQuestionExplanations = buildQuestionExplanationSeeds(
+        mergedQuestions,
+        state.questionExplanations
+      );
+
       return {
         ...state,
         subjects: mergedSubjects,
         chapters: mergedChapters,
         knowledgePoints: mergedKP,
         questions: mergedQuestions,
+        questionExplanations: mergedQuestionExplanations,
       };
     }
     case 'SET_LOADING':
@@ -377,17 +403,20 @@ function getInitialLearningState(): LearningState {
     const todayReviewItems = savedReviewItems.filter(item => item.scheduledAt === today);
     const todayNewItems = savedNewItems.filter(item => item.scheduledAt === today);
 
+    const savedQuestions = saved.questions ?? initialLearningState.questions;
+    const savedQuestionExplanations = (saved.questionExplanations ?? initialLearningState.questionExplanations) as QuestionExplanation[];
+
     return {
       ...initialLearningState,
       subjects: saved.subjects ?? initialLearningState.subjects,
       chapters: saved.chapters ?? initialLearningState.chapters,
       knowledgePoints: saved.knowledgePoints ?? initialLearningState.knowledgePoints,
-      questions: saved.questions ?? initialLearningState.questions,
+      questions: savedQuestions,
       quizResults: saved.quizResults ?? initialLearningState.quizResults,
       wrongRecords: saved.wrongRecords ?? initialLearningState.wrongRecords,
       todayReviewItems,
       todayNewItems,
-      questionExplanations: saved.questionExplanations ?? initialLearningState.questionExplanations,
+      questionExplanations: buildQuestionExplanationSeeds(savedQuestions, savedQuestionExplanations),
     };
   }
   return initialLearningState;

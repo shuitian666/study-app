@@ -45,6 +45,7 @@ export default function KnowledgePage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showCloudModal, setShowCloudModal] = useState(false);
+  const [recentExpanded, setRecentExpanded] = useState(false);
 
   const uiStyle = theme.uiStyle || 'playful';
 
@@ -178,6 +179,14 @@ export default function KnowledgePage() {
       .sort((a, b) => new Date((b as any).updatedAt || (b as any).createdAt || 0).getTime() - new Date((a as any).updatedAt || (a as any).createdAt || 0).getTime())
       .slice(0, 12);
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayLearnedKPs = recentKPs.filter(kp => {
+      const ts = (kp as any).updatedAt || (kp as any).createdAt;
+      if (!ts) return false;
+      return new Date(ts).toISOString().slice(0, 10) === todayStr;
+    });
+    const recentDisplay = recentExpanded ? todayLearnedKPs : recentKPs.slice(0, 2);
+
     const tileBgs   = [theme.primaryFixed || '#dee0ff', theme.secondaryFixed || '#ffdfa0', '#e8f0fe', theme.tertiaryFixed || '#fdd6ff', '#e0f2fe', '#f0fdf4'];
     const tileTexts = [theme.primary || '#24389c', '#795900', '#1a56db', theme.tertiary || '#73008e', '#0369a1', '#166534'];
 
@@ -186,71 +195,65 @@ export default function KnowledgePage() {
         <TopAppBar />
 
         <div className="pt-5 pb-28 space-y-6">
-          <div className="px-6">
-            <div
-              className="rounded-[28px] p-5"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,255,255,0.74))',
-                border: '1px solid rgba(255,255,255,0.75)',
-                boxShadow: '0 22px 50px -34px rgba(15,23,42,0.25)',
-              }}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[0.68rem] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.onSurfaceVariant || '#454652' }}>
-                    knowledge workspace
-                  </div>
-                  <h2 className="mt-2 text-[1.75rem] font-extrabold tracking-tight" style={{ color: theme.onSurface || '#191c1d', fontFamily: '"Plus Jakarta Sans","Noto Sans SC",sans-serif' }}>
-                    把知识点整理得更清楚
-                  </h2>
-                  <p className="mt-2 text-sm leading-6" style={{ color: theme.onSurfaceVariant || '#454652' }}>
-                    快速筛选、回看近期内容，再把新资料继续收进同一套知识结构里。
-                  </p>
-                </div>
-                <button
-                  onClick={handleCloudImport}
-                  className="shrink-0 rounded-full px-4 py-2 text-sm font-semibold"
-                  style={{ backgroundColor: theme.primaryFixed || '#dee0ff', color: theme.primary || '#24389c' }}
-                >
-                  云端导入
-                </button>
-              </div>
-
-              <div className="mt-5 grid grid-cols-3 gap-3">
-                {[
-                  { label: '总知识点', value: allKPs.length },
-                  { label: '已掌握', value: masteredCount },
-                  { label: '待巩固', value: reviewCount },
-                ].map(item => (
-                  <div key={item.label} className="rounded-2xl px-4 py-3" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
-                    <div className="text-[0.68rem] uppercase tracking-[0.16em]" style={{ color: theme.onSurfaceVariant || '#454652' }}>{item.label}</div>
-                    <div className="mt-1 text-xl font-extrabold" style={{ color: theme.onSurface || '#191c1d' }}>{item.value}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Search Bar */}
           <div className="px-6">
-            <div
-              className="flex items-center gap-3 px-4 py-3 border"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.76)',
-                borderRadius: '999px',
-                borderColor: 'rgba(255,255,255,0.8)',
-                boxShadow: '0 18px 34px -30px rgba(15,23,42,0.22)',
-              }}
-            >
-              <Search size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} className="shrink-0" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索知识点..."
-                className="flex-1 text-sm outline-none bg-transparent"
-                style={{ color: theme.onSurface || '#191c1d' }}
-              />
+            <div className="flex items-center gap-2">
+              <div
+                className="flex flex-1 items-center gap-3 px-4 py-3 border"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.76)',
+                  borderRadius: '999px',
+                  borderColor: 'rgba(255,255,255,0.8)',
+                  boxShadow: '0 18px 34px -30px rgba(15,23,42,0.22)',
+                }}
+              >
+                <Search size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} className="shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索知识点..."
+                  className="flex-1 text-sm outline-none bg-transparent"
+                  style={{ color: theme.onSurface || '#191c1d' }}
+                />
+              </div>
+              <button
+                onClick={() => navigate('flashcard-learning')}
+                className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.primaryFixed || '#dee0ff',
+                  color: theme.primary || '#24389c',
+                  boxShadow: '0 16px 28px -22px rgba(15,23,42,0.24)',
+                }}
+                title="闪记学习"
+              >
+                <Sparkles size={18} />
+              </button>
+              <button
+                onClick={handleCloudImport}
+                className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+                  color: theme.onSurfaceVariant || '#454652',
+                  border: '1px solid rgba(197,197,212,0.32)',
+                }}
+                title="云端导入"
+              >
+                <Cloud size={18} />
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2.5">
+              {[
+                { label: '总知识点', value: allKPs.length },
+                { label: '已掌握', value: masteredCount },
+                { label: '待巩固', value: reviewCount },
+              ].map(item => (
+                <div key={item.label} className="rounded-2xl px-3.5 py-3" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
+                  <div className="text-[0.62rem] uppercase tracking-[0.16em]" style={{ color: theme.onSurfaceVariant || '#454652' }}>{item.label}</div>
+                  <div className="mt-1 text-lg font-extrabold" style={{ color: theme.onSurface || '#191c1d' }}>{item.value}</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -265,8 +268,8 @@ export default function KnowledgePage() {
                   {selectedSubject ? '清除筛选' : '全部学科'}
                 </button>
               </div>
-              <div className="flex gap-4 overflow-x-auto px-6 pb-2" style={{ scrollbarWidth: 'none' }}>
-                {learningState.subjects.slice(0, 6).map((subject, idx) => {
+              <div className="flex gap-3 overflow-x-auto px-6 pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+                {learningState.subjects.map((subject, idx) => {
                   const subjectKPCount = allKPs.filter(kp => kp.subjectId === subject.id).length;
                   const isSelected = selectedSubject === subject.id;
                   const bg = tileBgs[idx % tileBgs.length];
@@ -275,31 +278,33 @@ export default function KnowledgePage() {
                     <button
                       key={subject.id}
                       onClick={() => setSelectedSubject(isSelected ? null : subject.id)}
-                      className="shrink-0 flex flex-col justify-between p-5 active:scale-[0.97] transition-all"
+                      className="snap-start shrink-0 flex flex-col justify-between p-4 active:scale-[0.97] transition-all overflow-hidden"
                       style={{
-                        width: '140px', height: '140px',
+                        width: '168px',
+                        height: '118px',
                         backgroundColor: isSelected ? (theme.primary || '#24389c') : bg,
-                        borderRadius: '1.5rem',
+                        borderRadius: '1.25rem',
                       }}
                     >
-                      <span className="text-3xl block">{subject.icon}</span>
-                      <div className="text-left">
-                        <div className="font-bold text-base" style={{ color: isSelected ? '#ffffff' : (theme.onSurface || '#191c1d') }}>
+                      <span className="text-2xl block leading-none">{subject.icon}</span>
+                      <div className="text-left min-w-0">
+                        <div className="font-bold text-sm truncate" style={{ color: isSelected ? '#ffffff' : (theme.onSurface || '#191c1d') }}>
                           {subject.name}
                         </div>
-                        <div className="text-xs mt-0.5" style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : tc }}>
+                        <div className="text-xs mt-0.5 truncate" style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : tc }}>
                           {subjectKPCount} 个知识点
                         </div>
                       </div>
                     </button>
                   );
                 })}
-                {/* Add Subject button */}
                 <button
                   onClick={() => navigate('add-knowledge')}
-                  className="shrink-0 flex items-center justify-center"
+                  className="snap-start shrink-0 flex items-center justify-center"
                   style={{
-                    width: '140px', height: '140px', borderRadius: '1.5rem',
+                    width: '118px',
+                    height: '118px',
+                    borderRadius: '1.25rem',
                     backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                     border: `2px dashed ${theme.outlineVariant || '#c5c5d4'}`,
                   }}
@@ -314,10 +319,14 @@ export default function KnowledgePage() {
           <div className="px-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-base" style={{ color: theme.onSurface || '#191c1d', fontFamily: '"Plus Jakarta Sans","Noto Sans SC",sans-serif' }}>
-                {selectedSubject ? learningState.subjects.find(s => s.id === selectedSubject)?.name : '最近学习'}
+                {recentExpanded ? '今日学习过的' : (selectedSubject ? learningState.subjects.find(s => s.id === selectedSubject)?.name : '最近学习')}
               </h3>
-              <button style={{ color: theme.onSurfaceVariant || '#454652' }}>
-                <Filter size={16} />
+              <button
+                onClick={() => setRecentExpanded(prev => !prev)}
+                className="text-sm font-semibold"
+                style={{ color: theme.primary || '#24389c' }}
+              >
+                {recentExpanded ? '收起' : '展开'}
               </button>
             </div>
 
@@ -327,9 +336,13 @@ export default function KnowledgePage() {
                 <p className="text-sm font-medium" style={{ color: theme.onSurfaceVariant || '#454652' }}>暂无知识点</p>
                 <p className="text-xs mt-1 text-center" style={{ color: theme.outlineVariant || '#c5c5d4' }}>点击右下角 + 开始添加</p>
               </div>
+            ) : recentDisplay.length === 0 ? (
+              <div className="p-8 rounded-2xl text-center" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', color: theme.onSurfaceVariant || '#454652' }}>
+                {recentExpanded ? '今天还没有学习记录' : '暂无最近学习记录'}
+              </div>
             ) : (
               <div className="space-y-3">
-                {recentKPs.map(kp => {
+                {recentDisplay.map(kp => {
                   const subject = learningState.subjects.find(s => s.id === kp.subjectId);
                   const badge   = profBadgeConfig[kp.proficiency] || profBadgeConfig.none;
                   const subIdx  = learningState.subjects.findIndex(s => s.id === kp.subjectId);

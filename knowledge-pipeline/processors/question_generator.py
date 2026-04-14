@@ -439,6 +439,10 @@ class QuestionGenerator:
 
             # 转换为应用格式
             for q in generated:
+                # 校验：题目必须有解析，无解析的题目不保留
+                if not q.explanation or len(q.explanation.strip()) < 5:
+                    continue
+
                 question_id_counter += 1
                 q_id = f"gen-q-{question_id_counter}"
 
@@ -453,5 +457,5 @@ class QuestionGenerator:
                     'explanation': q.explanation,
                 })
 
-        print(f"  [出题] 从 {len(knowledge_points)} 个知识点生成了 {len(all_questions)} 道题")
+        print(f"  [出题] 从 {len(knowledge_points)} 个知识点生成了 {len(all_questions)} 道题（已过滤无解析题目）")
         return all_questions

@@ -59,6 +59,39 @@ const RATING_CONFIG = {
   },
 };
 
+function buildSessionQueue(knowledgePoints: KnowledgePointExtended[]): KnowledgePointExtended[] {
+  const now = new Date();
+  return knowledgePoints
+    .filter(kp => kp.proficiency !== 'master')
+    .map(kp => {
+      const isOverdue = !!(kp.nextReviewAt && kp.nextReviewAt < now.toISOString());
+      const isDueToday = !!(
+        kp.nextReviewAt &&
+        kp.nextReviewAt.slice(0, 10) === now.toISOString().slice(0, 10)
+      );
+
+      let priority: number;
+      if (kp.fsrsState === 'New' || !kp.fsrsReps) {
+        priority = 3;
+      } else if (isOverdue) {
+        priority = 0;
+      } else if (isDueToday) {
+        priority = 1;
+      } else {
+        priority = 2;
+      }
+
+      return { ...kp, _priority: priority };
+    })
+    .sort((a, b) => {
+      if (a._priority !== b._priority) {
+        return a._priority - b._priority;
+      }
+      const profOrder: Record<string, number> = { none: 0, rusty: 1, normal: 2, master: 3 };
+      return (profOrder[a.proficiency] ?? 0) - (profOrder[b.proficiency] ?? 0);
+    });
+}
+
 export default function FlashcardLearningPage() {
   const { navigate } = useUser();
   const { theme } = useTheme();
@@ -71,7 +104,7 @@ export default function FlashcardLearningPage() {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | 'up' | 'down' | null>(null);
 
   // 学习队列（包含所有待学习的卡片，按优先级排序）
-  const [queue, setQueue] = useState<KnowledgePointExtended[]>([]);
+  const [queue, setQueue] = useState<KnowledgePointExtended[]>(() => buildSessionQueue(learningState.knowledgePoints));
   // 当前显示的卡片在队列中的索引
   const [currentIdx, setCurrentIdx] = useState(0);
   // 不会的卡片的 ID 集合（用于检测重复）
@@ -92,44 +125,6 @@ export default function FlashcardLearningPage() {
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { failedIdsRef.current = failedIds; }, [failedIds]);
   useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
-
-  // 初始化学习队列
-  useEffect(() => {
-    const now = new Date();
-    const sortedKps = learningState.knowledgePoints
-      .filter(kp => kp.proficiency !== 'master')
-      .map(kp => {
-        const isOverdue = !!(kp.nextReviewAt && kp.nextReviewAt < now.toISOString());
-        const isDueToday = !!(
-          kp.nextReviewAt &&
-          kp.nextReviewAt.slice(0, 10) === now.toISOString().slice(0, 10)
-        );
-
-        let priority: number;
-        if (kp.fsrsState === 'New' || !kp.fsrsReps) {
-          priority = 3;
-        } else if (isOverdue) {
-          priority = 0;
-        } else if (isDueToday) {
-          priority = 1;
-        } else {
-          priority = 2;
-        }
-
-        return { ...kp, _priority: priority };
-      })
-      .sort((a, b) => {
-        if (a._priority !== b._priority) {
-          return a._priority - b._priority;
-        }
-        const profOrder: Record<string, number> = { none: 0, rusty: 1, normal: 2, master: 3 };
-        return (profOrder[a.proficiency] ?? 0) - (profOrder[b.proficiency] ?? 0);
-      });
-
-    setQueue(sortedKps);
-    setCurrentIdx(0);
-    setFailedIds(new Set());
-  }, [learningState.knowledgePoints]);
 
   // 当前卡片
   const currentKp = queue[currentIdx];
@@ -180,6 +175,7 @@ export default function FlashcardLearningPage() {
     } else {
       // 全部完成
       setIsRevealingFailed(false);
+      setCurrentIdx(currentQueue.length);
     }
   }, []);
 

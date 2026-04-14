@@ -19,6 +19,8 @@ const ReviewSession = lazy(() => import('../pages/Review'));
 const FlashcardLearning = lazy(() => import('../pages/FlashcardLearning'));
 const AIChat = lazy(() => import('../pages/AIChat'));
 const Profile = lazy(() => import('../pages/Profile'));
+const Checkin = lazy(() => import('../features/gamification/checkin'));
+const Achievements = lazy(() => import('../features/gamification/achievements'));
 const CoinBillPage = lazy(() => import('../features/gamification/coin-bill'));
 const Inventory = lazy(() => import('../features/gamification/inventory'));
 const Mail = lazy(() => import('../features/gamification/mail'));
@@ -76,6 +78,8 @@ export const router = createBrowserRouter([
       { path: 'flashcard', element: withLazy(FlashcardLearning) },
       { path: 'ai-chat', element: withLazy(AIChat) },
       { path: 'profile', element: withLazy(Profile) },
+      { path: 'checkin', element: withLazy(Checkin) },
+      { path: 'achievements', element: withLazy(Achievements) },
       { path: 'profile/coin-bill', element: withLazy(CoinBillPage) },
       { path: 'gamification/inventory', element: withLazy(Inventory) },
       { path: 'gamification/mail', element: withLazy(Mail) },

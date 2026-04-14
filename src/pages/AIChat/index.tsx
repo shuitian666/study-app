@@ -20,7 +20,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { TopAppBar } from '@/components/layout';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
-import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
+import { checkBackendAvailable, fetchModels, getAIConfig } from '@/services/aiClient';
 import { calculateNewProficiency } from '@/utils/review';
 import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
 import ChatBubble from './ChatBubble';
@@ -74,16 +74,21 @@ export default function AIChatPage() {
 
   useEffect(() => {
     const config = getAIConfig();
-    // 豆包模式需要检查 API Key 是否存在
     if (config.provider === 'douban') {
-      if (config.apiKey && config.apiKey.trim().length > 0) {
-        setBackendMode('online');
-      } else {
-        setBackendMode('offline');
-      }
+      setBackendMode(config.apiKey?.trim() && config.modelId?.trim() ? 'online' : 'offline');
       return;
     }
-    // OpenClaw和其他模式检测本地后端
+
+    if (config.provider === 'openclaw') {
+      fetchModels()
+        .then(providers => {
+          const openclaw = providers.find(p => p.name === 'openclaw');
+          setBackendMode(openclaw?.available ? 'online' : 'offline');
+        })
+        .catch(() => setBackendMode('offline'));
+      return;
+    }
+
     checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
   }, []);
 
@@ -135,10 +140,16 @@ export default function AIChatPage() {
       setStreamingMsgId(null);
       aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
 
-      // 豆包模式不需要检测本地后端
       const config = getAIConfig();
       if (config.provider === 'douban') {
-        setBackendMode('online');
+        setBackendMode(config.apiKey?.trim() && config.modelId?.trim() ? 'online' : 'offline');
+      } else if (config.provider === 'openclaw') {
+        fetchModels()
+          .then(providers => {
+            const openclaw = providers.find(p => p.name === 'openclaw');
+            setBackendMode(openclaw?.available ? 'online' : 'offline');
+          })
+          .catch(() => setBackendMode('offline'));
       } else {
         checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
       }
@@ -312,7 +323,7 @@ export default function AIChatPage() {
         />
       )}
 
-      <div className="px-4 py-2 text-center shrink-0">
+      <div className="shrink-0 px-5 py-3 text-center">
         <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${
           backendMode === 'online'
             ? 'bg-green-50 text-green-600'
@@ -330,9 +341,9 @@ export default function AIChatPage() {
 
       <div className="flex-1 overflow-y-auto pb-4">
         {messages.length === 0 ? (
-          <div className="h-full px-6 pt-4">
+          <div className="flex min-h-full items-center px-5 pb-10 pt-10 md:px-6">
             <div
-              className="rounded-[28px] border p-6 text-center"
+              className="w-full rounded-[28px] border px-6 py-7 text-center"
               style={{
                 background: 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.74))',
                 borderColor: 'rgba(255,255,255,0.82)',
@@ -348,12 +359,12 @@ export default function AIChatPage() {
                 可以让它解释知识点、拆题思路、补一题练习，或者把这次对话直接收进知识库。
               </p>
 
-              <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <div className="mt-6 flex flex-wrap justify-center gap-2.5">
                 {['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点'].map(q => (
                   <button
                     key={q}
                     onClick={() => { setInput(q); }}
-                    className="text-xs px-3 py-2 rounded-full border active:opacity-70"
+                    className="rounded-full border px-3.5 py-2 text-xs active:opacity-70"
                     style={{ backgroundColor: '#f8f7ff', color: '#6d28d9', borderColor: '#ebe7ff' }}
                   >
                     {q}
@@ -389,16 +400,16 @@ export default function AIChatPage() {
         style={{
           backgroundColor: uiStyle === 'scholar' ? '#ffffff' : 'white',
           borderColor: uiStyle === 'scholar' ? 'rgba(197,197,212,0.3)' : 'var(--color-border)',
-          paddingBottom: uiStyle === 'scholar' ? 'calc(84px + env(safe-area-inset-bottom))' : 'calc(12px + env(safe-area-inset-bottom))',
+          paddingBottom: uiStyle === 'scholar' ? 'calc(72px + env(safe-area-inset-bottom))' : 'calc(12px + env(safe-area-inset-bottom))',
         }}
       >
         <div
-          className="flex items-center gap-2 rounded-[22px] border p-2"
+          className="flex items-center gap-2 rounded-[20px] border p-2"
           style={uiStyle === 'scholar'
             ? {
                 backgroundColor: '#f8f9fb',
-                borderColor: 'rgba(197,197,212,0.32)',
-                boxShadow: '0 16px 30px -28px rgba(15,23,42,0.2)',
+                borderColor: 'rgba(197,197,212,0.3)',
+                boxShadow: '0 12px 24px -24px rgba(15,23,42,0.18)',
               }
             : undefined}
         >

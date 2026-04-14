@@ -21,7 +21,7 @@
  * ============================================================================
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -31,7 +31,7 @@ import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play, CheckCircle, BookOpen, Map, FileQuestion, Zap } from 'lucide-react';
+import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, Play, CheckCircle, Map, FileQuestion } from 'lucide-react';
 import { ProgressBar } from '@/components/ui/Common';
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 
@@ -100,12 +100,56 @@ export default function HomePage() {
   const dailyNewGoal = appState.user?.dailyNewGoal ?? 15;
   const reviewCompleted = reviewPending === 0;
   const newGoalCompleted = completedNew >= dailyNewGoal;
-  const hasPendingNew = learningState.todayNewItems.filter(r => !r.completed).length > 0;
-  const freeLearningMode = reviewCompleted && newGoalCompleted && hasPendingNew;
+  const freeLearningMode = reviewCompleted && newGoalCompleted;
   const todayGoal = appState.user?.dailyGoal ?? 10;
   const todayQuestions = appState.user?.todayQuestions ?? 0;
   const todayProgress = Math.min(100, Math.round((todayQuestions / Math.max(todayGoal, 1)) * 100));
   const reviewTotal = learningState.todayReviewItems.length;
+
+  const startTodayLearning = () => {
+    if (reviewPending > 0) {
+      navigate('review-session', { type: 'review' });
+    } else if (freeLearningMode) {
+      navigate('quiz');
+    } else {
+      navigate('review-session', { type: 'new' });
+    }
+  };
+
+  const floatingMenuItems = useMemo(() => [
+    {
+      id: 'quiz',
+      label: '刷题',
+      icon: FileQuestion,
+      onSelect: () => navigate('quiz'),
+      accentColor: theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'map',
+      label: '知识图谱',
+      icon: Map,
+      onSelect: () => navigate('knowledge-map'),
+      accentColor: theme.iconColors.knowledgeMap,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'checkin',
+      label: '签到',
+      icon: CalendarCheck,
+      onSelect: () => navigate('checkin'),
+      accentColor: theme.iconColors.checkin,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'achievements',
+      label: '里程碑',
+      icon: Trophy,
+      onSelect: () => navigate('achievements'),
+      accentColor: theme.iconColors.achievement,
+      backgroundColor: theme.bgCard,
+    },
+  ], [navigate, theme]);
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -121,7 +165,13 @@ export default function HomePage() {
         {/* TopAppBar */}
         <TopAppBar />
 
-        <div className="px-6 pt-6 space-y-6 pb-32">
+        <div
+          className="space-y-5 pb-32 pt-6"
+          style={{
+            paddingLeft: 'max(20px, calc(env(safe-area-inset-left) + 20px))',
+            paddingRight: 'max(20px, calc(env(safe-area-inset-right) + 20px))',
+          }}
+        >
           {/* Greeting Section */}
           <div className="flex items-end justify-between">
             <div>
@@ -147,10 +197,10 @@ export default function HomePage() {
           </div>
 
           {/* Bento Grid: Stats Cards */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3.5">
             {/* Practice Progress Card */}
             <div
-              className="col-span-1 p-6 rounded-2xl flex flex-col justify-between h-44 relative overflow-hidden group"
+              className="col-span-1 relative flex h-36 flex-col justify-between overflow-hidden rounded-[24px] p-5 group"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                 boxShadow: 'none',
@@ -161,7 +211,7 @@ export default function HomePage() {
                 className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity"
                 style={{ transform: 'rotate(12deg)' }}
               >
-                <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="1" style={{ opacity: 0.15 }}>
+                  <svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="1" style={{ opacity: 0.15 }}>
                   <circle cx="12" cy="12" r="10" />
                   <path d="M8 12h8" />
                   <path d="M12 8v8" />
@@ -169,7 +219,7 @@ export default function HomePage() {
               </div>
               <div className="flex justify-between items-start relative z-10">
                 <div
-                  className="p-2 rounded-xl"
+                  className="rounded-xl p-2"
                   style={{ backgroundColor: theme.primaryFixed || '#dee0ff' }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="2">
@@ -178,17 +228,17 @@ export default function HomePage() {
                     <path d="M12 8v8" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold" style={{ color: theme.primary || '#24389c' }}>{todayProgress}%</span>
+                <span className="text-[11px] font-bold" style={{ color: theme.primary || '#24389c' }}>{todayProgress}%</span>
               </div>
               <div className="relative z-10">
                 <div
-                  className="text-2xl font-black"
+                  className="text-[1.7rem] font-black"
                   style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   {todayQuestions}/{todayGoal}
                 </div>
                 <div
-                  className="text-xs font-medium uppercase tracking-wider"
+                  className="text-[11px] font-medium uppercase tracking-[0.18em]"
                   style={{ color: theme.onSurfaceVariant || '#454652' }}
                 >
                   今日练习进度
@@ -198,7 +248,7 @@ export default function HomePage() {
 
             {/* Cards Reviewed */}
             <div
-              className="col-span-1 p-6 rounded-2xl flex flex-col justify-between h-44"
+              className="col-span-1 flex h-36 flex-col justify-between rounded-[24px] p-5"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                 boxShadow: 'none',
@@ -206,7 +256,7 @@ export default function HomePage() {
             >
               <div className="flex justify-between items-start">
                 <div
-                  className="p-2 rounded-xl"
+                  className="rounded-xl p-2"
                   style={{ backgroundColor: theme.tertiaryFixed || '#fdd6ff' }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.tertiary || '#73008e'} strokeWidth="2">
@@ -218,13 +268,13 @@ export default function HomePage() {
               </div>
               <div>
                 <div
-                  className="text-2xl font-black"
+                  className="text-[1.7rem] font-black"
                   style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   {stats.masteredCount + stats.normalCount}
                 </div>
                 <div
-                  className="text-xs font-medium uppercase tracking-wider"
+                  className="text-[11px] font-medium uppercase tracking-[0.18em]"
                   style={{ color: theme.onSurfaceVariant || '#454652' }}
                 >
                   已掌握卡片
@@ -234,7 +284,7 @@ export default function HomePage() {
 
             {/* AI Tutor Banner - Wider */}
             <div
-              className="col-span-2 relative overflow-hidden rounded-2xl p-6"
+              className="col-span-2 relative overflow-hidden rounded-[28px] p-5"
               style={{
                 background: `linear-gradient(135deg, ${theme.primary}, ${theme.tertiary || '#73008e'})`,
               }}
@@ -256,9 +306,9 @@ export default function HomePage() {
                 }}
               />
               <div className="relative z-10 flex items-center justify-between">
-                <div className="max-w-[55%]">
+                <div className="max-w-[64%]">
                   <h3
-                    className="text-white font-bold text-lg leading-tight"
+                    className="text-[1.06rem] font-bold leading-tight text-white"
                     style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   >
                     准备好进行 AI 辅导了吗？
@@ -266,20 +316,20 @@ export default function HomePage() {
                   <p className="text-sm mt-1 opacity-90" style={{ color: theme.primaryFixed || '#dee0ff' }}>
                     {reviewPending > 0
                       ? `你还有 ${reviewPending} 个待复习知识点，适合先完成一轮巩固。`
-                      : newGoalCompleted
-                      ? '今日核心计划已经完成，可以直接进入 AI 问答延展学习。'
+                      : freeLearningMode
+                      ? '今日新学与复习都已完成，建议进入自由学习继续刷题巩固。'
                       : `距离今日新学目标还差 ${Math.max(dailyNewGoal - completedNew, 0)} 项。`}
                   </p>
                   <button
-                    onClick={() => navigate('ai-chat')}
-                    className="mt-4 px-6 py-2 rounded-full text-sm font-bold active:scale-95 transition-transform"
+                    onClick={startTodayLearning}
+                    className="mt-4 px-7 py-2.5 rounded-full text-sm font-bold active:scale-95 transition-transform"
                     style={{ backgroundColor: '#ffffff', color: theme.primary }}
                   >
-                    立即开始
+                    {freeLearningMode ? '进入自由学习' : '立即开始'}
                   </button>
                 </div>
                 <div
-                  className="p-4 rounded-2xl"
+                  className="rounded-2xl p-4"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}
                 >
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
@@ -339,7 +389,15 @@ export default function HomePage() {
               </div>
 
               <div
-                onClick={() => navigate('knowledge')}
+                onClick={() => {
+                  if (reviewPending > 0) {
+                    navigate('review-session', { type: 'review' });
+                  } else if (freeLearningMode) {
+                    navigate('quiz');
+                  } else {
+                    navigate('review-session', { type: 'new' });
+                  }
+                }}
                 className="p-5 rounded-lg flex items-center gap-4 transition-all active:scale-[0.98]"
                 style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}
               >
@@ -464,211 +522,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div>
-            <h3 className="font-semibold text-sm mb-4">快速开始</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => navigate('quiz')}
-                className="text-left transition-transform active:scale-[0.97] p-4 rounded-2xl"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="p-2 rounded-xl"
-                    style={{ backgroundColor: theme.primaryFixed || '#dee0ff' }}
-                  >
-                    <FileQuestion size={20} style={{ color: theme.primary }} />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm" style={{ color: theme.onSurface }}>开始刷题</div>
-                    <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>选择题测试</div>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate('knowledge')}
-                className="text-left transition-transform active:scale-[0.97] p-4 rounded-2xl"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="p-2 rounded-xl"
-                    style={{ backgroundColor: theme.primaryFixed || '#dee0ff' }}
-                  >
-                    <BookOpen size={20} style={{ color: theme.primary }} />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm" style={{ color: theme.onSurface }}>知识库</div>
-                    <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>管理知识点</div>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate('knowledge-map')}
-                className="text-left transition-transform active:scale-[0.97] p-4 rounded-2xl"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="p-2 rounded-xl"
-                    style={{ backgroundColor: theme.primaryFixed || '#dee0ff' }}
-                  >
-                    <Map size={20} style={{ color: theme.primary }} />
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm" style={{ color: theme.onSurface }}>知识图谱</div>
-                    <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>可视化进度</div>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => navigate('quiz', { tab: 'wrong' })}
-                className="text-left transition-transform active:scale-[0.97] p-4 rounded-2xl"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="p-2 rounded-xl"
-                    style={{ backgroundColor: theme.surfaceContainerHighest || '#e1e3e4' }}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.error || '#ba1a1a'} strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="15" y1="9" x2="9" y2="15" />
-                      <line x1="9" y1="9" x2="15" y2="15" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm" style={{ color: theme.onSurface }}>错题本</div>
-                    <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>{learningState.wrongRecords.length} 道错题</div>
-                  </div>
-                </div>
-              </button>
-
-              {/* AI 问答 - Full Width */}
-              <button
-                onClick={() => navigate('ai-chat')}
-                className="col-span-2 text-left transition-transform active:scale-[0.97] p-4 rounded-2xl"
-                style={{
-                  background: `linear-gradient(135deg, ${theme.primary}15, ${theme.tertiary || '#73008e'}10)`,
-                  border: 'none',
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="p-2 rounded-xl"
-                      style={{ backgroundColor: theme.tertiaryFixed || '#fdd6ff' }}
-                    >
-                      <Zap size={20} style={{ color: theme.tertiary || '#73008e' }} />
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm" style={{ color: theme.onSurface }}>AI 问答</div>
-                      <div className="text-xs" style={{ color: theme.onSurfaceVariant }}>智能学习助手</div>
-                    </div>
-                  </div>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.primary} strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Incentive Shortcuts */}
-          <div>
-            <h3 className="font-semibold text-sm mb-4">每日福利</h3>
-            <div className="grid grid-cols-4 gap-3">
-              <button
-                onClick={() => navigate('checkin')}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-transform active:scale-[0.97]"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div
-                  className="p-2 rounded-xl"
-                  style={{ backgroundColor: theme.secondaryFixed || '#ffdfa0' }}
-                >
-                  <CalendarCheck size={20} style={{ color: theme.secondary || '#795900' }} />
-                </div>
-                <span className="text-[11px] font-medium" style={{ color: theme.onSurface }}>签到</span>
-              </button>
-
-              <button
-                onClick={() => navigate('achievements')}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-transform active:scale-[0.97]"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div
-                  className="p-2 rounded-xl"
-                  style={{ backgroundColor: theme.secondaryFixed || '#ffdfa0' }}
-                >
-                  <Trophy size={20} style={{ color: theme.secondary || '#795900' }} />
-                </div>
-                <span className="text-[11px] font-medium" style={{ color: theme.onSurface }}>成就</span>
-              </button>
-
-              <button
-                onClick={() => navigate('shop')}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-transform active:scale-[0.97]"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div
-                  className="p-2 rounded-xl"
-                  style={{ backgroundColor: theme.tertiaryFixed || '#fdd6ff' }}
-                >
-                  <ShoppingBag size={20} style={{ color: theme.tertiary || '#73008e' }} />
-                </div>
-                <span className="text-[11px] font-medium" style={{ color: theme.onSurface }}>商城</span>
-              </button>
-
-              <button
-                onClick={() => navigate('ranking')}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-transform active:scale-[0.97]"
-                style={{
-                  backgroundColor: theme.surfaceContainerLow || '#f3f4f5',
-                  boxShadow: 'none',
-                  border: 'none',
-                }}
-              >
-                <div
-                  className="p-2 rounded-xl"
-                  style={{ backgroundColor: theme.primaryFixed || '#dee0ff' }}
-                >
-                  <Medal size={20} style={{ color: theme.primary }} />
-                </div>
-                <span className="text-[11px] font-medium" style={{ color: theme.onSurface }}>排行</span>
-              </button>
+          <div
+            className="rounded-[24px] p-4"
+            style={{ backgroundColor: theme.surfaceContainerLow || '#f3f4f5' }}
+          >
+            <div className="text-sm font-semibold" style={{ color: theme.onSurface }}>主页已精简为学习主线</div>
+            <div className="mt-1 text-xs leading-6" style={{ color: theme.onSurfaceVariant }}>
+              右下角学习球点按直接开始今日复习或新学，长按后沿圆环拖动，可进入刷题、知识图谱、签到和里程碑。
             </div>
           </div>
 
@@ -707,14 +567,14 @@ export default function HomePage() {
         </div>
 
         {/* Floating AI Button */}
-        <FloatingAIPanel />
+        <FloatingAIPanel onPrimaryAction={startTodayLearning} menuItems={floatingMenuItems} />
       </div>
     );
   }
 
   // ===== Playful 风格渲染（保持原有样式）=====
   return (
-    <div className="page-scroll pb-4" style={{ backgroundColor: theme.bg, minHeight: '100vh' }}>
+    <div className="page-scroll pb-28" style={{ backgroundColor: theme.bg, minHeight: '100vh' }}>
       {/* Gradient Header */}
       <div
         className="text-white px-6 pt-16 pb-10 rounded-b-3xl overflow-hidden"
@@ -790,6 +650,8 @@ export default function HomePage() {
               onClick={() => {
                 if (reviewPending > 0) {
                   navigate('review-session', { type: 'review' });
+                } else if (freeLearningMode) {
+                  navigate('quiz');
                 } else {
                   navigate('review-session', { type: 'new' });
                 }
@@ -872,175 +734,20 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Incentive Shortcuts */}
       <div className={`mt-4 ${getAnimationClass(3)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">每日福利</h3>
-        </div>
-
-        <div className="grid grid-cols-4 gap-3">
-          <button
-            onClick={() => navigate('checkin')}
-            className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <CalendarCheck size={20} style={{ color: theme.iconColors.checkin }} />
-            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>签到</span>
-          </button>
-
-          <button
-            onClick={() => navigate('achievements')}
-            className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <Trophy size={20} style={{ color: theme.iconColors.achievement }} />
-            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>成就</span>
-          </button>
-
-          <button
-            onClick={() => navigate('shop')}
-            className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <ShoppingBag size={20} style={{ color: theme.iconColors.shop }} />
-            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>商城</span>
-          </button>
-
-          <button
-            onClick={() => navigate('ranking')}
-            className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <Medal size={20} style={{ color: theme.iconColors.ranking }} />
-            <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>排行</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className={`mt-4 ${getAnimationClass(4)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
-        <h3 className="font-semibold text-sm mb-3">快速开始</h3>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => navigate('quiz')}
-            className="text-left active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <div className="text-2xl mb-2">📝</div>
-            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>开始刷题</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>选择题测试</div>
-          </button>
-
-          <button
-            onClick={() => navigate('knowledge')}
-            className="text-left active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <div className="text-2xl mb-2">📚</div>
-            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>知识库</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>管理知识点</div>
-          </button>
-
-          <button
-            onClick={() => navigate('knowledge-map')}
-            className="text-left active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <div className="text-2xl mb-2">🗺️</div>
-            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>知识图谱</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>可视化学习进度</div>
-          </button>
-
-          <button
-            onClick={() => navigate('quiz', { tab: 'wrong' })}
-            className="text-left active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <div className="text-2xl mb-2">❌</div>
-            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>错题本</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>{learningState.wrongRecords.length} 道错题</div>
-          </button>
-
-          <button
-            onClick={() => navigate('ai-chat')}
-            className="text-left active:scale-[0.97] transition-transform"
-            style={{
-              background: `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}10)`,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              border: 'none',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            }}
-          >
-            <Bot size={24} style={{ color: theme.primary }} className="mb-2" />
-            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>AI 问答</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>智能学习助手</div>
-          </button>
-
-          <button
-            onClick={() => navigate('flashcard-learning')}
-            className="text-left active:scale-[0.97] transition-transform"
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-              border: 'none',
-            }}
-          >
-            <div className="text-2xl mb-2">🧠</div>
-            <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>闪记学习</div>
-            <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>记忆卡片式学习</div>
-          </button>
+        <div
+          style={{
+            backgroundColor: theme.bgCard,
+            borderRadius: 'var(--card-radius)',
+            padding: '18px',
+            boxShadow: theme.cardShadow !== 'none' ? '0 4px 14px rgba(0, 0, 0, 0.08)' : 'none',
+            border: 'none',
+          }}
+        >
+          <div className="text-sm font-semibold" style={{ color: theme.textPrimary }}>主页入口已收纳到学习球</div>
+          <div className="text-xs mt-1.5 leading-6" style={{ color: theme.textSecondary }}>
+            右下角点按直接进入今日复习或新学，长按后沿圆环拖动可选择刷题、知识图谱、签到和里程碑。
+          </div>
         </div>
       </div>
 
@@ -1073,6 +780,8 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      <FloatingAIPanel onPrimaryAction={startTodayLearning} menuItems={floatingMenuItems} />
     </div>
   );
 }

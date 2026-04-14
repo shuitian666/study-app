@@ -121,6 +121,27 @@
   --color-secondary-fixed-var: #ffdfa0;
 }
 
+/* UI 风格差异化：温馨二次元感 / 现代简洁感 */
+[data-ui-style="playful"] {
+  --font-sans: 'Nunito', 'M PLUS Rounded 1c', 'Hiragino Sans GB', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-headline: 'Baloo 2', 'Nunito', 'M PLUS Rounded 1c', 'PingFang SC', sans-serif;
+  --font-weight-medium: 600;
+  --font-weight-semibold: 700;
+  --radius-md: 1.15rem;
+  --radius-lg: 1.7rem;
+  --radius-xl: 2.2rem;
+}
+
+[data-ui-style="scholar"] {
+  --font-sans: 'Manrope', 'IBM Plex Sans', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-headline: 'IBM Plex Sans', 'Manrope', 'PingFang SC', sans-serif;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --radius-md: 0.85rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.6rem;
+}
+
 /* Fluid Scholar 主题变量 */
 [data-theme="fluidScholar"] {
   --color-primary-var: #24389c;
@@ -279,19 +300,18 @@ h4 {
   overflow: hidden;
 }
 
-/* Desktop: phone frame */
+/* Desktop: keep centered canvas without forcing legacy 390px shell */
 @media (min-width: 640px) {
   #root {
-    align-items: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    align-items: stretch;
   }
 
   .app-shell {
-    width: 390px;
-    height: min(92vh, 844px);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    border: 0;
   }
 }
 

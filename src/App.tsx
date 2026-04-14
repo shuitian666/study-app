@@ -137,6 +137,7 @@ function AppContent() {
 
   // 判断是否为全屏页面
   const isFullScreen = fullScreenPages.includes(userState.currentPage);
+  const contentGutterClass = 'px-4 md:px-5';
 
   return (
     <div className="absolute inset-0 flex justify-center">
@@ -162,7 +163,7 @@ function AppContent() {
         {renderBackgroundPattern(currentPattern)}
         <div className="flex-1 overflow-y-auto relative z-10">
           {userState.isLoggedIn ? (
-            <div className="pb-20 safe-bottom">
+            <div className={`relative pb-20 safe-bottom ${contentGutterClass}`}>
               <Outlet />
             </div>
           ) : (
@@ -178,10 +179,21 @@ function AppContent() {
 }
 
 export default function App() {
+  const { theme } = useTheme();
+  const uiStyle = theme.uiStyle || 'playful';
+
+  const shellBg = uiStyle === 'scholar'
+    ? 'linear-gradient(180deg, #f4f5f7 0%, #eceff3 100%)'
+    : 'radial-gradient(circle at top, #fff3f6 0%, #ffe9ef 35%, #f8f1ff 100%)';
+
+  const frameClass = uiStyle === 'scholar'
+    ? 'relative self-center h-screen w-full max-w-[390px] overflow-hidden bg-white md:h-[calc(100vh-24px)] md:rounded-[24px] md:border md:border-[#e5e7eb] md:shadow-[0_18px_52px_-30px_rgba(17,24,39,0.35)]'
+    : 'relative self-center h-screen w-full max-w-[390px] overflow-hidden bg-white md:h-[calc(100vh-24px)] md:rounded-[36px] md:border md:border-white/80 md:shadow-[0_26px_78px_-30px_rgba(244,114,182,0.35)]';
+
   return (
-    <div className="app-shell min-h-screen bg-[radial-gradient(circle_at_top,_#f7f8fc_0%,_#edf2f8_48%,_#e9eef6_100%)] md:px-4 md:py-4">
+    <div className="app-shell min-h-screen items-center md:px-4 md:py-4" style={{ background: shellBg }}>
       <ThemeStyles />
-      <div className="relative mx-auto h-screen w-full max-w-[480px] overflow-hidden bg-white md:h-[calc(100vh-32px)] md:rounded-[32px] md:border md:border-white/70 md:shadow-[0_24px_80px_-28px_rgba(15,23,42,0.4)]">
+      <div className={frameClass}>
         <AppContent />
       </div>
     </div>

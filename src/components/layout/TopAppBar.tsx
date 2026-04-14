@@ -51,14 +51,14 @@ export default function TopAppBar({
     <header
       className={`sticky top-0 z-50 ${className}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.84)',
         backdropFilter: 'blur(28px)',
         WebkitBackdropFilter: 'blur(28px)',
-        borderBottom: '1px solid rgba(197, 197, 212, 0.22)',
-        boxShadow: '0 10px 30px -28px rgba(15, 23, 42, 0.4)',
+        borderBottom: '1px solid rgba(197, 197, 212, 0.2)',
+        boxShadow: '0 8px 24px -26px rgba(15, 23, 42, 0.28)',
       }}
     >
-      <div className="flex items-center justify-between w-full px-5 py-3.5">
+      <div className="flex w-full items-center justify-between px-5 py-3 md:px-6">
         {/* 左侧区域 */}
         <div className="flex items-center gap-3">
           {showBack ? (
@@ -107,17 +107,18 @@ export default function TopAppBar({
               {/* Title */}
               <div className="min-w-0">
                 <span
-                  className="block font-extrabold text-[1.0625rem] tracking-tight truncate"
+                  className="block font-extrabold text-lg tracking-tight truncate"
                   style={{
                     color: theme.primary || '#24389c',
                     fontFamily: '"Plus Jakarta Sans", "Noto Sans SC", sans-serif',
+                    lineHeight: 1.3,
                   }}
                 >
                   {title || 'The Fluid Scholar'}
                 </span>
                 {subtitle && (
                   <p
-                    className="mt-1 inline-flex max-w-full rounded-full px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.18em]"
+                    className="mt-1 inline-flex max-w-full rounded-full px-2 py-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.16em]"
                     style={{
                       color: theme.onSurfaceVariant || '#454652',
                       lineHeight: 1,
