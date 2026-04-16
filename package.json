@@ -8,6 +8,7 @@
     "dev:server": "cd server && node index.js",
     "dev:all": "npm run dev:server & npm run dev",
     "build": "tsc -b && vite build",
+    "import:samples": "node generate-import-samples.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

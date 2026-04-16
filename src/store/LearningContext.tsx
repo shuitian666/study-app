@@ -37,6 +37,18 @@ function buildQuestionExplanationSeeds(
   return [...existing, ...seeded];
 }
 
+interface ImportedStudySession {
+  id: string;
+  source: 'import';
+  knowledgePointIds: string[];
+  subjectId: string;
+  chapterId: string;
+  importedKnowledgeCount: number;
+  importedQuestionCount: number;
+  skippedQuestionCount: number;
+  createdAt: string;
+}
+
 // ---------- State ----------
 export interface LearningState {
   subjects: Subject[];
@@ -48,6 +60,7 @@ export interface LearningState {
   todayReviewItems: ReviewItem[];
   todayNewItems: ReviewItem[];
   questionExplanations: QuestionExplanation[];
+  importedStudySession: ImportedStudySession | null;
   // Undo/Redo history (not persisted, in-memory only)
   _history: LearningState[];
   _historyIndex: number;
@@ -66,6 +79,7 @@ const initialLearningState: LearningState = {
   todayReviewItems: [],
   todayNewItems: [],
   questionExplanations: buildQuestionExplanationSeeds(MOCK_QUESTIONS),
+  importedStudySession: null,
   // Undo/Redo (not persisted)
   _history: [],
   _historyIndex: -1,
@@ -82,6 +96,8 @@ type LearningAction =
   | { type: 'UPDATE_KNOWLEDGE_POINT'; payload: Partial<KnowledgePoint> & { id: string } }
   | { type: 'DELETE_KNOWLEDGE_POINT'; payload: string }
   | { type: 'DELETE_IMPORT_BATCH'; payload: { dateKey: string } }
+  | { type: 'SET_IMPORTED_STUDY_SESSION'; payload: ImportedStudySession }
+  | { type: 'CLEAR_IMPORTED_STUDY_SESSION' }
   | { type: 'UPDATE_PROFICIENCY'; payload: { id: string; proficiency: ProficiencyLevel } }
   | { type: 'ADD_QUIZ_RESULT'; payload: QuizResult }
   | { type: 'ADD_WRONG_RECORD'; payload: WrongRecord }
@@ -158,6 +174,13 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
           .map(question => question.id)
       );
 
+      const nextImportedStudySession = state.importedStudySession
+        ? {
+            ...state.importedStudySession,
+            knowledgePointIds: state.importedStudySession.knowledgePointIds.filter(id => !importedBatchIds.has(id)),
+          }
+        : null;
+
       return {
         ...state,
         knowledgePoints: state.knowledgePoints.filter(kp => !importedBatchIds.has(kp.id)),
@@ -168,8 +191,21 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ),
         todayReviewItems: state.todayReviewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
         todayNewItems: state.todayNewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
+        importedStudySession: nextImportedStudySession && nextImportedStudySession.knowledgePointIds.length > 0
+          ? nextImportedStudySession
+          : null,
       };
     }
+    case 'SET_IMPORTED_STUDY_SESSION':
+      return {
+        ...state,
+        importedStudySession: action.payload,
+      };
+    case 'CLEAR_IMPORTED_STUDY_SESSION':
+      return {
+        ...state,
+        importedStudySession: null,
+      };
     case 'UPDATE_KNOWLEDGE_POINT':
       return {
         ...state,
@@ -475,6 +511,7 @@ function getInitialLearningState(): LearningState {
       todayReviewItems,
       todayNewItems,
       questionExplanations: buildQuestionExplanationSeeds(savedQuestions, savedQuestionExplanations),
+      importedStudySession: (saved.importedStudySession as ImportedStudySession | null | undefined) ?? null,
     };
   }
   return initialLearningState;
@@ -530,6 +567,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       todayReviewItems: learningState.todayReviewItems,
       todayNewItems: learningState.todayNewItems,
       questionExplanations: learningState.questionExplanations,
+      importedStudySession: learningState.importedStudySession,
     });
     saveState(mergedState);
     console.log('[LearningContext] Saved to localStorage, kp count:', learningState.knowledgePoints.length);

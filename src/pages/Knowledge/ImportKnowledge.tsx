@@ -11,6 +11,7 @@ type PasteMode = 'file' | 'paste';
 type SourceHint = 'json' | 'text' | 'auto';
 type TextParseMode = 'auto' | 'knowledge' | 'qa' | 'paragraph';
 type RecognizedMode = 'json' | 'knowledge' | 'qa' | 'paragraph';
+type ParseConfidence = 'high' | 'medium' | 'low';
 
 interface ImportedKnowledgeDraft {
   id?: string;
@@ -42,6 +43,16 @@ interface ParsedImportData {
   sourceType: 'json' | 'text';
   recognizedMode: RecognizedMode;
   fileName?: string;
+  warnings: ParseWarning[];
+  skippedCount: number;
+  confidence: ParseConfidence;
+}
+
+interface ParseWarning {
+  id: string;
+  level: 'info' | 'warning';
+  message: string;
+  suggestion: string;
 }
 
 interface SubmittedSource {
@@ -60,6 +71,14 @@ interface TemplateDefinition {
 interface ParsedQuestionBlock {
   questionLines: string[];
   explanationLines: string[];
+}
+
+interface ParseModeResult {
+  knowledgePoints: ImportedKnowledgeDraft[];
+  questions: ImportedQuestionDraft[];
+  warnings: ParseWarning[];
+  skippedCount: number;
+  confidence: ParseConfidence;
 }
 
 const DEFAULT_SUBJECT: Subject = {
@@ -123,6 +142,12 @@ const RECOGNIZED_MODE_LABELS: Record<RecognizedMode, string> = {
   paragraph: '段落模式',
 };
 
+const CONFIDENCE_LABELS: Record<ParseConfidence, string> = {
+  high: '高',
+  medium: '中',
+  low: '低',
+};
+
 const cleanOptionPrefix = (text: string): string => text.replace(/^[A-G][\.\)、:：]\s*/, '').trim();
 
 const normalizeText = (content: string): string => content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
@@ -135,6 +160,17 @@ const splitBlocks = (content: string): string[] =>
 
 const createId = (prefix: string, index: number) =>
   `${prefix}-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createParseWarning = (
+  message: string,
+  suggestion: string,
+  level: 'info' | 'warning' = 'warning',
+): ParseWarning => ({
+  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  level,
+  message,
+  suggestion,
+});
 
 const ensureExplanation = (value?: string): string => {
   const text = String(value ?? '').trim();
@@ -246,6 +282,9 @@ const parseJsonContent = (content: string): ParsedImportData => {
     questions: questions.filter(question => question.stem),
     sourceType: 'json',
     recognizedMode: 'json',
+    warnings: [],
+    skippedCount: 0,
+    confidence: 'high',
   };
 };
 
@@ -322,10 +361,7 @@ const parseQuestionFromTemplate = (
   return null;
 };
 
-const parseKnowledgeQuestionTemplate = (content: string): {
-  knowledgePoints: ImportedKnowledgeDraft[];
-  questions: ImportedQuestionDraft[];
-} => {
+const parseKnowledgeQuestionTemplate = (content: string): ParseModeResult => {
   const blocks = normalizeText(content)
     .split(/(?=^【知识点】)/m)
     .map(block => block.trim())
@@ -333,6 +369,9 @@ const parseKnowledgeQuestionTemplate = (content: string): {
 
   const knowledgePoints: ImportedKnowledgeDraft[] = [];
   const questions: ImportedQuestionDraft[] = [];
+  const warnings: ParseWarning[] = [];
+  let skippedCount = 0;
+  let missingExplanationCount = 0;
 
   blocks.forEach((block, index) => {
     const lines = block.split('\n');
@@ -438,6 +477,10 @@ const parseKnowledgeQuestionTemplate = (content: string): {
 
     const baseQuestionIndex = questions.length;
     questionBlocks.forEach((questionBlock, questionIndex) => {
+      if (questionBlock.questionLines.length > 0 && questionBlock.explanationLines.length === 0) {
+        missingExplanationCount += 1;
+      }
+
       const question = parseQuestionFromTemplate(
         questionBlock.questionLines,
         questionBlock.explanationLines.join('\n') || explanation,
@@ -450,17 +493,36 @@ const parseKnowledgeQuestionTemplate = (content: string): {
           ...question,
           knowledgePointName: knowledgeName,
         });
+      } else if (questionBlock.questionLines.length > 0 || questionBlock.explanationLines.length > 0) {
+        skippedCount += 1;
       }
     });
   });
 
-  return { knowledgePoints, questions };
+  if (missingExplanationCount > 0) {
+    warnings.push(createParseWarning(
+      `检测到 ${missingExplanationCount} 个【题目】块缺少【解析】。`,
+      '请在每个【题目】后补上对应的【解析】段落；初版会先用知识点内容兜底，但建议补齐以提升学习质量。',
+    ));
+  }
+
+  if (skippedCount > 0) {
+    warnings.push(createParseWarning(
+      `有 ${skippedCount} 个题目块未能成功解析，已跳过。`,
+      '请检查题目块是否包含完整题干、选项与答案；如果是判断题，也请补上明确答案。',
+    ));
+  }
+
+  return {
+    knowledgePoints,
+    questions,
+    warnings,
+    skippedCount,
+    confidence: skippedCount > 0 || missingExplanationCount > 0 ? 'medium' : 'high',
+  };
 };
 
-const parseKnowledgeMode = (content: string): {
-  knowledgePoints: ImportedKnowledgeDraft[];
-  questions: ImportedQuestionDraft[];
-} => {
+const parseKnowledgeMode = (content: string): ParseModeResult => {
   if (/^【知识点】/m.test(content)) {
     return parseKnowledgeQuestionTemplate(content);
   }
@@ -502,7 +564,13 @@ const parseKnowledgeMode = (content: string): {
       .filter(item => item.name);
 
     if (knowledgePoints.length > 0) {
-      return { knowledgePoints, questions: [] };
+      return {
+        knowledgePoints,
+        questions: [],
+        warnings: [],
+        skippedCount: 0,
+        confidence: 'high',
+      };
     }
   }
 
@@ -524,24 +592,32 @@ const parseKnowledgeMode = (content: string): {
     throw new Error('没有解析出可导入的知识点，请检查文本格式');
   }
 
-  return { knowledgePoints, questions: [] };
+  return {
+    knowledgePoints,
+    questions: [],
+    warnings: [],
+    skippedCount: 0,
+    confidence: /^#\s+/m.test(content) ? 'high' : 'medium',
+  };
 };
 
-const parseQaMode = (content: string): {
-  knowledgePoints: ImportedKnowledgeDraft[];
-  questions: ImportedQuestionDraft[];
-} => {
+const parseQaMode = (content: string): ParseModeResult => {
   const lines = normalizeText(content).split('\n');
   const knowledgePoints: ImportedKnowledgeDraft[] = [];
+  const warnings: ParseWarning[] = [];
   let currentQuestion = '';
   let answerLines: string[] = [];
   let collectingAnswer = false;
+  let missingAnswerCount = 0;
 
   const flushCurrent = () => {
     const name = currentQuestion.trim();
     const explanation = answerLines.join('\n').trim();
 
     if (name) {
+      if (!explanation) {
+        missingAnswerCount += 1;
+      }
       knowledgePoints.push({
         id: `qa-${knowledgePoints.length + 1}`,
         name,
@@ -602,13 +678,23 @@ const parseQaMode = (content: string): {
     throw new Error('没有识别到 Q/A 结构，请检查是否使用 Q: / A: 格式');
   }
 
-  return { knowledgePoints, questions: [] };
+  if (missingAnswerCount > 0) {
+    warnings.push(createParseWarning(
+      `检测到 ${missingAnswerCount} 个 Q: 缺少对应的 A:。`,
+      '请确保每个 Q: 后面都有 A:；如果答案有多行，也请从 A: 那一行开始继续补全。',
+    ));
+  }
+
+  return {
+    knowledgePoints,
+    questions: [],
+    warnings,
+    skippedCount: 0,
+    confidence: missingAnswerCount > 0 ? 'medium' : 'high',
+  };
 };
 
-const parseParagraphMode = (content: string): {
-  knowledgePoints: ImportedKnowledgeDraft[];
-  questions: ImportedQuestionDraft[];
-} => {
+const parseParagraphMode = (content: string): ParseModeResult => {
   const blocks = splitBlocks(content);
   const knowledgePoints = blocks.map((block, index) => {
     const compact = block.replace(/\s+/g, ' ').trim();
@@ -624,7 +710,13 @@ const parseParagraphMode = (content: string): {
     throw new Error('没有解析出可导入内容，请检查文本是否为空');
   }
 
-  return { knowledgePoints, questions: [] };
+  return {
+    knowledgePoints,
+    questions: [],
+    warnings: [],
+    skippedCount: 0,
+    confidence: 'medium',
+  };
 };
 
 const parseTextContent = (content: string, parseMode: TextParseMode): ParsedImportData => {
@@ -633,7 +725,8 @@ const parseTextContent = (content: string, parseMode: TextParseMode): ParsedImpo
     throw new Error('文本内容为空，请先输入或选择文件');
   }
 
-  const recognizedMode = parseMode === 'auto' ? detectTextParseMode(normalized) : parseMode;
+  const autoDetectedMode = detectTextParseMode(normalized);
+  const recognizedMode = parseMode === 'auto' ? autoDetectedMode : parseMode;
 
   const parsed =
     recognizedMode === 'qa'
@@ -642,11 +735,36 @@ const parseTextContent = (content: string, parseMode: TextParseMode): ParsedImpo
         ? parseKnowledgeMode(normalized)
         : parseParagraphMode(normalized);
 
+  const warnings = [...parsed.warnings];
+  let confidence = parsed.confidence;
+  const hasQaSignal = /^Q[:：]/im.test(normalized);
+  const hasKnowledgeSignal = /^【知识点】/m.test(normalized) || /^#\s+/m.test(normalized);
+  const hasQuestionSignal = /^【题目】/m.test(normalized);
+
+  if (parseMode === 'auto' && recognizedMode === 'paragraph') {
+    if (hasQaSignal || hasKnowledgeSignal || hasQuestionSignal) {
+      warnings.unshift(createParseWarning(
+        '文本结构不完整，已回退为 paragraph 模式。',
+        '如果你本来想按模板导入，请补齐 Q/A、【知识点】/【题目】/【解析】或 # 标题结构；也可以直接切换到对应解析方式查看效果。',
+      ));
+      confidence = 'medium';
+    } else {
+      warnings.unshift(createParseWarning(
+        '未识别到有效结构，建议优先使用模板。',
+        '你可以直接展开上方模板说明，复制 Q/A、知识点模板或知识点+题目模板后再导入。',
+      ));
+      confidence = 'low';
+    }
+  }
+
   return {
     knowledgePoints: parsed.knowledgePoints,
     questions: parsed.questions,
     sourceType: 'text',
     recognizedMode,
+    warnings,
+    skippedCount: parsed.skippedCount,
+    confidence,
   };
 };
 
@@ -887,17 +1005,25 @@ export default function ImportKnowledgePage() {
           questions: importedQuestions,
         },
       });
+      learningDispatch({
+        type: 'SET_IMPORTED_STUDY_SESSION',
+        payload: {
+          id: `import-session-${Date.now()}`,
+          source: 'import',
+          knowledgePointIds: importedKnowledgePointIds,
+          subjectId: targetSubject.id,
+          chapterId: targetChapter.id,
+          importedKnowledgeCount: importedKnowledgePoints.length,
+          importedQuestionCount: importedQuestions.length,
+          skippedQuestionCount,
+          createdAt: now,
+        },
+      });
 
       const nextKnowledgePointCount = learningState.knowledgePoints.length + importedKnowledgePoints.length;
       const masteredCount = learningState.knowledgePoints.filter(kp => kp.proficiency === 'master').length;
       checkAchievements({ knowledgePointCount: nextKnowledgePointCount, masteredCount });
-      navigate('flashcard-learning', {
-        importedIds: importedKnowledgePointIds.join(','),
-        source: 'import',
-        importedKnowledgeCount: String(importedKnowledgePoints.length),
-        importedQuestionCount: String(importedQuestions.length),
-        skippedQuestionCount: String(skippedQuestionCount),
-      });
+      navigate('flashcard-learning');
     } finally {
       setIsImporting(false);
     }
@@ -940,6 +1066,33 @@ export default function ImportKnowledgePage() {
     return map;
   }, [previewData]);
   const previewQuestions = previewData?.questions.slice(0, 5) ?? [];
+  const isManualParseMode = Boolean(previewData && previewData.sourceType === 'text' && parseMode !== 'auto');
+  const errorSuggestions = useMemo(() => {
+    if (!error || !submittedSource) {
+      return [] as string[];
+    }
+
+    const normalized = normalizeText(submittedSource.content);
+    const suggestions: string[] = [];
+
+    if (/^Q[:：]/im.test(normalized) && !/^A[:：]/im.test(normalized)) {
+      suggestions.push('检测到 Q: 但没有 A:，请为每个问题补上对应答案。');
+    }
+
+    if (/^【题目】/m.test(normalized) && !/^【解析】/m.test(normalized)) {
+      suggestions.push('检测到【题目】但没有【解析】，建议每道题后面补一个【解析】块。');
+    }
+
+    if (/^#\s+/m.test(normalized) === false && /^【知识点】/m.test(normalized) === false && /^Q[:：]/im.test(normalized) === false) {
+      suggestions.push('如果只是普通文本，建议直接按段落拆分；如果想更稳定导入，优先使用上方模板。');
+    }
+
+    if (suggestions.length === 0) {
+      suggestions.push('你可以展开上方模板说明，先复制一种模板结构，再把内容贴进去重新解析。');
+    }
+
+    return suggestions;
+  }, [error, submittedSource]);
 
   return (
     <div className="page-scroll pb-4">
@@ -1158,6 +1311,14 @@ export default function ImportKnowledgePage() {
             <p className="text-xs mt-2" style={{ color: theme.textMuted }}>
               切换后会立即重新解析当前内容并刷新预览。
             </p>
+            {parseMode !== 'auto' && (
+              <div
+                className="mt-3 rounded-xl px-3 py-2 text-xs"
+                style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}
+              >
+                当前为手动模式，不再自动识别；如需恢复自动识别，请切回“自动识别”。
+              </div>
+            )}
           </div>
         )}
 
@@ -1167,7 +1328,18 @@ export default function ImportKnowledgePage() {
             style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
           >
             <AlertCircle size={18} style={{ color: '#ef4444' }} className="shrink-0 mt-0.5" />
-            <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>
+            <div className="min-w-0">
+              <p className="text-sm" style={{ color: '#dc2626' }}>{error}</p>
+              {errorSuggestions.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {errorSuggestions.map((item, index) => (
+                    <p key={`${item}-${index}`} className="text-xs" style={{ color: '#b91c1c' }}>
+                      {index + 1}. {item}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1181,15 +1353,79 @@ export default function ImportKnowledgePage() {
                 <CheckCircle2 size={18} style={{ color: '#10b981' }} />
                 <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>解析成功，等待确认导入</p>
               </div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: `${theme.primary}12`, color: theme.primary }}>
+                  模式：{RECOGNIZED_MODE_LABELS[previewData.recognizedMode]}
+                </span>
+                <span
+                  className="text-xs px-2.5 py-1 rounded-full"
+                  style={{
+                    backgroundColor:
+                      previewData.confidence === 'high'
+                        ? '#dcfce7'
+                        : previewData.confidence === 'medium'
+                          ? '#fef3c7'
+                          : '#fee2e2',
+                    color:
+                      previewData.confidence === 'high'
+                        ? '#166534'
+                        : previewData.confidence === 'medium'
+                          ? '#92400e'
+                          : '#b91c1c',
+                  }}
+                >
+                  置信度：{CONFIDENCE_LABELS[previewData.confidence]}
+                </span>
+                <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.border, color: theme.textSecondary }}>
+                  卡片 {previewCount}
+                </span>
+                <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.border, color: theme.textSecondary }}>
+                  跳过块 {previewData.skippedCount}
+                </span>
+              </div>
               <div className="space-y-1 text-xs" style={{ color: theme.textSecondary }}>
                 <p>来源：{previewData.fileName || (previewData.sourceType === 'json' ? 'JSON 内容' : '文本内容')}</p>
                 <p>当前识别模式：{RECOGNIZED_MODE_LABELS[previewData.recognizedMode]}</p>
                 <p>当前解析方式：{previewData.sourceType === 'json' ? 'JSON 结构化导入' : PARSE_MODE_LABELS[parseMode]}</p>
                 <p>总条数：{previewCount}</p>
                 <p>题目数量：{previewData.questions.length}</p>
+                <p>跳过块数量：{previewData.skippedCount}</p>
+                <p>识别置信提示：{CONFIDENCE_LABELS[previewData.confidence]}</p>
                 <p>预览卡片：展示前 {Math.min(previewCards.length, 5)} 条</p>
                 <p>目标学科：{availableSubjects.find(subject => subject.id === selectedSubjectId)?.name || DEFAULT_SUBJECT.name}</p>
               </div>
+              {isManualParseMode && (
+                <div
+                  className="mt-3 rounded-xl px-3 py-2 text-xs"
+                  style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}
+                >
+                  当前为手动模式，不再自动识别；如果想让系统重新判断模板类型，请切回“自动识别”。
+                </div>
+              )}
+              {previewData.warnings.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {previewData.warnings.map(warning => (
+                    <div
+                      key={warning.id}
+                      className="rounded-xl px-3 py-3"
+                      style={{
+                        backgroundColor: warning.level === 'info' ? `${theme.primary}08` : '#fff7ed',
+                        border: warning.level === 'info' ? `1px solid ${theme.primary}22` : '1px solid #fed7aa',
+                      }}
+                    >
+                      <p
+                        className="text-xs font-medium"
+                        style={{ color: warning.level === 'info' ? theme.primary : '#9a3412' }}
+                      >
+                        {warning.message}
+                      </p>
+                      <p className="text-xs mt-1 leading-5" style={{ color: theme.textSecondary }}>
+                        怎么修：{warning.suggestion}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">

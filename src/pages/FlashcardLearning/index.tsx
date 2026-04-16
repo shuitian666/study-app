@@ -112,41 +112,26 @@ export default function FlashcardLearningPage() {
   const { learningState, learningDispatch } = useLearning();
   const { checkAchievements } = useGame();
   const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
-
-  const importedIdSet = useMemo(() => {
-    if (userState.currentPage !== 'flashcard-learning') {
+  const importedStudySession = learningState.importedStudySession;
+  const importSessionIdsKey = importedStudySession?.knowledgePointIds.join(',') ?? '';
+  const importSessionIdSet = useMemo(() => {
+    if (!importedStudySession || importedStudySession.knowledgePointIds.length === 0) {
       return undefined;
     }
 
-    const importedIds = userState.pageParams.importedIds
-      ?.split(',')
-      .map(id => id.trim())
-      .filter(Boolean);
-
-    return importedIds && importedIds.length > 0 ? new Set(importedIds) : undefined;
-  }, [userState.currentPage, userState.pageParams.importedIds]);
-
+    return new Set(importedStudySession.knowledgePointIds);
+  }, [importSessionIdsKey, importedStudySession]);
   const importResultSummary = useMemo(() => {
-    if (userState.currentPage !== 'flashcard-learning' || userState.pageParams.source !== 'import') {
+    if (!importedStudySession) {
       return null;
     }
 
-    const importedKnowledgeCount = Number.parseInt(userState.pageParams.importedKnowledgeCount ?? '0', 10) || 0;
-    const importedQuestionCount = Number.parseInt(userState.pageParams.importedQuestionCount ?? '0', 10) || 0;
-    const skippedQuestionCount = Number.parseInt(userState.pageParams.skippedQuestionCount ?? '0', 10) || 0;
-
     return {
-      importedKnowledgeCount,
-      importedQuestionCount,
-      skippedQuestionCount,
+      importedKnowledgeCount: importedStudySession.importedKnowledgeCount,
+      importedQuestionCount: importedStudySession.importedQuestionCount,
+      skippedQuestionCount: importedStudySession.skippedQuestionCount,
     };
-  }, [
-    userState.currentPage,
-    userState.pageParams.importedKnowledgeCount,
-    userState.pageParams.importedQuestionCount,
-    userState.pageParams.skippedQuestionCount,
-    userState.pageParams.source,
-  ]);
+  }, [importedStudySession]);
 
   // 卡片翻转状态
   const [isFlipped, setIsFlipped] = useState(false);
@@ -154,7 +139,7 @@ export default function FlashcardLearningPage() {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | 'up' | 'down' | null>(null);
 
   // 学习队列（包含所有待学习的卡片，按优先级排序）
-  const [queue, setQueue] = useState<KnowledgePointExtended[]>(() => buildSessionQueue(learningState.knowledgePoints, importedIdSet));
+  const [queue, setQueue] = useState<KnowledgePointExtended[]>(() => buildSessionQueue(learningState.knowledgePoints, importSessionIdSet));
   // 当前显示的卡片在队列中的索引
   const [currentIdx, setCurrentIdx] = useState(0);
   // 不会的卡片的 ID 集合（用于检测重复）
@@ -178,14 +163,16 @@ export default function FlashcardLearningPage() {
   const queueRef = useRef(queue);
   const failedIdsRef = useRef(failedIds);
   const currentIdxRef = useRef(currentIdx);
+  const importSessionRef = useRef(importedStudySession);
 
   // 同步 ref
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { failedIdsRef.current = failedIds; }, [failedIds]);
   useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
+  useEffect(() => { importSessionRef.current = importedStudySession; }, [importedStudySession]);
 
   useEffect(() => {
-    setQueue(buildSessionQueue(learningState.knowledgePoints, importedIdSet));
+    setQueue(buildSessionQueue(learningState.knowledgePoints, importSessionIdSet));
     setCurrentIdx(0);
     setFailedIds(new Set());
     setIsFlipped(false);
@@ -196,11 +183,25 @@ export default function FlashcardLearningPage() {
     setShowQuizResult(false);
     setGeneratingExplanation(false);
     setIsRevealingFailed(false);
-  }, [importedIdSet, learningState.knowledgePoints.length]);
+  }, [importSessionIdsKey, importSessionIdSet, learningState.knowledgePoints.length]);
 
   useEffect(() => {
     setShowImportResult(Boolean(importResultSummary));
   }, [importResultSummary]);
+
+  useEffect(() => {
+    if (!importedStudySession || learningState.isLoading) {
+      return;
+    }
+
+    const hasMatchedKnowledgePoint = importedStudySession.knowledgePointIds.some(id =>
+      learningState.knowledgePoints.some(kp => kp.id === id)
+    );
+
+    if (!hasMatchedKnowledgePoint) {
+      learningDispatch({ type: 'CLEAR_IMPORTED_STUDY_SESSION' });
+    }
+  }, [importedStudySession, learningDispatch, learningState.isLoading, learningState.knowledgePoints]);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,6 +249,13 @@ export default function FlashcardLearningPage() {
   // 有多少张"不会"的卡还没重现
   const failedCount = failedIds.size;
 
+  const exitLearning = useCallback(() => {
+    if (importSessionRef.current) {
+      learningDispatch({ type: 'CLEAR_IMPORTED_STUDY_SESSION' });
+    }
+    navigate('home');
+  }, [learningDispatch, navigate]);
+
   // 预览当前卡片在不同评分下的结果
   const currentPreview = useMemo(() => {
     if (!currentKp) return null;
@@ -292,8 +300,11 @@ export default function FlashcardLearningPage() {
       // 全部完成
       setIsRevealingFailed(false);
       setCurrentIdx(currentQueue.length);
+      if (importSessionRef.current) {
+        learningDispatch({ type: 'CLEAR_IMPORTED_STUDY_SESSION' });
+      }
     }
-  }, []);
+  }, [learningDispatch]);
 
   // 处理评分选择
   const handleSelect = useCallback((rating: RatingOption) => {
@@ -530,38 +541,61 @@ export default function FlashcardLearningPage() {
           goToPrev();
           break;
         case 'Escape':
-          navigate('home');
+          exitLearning();
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentKp, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, navigate, sessionMode, showQuizResult]);
+  }, [currentKp, exitLearning, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, sessionMode, showQuizResult]);
+
+  const desktopStageClassName = 'relative mx-auto flex h-full w-full max-w-[1120px] items-stretch justify-center md:items-center';
+  const desktopShellClassName = 'relative z-10 flex h-full w-full flex-col overflow-hidden md:max-h-full md:max-w-[480px] md:rounded-[32px] md:border md:shadow-[0_24px_80px_rgba(15,23,42,0.16)]';
+  const desktopShellStyle = {
+    backgroundColor: theme.bg,
+    borderColor: theme.border,
+  } as const;
+  const desktopBackdropStyle = {
+    backgroundColor: theme.bg,
+    backgroundImage: `radial-gradient(circle at top, ${theme.primary}16 0%, transparent 38%), linear-gradient(180deg, ${theme.bg} 0%, ${theme.bgCard} 100%)`,
+  } as const;
+  const desktopGlowStyle = {
+    background: `radial-gradient(circle, ${theme.primary}18 0%, transparent 72%)`,
+  } as const;
 
   // 无卡片时
-  if (!currentKp || queue.length === 0) {
+
+if (!currentKp || queue.length === 0) {
     return (
       <div
-        className="fixed inset-0 z-50 flex flex-col"
-        style={{ backgroundColor: theme.bg }}
+        className="fixed inset-0 z-50 md:p-5 lg:p-6"
+        style={desktopBackdropStyle}
       >
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center px-6">
-            <div className="text-6xl mb-6">🎉</div>
-            <h2 className="text-2xl font-bold mb-3" style={{ color: theme.textPrimary }}>
-              太棒了！
-            </h2>
-            <p className="text-base mb-8" style={{ color: theme.textSecondary }}>
-              所有知识点都已复习，继续保持！
-            </p>
-            <button
-              onClick={() => navigate('home')}
-              className="px-8 py-3 rounded-xl font-medium text-white"
-              style={{ backgroundColor: theme.primary }}
-            >
-              返回首页
-            </button>
+        <div className={desktopStageClassName}>
+          <div
+            className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[520px] -translate-y-1/2 md:block"
+            style={desktopGlowStyle}
+          />
+          <div className={desktopShellClassName} style={desktopShellStyle}>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center px-6">
+                <div className="text-6xl mb-6">??</div>
+                <h2 className="text-2xl font-bold mb-3" style={{ color: theme.textPrimary }}>
+                  ????
+                </h2>
+                <p className="text-base mb-8" style={{ color: theme.textSecondary }}>
+                  ???????????????
+                </p>
+                <button
+                  onClick={exitLearning}
+                  className="px-8 py-3 rounded-xl font-medium text-white"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  ????
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -573,7 +607,6 @@ export default function FlashcardLearningPage() {
   const hardPreview = currentPreview?.[Rating.Hard];
   const goodPreview = currentPreview?.[Rating.Good];
   const easyPreview = currentPreview?.[Rating.Easy];
-
   // 显示进度信息
   const progressText = failedCount > 0
     ? `${currentIdx + 1} / ${totalCards} (+${failedCount}待复习)`
@@ -581,55 +614,73 @@ export default function FlashcardLearningPage() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ backgroundColor: theme.bg }}
+      className="fixed inset-0 z-50 md:p-5 lg:p-6"
+      style={desktopBackdropStyle}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: theme.bgCard }}>
-        <button
-          onClick={() => navigate('home')}
-          className="p-2 rounded-full active:opacity-70 transition-opacity"
-          style={{ backgroundColor: `${theme.primary}15` }}
+      <div className={desktopStageClassName}>
+        <div
+          className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[640px] -translate-y-1/2 md:block"
+          style={desktopGlowStyle}
+        />
+        <div
+          className="pointer-events-none absolute left-6 top-6 hidden rounded-full px-3 py-1 text-xs font-medium tracking-[0.18em] uppercase md:block"
+          style={{ backgroundColor: `${theme.bgCard}cc`, color: theme.textMuted, border: `1px solid ${theme.border}` }}
         >
-          <ArrowLeft size={20} style={{ color: theme.primary }} />
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium" style={{ color: theme.textSecondary }}>
-            {progressText}
-          </span>
+          Mobile Learning View
         </div>
-        <div className="w-10" />
-      </div>
-
-      {/* Progress bar */}
-      <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
-        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${((currentIdx + 1) / totalCards) * 100}%`,
-              backgroundColor: theme.primary
-            }}
-          />
+        <div
+          className="pointer-events-none absolute right-6 top-6 hidden max-w-[220px] rounded-3xl px-4 py-3 text-xs leading-5 md:block"
+          style={{ backgroundColor: `${theme.bgCard}d9`, color: theme.textSecondary, border: `1px solid ${theme.border}` }}
+        >
+          ???????????????????? Web ???
         </div>
-      </div>
-
-      <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
-        <div className="rounded-xl px-3 py-3" style={{ backgroundColor: `${theme.primary}10`, border: `1px solid ${theme.primary}22` }}>
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span style={{ color: theme.textSecondary }}>今日学习目标</span>
-            <span style={{ color: theme.primary, fontWeight: 600 }}>
-              {todayLearningCount} / {dailyGoal}
-            </span>
+        <div className={desktopShellClassName} style={desktopShellStyle}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: theme.bgCard }}>
+            <button
+              onClick={exitLearning}
+              className="p-2 rounded-full active:opacity-70 transition-opacity"
+              style={{ backgroundColor: `${theme.primary}15` }}
+            >
+              <ArrowLeft size={20} style={{ color: theme.primary }} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium" style={{ color: theme.textSecondary }}>
+                {progressText}
+              </span>
+            </div>
+            <div className="w-10" />
           </div>
-          <div className="mt-2 w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${todayGoalProgress}%`, backgroundColor: theme.primary }}
-            />
+
+          {/* Progress bar */}
+          <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${((currentIdx + 1) / totalCards) * 100}%`,
+                  backgroundColor: theme.primary
+                }}
+              />
+            </div>
           </div>
-        </div>
-      </div>
+
+          <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
+            <div className="rounded-xl px-3 py-3" style={{ backgroundColor: `${theme.primary}10`, border: `1px solid ${theme.primary}22` }}>
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span style={{ color: theme.textSecondary }}>??????</span>
+                <span style={{ color: theme.primary, fontWeight: 600 }}>
+                  {todayLearningCount} / {dailyGoal}
+                </span>
+              </div>
+              <div className="mt-2 w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${todayGoalProgress}%`, backgroundColor: theme.primary }}
+                />
+              </div>
+            </div>
+          </div>
 
       {showImportResult && importResultSummary && (
         <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
@@ -761,7 +812,7 @@ export default function FlashcardLearningPage() {
 
             {/* Right button - home */}
             <button
-              onClick={() => navigate('home')}
+              onClick={exitLearning}
               className="absolute right-2 w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 z-10"
               style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
             >
@@ -1125,6 +1176,8 @@ export default function FlashcardLearningPage() {
           </div>
         </div>
       ) : null}
+        </div>
+      </div>
     </div>
   );
 }
