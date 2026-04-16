@@ -6,6 +6,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { Calendar, Ticket, Flame, BookOpen, CheckCircle, Sparkles, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { STREAK_REWARDS } from '@/data/incentive-mock';
 import { TopAppBar } from '@/components/layout';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import TeamPanel from './TeamPanel';
 
 function getToday() {
@@ -48,10 +49,10 @@ function generateCalendar(year: number, month: number) {
 export default function CheckinPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState } = useLearning();
-  const { gameState, gameDispatch } = useGame();
+  const { gameState, gameDispatch, checkAchievements } = useGame();
   const { theme } = useTheme();
   const { checkin, team, drawBalance, lastCheckinReward } = gameState;
-  const { quizResults, todayReviewItems, todayNewItems } = learningState;
+  const { todayReviewItems, todayNewItems } = learningState;
   const { user } = userState;
   const today = getToday();
   const todayChecked = checkin.records.some(r => r.date === today);
@@ -101,15 +102,10 @@ export default function CheckinPage() {
     setCurrentMonth(now.getMonth());
   };
 
-  // 计算今日答题数量 - 使用 useMemo 缓存避免重复计算
-  // 注意：使用 toISOString().slice(0, 10) 确保日期格式一致（UTC），与 AppContext 保持一致
-  const todayResults = useMemo(() =>
-    quizResults.filter(r => new Date(r.completedAt).toISOString().slice(0, 10) === today),
-    [quizResults, today]
-  );
-  const todayQuestions = useMemo(() =>
-    todayResults.reduce((sum, r) => sum + r.totalQuestions, 0),
-    [todayResults]
+  // 今日学习量同时统计刷题、闪记和学习内配套题
+  const todayQuestions = useMemo(
+    () => getTodayLearningProgress(learningState).totalCount,
+    [learningState]
   );
 
   // 学习目标
@@ -183,6 +179,15 @@ export default function CheckinPage() {
         type: 'UPDATE_USER',
         payload: { totalPoints: user.totalPoints + streakCoins }
       });
+      // 记录星币账单
+      gameDispatch({
+        type: 'ADD_COIN_BILL',
+        payload: {
+          type: 'compensation',
+          amount: streakCoins,
+          description: `签到奖励: 连续${tempStreak}天`,
+        }
+      });
       console.log(`[签到奖励] 立即获得 ${streakCoins} 星币`);
     }
 
@@ -191,6 +196,9 @@ export default function CheckinPage() {
       type: 'CHECKIN',
       payload: { date: today, type, teamId: type === 'team' ? team?.id : undefined },
     });
+
+    // Check achievements - 签到后触发
+    checkAchievements({ currentStreak: tempStreak });
   };
 
   const handleMakeup = (date: string) => {

@@ -3,9 +3,12 @@ import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader, ProficiencyBadge } from '@/components/ui/Common';
+import FlashcardCard from '@/components/ui/FlashcardCard';
+import { usePreGenerate } from '@/hooks/usePreGenerate';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { ChevronRight, Eye, EyeOff, CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
+import type { Question } from '@/types';
+import { ChevronRight, CheckCircle, ArrowRight, Sparkles, XCircle, Loader2, MessageSquare } from 'lucide-react';
 
 export default function ReviewSessionPage() {
   const { userState, navigate } = useUser();
@@ -47,9 +50,19 @@ export default function ReviewSessionPage() {
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [showNextOption, setShowNextOption] = useState(false);
+  const [sessionMode, setSessionMode] = useState<'rate' | 'quiz' | 'revisit'>('rate');
+  const [currentQuizQuestion, setCurrentQuizQuestion] = useState<Question | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [showQuizResult, setShowQuizResult] = useState(false);
+  const [generatingExplanation, setGeneratingExplanation] = useState(false);
+  const [pendingNoQuestionIds, setPendingNoQuestionIds] = useState<string[]>([]);
+  const [activeRevisitId, setActiveRevisitId] = useState<string | null>(null);
+  const [resumeIndexAfterRevisit, setResumeIndexAfterRevisit] = useState<number | null>(null);
+  const [quizSolvedCount, setQuizSolvedCount] = useState(0);
   const hasAutoNavigated = useRef(false);
+  const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
 
   const hasNewItems = learningState.todayNewItems.filter(r => !r.completed).length > 0;
   const hasReviewItems = learningState.todayReviewItems.filter(r => !r.completed).length > 0;
@@ -80,15 +93,192 @@ export default function ReviewSessionPage() {
     }
   }, [knowledgePoints.length]);
 
+  useEffect(() => {
+    setSessionMode('rate');
+    setShowNextOption(false);
+    setSelectedAnswers([]);
+    setShowQuizResult(false);
+    setCurrentQuizQuestion(null);
+    setIsCardFlipped(false);
+  }, [currentIndex, reviewType]);
+
+  useEffect(() => {
+    setIsCardFlipped(false);
+  }, [sessionMode]);
+
   const currentKP = knowledgePoints[currentIndex];
+  const currentExplanation = currentQuizQuestion ? getSavedExplanation(currentQuizQuestion.id) : null;
+
+  const activeRevisitKP = useMemo(
+    () => learningState.knowledgePoints.find(k => k.id === activeRevisitId),
+    [learningState.knowledgePoints, activeRevisitId]
+  );
+
+  const beginRevisitIfDue = (
+    pendingIds: string[],
+    solvedCount: number,
+    nextIndex: number | null
+  ): boolean => {
+    if (reviewType !== 'new') return false;
+    if (pendingIds.length === 0) return false;
+
+    const shouldInsert = solvedCount > 0 && solvedCount % 3 === 0;
+    const isSessionEnding = nextIndex === null;
+    if (!shouldInsert && !isSessionEnding) return false;
+
+    const [nextRevisitId, ...rest] = pendingIds;
+    setPendingNoQuestionIds(rest);
+    setActiveRevisitId(nextRevisitId);
+    setResumeIndexAfterRevisit(nextIndex);
+    setSessionMode('revisit');
+    setShowNextOption(false);
+    return true;
+  };
+
+  const goToNextKnowledge = (
+    pendingIds: string[] = pendingNoQuestionIds,
+    solvedCount: number = quizSolvedCount
+  ) => {
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < knowledgePoints.length) {
+      if (beginRevisitIfDue(pendingIds, solvedCount, nextIndex)) return;
+      setCurrentIndex(nextIndex);
+      return;
+    }
+
+    if (beginRevisitIfDue(pendingIds, solvedCount, null)) return;
+
+    const hasNewItemsLeft = learningState.todayNewItems.filter(r => !r.completed).length > 0;
+    if (reviewType === 'review' && hasNewItemsLeft) {
+      navigate('review-session', { type: 'new' });
+    } else {
+      navigate('home');
+    }
+  };
 
   const handleRate = (level: ProficiencyLevel) => {
     if (!currentKP) return;
+
+    const relatedQuestionsForCurrent = learningState.questions.filter(q => q.knowledgePointId === currentKP.id);
+
     learningDispatch({ type: 'UPDATE_PROFICIENCY', payload: { id: currentKP.id, proficiency: level } });
     learningDispatch({ type: 'COMPLETE_REVIEW_ITEM', payload: currentKP.id });
-    setShowExplanation(false);
-    setShowNextOption(true);
     hasAutoNavigated.current = false;
+
+    if (reviewType === 'new') {
+      if (relatedQuestionsForCurrent.length > 0) {
+        setCurrentQuizQuestion(relatedQuestionsForCurrent[0]);
+        setSelectedAnswers([]);
+        setShowQuizResult(false);
+        setSessionMode('quiz');
+        return;
+      }
+
+      const nextPendingIds = pendingNoQuestionIds.includes(currentKP.id)
+        ? pendingNoQuestionIds
+        : [...pendingNoQuestionIds, currentKP.id];
+      setPendingNoQuestionIds(nextPendingIds);
+      goToNextKnowledge(nextPendingIds, quizSolvedCount);
+      return;
+    }
+
+    setShowNextOption(true);
+  };
+
+  const handleSelectAnswer = (optionId: string) => {
+    if (showQuizResult || !currentQuizQuestion) return;
+    if (currentQuizQuestion.type === 'single_choice') {
+      setSelectedAnswers([optionId]);
+      return;
+    }
+
+    setSelectedAnswers(prev =>
+      prev.includes(optionId)
+        ? prev.filter(id => id !== optionId)
+        : [...prev, optionId]
+    );
+  };
+
+  const handleSubmitQuiz = () => {
+    if (!currentKP || !currentQuizQuestion || selectedAnswers.length === 0) return;
+    const isCorrect =
+      selectedAnswers.length === currentQuizQuestion.correctAnswers.length &&
+      selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a));
+
+    learningDispatch({
+      type: 'RECORD_QUIZ_ANSWER',
+      payload: {
+        knowledgePointId: currentKP.id,
+        questionId: currentQuizQuestion.id,
+        correct: isCorrect,
+        score: isCorrect ? 100 : 40,
+      },
+    });
+
+    if (!isCorrect) {
+      learningDispatch({
+        type: 'ADD_WRONG_RECORD',
+        payload: {
+          id: `wr-${Date.now()}`,
+          questionId: currentQuizQuestion.id,
+          wrongAnswers: selectedAnswers,
+          correctAnswers: currentQuizQuestion.correctAnswers,
+          addedAt: new Date().toISOString(),
+          reviewedCount: 0,
+          lastReviewedAt: null,
+        },
+      });
+    }
+
+    setShowQuizResult(true);
+  };
+
+  const handleGenerateExplanation = async () => {
+    if (!currentQuizQuestion || !currentKP) return;
+    setGeneratingExplanation(true);
+    const subject = learningState.subjects.find(s => s.id === currentKP.subjectId);
+
+    try {
+      await generateExplanationOnDemand(
+        currentQuizQuestion.id,
+        { stem: currentQuizQuestion.stem, options: currentQuizQuestion.options },
+        selectedAnswers,
+        currentQuizQuestion.correctAnswers,
+        currentKP.name,
+        subject?.name,
+      );
+    } finally {
+      setGeneratingExplanation(false);
+    }
+  };
+
+  const handleFinishQuiz = () => {
+    const nextSolvedCount = quizSolvedCount + 1;
+    setQuizSolvedCount(nextSolvedCount);
+    setSessionMode('rate');
+    setSelectedAnswers([]);
+    setShowQuizResult(false);
+    setCurrentQuizQuestion(null);
+    goToNextKnowledge(pendingNoQuestionIds, nextSolvedCount);
+  };
+
+  const handleFinishRevisit = () => {
+    setSessionMode('rate');
+    setActiveRevisitId(null);
+    const targetIndex = resumeIndexAfterRevisit;
+    setResumeIndexAfterRevisit(null);
+
+    if (targetIndex !== null && targetIndex < knowledgePoints.length) {
+      setCurrentIndex(targetIndex);
+      return;
+    }
+
+    if (pendingNoQuestionIds.length > 0) {
+      beginRevisitIfDue(pendingNoQuestionIds, quizSolvedCount, null);
+      return;
+    }
+
+    navigate('home');
   };
 
   const handleNextAction = (action: 'continue' | 'next_stage' | 'quiz') => {
@@ -174,30 +364,32 @@ export default function ReviewSessionPage() {
         </div>
       </div>
 
+      <div className="px-4 pt-3">
+        <div className="rounded-xl px-3 py-2 text-xs" style={{ backgroundColor: `${theme.primary}12`, color: theme.primary }}>
+          流程：先看知识卡片，再做配套练习。无配套题的知识点会在间隔后自动回顾一次。
+        </div>
+      </div>
+
+      {sessionMode !== 'quiz' && (
       <div className="px-4 pt-4">
         <div className="rounded-2xl p-5 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
           <div className="flex items-start justify-between mb-3">
             <div>
               <div className="text-xs mb-1" style={{ color: theme.textMuted }}>{subject?.icon} {subject?.name}</div>
-              <h2 className="text-xl font-bold" style={{ color: theme.textPrimary }}>{currentKP.name}</h2>
+              <h2 className="text-base font-bold" style={{ color: theme.textPrimary }}>
+                {reviewType === 'review' ? '复习知识卡片' : '新学知识卡片'}
+              </h2>
             </div>
             <ProficiencyBadge level={currentKP.proficiency} />
           </div>
 
-          <button
-            onClick={() => setShowExplanation(!showExplanation)}
-            className="flex items-center gap-1.5 text-sm mb-3"
-            style={{ color: theme.primary }}
-          >
-            {showExplanation ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showExplanation ? '隐藏解释' : '显示解释'}
-          </button>
-
-          {showExplanation && (
-            <div className="rounded-xl p-4 border mb-3" style={{ backgroundColor: `${theme.primary}15`, borderColor: `${theme.primary}30` }}>
-              <p className="text-sm leading-relaxed" style={{ color: theme.textSecondary }}>{currentKP.explanation}</p>
-            </div>
-          )}
+          <FlashcardCard
+            name={currentKP.name}
+            explanation={currentKP.explanation || '暂无解析'}
+            memoryTip={currentKP.memoryTip}
+            isFlipped={isCardFlipped}
+            onFlip={() => setIsCardFlipped(prev => !prev)}
+          />
 
           {relatedQuestions.length > 0 && (
             <div className="mt-3 pt-3 border-t" style={{ borderColor: theme.border }}>
@@ -212,10 +404,191 @@ export default function ReviewSessionPage() {
               </button>
             </div>
           )}
+
         </div>
       </div>
+      )}
 
-      {showNextOption ? (
+      {reviewType === 'new' && sessionMode === 'quiz' && currentQuizQuestion && (
+        <div className="px-4 pt-4">
+          <div className="rounded-2xl border p-4" style={{ borderColor: `${theme.primary}35`, backgroundColor: `${theme.primary}08` }}>
+            <div className="text-xs mb-2" style={{ color: theme.textMuted }}>步骤 2 / 配套练习题</div>
+            <p className="text-sm font-medium mb-3" style={{ color: theme.textPrimary }}>{currentQuizQuestion.stem}</p>
+
+            <div className="space-y-2">
+              {currentQuizQuestion.options.map((opt, index) => {
+                const selected = selectedAnswers.includes(opt.id);
+                const isCorrectOption = currentQuizQuestion.correctAnswers.includes(opt.id);
+                const label = String.fromCharCode(65 + index);
+                let optionBg = theme.bgCard;
+                let optionBorder = theme.border;
+
+                if (showQuizResult) {
+                  if (isCorrectOption) {
+                    optionBg = '#ecfdf5';
+                    optionBorder = '#86efac';
+                  } else if (selected) {
+                    optionBg = '#fef2f2';
+                    optionBorder = '#fca5a5';
+                  }
+                } else if (selected) {
+                  optionBg = `${theme.primary}12`;
+                  optionBorder = theme.primary;
+                }
+
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => handleSelectAnswer(opt.id)}
+                    disabled={showQuizResult}
+                    className="w-full text-left rounded-lg px-3 py-2 border text-sm"
+                    style={{
+                      backgroundColor: optionBg,
+                      borderColor: optionBorder,
+                      color: theme.textPrimary,
+                    }}
+                  >
+                    {label}. {opt.text}
+                  </button>
+                );
+              })}
+            </div>
+
+            {showQuizResult && (
+              <div
+                className="mt-3 p-2 rounded-lg text-xs flex items-center gap-1.5"
+                style={{
+                  backgroundColor:
+                    selectedAnswers.length === currentQuizQuestion.correctAnswers.length &&
+                    selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a))
+                      ? '#ecfdf5'
+                      : '#fef2f2',
+                  color:
+                    selectedAnswers.length === currentQuizQuestion.correctAnswers.length &&
+                    selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a))
+                      ? '#166534'
+                      : '#991b1b',
+                }}
+              >
+                {selectedAnswers.length === currentQuizQuestion.correctAnswers.length &&
+                selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a)) ? (
+                  <>
+                    <CheckCircle size={14} /> 回答正确，继续下一条知识点。
+                  </>
+                ) : (
+                  <>
+                    <XCircle size={14} /> 本题已加入错题记录，稍后建议再练一次。
+                  </>
+                )}
+              </div>
+            )}
+
+            {showQuizResult && (
+              <div className="mt-3">
+                {currentExplanation ? (
+                  <div className="text-sm rounded-xl p-3" style={{ color: '#6b21a8', backgroundColor: '#f5f3ff' }}>
+                    <div className="font-medium mb-1">题目解析</div>
+                    {currentExplanation}
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleGenerateExplanation}
+                    disabled={generatingExplanation}
+                    className="w-full py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                    style={{ backgroundColor: '#f3e8ff', color: '#7e22ce' }}
+                  >
+                    {generatingExplanation ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        正在生成解析...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} />
+                        查看解析（仅缺失时调用AI）
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {showQuizResult && currentExplanation && (
+              <div className="mt-2 flex justify-end">
+                <button
+                  onClick={() => {
+                    const optionsText = currentQuizQuestion.options
+                      .map((opt, idx) => `${String.fromCharCode(65 + idx)}. ${opt.text}`)
+                      .join('\n');
+                    const correctLabels = currentQuizQuestion.correctAnswers
+                      .map(a => {
+                        const idx = currentQuizQuestion.options.findIndex(o => o.id === a);
+                        return String.fromCharCode(65 + idx);
+                      })
+                      .join('、');
+
+                    navigate('ai-chat', {
+                      questionContext: `题目：${currentQuizQuestion.stem}\n\n选项：\n${optionsText}\n\n正确答案：${correctLabels}\n\n解析：${currentExplanation}\n\n请进一步讲解。`,
+                      subjectId: currentKP.subjectId,
+                      ...(currentKP.id && { knowledgePointId: currentKP.id }),
+                    });
+                  }}
+                  className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"
+                  style={{ color: '#2563eb' }}
+                >
+                  <MessageSquare size={10} />
+                  继续追问AI
+                </button>
+              </div>
+            )}
+
+            <div className="mt-3 flex gap-2">
+              {!showQuizResult ? (
+                <button
+                  onClick={handleSubmitQuiz}
+                  disabled={selectedAnswers.length === 0}
+                  className="flex-1 rounded-lg py-2 text-sm font-medium text-white disabled:opacity-50"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  提交答案
+                </button>
+              ) : (
+                <button
+                  onClick={handleFinishQuiz}
+                  className="flex-1 rounded-lg py-2 text-sm font-medium text-white"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  继续学习
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reviewType === 'new' && sessionMode === 'revisit' && activeRevisitKP && (
+        <div className="px-4 pt-4">
+          <div className="rounded-2xl p-4 border" style={{ backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
+            <div className="text-xs mb-2" style={{ color: '#1d4ed8' }}>间隔回顾 / 无配套题知识点</div>
+            <FlashcardCard
+              name={activeRevisitKP.name}
+              explanation={activeRevisitKP.explanation || '暂无解析'}
+              memoryTip={activeRevisitKP.memoryTip}
+              isFlipped={isCardFlipped}
+              onFlip={() => setIsCardFlipped(prev => !prev)}
+            />
+            <button
+              onClick={handleFinishRevisit}
+              className="mt-3 w-full rounded-lg py-2 text-sm font-medium text-white"
+              style={{ backgroundColor: '#2563eb' }}
+            >
+              完成回顾，继续
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showNextOption && reviewType === 'review' && sessionMode === 'rate' ? (
         <div className="px-4 pt-6">
           <h3 className="text-sm font-semibold text-center mb-4" style={{ color: theme.textPrimary }}>接下来你想做什么？</h3>
           <div className="space-y-3">
@@ -279,7 +652,8 @@ export default function ReviewSessionPage() {
         </div>
       ) : (
         <>
-          <div className="px-4 pt-6">
+          {sessionMode === 'rate' && (
+            <div className="px-4 pt-6">
             <h3 className="text-sm font-semibold text-center mb-3" style={{ color: theme.textPrimary }}>你对这个知识点的掌握程度？</h3>
             <div className="grid grid-cols-4 gap-2">
               {(['none', 'rusty', 'normal', 'master'] as ProficiencyLevel[]).map(level => {
@@ -301,18 +675,21 @@ export default function ReviewSessionPage() {
                 );
               })}
             </div>
-          </div>
+            </div>
+          )}
 
-          <div className="px-4 pt-4 pb-8">
-            <button
-              onClick={() => handleRate(currentKP.proficiency)}
-              className="w-full text-xs py-2.5 rounded-xl flex items-center justify-center gap-1"
-              style={{ backgroundColor: theme.border, color: theme.textMuted }}
-            >
-              <CheckCircle size={12} />
-              保持当前熟练度，跳过
-            </button>
-          </div>
+          {sessionMode === 'rate' && (
+            <div className="px-4 pt-4 pb-8">
+              <button
+                onClick={() => handleRate(currentKP.proficiency)}
+                className="w-full text-xs py-2.5 rounded-xl flex items-center justify-center gap-1"
+                style={{ backgroundColor: theme.border, color: theme.textMuted }}
+              >
+                <CheckCircle size={12} />
+                保持当前熟练度，跳过
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

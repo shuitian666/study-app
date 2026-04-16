@@ -1,12 +1,13 @@
-﻿/**
+/**
  * ============================================================================
  * 全局状态管理 - AppContext
  * ============================================================================
- * 
+ *
  * @section ALL
- * @user:兑换码 @user:AI解析 @user:质疑功能 @user:预生成 @user:继续学习 @user:下一阶段
- * 
+ *
  * 【架构】React Context + useReducer（类 Redux 单向数据流）
+ *
+ * 注意：游戏化相关状态已迁移至 GameContext
  * ============================================================================
  */
 
@@ -14,23 +15,34 @@ import { createContext, useContext, useReducer, useEffect, useRef, type ReactNod
 import type {
   User, Subject, Chapter, KnowledgePoint, Question,
   QuizResult, WrongRecord, ReviewItem, LearningStats, PageName, ProficiencyLevel,
-  CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
-  TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
-  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState,
   ChatMessage, AIChatSession,
-  InventoryState, InventoryItem, MailState, MailItem,
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
-import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
 
-// ---------- Checkin reward info ----------
-export interface CheckinRewardInfo {
-  regularTickets: number;
-  upTickets: number;
-  streakCoins: number;
-  streakLabel?: string;
+// ---------- State ----------
+export interface AppState {
+  // User
+  user: User | null;
+  isLoggedIn: boolean;
+  currentPage: PageName;
+  pageParams: Record<string, string>;
+  // Learning data
+  subjects: Subject[];
+  chapters: Chapter[];
+  knowledgePoints: KnowledgePoint[];
+  questions: Question[];
+  quizResults: QuizResult[];
+  wrongRecords: WrongRecord[];
+  todayReviewItems: ReviewItem[];
+  todayNewItems: ReviewItem[];
+  // AI features
+  aiChat: AIChatSession;
+  dailyEncouragement: string | null;
+  dailyEncouragementDate: string | null;
+  // Question explanations for persistence
+  questionExplanations: QuestionExplanation[];
 }
 
 // ---------- Question Explanation ----------
@@ -40,52 +52,6 @@ export interface QuestionExplanation {
   createdAt: string;
   updatedAt: string;
   isUserModified: boolean;
-}
-
-// ---------- State ----------
-export interface AppState {
-  user: User | null;
-  isLoggedIn: boolean;
-  currentPage: PageName;
-  pageParams: Record<string, string>;
-  subjects: Subject[];
-  chapters: Chapter[];
-  knowledgePoints: KnowledgePoint[];
-  questions: Question[];
-  quizResults: QuizResult[];
-  wrongRecords: WrongRecord[];
-  todayReviewItems: ReviewItem[];
-  todayNewItems: ReviewItem[];
-  // Incentive system
-  checkin: CheckinState;
-  achievements: Achievement[];
-  shopItems: ShopItem[];
-  rankings: { studyTime: RankEntry[]; masterCount: RankEntry[] };
-  achievementPopup: AchievementPopup | null;
-  // Draw ticket system
-  drawBalance: DrawBalance;
-  upPool: UpPoolConfig;
-  lastCheckinReward: CheckinRewardInfo | null;
-  // Team & Lottery
-  team: TeamState | null;
-  lotteryPopup: LotteryPopup | null;
-  // Redemption codes
-  redeemedCodes: string[];
-  // AI features
-  aiChat: AIChatSession;
-  dailyEncouragement: string | null;
-  dailyEncouragementDate: string | null;
-  // Question explanations for persistence
-  questionExplanations: QuestionExplanation[];
-  // Inventory / 背包
-  inventory: InventoryState;
-  // Mail / 邮件
-  mail: MailState;
-  // Undo/Redo history (not persisted, in-memory only)
-  _history: AppState[];
-  _historyIndex: number;
-  _canUndo: boolean;
-  _canRedo: boolean;
 }
 
 const initialState: AppState = {
@@ -101,56 +67,11 @@ const initialState: AppState = {
   wrongRecords: [],
   todayReviewItems: [],
   todayNewItems: [],
-  checkin: { records: [], streak: 0, makeupCards: 2, totalCheckins: 0, lotteryPity: { sinceLastSR: 0, sinceLastSSR: 0 } },
-  achievements: MOCK_ACHIEVEMENTS,
-  shopItems: MOCK_SHOP_ITEMS,
-  rankings: MOCK_RANKINGS,
-  achievementPopup: null,
-  drawBalance: { regular: 0, up: 0 },
-  upPool: MOCK_UP_POOL,
-  lastCheckinReward: null,
-  team: null,
-  lotteryPopup: null,
-  redeemedCodes: [],
   aiChat: { messages: [], isLoading: false, generatedQuestions: [] },
   dailyEncouragement: null,
   dailyEncouragementDate: null,
   questionExplanations: [],
-  // Inventory / 背包
-  inventory: { items: [] },
-  // Mail / 邮件
-  mail: { mails: [], currentVersion: 1 },
-  // Undo/Redo (not persisted)
-  _history: [],
-  _historyIndex: -1,
-  _canUndo: false,
-  _canRedo: false,
 };
-
-// ---------- Redemption codes ----------
-const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
-  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
-  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
-  '全部解锁': { upDraws: 99, regularDraws: 99, coins: 9999 },
-};
-
-export function isValidRedeemCode(code: string): boolean {
-  return code in REDEMPTION_CODES;
-}
-
-// ---------- Helpers ----------
-function calculateStreak(records: { date: string }[]): number {
-  if (records.length === 0) return 0;
-  const sorted = [...records].map(r => r.date).sort().reverse();
-  let streak = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1]);
-    const curr = new Date(sorted[i]);
-    if (Math.round((prev.getTime() - curr.getTime()) / 86400000) === 1) streak++;
-    else break;
-  }
-  return streak;
-}
 
 // ---------- Actions ----------
 export type Action =
@@ -171,20 +92,6 @@ export type Action =
   | { type: 'SET_REVIEW_ITEMS'; payload: { review: ReviewItem[]; newItems: ReviewItem[] } }
   | { type: 'COMPLETE_REVIEW_ITEM'; payload: string }
   | { type: 'INCREMENT_LEARNING_DAYS' }
-  | { type: 'CHECKIN'; payload: { date: string; type: 'normal' | 'makeup' | 'team'; teamId?: string } }
-  | { type: 'DISMISS_CHECKIN_REWARD' }
-  | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
-  | { type: 'DISMISS_ACHIEVEMENT_POPUP' }
-  | { type: 'BUY_SHOP_ITEM'; payload: string }
-  | { type: 'ADD_COINS'; payload: number }
-  | { type: 'SET_TEAM'; payload: TeamState | null }
-  | { type: 'UPDATE_TEAMMATE_PROGRESS'; payload: TeamMemberProgress }
-  | { type: 'DISSOLVE_TEAM' }
-  | { type: 'DRAW_REGULAR'; payload: LotteryResult }
-  | { type: 'DRAW_UP'; payload: UpPoolResult }
-  | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
-  | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string }
   | { type: 'AI_SEND_MESSAGE'; payload: ChatMessage }
   | { type: 'AI_RECEIVE_MESSAGE'; payload: ChatMessage }
   | { type: 'AI_SET_LOADING'; payload: boolean }
@@ -197,20 +104,6 @@ export type Action =
   | { type: 'DELETE_QUESTION_EXPLANATION'; payload: string }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
-  // Inventory actions
-  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
-  | { type: 'USE_INVENTORY_ITEM'; payload: string }
-  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
-  // Mail actions
-  | { type: 'ADD_MAIL'; payload: MailItem }
-  | { type: 'SET_MAILS'; payload: MailItem[] }
-  | { type: 'MARK_MAIL_READ'; payload: string }
-  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
-  | { type: 'UPDATE_MAIL_VERSION'; payload: number }
-  // Undo/Redo actions
-  | { type: 'UNDO' }
-  | { type: 'REDO' }
-  | { type: 'RECORD_HISTORY'; payload: Partial<AppState> }
   // Sync actions from LearningContext
   | { type: 'SYNC_QUIZ_RESULTS'; payload: QuizResult[] }
   | { type: 'SYNC_WRONG_RECORDS'; payload: WrongRecord[] }
@@ -221,7 +114,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'LOGIN':
       return { ...state, user: action.payload, isLoggedIn: true, currentPage: 'home' };
     case 'LOGOUT':
-      return { ...state, user: null, isLoggedIn: false, currentPage: 'login', team: null };
+      return { ...state, user: null, isLoggedIn: false, currentPage: 'login' };
     case 'RESET_ALL':
       return { ...initialState };
     case 'NAVIGATE':
@@ -281,367 +174,6 @@ function reducer(state: AppState, action: Action): AppState {
       return state.user
         ? { ...state, user: { ...state.user, learningDays: state.user.learningDays + 1 } }
         : state;
-
-    case 'CHECKIN': {
-      const exists = state.checkin.records.some(r => r.date === action.payload.date);
-      if (exists) {
-        console.log('[CHECKIN] 已存在今日签到记录', action.payload.date);
-        return state;
-      }
-      const isMakeup = action.payload.type === 'makeup';
-      if (isMakeup && state.checkin.makeupCards <= 0) {
-        console.log('[CHECKIN] 补签卡不足');
-        return state;
-      }
-
-      if (action.payload.type !== 'makeup') {
-        // 【修复】与签到页面条件保持一致，只检查复习和每日新学目标
-        // 不检查自由学习的额外任务
-
-        // 复习完成检查
-        const reviewItems = state.todayReviewItems;
-        const reviewCompleted = reviewItems.length === 0 || reviewItems.every(r => r.completed);
-
-        // 每日新学目标完成检查
-        const dailyNewGoal = state.user?.dailyNewGoal ?? 15;
-        const newItems = state.todayNewItems;
-        const completedNewCount = newItems.filter(r => r.completed).length;
-        const newLearnCompleted = completedNewCount >= dailyNewGoal;
-
-        // 做题目标达成检查
-        const todayDate = action.payload.date;
-        const todayQuestions = state.quizResults
-          .filter(r => new Date(r.completedAt).toISOString().slice(0, 10) === todayDate)
-          .reduce((sum, r) => sum + r.totalQuestions, 0);
-        const dailyGoal = state.user?.dailyGoal ?? 10;
-        const goalAchieved = todayQuestions >= dailyGoal;
-
-        console.log('[CHECKIN] 条件检查:', {
-          reviewCompleted, newLearnCompleted, goalAchieved,
-          completedNewCount, dailyNewGoal,
-          todayQuestions, dailyGoal,
-          reviewItems: reviewItems.length,
-          newItems: newItems.length
-        });
-
-        // 满足以下任一条件即可签到：
-        // 1. 复习完成 + 每日新学目标完成
-        // 2. 做题目标达成
-        const canCheckin = (reviewCompleted && newLearnCompleted) || goalAchieved;
-        if (!canCheckin) {
-          console.log('[CHECKIN] 条件不满足，拒绝签到');
-          return state;
-        }
-        console.log('[CHECKIN] 条件满足，执行签到');
-      }
-
-      if (action.payload.type === 'team') {
-        if (!state.team || state.team.status !== 'active') return state;
-        const allReady = state.team.members.every(m => m.progress.isReady);
-        if (!allReady) return state;
-      }
-
-      const newRecord = { date: action.payload.date, type: action.payload.type, teamId: action.payload.teamId };
-      const newRecords = [...state.checkin.records, newRecord];
-      const streak = calculateStreak(newRecords);
-
-      let regularTickets = 0;
-      let upTickets = 0;
-      let streakCoins = 0;
-      let streakLabel: string | undefined;
-
-      if (!isMakeup) {
-        regularTickets = 1;
-        if (action.payload.type === 'team') {
-          regularTickets += 1;
-        }
-      }
-
-      const streakReward = STREAK_REWARDS.find(r => r.days === streak);
-      if (streakReward) {
-        streakCoins = streakReward.coins;
-        upTickets = streakReward.upDraws;
-        streakLabel = streakReward.label;
-      }
-
-      return {
-        ...state,
-        checkin: {
-          ...state.checkin,
-          records: newRecords,
-          streak,
-          makeupCards: isMakeup ? state.checkin.makeupCards - 1 : state.checkin.makeupCards,
-          totalCheckins: state.checkin.totalCheckins + 1,
-        },
-        drawBalance: {
-          regular: state.drawBalance.regular + regularTickets,
-          up: state.drawBalance.up + upTickets,
-        },
-        // 签到成功时同步更新 learningDays（非补签）
-        user: state.user
-          ? {
-              ...state.user,
-              totalPoints: streakCoins > 0 ? state.user.totalPoints + streakCoins : state.user.totalPoints,
-              learningDays: isMakeup ? state.user.learningDays : state.user.learningDays + 1,
-            }
-          : null,
-        lastCheckinReward: { regularTickets, upTickets, streakCoins, streakLabel },
-        team: state.team && action.payload.type === 'team'
-          ? { ...state.team, todayCheckedIn: true }
-          : state.team,
-      };
-    }
-
-    case 'DISMISS_CHECKIN_REWARD':
-      return { ...state, lastCheckinReward: null };
-
-    case 'DRAW_REGULAR': {
-      if (state.drawBalance.regular <= 0) return state;
-      const result = action.payload;
-      let newUser = state.user;
-      let newMakeupCards = state.checkin.makeupCards;
-      let newInventoryItems = [...state.inventory.items];
-      
-      if (result.reward.type === 'coins' && newUser) {
-        newUser = { ...newUser, totalPoints: newUser.totalPoints + result.reward.amount };
-      } else if (result.reward.type === 'makeup_card') {
-        // 补签卡可以堆叠，直接增加数量
-        newMakeupCards += result.reward.amount;
-        const existingMakeup = newInventoryItems.find(i => i.type === 'makeup_card');
-        if (existingMakeup) {
-          newInventoryItems = newInventoryItems.map(i =>
-            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + result.reward.amount } : i
-          );
-        } else {
-          newInventoryItems = [...newInventoryItems, {
-            id: `inv-makeup-${Date.now()}`,
-            type: 'makeup_card' as const,
-            name: '补签卡',
-            description: '可在忘记签到时补签',
-            icon: '📝',
-            rarity: 'R' as const,
-            quantity: result.reward.amount,
-            obtainedAt: new Date().toISOString(),
-            source: 'lottery' as const,
-            usable: true,
-          }];
-        }
-      }
-
-      let newPity: LotteryPityState;
-      if (result.tier === 'SSR') {
-        newPity = { sinceLastSSR: 0, sinceLastSR: 0 };
-      } else if (result.tier === 'SR') {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: 0 };
-      } else {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: state.checkin.lotteryPity.sinceLastSR + 1 };
-      }
-      return {
-        ...state,
-        user: newUser,
-        drawBalance: { ...state.drawBalance, regular: state.drawBalance.regular - 1 },
-        checkin: { ...state.checkin, makeupCards: newMakeupCards, lotteryPity: newPity },
-        inventory: { items: newInventoryItems },
-      };
-    }
-
-    case 'DRAW_UP': {
-      if (state.drawBalance.up <= 0) return state;
-      const { item } = action.payload;
-      let newInventoryItems = [...state.inventory.items];
-      let newUser = state.user;
-      let newUpPool = state.upPool;
-
-      // UP池物品标记为已拥有
-      newUpPool = {
-        ...newUpPool,
-        items: newUpPool.items.map(i => i.id === item.id ? { ...i, owned: true } : i),
-      };
-
-      // 非装饰物品正常添加到背包
-      const invItem: InventoryItem = {
-        id: `inv-up-${item.id}-${Date.now()}`,
-        type: item.type as any,
-        name: item.name,
-        description: item.description,
-        icon: item.icon,
-        rarity: item.rarity,
-        quantity: 1,
-        obtainedAt: new Date().toISOString(),
-        source: 'lottery',
-        usable: false,
-      };
-      newInventoryItems = [...state.inventory.items, invItem];
-
-      let newPity: LotteryPityState;
-      if (item.rarity === 'SSR') {
-        newPity = { sinceLastSSR: 0, sinceLastSR: 0 };
-      } else if (item.rarity === 'SR') {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: 0 };
-      } else {
-        newPity = { sinceLastSSR: state.checkin.lotteryPity.sinceLastSSR + 1, sinceLastSR: state.checkin.lotteryPity.sinceLastSR + 1 };
-      }
-
-      return {
-        ...state,
-        user: newUser,
-        drawBalance: { ...state.drawBalance, up: state.drawBalance.up - 1 },
-        upPool: newUpPool,
-        checkin: { ...state.checkin, lotteryPity: newPity },
-        inventory: { items: newInventoryItems },
-      };
-    }
-
-    case 'SHOW_LOTTERY_POPUP':
-      return { ...state, lotteryPopup: action.payload };
-    case 'DISMISS_LOTTERY_POPUP':
-      return { ...state, lotteryPopup: null };
-
-    case 'SET_TEAM':
-      return { ...state, team: action.payload };
-    case 'UPDATE_TEAMMATE_PROGRESS': {
-      if (!state.team) return state;
-      return {
-        ...state,
-        team: {
-          ...state.team,
-          members: state.team.members.map(m =>
-            m.isSimulated ? { ...m, progress: action.payload } : m
-          ),
-        },
-      };
-    }
-    case 'DISSOLVE_TEAM':
-      return { ...state, team: null };
-
-    case 'UNLOCK_ACHIEVEMENT': {
-      const ach = state.achievements.find(a => a.id === action.payload);
-      if (!ach || ach.unlocked) return state;
-      return {
-        ...state,
-        achievements: state.achievements.map(a =>
-          a.id === action.payload ? { ...a, unlocked: true, unlockedAt: new Date().toISOString() } : a
-        ),
-        user: state.user ? { ...state.user, totalPoints: state.user.totalPoints + ach.reward.coins } : null,
-        achievementPopup: { achievement: { ...ach, unlocked: true, unlockedAt: new Date().toISOString() }, show: true },
-      };
-    }
-    case 'DISMISS_ACHIEVEMENT_POPUP':
-      return { ...state, achievementPopup: null };
-    case 'BUY_SHOP_ITEM': {
-      let item = state.shopItems.find(i => i.id === action.payload);
-      if (!item || !state.user || state.user.totalPoints < item.price) return state;
-
-      // 检查背包中是否已经拥有该物品（装饰类），已经拥有就不能购买
-      if (item.type === 'avatar_frame' || item.type === 'background') {
-        const alreadyOwned = state.inventory.items.some(
-          invItem => invItem.name === item.name
-        );
-        if (alreadyOwned || item.owned) {
-          console.log('[BUY_SHOP_ITEM] 已经拥有该物品，无法重复购买');
-          return state;
-        }
-      }
-
-      // 将购买的物品添加到背包
-      let newInventoryItems = [...state.inventory.items];
-      let rarity: 'N' | 'R' | 'SR' | 'SSR' = 'R';
-      // 根据 ID 判断稀有度
-      if (item.id.startsWith('frame-n-') || item.id.startsWith('bg-n-')) rarity = 'N';
-      if (item.id.startsWith('frame-r-') || item.id.startsWith('bg-r-')) rarity = 'R';
-      if (item.id.startsWith('frame-sr-') || item.id.startsWith('bg-sr-')) rarity = 'SR';
-      if (item.id.startsWith('frame-ssr-') || item.id.startsWith('bg-ssr-')) rarity = 'SSR';
-      
-      // 如果是可堆叠物品（补签卡），梯度涨价
-      let newShopItems = [...state.shopItems];
-      if (item.type === 'makeup_card') {
-        // 计算当前已有数量
-        const existing = newInventoryItems.find(i => i.type === 'makeup_card');
-        const currentCount = existing ? existing.quantity : 0;
-        
-        // 检查用户余额是否够
-        if (state.user.totalPoints < item.price) return state;
-
-        // 增加数量到背包
-        if (existing) {
-          newInventoryItems = newInventoryItems.map(i =>
-            i.type === 'makeup_card' ? { ...i, quantity: i.quantity + 1 } : i
-          );
-        } else {
-          newInventoryItems.push({
-            id: `inv-shop-${item.id}-${Date.now()}`,
-            type: item.type as any,
-            name: item.name,
-            description: item.description,
-            icon: item.icon,
-            rarity: 'R',
-            quantity: 1,
-            obtainedAt: new Date().toISOString(),
-            source: 'shop',
-            usable: true,
-          });
-        }
-
-        // 计算下一次价格梯度：1->30, 2->50, 3->80, 4+->120
-        let nextPrice = 30;
-        switch (currentCount + 1) {
-          case 1: nextPrice = 50; break;
-          case 2: nextPrice = 80; break;
-          default: nextPrice = 120; break;
-        }
-        // 更新商店中补签卡的价格
-        newShopItems = newShopItems.map(i => 
-          i.id === action.payload ? { ...i, price: nextPrice } : i
-        );
-      } else if (item.type === 'avatar_frame' || item.type === 'background') {
-        // 装饰类物品（头像框、背景等）添加到背包，按照正确稀有度
-        newInventoryItems.push({
-          id: `inv-shop-${item.id}-${Date.now()}`,
-          type: item.type as any,
-          name: item.name,
-          description: item.description,
-          icon: item.icon,
-          rarity,
-          quantity: 1,
-          obtainedAt: new Date().toISOString(),
-          source: 'shop',
-          usable: false,
-        });
-        // 标记为已拥有
-        newShopItems = newShopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i);
-      } else {
-        // 其他物品标记已拥有
-        newShopItems = newShopItems.map(i => i.id === action.payload ? { ...i, owned: true } : i);
-      }
-
-      return {
-        ...state,
-        user: { ...state.user, totalPoints: state.user.totalPoints - item.price },
-        shopItems: newShopItems,
-        checkin: item.type === 'makeup_card' ? { ...state.checkin, makeupCards: state.checkin.makeupCards + 1 } : state.checkin,
-        inventory: { items: newInventoryItems },
-      };
-    }
-    case 'ADD_COINS':
-      return state.user ? { ...state, user: { ...state.user, totalPoints: state.user.totalPoints + action.payload } } : state;
-
-    case 'REDEEM_CODE': {
-      const code = action.payload;
-      if (state.redeemedCodes.includes(code)) return state;
-      const reward = REDEMPTION_CODES[code];
-      if (!reward) return state;
-      return {
-        ...state,
-        redeemedCodes: [...state.redeemedCodes, code],
-        drawBalance: {
-          regular: state.drawBalance.regular + reward.regularDraws,
-          up: state.drawBalance.up + reward.upDraws,
-        },
-        user: reward.coins > 0 && state.user
-          ? { ...state.user, totalPoints: state.user.totalPoints + reward.coins }
-          : state.user,
-      };
-    }
 
     case 'AI_SEND_MESSAGE':
       return {
@@ -730,248 +262,16 @@ function reducer(state: AppState, action: Action): AppState {
     case 'UPDATE_TODAY_GOAL_STATUS':
       return {
         ...state,
-        user: state.user 
-          ? { 
-              ...state.user, 
-              todayQuestions: action.payload.questionsCompleted, 
-              goalAchievedToday: action.payload.goalMet 
-            } 
+        user: state.user
+          ? {
+              ...state.user,
+              todayQuestions: action.payload.questionsCompleted,
+              goalAchievedToday: action.payload.goalMet
+            }
           : state.user,
       };
 
-    // Inventory actions
-    case 'ADD_INVENTORY_ITEM': {
-      const existing = state.inventory.items.find(i => i.id === action.payload.id);
-      if (existing) {
-        return {
-          ...state,
-          inventory: {
-            items: state.inventory.items.map(i =>
-              i.id === action.payload.id ? { ...i, quantity: i.quantity + action.payload.quantity } : i
-            ),
-          },
-        };
-      }
-      return {
-        ...state,
-        inventory: {
-          items: [...state.inventory.items, action.payload],
-        },
-      };
-    }
-    case 'USE_INVENTORY_ITEM': {
-      const item = state.inventory.items.find(i => i.id === action.payload);
-      if (!item || item.quantity <= 0 || !item.usable) return state;
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.map(i =>
-            i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
-          ).filter(i => i.quantity > 0),
-        },
-      };
-    }
-    case 'REMOVE_INVENTORY_ITEM': {
-      return {
-        ...state,
-        inventory: {
-          items: state.inventory.items.filter(i => i.id !== action.payload),
-        },
-      };
-    }
-
-    // Mail actions
-    case 'ADD_MAIL': {
-      const exists = state.mail.mails.find(m => m.id === action.payload.id);
-      if (exists) return state;
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: [action.payload, ...state.mail.mails],
-        },
-      };
-    }
-    case 'SET_MAILS':
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: action.payload,
-        },
-      };
-    case 'MARK_MAIL_READ':
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m =>
-            m.id === action.payload ? { ...m, read: true } : m
-          ),
-        },
-      };
-    case 'CLAIM_MAIL_ATTACHMENT': {
-      const { mailId, attachmentIndex } = action.payload;
-      let newUser = state.user;
-      let newInventoryItems = [...state.inventory.items];
-
-      const mail = state.mail.mails.find(m => m.id === mailId);
-      if (mail && state.user) {
-        const attachment = mail.attachments[attachmentIndex];
-        if (attachment && !attachment.claimed) {
-          if (attachment.type === 'coin') {
-            // 金币直接加
-            newUser = { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity };
-          } else if (attachment.type === 'makeup_card') {
-            // 补签卡可以堆叠
-            const existing = newInventoryItems.find(i => i.type === 'makeup_card');
-            if (existing) {
-              newInventoryItems = newInventoryItems.map(i =>
-                i.type === 'makeup_card' ? { ...i, quantity: i.quantity + attachment.quantity } : i
-              );
-            } else {
-              newInventoryItems.push({
-                id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
-                name: attachment.name,
-                description: `来自邮件: ${mail.title}`,
-                icon: '🎁',
-                rarity: 'R',
-                quantity: attachment.quantity,
-                obtainedAt: new Date().toISOString(),
-                source: 'mail',
-                usable: true,
-              });
-            }
-          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
-            // 装饰物品 - 已有就补偿星币
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
-            if (existing) {
-              // 根据稀有度补偿
-              let compensation = 10;
-              const rarity = (attachment as any).rarity;
-              if (rarity) {
-                switch (rarity) {
-                  case 'N': compensation = 10; break;
-                  case 'R': compensation = 30; break;
-                  case 'SR': compensation = 60; break;
-                  case 'SSR': compensation = 150; break;
-                }
-              }
-              newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-              console.log(`[CLAIM_MAIL] 重复获得 ${attachment.name}，补偿 ${compensation} 星币`);
-            } else {
-              // 新物品添加到背包
-              newInventoryItems.push({
-                id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
-                name: attachment.name,
-                description: `来自邮件: ${mail.title}`,
-                icon: attachment.icon || '🎁',
-                rarity: (attachment as any).rarity || 'R',
-                quantity: 1,
-                obtainedAt: new Date().toISOString(),
-                source: 'mail',
-                usable: false,
-              });
-            }
-          } else {
-            // 其他物品正常处理
-            const invItem: InventoryItem = {
-              id: `inv-${Date.now()}-${attachmentIndex}`,
-              type: attachment.type as any,
-              name: attachment.name,
-              description: `来自邮件: ${mail.title}`,
-              icon: '🎁',
-              rarity: 'R',
-              quantity: attachment.quantity,
-              obtainedAt: new Date().toISOString(),
-              source: 'mail',
-              usable: true,
-            };
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
-            if (existing) {
-              existing.quantity += attachment.quantity;
-            } else {
-              newInventoryItems.push(invItem);
-            }
-          }
-        }
-      }
-
-      return {
-        ...state,
-        user: newUser,
-        mail: {
-          ...state.mail,
-          mails: state.mail.mails.map(m => {
-            if (m.id !== mailId) return m;
-            const newAttachments = m.attachments.map((a, idx) =>
-              idx === attachmentIndex ? { ...a, claimed: true } : a
-            );
-            return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
-          }),
-        },
-        inventory: { items: newInventoryItems },
-      };
-    }
-    case 'UPDATE_MAIL_VERSION':
-      return {
-        ...state,
-        mail: {
-          ...state.mail,
-          currentVersion: action.payload,
-        },
-      };
-
     // Undo/Redo actions
-    case 'RECORD_HISTORY': {
-      // Only record certain actions for undo (not navigation, not undo/redo)
-      const newHistory = state._history.slice(0, state._historyIndex + 1);
-      newHistory.push({
-        subjects: state.subjects,
-        chapters: state.chapters,
-        knowledgePoints: state.knowledgePoints,
-        questions: state.questions,
-        inventory: state.inventory,
-      } as AppState);
-      // Keep only last 50 history entries
-      if (newHistory.length > 50) newHistory.shift();
-      return {
-        ...state,
-        _history: newHistory,
-        _historyIndex: newHistory.length - 1,
-        _canUndo: newHistory.length > 1,
-        _canRedo: false,
-      };
-    }
-    case 'UNDO': {
-      if (state._historyIndex <= 0 || state._history.length === 0) return state;
-      const prevState = state._history[state._historyIndex - 1];
-      const newHistoryIndex = state._historyIndex - 1;
-      return {
-        ...state,
-        ...prevState,
-        _history: state._history,
-        _historyIndex: newHistoryIndex,
-        _canUndo: newHistoryIndex > 0,
-        _canRedo: true,
-      };
-    }
-    case 'REDO': {
-      if (state._historyIndex >= state._history.length - 1) return state;
-      const nextState = state._history[state._historyIndex + 1];
-      const newHistoryIndex = state._historyIndex + 1;
-      return {
-        ...state,
-        ...nextState,
-        _history: state._history,
-        _historyIndex: newHistoryIndex,
-        _canUndo: true,
-        _canRedo: newHistoryIndex < state._history.length - 1,
-      };
-    }
-
     // Sync actions from LearningContext
     case 'SYNC_QUIZ_RESULTS':
       return { ...state, quizResults: action.payload };
@@ -996,12 +296,6 @@ interface AppContextType {
   getLearningStats: () => LearningStats;
   getTaskCompletionRate: () => { done: number; total: number; rate: number };
   navigate: (page: PageName, params?: Record<string, string>) => void;
-  // Undo/Redo
-  undo: () => void;
-  redo: () => void;
-  recordHistory: () => void;
-  _canUndo: boolean;
-  _canRedo: boolean;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -1048,24 +342,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [dispatch]);
 
   // 持久化状态到 localStorage
-  // 注意：checkin 由 GameContext 管理，AppContext 保存时需要保留 GameContext 的 checkin 数据
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    // 从 localStorage 读取 GameContext 保存的 checkin（最新的签到数据）
-    const saved = loadState();
-    const currentCheckin = saved?.checkin;
-
-    // 构建保存状态，确保不覆盖 GameContext 的 checkin
-    const stateToSave = {
-      ...(state as unknown as Record<string, unknown>),
-      // 保留 localStorage 中 GameContext 的 checkin，不使用 AppContext 的 stale checkin
-      checkin: currentCheckin ?? state.checkin,
-    };
-
-    saveState(stateToSave);
+    saveState(state as unknown as Record<string, unknown>);
   }, [state]);
 
   const getLearningStats = (): LearningStats => {
@@ -1117,119 +399,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'NAVIGATE', payload: { page, params } });
   };
 
-  // Undo/Redo functions
-  const undo = () => {
-    if (state._canUndo) {
-      dispatch({ type: 'UNDO' });
-    }
-  };
-
-  const redo = () => {
-    if (state._canRedo) {
-      dispatch({ type: 'REDO' });
-    }
-  };
-
-  const recordHistory = () => {
-    dispatch({ type: 'RECORD_HISTORY', payload: {} });
-  };
-
-  // Initialize history on login
-  useEffect(() => {
-    if (state.isLoggedIn && state._history.length === 0) {
-      dispatch({ type: 'RECORD_HISTORY', payload: {} });
-    }
-  }, [state.isLoggedIn]);
-
-  // ========== 自动检测成就解锁 ==========
-  useEffect(() => {
-    if (!state.isLoggedIn) return;
-
-    const stats = getLearningStats();
-    const totalKnowledge = stats.totalKnowledgePoints;
-    const totalQuizzes = stats.totalQuizzes;
-
-    // 从 localStorage 读取 GameContext 的 checkin 数据（权威数据源）
-    const savedState = loadState();
-    const checkinData = savedState?.checkin as { records: { date: string; type: string }[]; streak: number; totalCheckins: number } | undefined;
-    const checkinRecords = checkinData?.records || [];
-    const checkinStreak = checkinData?.streak || 0;
-    const checkinTotal = checkinData?.totalCheckins || 0;
-    const makeupUsed = checkinTotal - checkinRecords.filter(r => r.type !== 'makeup').length;
-    const perfectQuizzesCount = state.quizResults.filter(q => q.score === 100).length;
-
-    // 遍历所有未解锁成就，检查条件
-    state.achievements.forEach(ach => {
-      if (ach.unlocked) return;
-
-      let met = false;
-      const cond = ach.condition;
-
-      switch (cond.type) {
-        // 初次学习 - 完成第一次知识点学习
-        case 'first_learn':
-          met = state.todayReviewItems.some(r => r.completed) || state.todayNewItems.some(r => r.completed);
-          break;
-        // 首次签到
-        case 'first_checkin':
-          met = checkinTotal >= cond.value;
-          break;
-        // 连续学习天数
-        case 'streak_days':
-          met = checkinStreak >= cond.value;
-          break;
-        // 掌握知识点数量
-        case 'master_count':
-          met = stats.masteredCount >= cond.value;
-          break;
-        // 累计知识点数量（含未掌握的）
-        case 'total_knowledge':
-          met = totalKnowledge >= cond.value;
-          break;
-        // 累计签到天数
-        case 'total_checkins':
-          met = checkinTotal >= cond.value;
-          break;
-        // 累计测验次数
-        case 'total_quizzes':
-          met = totalQuizzes >= cond.value;
-          break;
-        // 使用补签卡次数
-        case 'makeup_used':
-          met = makeupUsed >= cond.value;
-          break;
-        // 满分测验（任意一次得100分）
-        case 'perfect_quiz':
-          met = perfectQuizzesCount >= cond.value;
-          break;
-        // 连续满分次数（10次满分）
-        case 'one_session_correct':
-          met = perfectQuizzesCount >= cond.value;
-          break;
-        // 错题本清零：曾有过错题，现在全部清除了
-        case 'clear_wrong':
-          met = state.quizResults.length > 0 && state.wrongRecords.length === 0;
-          break;
-      }
-
-      if (met) {
-        dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: ach.id });
-      }
-    });
-  }, [
-    state.isLoggedIn,
-    state.knowledgePoints.length,
-    state.checkin.totalCheckins,
-    state.checkin.streak,
-    state.quizResults.length,
-    state.wrongRecords.length,
-    state.todayReviewItems,
-    state.todayNewItems,
-    state.achievements
-  ]);
-
   return (
-    <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>
+    <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate }}>
       {children}
     </AppContext.Provider>
   );

@@ -142,6 +142,9 @@ export const ThemeStyles: React.FC = () => {
     } else {
       root.removeAttribute('data-theme');
     }
+
+    // 设置 UI 风格属性，用于全局字体/氛围区分
+    root.setAttribute('data-ui-style', theme.uiStyle || 'playful');
   }, [theme]);
 
   return null;

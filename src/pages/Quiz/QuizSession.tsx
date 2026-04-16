@@ -14,6 +14,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { calculateNewProficiency } from '@/utils/review';
@@ -25,7 +26,10 @@ export default function QuizSessionPage() {
 
   const { userState, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
+  const { checkAchievements } = useGame();
   const { theme } = useTheme();
+  const uiStyle = theme.uiStyle || 'playful';
+  const isScholar = uiStyle === 'scholar';
 
   // 动画效果 - 使用次级界面动画设置
   const [animationEffect, setAnimationEffect] = useState<string>('fade-in');
@@ -99,12 +103,23 @@ export default function QuizSessionPage() {
   const currentQuestion: Question | undefined = questions[currentIndex];
   const relatedKP = learningState.knowledgePoints.find(k => k.id === currentQuestion?.knowledgePointId);
   const [generatingExplanation, setGeneratingExplanation] = useState<string | null>(null);
-  const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
+  const { getSavedExplanation, preGenerateExplanations, generateExplanationOnDemand } = usePreGenerate();
 
-  // 关闭预生成，改为点击才生成，节省token
+  // 预生成缺失解析：仅对没有现成解析的题目调用 AI
   useEffect(() => {
-    // 不再预生成，用户主动点击才生成
-  }, [questions]);
+    if (questions.length === 0) return;
+
+    const missingQuestions = questions.filter(q => !getSavedExplanation(q.id));
+    if (missingQuestions.length === 0) return;
+
+    void preGenerateExplanations(
+      missingQuestions.map(q => ({
+        id: q.id,
+        stem: q.stem,
+        options: q.options,
+      }))
+    );
+  }, [questions, getSavedExplanation, preGenerateExplanations]);
 
   // 当前题目已生成的解释
   const currentExplanation = currentQuestion ? getSavedExplanation(currentQuestion.id) : null;
@@ -184,6 +199,9 @@ export default function QuizSessionPage() {
         },
       });
     }
+
+    // Check achievements - 累计答题次数
+    checkAchievements({ totalQuizCount: learningState.quizResults.length + 1 });
   };
 
   const handleNext = () => {
@@ -210,6 +228,11 @@ export default function QuizSessionPage() {
           completedAt: new Date().toISOString(),
         },
       });
+
+      // 阶段结束，检测满分成就
+      if (score === 100) {
+        checkAchievements({ perfectQuizCount: 1 });
+      }
       
       // 传递所有题目结果用于最终解析显示
       const resultId = `qr-${Date.now()}`;
@@ -264,18 +287,18 @@ export default function QuizSessionPage() {
         <div className={`px-4 pt-3 ${getAnimationClass(2)}`}>
           <button
             onClick={() => setShowKnowledge(!showKnowledge)}
-            className="w-full rounded-xl p-3 border flex items-center justify-between"
+            className="w-full rounded-2xl p-4 border flex items-center justify-between"
             style={{ 
-              backgroundColor: '#eff6ff',
-              borderColor: '#dbeafe'
+              backgroundColor: isScholar ? (theme.bgCard || '#ffffff') : '#eff6ff',
+              borderColor: isScholar ? (theme.border || '#e5e7eb') : '#dbeafe'
             }}
           >
-            <div className="flex items-center gap-2 text-sm" style={{ color: '#1e40af' }}>
+            <div className="flex items-center gap-2 text-sm" style={{ color: isScholar ? (theme.textPrimary || '#111827') : '#1e40af' }}>
               <BookOpen size={14} />
               <span>先回顾知识点：{relatedKP.name}</span>
             </div>
 
-            <ChevronRight size={14} style={{ color: '#60a5fa' }} />
+            <ChevronRight size={14} style={{ color: isScholar ? (theme.textMuted || '#6b7280') : '#60a5fa' }} />
           </button>
 
         </div>
@@ -285,16 +308,16 @@ export default function QuizSessionPage() {
 
       {showKnowledge && relatedKP && (
         <div className={`px-4 pt-2 ${getAnimationClass(3)}`}>
-          <div className="rounded-xl p-4 border" style={{ 
-            backgroundColor: '#eff6ff',
-            borderColor: '#dbeafe'
+          <div className="rounded-2xl p-5 border" style={{ 
+            backgroundColor: isScholar ? (theme.bgCard || '#ffffff') : '#eff6ff',
+            borderColor: isScholar ? (theme.border || '#e5e7eb') : '#dbeafe'
           }}>
-            <h4 className="text-sm font-medium mb-1" style={{ color: '#1e40af' }}>{relatedKP.name}</h4>
-            <p className="text-xs leading-relaxed" style={{ color: '#2563eb' }}>{relatedKP.explanation}</p>
+            <h4 className="text-base font-semibold mb-2" style={{ color: isScholar ? (theme.textPrimary || '#111827') : '#1e40af' }}>{relatedKP.name}</h4>
+            <p className="text-sm leading-relaxed" style={{ color: isScholar ? (theme.textSecondary || '#4b5563') : '#2563eb' }}>{relatedKP.explanation}</p>
             <button
               onClick={() => setShowKnowledge(false)}
-              className="mt-2 text-xs underline"
-              style={{ color: '#3b82f6' }}
+              className="mt-3 text-xs underline"
+              style={{ color: isScholar ? (theme.textMuted || '#6b7280') : '#3b82f6' }}
             >
               收起
             </button>
@@ -306,13 +329,13 @@ export default function QuizSessionPage() {
       )}
 
       {/* Question */}
-      <div className={`px-6 pt-5 ${getAnimationClass(4)}`} style={{ paddingLeft: '24px', paddingRight: '24px' }}>
-        <div className="rounded-2xl p-6 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, padding: '28px' }}>
-          <div className="text-sm mb-3" style={{ color: theme.textMuted, fontSize: '13px' }}>
+      <div className={`px-4 pt-5 ${getAnimationClass(4)}`}>
+        <div className="rounded-3xl border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, padding: isScholar ? '24px' : '30px', boxShadow: isScholar ? 'none' : '0 8px 24px rgba(0,0,0,0.08)' }}>
+          <div className="text-sm mb-3" style={{ color: theme.textMuted, fontSize: '13px', letterSpacing: '0.02em' }}>
             {currentQuestion.type === 'single_choice' ? '单选题' : '多选题'}
           </div>
 
-          <p className="text-lg font-medium leading-relaxed mb-5" style={{ color: theme.textPrimary, fontSize: '17px', lineHeight: '1.7', marginBottom: '20px' }}>{currentQuestion.stem}</p>
+          <p className="font-medium leading-relaxed" style={{ color: theme.textPrimary, fontSize: isScholar ? '20px' : '19px', lineHeight: '1.85', marginBottom: '24px' }}>{currentQuestion.stem}</p>
 
           {/* 题目图片 */}
           {currentQuestion.imageUrl && (
@@ -326,7 +349,7 @@ export default function QuizSessionPage() {
           )}
 
           {/* Options - 动态标签支持更多选项 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isScholar ? '14px' : '16px' }}>
             {currentQuestion.options.map((opt, i) => {
               const isSelected = selectedAnswers.includes(opt.id);
               const isCorrectOption = currentQuestion.correctAnswers.includes(opt.id);
@@ -354,10 +377,10 @@ export default function QuizSessionPage() {
                   <button
                     onClick={() => handleSelectOption(opt.id)}
                     disabled={showResult}
-                    className="w-full flex items-center gap-3 rounded-xl border-2 transition-all text-left"
-                    style={{ ...optionStyle, padding: '16px' }}
+                    className="w-full flex items-center gap-3 rounded-2xl border-2 transition-all text-left"
+                    style={{ ...optionStyle, padding: isScholar ? '16px' : '18px' }}
                   >
-                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0`} style={{
+                    <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0`} style={{
                       backgroundColor: showResult && isCorrectOption
                         ? '#22c55e' : showResult && isSelected && !isCorrectOption
                           ? '#f87171' : isSelected
@@ -371,12 +394,14 @@ export default function QuizSessionPage() {
 
                     <div className="flex-1">
                       <span className="text-xs font-medium mr-2" style={{ color: theme.textMuted }}>{labels[i]}.</span>
-                      <span className="text-sm font-semibold" style={{ 
+                      <span className="font-semibold" style={{ 
                         color: showResult && isCorrectOption 
                           ? '#16a34a' 
                           : showResult && isSelected && !isCorrectOption 
                             ? '#dc2626' 
-                            : theme.textPrimary 
+                            : theme.textPrimary,
+                        fontSize: isScholar ? '15px' : '16px',
+                        lineHeight: 1.6,
                       }}>{cleanText}</span>
                     </div>
                   </button>
@@ -392,7 +417,7 @@ export default function QuizSessionPage() {
       {showResult && currentQuestion && (
         <div className={`px-4 pt-3 ${getAnimationClass(6)}`}>
           {/* 简洁的结果提示 */}
-          <div className="rounded-2xl p-4 border" style={{ 
+          <div className="rounded-2xl p-5 border" style={{ 
             backgroundColor: isCorrect ? '#f0fdf4' : '#fef2f2',
             borderColor: isCorrect ? '#dcfce7' : '#fee2e2'
           }}>
@@ -403,13 +428,14 @@ export default function QuizSessionPage() {
                 <XCircle size={24} style={{ color: '#f87171' }} />
               )}
               <div className="flex-1">
-                <span className="font-medium text-sm" style={{ 
+                <span className="font-semibold" style={{ 
                   color: isCorrect ? '#16a34a' : '#dc2626'
+                  , fontSize: isScholar ? '15px' : '16px'
                 }}>
                   {isCorrect ? '回答正确！' : '回答错误'}
                 </span>
                 {!isCorrect && (
-                  <p className="text-xs mt-1" style={{ color: theme.textMuted }}>
+                  <p className="text-sm mt-1" style={{ color: theme.textMuted }}>
                     正确答案: {currentQuestion.correctAnswers.map(a => {
                       const idx = currentQuestion.options.findIndex(o => o.id === a);
                       return String.fromCharCode(65 + idx);
@@ -423,7 +449,7 @@ export default function QuizSessionPage() {
           {/* AI解析：用户点击才生成，放在这里正好，答完题就可以看 */}
           <div className="mt-3">
             {currentExplanation ? (
-              <div className="text-sm rounded-xl p-3" style={{ 
+              <div className="text-sm rounded-2xl p-4" style={{ 
                 color: '#7e22ce',
                 backgroundColor: '#f3e8ff'
               }}>
@@ -434,7 +460,7 @@ export default function QuizSessionPage() {
               <button
                 onClick={handleGenerateExplanation}
                 disabled={generatingExplanation === currentQuestion.id}
-                className="w-full py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-3 rounded-2xl text-sm flex items-center justify-center gap-2 disabled:opacity-60"
                 style={{ 
                   backgroundColor: '#f3e8ff',
                   color: '#7e22ce'
@@ -448,7 +474,7 @@ export default function QuizSessionPage() {
                 ) : (
                   <>
                     <Sparkles size={14} />
-                    查看AI解析（点击生成）
+                    生成解析（仅缺失时调用AI）
                   </>
                 )}
               </button>
@@ -507,7 +533,7 @@ AI解析：${currentExplanation}
           <button
             onClick={handleSubmitAnswer}
             disabled={selectedAnswers.length === 0}
-            className="w-full font-medium py-3 rounded-xl text-sm shadow-md active:opacity-80 transition-opacity disabled:opacity-50"
+            className="w-full font-semibold py-3.5 rounded-2xl text-base shadow-md active:opacity-80 transition-opacity disabled:opacity-50"
             style={{ 
               backgroundColor: theme.primary,
               color: '#ffffff'
@@ -519,7 +545,7 @@ AI解析：${currentExplanation}
         ) : (
           <button
             onClick={handleNext}
-            className="w-full font-medium py-3 rounded-xl text-sm shadow-md active:opacity-80 transition-opacity"
+            className="w-full font-semibold py-3.5 rounded-2xl text-base shadow-md active:opacity-80 transition-opacity"
             style={{ 
               backgroundColor: theme.primary,
               color: '#ffffff'

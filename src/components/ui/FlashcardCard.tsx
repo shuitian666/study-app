@@ -28,7 +28,7 @@ export default function FlashcardCard({
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
+    <div className="relative w-full max-w-[540px] mx-auto">
       {/* Swipe feedback overlay */}
       {swipeDirection && (
         <div

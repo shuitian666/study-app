@@ -3,65 +3,55 @@
  * 应用主入口 & 路由
  * ============================================================================
  *
- * 【路由机制】自建路由，基于 AppState.currentPage 做 switch 渲染
- * 无需 react-router，navigate() 直接 dispatch NAVIGATE action
+ * 【路由机制】React Router v6
+ * 使用 <Outlet /> 渲染子路由
  *
- * 【新增页面步骤】
- * 1. 在 src/types/index.ts 的 PageName 联合类型中添加新页面名
- * 2. 在 src/pages/ 下创建页面组件
- * 3. 在此文件 import 并在 renderPage() switch 中添加 case
- * 4. 如需隐藏底部 TabBar → 在 TabBar.tsx 的 hiddenPages 中添加
- * 5. 如需全屏（无 scroll-container 包裹）→ 在 isFullScreen 条件中添加
- *
- * 【优化】使用 React.lazy 进行代码分割，减少首屏加载体积
  * ============================================================================
  */
 
-import React, { Suspense, useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '@/store/UserContext';
+import { useTheme } from '@/store/ThemeContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
+import LoginPage from '@/pages/Login';
 import { allBackgrounds } from '@/pages/AvatarEdit';
-import { Loader2 } from 'lucide-react';
 
-// 懒加载所有页面组件，减少首屏加载体积
-const LoginPage = React.lazy(() => import('@/pages/Login'));
-const HomePage = React.lazy(() => import('@/pages/Home'));
-const ProfilePage = React.lazy(() => import('@/pages/Profile'));
-const KnowledgePage = React.lazy(() => import('@/pages/Knowledge'));
-const KnowledgeDetailPage = React.lazy(() => import('@/pages/Knowledge/KnowledgeDetail'));
-const AddKnowledgePage = React.lazy(() => import('@/pages/Knowledge/AddKnowledge'));
-const ImportKnowledgePage = React.lazy(() => import('@/pages/Knowledge/ImportKnowledge'));
-const QuizPage = React.lazy(() => import('@/pages/Quiz'));
-const QuizSessionPage = React.lazy(() => import('@/pages/Quiz/QuizSession'));
-const QuizResultPage = React.lazy(() => import('@/pages/Quiz/QuizResult'));
-const WrongBookPage = React.lazy(() => import('@/pages/Quiz/WrongBook'));
-const KnowledgeMapPage = React.lazy(() => import('@/pages/KnowledgeMap'));
-const ReviewSessionPage = React.lazy(() => import('@/pages/Review'));
-const CheckinPage = React.lazy(() => import('@/features/gamification/checkin'));
-const AchievementsPage = React.lazy(() => import('@/features/gamification/achievements'));
-const ShopPage = React.lazy(() => import('@/features/gamification/shop'));
-const RankingPage = React.lazy(() => import('@/features/gamification/ranking'));
-const LotteryPage = React.lazy(() => import('@/features/gamification/lottery'));
-const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
-const SettingsPage = React.lazy(() => import('@/pages/Settings'));
-const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
-const MailPage = React.lazy(() => import('@/features/gamification/mail'));
-const AvatarEditPage = React.lazy(() => import('@/pages/AvatarEdit'));
-const FlashcardLearningPage = React.lazy(() => import('@/pages/FlashcardLearning'));
+// 全屏页面（不需要 TabBar）- playful 模式
+const playfulFullScreenPages = [
+  'login', 'quiz-result', 'ai-chat', 'quiz-session', 'knowledge-detail',
+  'add-knowledge', 'import-knowledge', 'review-session', 'wrong-book', 'flashcard-learning'
+];
 
-// 加载占位组件
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-  </div>
-);
+// 全屏页面 - scholar 模式（ai-chat 是主 tab，不全屏）
+const scholarFullScreenPages = [
+  'login', 'quiz-result', 'quiz-session', 'knowledge-detail',
+  'add-knowledge', 'import-knowledge', 'review-session', 'wrong-book', 'flashcard-learning'
+];
 
 function AppContent() {
-  const { userState, navigate } = useUser();
-  
+  const { userState } = useUser();
+  const { theme } = useTheme();
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+
+  const uiStyle = theme.uiStyle || 'playful';
+  const fullScreenPages = uiStyle === 'scholar' ? scholarFullScreenPages : playfulFullScreenPages;
+
+  // 应用级路由守卫：未登录强制回登录页，已登录访问登录页则回首页
+  useEffect(() => {
+    if (!userState.isLoggedIn && location.pathname !== '/login') {
+      routerNavigate('/login', { replace: true });
+      return;
+    }
+    if (userState.isLoggedIn && location.pathname === '/login') {
+      routerNavigate('/', { replace: true });
+    }
+  }, [userState.isLoggedIn, location.pathname, routerNavigate]);
+
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
     const backgroundId = userState.user?.background;
@@ -78,7 +68,7 @@ function AppContent() {
     return bg?.pattern;
   }, [userState.user?.background]);
 
-  // 渲染背景装饰图案 - 使用 useCallback 优化
+  // 渲染背景装饰图案
   const renderBackgroundPattern = useCallback((pattern?: string) => {
     if (!pattern) return null;
 
@@ -124,7 +114,6 @@ function AppContent() {
     if (pattern === 'apple-blur') {
       return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-          {/* 苹果风格磨砂玻璃纹理 - 微妙的噪点效果 */}
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <filter id="noiseFilter">
@@ -137,7 +126,6 @@ function AppContent() {
             </defs>
             <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
           </svg>
-          {/* 微妙的渐变光晕 */}
           <div className="absolute top-0 left-1/4 w-1/2 h-32 bg-white/30 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 right-1/4 w-1/2 h-32 bg-white/20 rounded-full blur-3xl"></div>
         </div>
@@ -147,306 +135,67 @@ function AppContent() {
     return null;
   }, []);
 
-  const renderPage = () => {
-    switch (userState.currentPage) {
-      case 'login': return <LoginPage />;
-      case 'home': return <HomePage />;
-      case 'profile': return <ProfilePage />;
-      case 'knowledge': return <KnowledgePage />;
-      case 'knowledge-detail': return <KnowledgeDetailPage />;
-      case 'add-knowledge': return <AddKnowledgePage />;
-      case 'import-knowledge': return <ImportKnowledgePage />;
-      case 'quiz': return <QuizPage />;
-      case 'quiz-session': return <QuizSessionPage />;
-      case 'quiz-result': return <QuizResultPage />;
-      case 'wrong-book': return <WrongBookPage />;
-      case 'knowledge-map': return <KnowledgeMapPage />;
-      case 'review-session': return <ReviewSessionPage />;
-      case 'checkin': return <CheckinPage />;
-      case 'achievements': return <AchievementsPage />;
-      case 'shop': return <ShopPage />;
-      case 'ranking': return <RankingPage />;
-      case 'lottery': return <LotteryPage />;
-      case 'ai-chat': return <AIChatPage />;
-      case 'settings': return <SettingsPage />;
-      case 'inventory': return <InventoryPage />;
-      case 'mail': return <MailPage />;
-      case 'avatar-edit': return <AvatarEditPage />;
-      case 'flashcard-learning': return <FlashcardLearningPage />;
-      default: return <HomePage />;
-    }
-  };
-
-  const isFullScreen = userState.currentPage === 'login' || userState.currentPage === 'quiz-result' || userState.currentPage === 'ai-chat'
-    || userState.currentPage === 'quiz-session' || userState.currentPage === 'knowledge-detail' || userState.currentPage === 'add-knowledge'
-    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'review-session' || userState.currentPage === 'wrong-book'
-    || userState.currentPage === 'flashcard-learning';
-
-  // 五个主页面用于循环滑动切换
-  const mainTabs = ['home', 'knowledge', 'quiz', 'knowledge-map', 'profile'] as const;
-  type MainTab = typeof mainTabs[number];
-  const currentIndex = mainTabs.indexOf(userState.currentPage as MainTab);
-  const isMainTab = currentIndex >= 0;
-
-  // 检测是否为大屏幕（电脑）启用滑动切换，小屏幕（手机）保持原有方式
-  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth > 768);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [offsetX, setOffsetX] = useState(0);
-
-  // 监听屏幕尺寸变化
-  useEffect(() => {
-    const handleResize = () => setIsLargeScreen(window.innerWidth > 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // 恢复大屏幕布局，启用左右换页效果
-  if (!isLargeScreen || !isMainTab || isFullScreen) {
-    return (
-      <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
-        <div className="w-full max-w-[480px] flex flex-col relative">
-          {renderBackgroundPattern(currentPattern)}
-          <div className="flex-1 overflow-y-auto relative z-10">
-            <div className="pb-20 safe-bottom">
-              <Suspense fallback={<LoadingFallback />}>
-                {renderPage()}
-              </Suspense>
-            </div>
-          </div>
-          {userState.isLoggedIn && !isFullScreen && <TabBar />}
-          <AchievementPopup />
-          <LotteryDrawModal />
-        </div>
-      </div>
-    );
-  }
-
-  // 大屏幕 + 主页面：铺满屏幕，同时**一直显示三张牌** - 前/中/后，全程都有内容不会空白
-  const prevIndex = currentIndex === 0 ? mainTabs.length - 1 : currentIndex - 1;
-  const nextIndex = currentIndex === mainTabs.length - 1 ? 0 : currentIndex + 1;
-
-  const renderMainTab = (tabName: string) => {
-    switch (tabName) {
-      case 'home': return <HomePage />;
-      case 'knowledge': return <KnowledgePage />;
-      case 'quiz': return <QuizPage />;
-      case 'knowledge-map': return <KnowledgeMapPage />;
-      case 'profile': return <ProfilePage />;
-      default: return <HomePage />;
-    }
-  };
-
-  // 计算位置：三张均匀分布，全程可见
-  // 每一页宽度 = 屏幕一半，最大 520px
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
-  const pageWidth = Math.min(screenWidth * 0.5, 520);
-  // 计算三个页面的基础位置：都完整可见
-  const leftX = (screenWidth - pageWidth) / 2 - pageWidth; // prev 在 current 左侧，正好一个完整宽度
-  const currX = (screenWidth - pageWidth) / 2;             // current 居中
-  const nextX = (screenWidth - pageWidth) / 2 + pageWidth; // next 在 current 右侧，正好一个完整宽度
-
-  const getTransform = (pageOffset: -1 | 0 | 1) => {
-    const baseX = pageOffset === -1 ? leftX : pageOffset === 0 ? currX : nextX;
-    const scale = pageOffset === 0 ? 1 : 0.92;
-    const rotateY = pageOffset === -1 ? '8deg' : pageOffset === 1 ? '-8deg' : '0deg';
-    const translateZ = pageOffset === 0 ? '30px' : '0px';
-    return `translateX(calc(${baseX}px + ${offsetX * 0.8}px)) scale(${scale}) rotateY(${rotateY}) translateZ(${translateZ})`;
-  };
-
-  const getOpacity = (pageOffset: -1 | 0 | 1) => {
-    if (pageOffset === 0) return 1;
-    // 未拖动时两边页面完全透明
-    if (!isDragging && offsetX === 0) return 0;
-    // 拖动时根据偏移量计算透明度
-    const baseOpacity = 0.4;
-    if (pageOffset === -1 && offsetX > 0) {
-      // 向右拖动时显示左侧页面
-      return Math.min(baseOpacity, offsetX / (pageWidth * 0.5));
-    } else if (pageOffset === 1 && offsetX < 0) {
-      // 向左拖动时显示右侧页面
-      return Math.min(baseOpacity, Math.abs(offsetX) / (pageWidth * 0.5));
-    }
-    return 0;
-  };
-
-  // 拖动结束处理：超过阈值则切换，否则回弹
-  const finishSwipe = () => {
-    if (!isDragging) return;
-    const threshold = pageWidth * 0.3;
-    if (Math.abs(offsetX) > threshold) {
-      if (offsetX > 0) {
-        goToPrev();
-      } else {
-        goToNext();
-      }
-    } else {
-      // 回弹到原位
-      setOffsetX(0);
-    }
-    setIsDragging(false);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // 检查点击目标是否是可点击元素（按钮、链接等）
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
-      return; // 不启动拖动
-    }
-    setIsDragging(true);
-    setStartX(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setOffsetX(e.clientX - startX);
-  };
-
-  const handleMouseUp = () => finishSwipe();
-  const handleMouseLeave = () => finishSwipe();
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // 检查触摸目标是否是可点击元素（按钮、链接等）
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
-      return; // 不启动拖动
-    }
-    setIsDragging(true);
-    setStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    setOffsetX(e.touches[0].clientX - startX);
-  };
-
-  const handleTouchEnd = () => finishSwipe();
-
-  // 按钮点击切换：带动画，滑到位再更新索引
-  const goToPrev = () => {
-    setIsDragging(true);
-    const targetOffset = pageWidth; // 向右滑一个页面宽度
-    setOffsetX(targetOffset);
-    setTimeout(() => {
-      navigate(mainTabs[prevIndex]);
-      setOffsetX(0);
-      setIsDragging(false);
-    }, 400);
-  };
-
-  const goToNext = () => {
-    setIsDragging(true);
-    const targetOffset = -pageWidth; // 向左滑一个页面宽度
-    setOffsetX(targetOffset);
-    setTimeout(() => {
-      navigate(mainTabs[nextIndex]);
-      setOffsetX(0);
-      setIsDragging(false);
-    }, 400);
-  };
+  // 判断是否为全屏页面
+  const isFullScreen = fullScreenPages.includes(userState.currentPage);
+  const contentGutterClass = 'px-4 md:px-5';
 
   return (
-    <div className="fixed inset-0" style={{ background: currentBackground }}>
-      {renderBackgroundPattern(currentPattern)}
-      <div className="h-full flex flex-col relative group"
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="flex-1 relative overflow-hidden perspective-[1200px]">
-          {/* 前一页 - 始终在左边 */}
-          <div
-            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
-            style={{
-              transform: getTransform(-1),
-              opacity: getOpacity(-1),
-              zIndex: 1
-            }}
-          >
-            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
-              <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[prevIndex])}
-              </Suspense>
-            </div>
-          </div>
-
-          {/* 当前页 - 始终在中间 */}
-          <div
-            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
-            style={{
-              transform: getTransform(0),
-              opacity: getOpacity(0),
-              zIndex: 2
-            }}
-          >
-            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
-              <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[currentIndex])}
-              </Suspense>
-            </div>
-          </div>
-
-          {/* 后一页 - 始终在右边 */}
-          <div
-            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
-            style={{
-              transform: getTransform(1),
-              opacity: getOpacity(1),
-              zIndex: 1
-            }}
-          >
-            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
-              <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[nextIndex])}
-              </Suspense>
-            </div>
-          </div>
-
-          {/* 左侧切换按钮 - 透明，鼠标靠近显示 */}
-          <button
-            onClick={goToPrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center
-              text-white/20 hover:text-white/80 bg-black/5 hover:bg-black/20 rounded-full 
-              transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
-          >
-            <span className="text-2xl font-bold">&lt;</span>
-          </button>
-
-          {/* 右侧切换按钮 - 透明，鼠标靠近显示 */}
-          <button
-            onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center
-              text-white/20 hover:text-white/80 bg-black/5 hover:bg-black/20 rounded-full 
-              transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
-          >
-            <span className="text-2xl font-bold">&gt;</span>
-          </button>
-        </div>
-
-        {/* 底部导航保持居中 */}
-        {userState.isLoggedIn && (
-          <div className="relative z-10 max-w-[520px] mx-auto bg-white">
-            <TabBar />
-          </div>
+    <div className="absolute inset-0 flex justify-center">
+      <div className="w-full flex flex-col relative overflow-hidden" style={{ background: currentBackground }}>
+        {uiStyle === 'scholar' && (
+          <>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle at top left, rgba(255,255,255,0.75), transparent 32%), radial-gradient(circle at top right, rgba(222,224,255,0.6), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0))',
+              }}
+            />
+            <div
+              className="absolute left-[-12%] top-[8%] h-40 w-40 rounded-full blur-3xl pointer-events-none"
+              style={{ backgroundColor: 'rgba(255, 223, 160, 0.28)' }}
+            />
+            <div
+              className="absolute right-[-10%] top-[18%] h-48 w-48 rounded-full blur-3xl pointer-events-none"
+              style={{ backgroundColor: 'rgba(222, 224, 255, 0.32)' }}
+            />
+          </>
         )}
-        <AchievementPopup />
-        <LotteryDrawModal />
+        {renderBackgroundPattern(currentPattern)}
+        <div className="flex-1 overflow-y-auto relative z-10">
+          {userState.isLoggedIn ? (
+            <div className={`relative pb-20 safe-bottom ${contentGutterClass}`}>
+              <Outlet />
+            </div>
+          ) : (
+            <LoginPage />
+          )}
+        </div>
+        {userState.isLoggedIn && !isFullScreen && <TabBar />}
+        {userState.isLoggedIn && <AchievementPopup />}
+        {userState.isLoggedIn && <LotteryDrawModal />}
       </div>
     </div>
   );
 }
 
 export default function App() {
+  const { theme } = useTheme();
+  const uiStyle = theme.uiStyle || 'playful';
+
+  const shellBg = uiStyle === 'scholar'
+    ? 'linear-gradient(180deg, #f4f5f7 0%, #eceff3 100%)'
+    : 'radial-gradient(circle at top, #fff3f6 0%, #ffe9ef 35%, #f8f1ff 100%)';
+
+  const frameClass = uiStyle === 'scholar'
+    ? 'relative self-center h-screen w-full max-w-[390px] overflow-hidden bg-white md:h-[calc(100vh-24px)] md:rounded-[24px] md:border md:border-[#e5e7eb] md:shadow-[0_18px_52px_-30px_rgba(17,24,39,0.35)]'
+    : 'relative self-center h-screen w-full max-w-[390px] overflow-hidden bg-white md:h-[calc(100vh-24px)] md:rounded-[36px] md:border md:border-white/80 md:shadow-[0_26px_78px_-30px_rgba(244,114,182,0.35)]';
+
   return (
-    <div className="app-shell bg-transparent">
+    <div className="app-shell min-h-screen items-center md:px-4 md:py-4" style={{ background: shellBg }}>
       <ThemeStyles />
-      <AppContent />
+      <div className={frameClass}>
+        <AppContent />
+      </div>
     </div>
   );
 }

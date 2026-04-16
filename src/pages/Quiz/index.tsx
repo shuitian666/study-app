@@ -72,7 +72,7 @@ export default function QuizPage() {
       <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
         <TopAppBar />
 
-        <div className="px-6 pt-6 space-y-6 pb-32">
+        <div className="px-6 pt-7 space-y-7 pb-32">
           {/* Page Title */}
           <div>
             <h2
@@ -88,7 +88,7 @@ export default function QuizPage() {
           <div className="grid grid-cols-3 gap-3">
             {/* Wrong Count */}
             <div
-              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              className="col-span-1 p-5 rounded-3xl flex flex-col items-center justify-center"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                 boxShadow: 'none',
@@ -108,7 +108,7 @@ export default function QuizPage() {
 
             {/* Total Quizzes */}
             <div
-              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              className="col-span-1 p-5 rounded-3xl flex flex-col items-center justify-center"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                 boxShadow: 'none',
@@ -128,7 +128,7 @@ export default function QuizPage() {
 
             {/* Accuracy */}
             <div
-              className="col-span-1 p-4 rounded-2xl flex flex-col items-center justify-center"
+              className="col-span-1 p-5 rounded-3xl flex flex-col items-center justify-center"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                 boxShadow: 'none',
@@ -151,7 +151,7 @@ export default function QuizPage() {
           {learningState.wrongRecords.length > 0 && (
             <button
               onClick={() => navigate('wrong-book')}
-              className="w-full rounded-2xl p-4 border flex items-center justify-between active:scale-[0.98] transition-transform"
+              className="w-full rounded-3xl p-5 border flex items-center justify-between active:scale-[0.98] transition-transform"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                 borderColor: theme.outlineVariant || '#c5c5d4',
@@ -177,7 +177,7 @@ export default function QuizPage() {
 
           {/* Learning Intention */}
           <div
-            className="p-4 rounded-2xl"
+            className="p-5 rounded-3xl"
             style={{
               backgroundColor: theme.surfaceContainerLowest || '#ffffff',
               boxShadow: 'none',
@@ -197,7 +197,7 @@ export default function QuizPage() {
                 <button
                   key={key}
                   onClick={() => setSelectedIntention(key)}
-                  className="p-2 rounded-xl border text-center transition-all text-sm"
+                  className="px-3 py-2.5 rounded-xl border text-center transition-all text-sm"
                   style={{
                     backgroundColor: selectedIntention === key ? theme.primary : 'transparent',
                     borderColor: selectedIntention === key ? theme.primary : theme.outlineVariant || '#c5c5d4',
@@ -231,7 +231,7 @@ export default function QuizPage() {
                     <button
                       key={subject.id}
                       onClick={() => navigate('quiz-session', { subjectId: subject.id })}
-                      className="w-full rounded-2xl p-4 flex items-center justify-between active:scale-[0.98] transition-transform"
+                      className="w-full rounded-3xl p-5 flex items-center justify-between active:scale-[0.98] transition-transform"
                       style={{
                         backgroundColor: theme.surfaceContainerLowest || '#ffffff',
                         boxShadow: 'none',
@@ -248,7 +248,7 @@ export default function QuizPage() {
                           <div className="text-sm font-semibold" style={{ color: theme.onSurface || '#191c1d' }}>
                             {subject.name}
                           </div>
-                          <div className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                          <div className="text-sm mt-0.5" style={{ color: theme.onSurfaceVariant || '#454652' }}>
                             {questionCount} 道题
                           </div>
                         </div>
@@ -347,7 +347,7 @@ export default function QuizPage() {
 
       {/* 学习倾向选择 - 用户可以指定今天学习重点 */}
       <div className={`px-4 pt-5 ${getAnimationClass(2)}`}>
-        <div className="rounded-2xl p-4 border mb-5" style={{
+        <div className="rounded-2xl p-5 border mb-6" style={{
           background: `linear-gradient(135deg, ${theme.primary}08 0%, ${theme.primaryLight}08 100%)`,
           borderColor: `${theme.primary}30`
         }}>
@@ -355,7 +355,7 @@ export default function QuizPage() {
             <Compass size={16} style={{ color: theme.primary }} />
             <h3 className="text-sm font-semibold" style={{ color: theme.primary }}>今日学习倾向</h3>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {([
               { key: 'mixed', label: '混合练习', desc: '新知识点+复习' },
               { key: 'new', label: '学习新知识点', desc: '优先新内容' },
@@ -365,15 +365,15 @@ export default function QuizPage() {
               <button
                 key={key}
                 onClick={() => setSelectedIntention(key)}
-                className="p-2 rounded-xl border text-left transition-all"
+                className="p-3 rounded-xl border text-left transition-all"
                 style={{
                   backgroundColor: selectedIntention === key ? theme.primary : theme.bgCard,
                   borderColor: selectedIntention === key ? theme.primary : `${theme.primary}30`,
                   color: selectedIntention === key ? '#ffffff' : theme.textPrimary
                 }}
               >
-                <div className="text-sm font-medium">{label}</div>
-                <div className="text-xs" style={{ color: selectedIntention === key ? 'rgba(255,255,255,0.8)' : theme.textSecondary }}>
+                <div className="text-[15px] font-semibold">{label}</div>
+                <div className="text-xs mt-1" style={{ color: selectedIntention === key ? 'rgba(255,255,255,0.8)' : theme.textSecondary }}>
                   {desc}
                 </div>
               </button>
@@ -398,7 +398,7 @@ export default function QuizPage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-5">
             {subjectsWithQuestions.map((subject, index) => {
               const questionCount = learningState.questions.filter(q => q.subjectId === subject.id).length;
               const kpCount = learningState.knowledgePoints.filter(k => k.subjectId === subject.id).length;
@@ -406,7 +406,7 @@ export default function QuizPage() {
                 <div key={subject.id} className={getAnimationClass(3 + index)}>
                   <button
                     onClick={() => navigate('quiz-session', { subjectId: subject.id })}
-                    className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]"
+                      className="w-full rounded-3xl p-6 border shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]"
                     style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
                   >
                     <div className="flex items-center gap-4">
@@ -417,8 +417,8 @@ export default function QuizPage() {
                         {subject.icon}
                       </div>
                       <div className="text-left">
-                        <div className="font-semibold text-base" style={{ color: theme.textPrimary }}>{subject.name}</div>
-                        <div className="text-sm mt-1" style={{ color: theme.textSecondary }}>
+                        <div className="font-semibold text-lg" style={{ color: theme.textPrimary }}>{subject.name}</div>
+                        <div className="text-[15px] mt-1.5" style={{ color: theme.textSecondary }}>
                           {questionCount} 道题 · {kpCount} 个知识点
                         </div>
                       </div>

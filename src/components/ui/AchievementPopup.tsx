@@ -44,6 +44,15 @@ export default function AchievementPopup() {
         type: 'UPDATE_USER',
         payload: { totalPoints: userState.user.totalPoints + rewardCoins }
       });
+      // 记录星币账单
+      gameDispatch({
+        type: 'ADD_COIN_BILL',
+        payload: {
+          type: 'compensation',
+          amount: rewardCoins,
+          description: `成就奖励: ${popup.achievement.name}`,
+        }
+      });
       console.log(`[成就奖励] 获得 ${rewardCoins} 星币`);
     }
     gameDispatch({ type: 'DISMISS_ACHIEVEMENT_POPUP' });

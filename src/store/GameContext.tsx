@@ -7,11 +7,12 @@
  * ============================================================================
  */
 
-import { createContext, useContext, useReducer, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import type {
   CheckinState, Achievement, ShopItem, AchievementPopup, RankEntry,
   TeamState, TeamMemberProgress, LotteryResult, LotteryPopup,
-  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState
+  DrawBalance, UpPoolConfig, UpPoolResult, LotteryPityState,
+  InventoryState, InventoryItem, MailState, MailItem
 } from '@/types';
 import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
@@ -24,6 +25,18 @@ export interface CheckinRewardInfo {
   streakLabel?: string;
 }
 
+// ---------- Coin Bill / 星币账单 ----------
+export type CoinBillType = 'mail_attachment' | 'shop_purchase' | 'lottery_reward' | 'compensation' | 'system';
+
+export interface CoinBillRecord {
+  id: string;
+  type: CoinBillType;
+  amount: number; // 正数为获得，负数为消耗
+  description: string;
+  timestamp: string;
+  relatedId?: string; // 关联ID，如邮件ID
+}
+
 // ---------- Redemption codes ----------
 const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
   '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
@@ -33,6 +46,15 @@ const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; 
 
 export function isValidRedeemCode(code: string): boolean {
   return code in REDEMPTION_CODES;
+}
+
+// ---------- Achievement Check Context ----------
+export interface AchievementCheckContext {
+  knowledgePointCount?: number;
+  masteredCount?: number;
+  totalQuizCount?: number;
+  perfectQuizCount?: number;
+  currentStreak?: number;
 }
 
 // ---------- Helpers ----------
@@ -66,6 +88,11 @@ export interface GameState {
   lotteryPopup: LotteryPopup | null;
   // Redemption codes
   redeemedCodes: string[];
+  // Inventory & Mail
+  inventory: InventoryState;
+  mail: MailState;
+  // Coin Bill / 星币账单
+  coinBills: CoinBillRecord[];
 }
 
 const initialGameState: GameState = {
@@ -80,6 +107,9 @@ const initialGameState: GameState = {
   team: null,
   lotteryPopup: null,
   redeemedCodes: [],
+  inventory: { items: [] },
+  mail: { mails: [], currentVersion: 1 },
+  coinBills: [],
 };
 
 // ---------- Actions ----------
@@ -96,7 +126,19 @@ type GameAction =
   | { type: 'DRAW_UP'; payload: UpPoolResult }
   | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
   | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string };
+  | { type: 'REDEEM_CODE'; payload: string }
+  | { type: 'SET_INVENTORY'; payload: InventoryItem[] }
+  | { type: 'ADD_INVENTORY_ITEM'; payload: InventoryItem }
+  | { type: 'USE_INVENTORY_ITEM'; payload: string }
+  | { type: 'UPDATE_INVENTORY_ITEM'; payload: { id: string; changes: Partial<InventoryItem> } }
+  | { type: 'REMOVE_INVENTORY_ITEM'; payload: string }
+  | { type: 'SET_MAIL'; payload: MailItem[] }
+  | { type: 'ADD_MAIL'; payload: MailItem }
+  | { type: 'UPDATE_MAIL'; payload: { id: string; changes: Partial<MailItem> } }
+  | { type: 'DELETE_MAIL'; payload: string }
+  | { type: 'MARK_MAIL_READ'; payload: string }
+  | { type: 'CLAIM_MAIL_ATTACHMENT'; payload: { mailId: string; attachmentIndex: number } }
+  | { type: 'ADD_COIN_BILL'; payload: Omit<CoinBillRecord, 'id' | 'timestamp'> };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -301,6 +343,108 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'SET_INVENTORY':
+      return { ...state, inventory: { items: action.payload } };
+
+    case 'ADD_INVENTORY_ITEM': {
+      const existingItem = state.inventory.items.find(item => item.id === action.payload.id);
+      if (existingItem) {
+        return {
+          ...state,
+          inventory: {
+            items: state.inventory.items.map(item =>
+              item.id === action.payload.id
+                ? { ...item, quantity: item.quantity + action.payload.quantity }
+                : item
+            ),
+          },
+        };
+      }
+      return { ...state, inventory: { items: [...state.inventory.items, action.payload] } };
+    }
+
+    case 'UPDATE_INVENTORY_ITEM':
+      return {
+        ...state,
+        inventory: {
+          items: state.inventory.items.map(item =>
+            item.id === action.payload.id ? { ...item, ...action.payload.changes } : item
+          ),
+        },
+      };
+
+    case 'USE_INVENTORY_ITEM': {
+      const item = state.inventory.items.find(i => i.id === action.payload);
+      if (!item || item.quantity <= 0 || !item.usable) return state;
+      const newItems = state.inventory.items.map(i =>
+        i.id === action.payload ? { ...i, quantity: i.quantity - 1 } : i
+      ).filter(i => i.quantity > 0);
+      return { ...state, inventory: { items: newItems } };
+    }
+
+    case 'REMOVE_INVENTORY_ITEM':
+      return { ...state, inventory: { items: state.inventory.items.filter(item => item.id !== action.payload) } };
+
+    case 'SET_MAIL':
+      return { ...state, mail: { mails: action.payload, currentVersion: state.mail.currentVersion } };
+
+    case 'ADD_MAIL':
+      return { ...state, mail: { mails: [...state.mail.mails, action.payload], currentVersion: state.mail.currentVersion } };
+
+    case 'UPDATE_MAIL':
+      return {
+        ...state,
+        mail: {
+          mails: state.mail.mails.map(mail =>
+            mail.id === action.payload.id ? { ...mail, ...action.payload.changes } : mail
+          ),
+          currentVersion: state.mail.currentVersion,
+        },
+      };
+
+    case 'DELETE_MAIL':
+      return { ...state, mail: { mails: state.mail.mails.filter(mail => mail.id !== action.payload), currentVersion: state.mail.currentVersion } };
+
+    case 'MARK_MAIL_READ':
+      return {
+        ...state,
+        mail: {
+          mails: state.mail.mails.map(mail =>
+            mail.id === action.payload ? { ...mail, read: true } : mail
+          ),
+          currentVersion: state.mail.currentVersion,
+        },
+      };
+
+    case 'CLAIM_MAIL_ATTACHMENT': {
+      const { mailId, attachmentIndex } = action.payload;
+      return {
+        ...state,
+        mail: {
+          ...state.mail,
+          mails: state.mail.mails.map(mail => {
+            if (mail.id !== mailId) return mail;
+            const newAttachments = mail.attachments.map((a, idx) =>
+              idx === attachmentIndex ? { ...a, claimed: true } : a
+            );
+            return { ...mail, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
+          }),
+          currentVersion: state.mail.currentVersion,
+        },
+      };
+    }
+
+    case 'ADD_COIN_BILL': {
+      const newBill: CoinBillRecord = {
+        ...action.payload,
+        id: `bill-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+      };
+      // 只保留最近100条记录
+      const newBills = [newBill, ...state.coinBills].slice(0, 100);
+      return { ...state, coinBills: newBills };
+    }
+
     default:
       return state;
   }
@@ -311,6 +455,7 @@ interface GameContextType {
   gameState: GameState;
   gameDispatch: React.Dispatch<GameAction>;
   isValidRedeemCode: (code: string) => boolean;
+  checkAchievements: (context?: AchievementCheckContext) => void;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -329,6 +474,9 @@ function getInitialGameState(): GameState {
       upPool: saved.upPool ?? initialGameState.upPool,
       team: saved.team ?? initialGameState.team,
       redeemedCodes: saved.redeemedCodes ?? initialGameState.redeemedCodes,
+      inventory: saved.inventory ?? initialGameState.inventory,
+      mail: saved.mail ?? initialGameState.mail,
+      coinBills: saved.coinBills ?? initialGameState.coinBills,
     };
   }
   return initialGameState;
@@ -355,11 +503,56 @@ export function GameProvider({ children }: { children: ReactNode }) {
       upPool: gameState.upPool,
       team: gameState.team,
       redeemedCodes: gameState.redeemedCodes,
+      inventory: gameState.inventory,
+      mail: gameState.mail,
+      coinBills: gameState.coinBills,
     });
   }, [gameState]);
 
+  // 成就检测函数（事件驱动模式）
+  const checkAchievements = useCallback((context?: AchievementCheckContext) => {
+    if (!context) return;
+
+    const {
+      knowledgePointCount = 0,
+      masteredCount = 0,
+      // totalQuizCount: 累计答题次数（暂无对应成就，保留接口扩展）
+      perfectQuizCount = 0,
+      currentStreak,
+    } = context;
+
+    const newUnlocks: string[] = [];
+
+    // 成就检测 - 根据实际成就ID调整
+    // 1. 初次学习 (ach-1): 知识点数 >= 1
+    if (knowledgePointCount >= 1) {
+      newUnlocks.push('ach-1');
+    }
+    // 2. 初窥门径 (ach-6): 掌握10个知识点
+    if (masteredCount >= 10) {
+      newUnlocks.push('ach-6');
+    }
+    // 3. 知识达人 (ach-5): 掌握50个知识点
+    if (masteredCount >= 50) {
+      newUnlocks.push('ach-5');
+    }
+    // 4. 满分达人 (ach-7): 获得满分
+    if (perfectQuizCount > 0) {
+      newUnlocks.push('ach-7');
+    }
+    // 5. 坚持一周 (ach-3): 连续签到7天
+    if (currentStreak && currentStreak >= 7) {
+      newUnlocks.push('ach-3');
+    }
+
+    // 触发解锁
+    newUnlocks.forEach(achId => {
+      gameDispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: achId });
+    });
+  }, [gameDispatch]);
+
   return (
-    <GameContext.Provider value={{ gameState, gameDispatch, isValidRedeemCode }}>
+    <GameContext.Provider value={{ gameState, gameDispatch, isValidRedeemCode, checkAchievements }}>
       {children}
     </GameContext.Provider>
   );

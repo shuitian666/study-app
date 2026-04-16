@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import type { ProficiencyLevel } from '@/types';
@@ -10,6 +11,7 @@ import { Undo2 } from 'lucide-react';
 export default function AddKnowledgePage() {
   const { navigate } = useUser();
   const { learningState, learningDispatch, undo, _canUndo } = useLearning();
+  const { checkAchievements } = useGame();
   const { theme } = useTheme();
 
   // 动画效果 - 使用次级界面动画设置
@@ -60,6 +62,12 @@ export default function AddKnowledgePage() {
       createdAt: new Date().toISOString(),
     };
     learningDispatch({ type: 'ADD_KNOWLEDGE_POINT', payload: newKP });
+
+    // Check achievements
+    const kpCount = learningState.knowledgePoints.length;
+    const masteredCount = learningState.knowledgePoints.filter(kp => kp.proficiency === 'master').length;
+    checkAchievements({ knowledgePointCount: kpCount + 1, masteredCount });
+
     navigate('knowledge');
   };
 

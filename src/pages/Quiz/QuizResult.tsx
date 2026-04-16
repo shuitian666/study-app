@@ -17,6 +17,7 @@ import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 
 import { Trophy, RotateCcw, Home, BookOpen, ArrowRight, Sparkles, Target, CheckCircle2, FileText, Loader2, MessageSquare } from 'lucide-react';
 
@@ -88,13 +89,8 @@ export default function QuizResultPage() {
     : [];
 
   useEffect(() => {
-    const today = new Date().toDateString();
-    const todayResults = learningState.quizResults.filter(r => 
-      new Date(r.completedAt).toDateString() === today
-    );
-    const totalToday = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
-    setTodayQuestions(totalToday);
-  }, [learningState.quizResults]);
+    setTodayQuestions(getTodayLearningProgress(learningState).totalCount);
+  }, [learningState]);
 
   // 预生成下一阶段题目
   const handlePreGenerate = async () => {

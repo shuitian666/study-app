@@ -16,6 +16,7 @@
 
 import { useState, useRef, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Sparkles, Upload, X } from 'lucide-react';
 
@@ -123,6 +124,7 @@ const defaultAvatars = ['👤', '🦊', '🐰', '🐼', '🦁', '🐨', '🐯', 
 
 export default function AvatarEditPage() {
   const { userState, userDispatch, navigate } = useUser();
+  const { gameState } = useGame();
   const user = userState.user;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -199,7 +201,7 @@ export default function AvatarEditPage() {
   // 从背包中检查是否已拥有该头像框
   const isFrameUnlocked = (frame: FrameConfig) => {
     // 所有稀有度都检查背包，使用名称匹配
-    const hasInInventory = userState.inventory.items.some(
+    const hasInInventory = gameState.inventory.items.some(
       item => item.type === 'avatar_frame' && item.name === frame.name
     );
     // 兼容旧数据：同时检查原来的解锁列表
@@ -210,7 +212,7 @@ export default function AvatarEditPage() {
   // 从背包中检查是否已拥有该称号
   const isTitleUnlocked = (title: TitleConfig) => {
     // 检查背包，使用名称匹配
-    const hasInInventory = userState.inventory.items.some(
+    const hasInInventory = gameState.inventory.items.some(
       item => item.type === 'title' && item.name === title.name
     );
     return hasInInventory;
@@ -219,7 +221,7 @@ export default function AvatarEditPage() {
   // 从背包中检查是否已拥有该背景
   const isBackgroundUnlocked = (bg: BackgroundConfig) => {
     // 所有稀有度都检查背包，使用名称匹配
-    const hasInInventory = userState.inventory.items.some(
+    const hasInInventory = gameState.inventory.items.some(
       item => item.type === 'background' && item.name === bg.name
     );
     // 兼容旧数据：同时检查原来的解锁列表

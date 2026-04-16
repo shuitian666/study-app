@@ -11,8 +11,17 @@ export function usePreGenerate() {
 
   const getSavedExplanation = useCallback((questionId: string): string | null => {
     const saved = learningState.questionExplanations.find(e => e.questionId === questionId);
-    return saved ? saved.explanation : null;
-  }, [learningState.questionExplanations]);
+    if (saved?.explanation?.trim()) {
+      return saved.explanation;
+    }
+
+    const question = learningState.questions.find(q => q.id === questionId);
+    if (question?.explanation?.trim()) {
+      return question.explanation;
+    }
+
+    return null;
+  }, [learningState.questionExplanations, learningState.questions]);
 
   /**
    * Pre-generate explanations for existing questions
@@ -26,7 +35,7 @@ export function usePreGenerate() {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       
-      // Skip if already has explanation
+      // Skip if explanation already exists (saved or question built-in explanation)
       if (getSavedExplanation(q.id)) {
         onProgress?.(i + 1, total);
         continue;
@@ -118,8 +127,8 @@ export function usePreGenerate() {
   }, [learningState.knowledgePoints, learningState.questions, learningDispatch]);
 
   /**
-   * 按需生成单个题目的解析（用户点击才生成，不预先生成）
-   * 按照用户需求：点击才生成，节省token
+   * 按需生成单个题目的解析
+   * 优先复用已存在解析，仅在缺失时调用 AI
    */
   const generateExplanationOnDemand = useCallback(async (
     questionId: string,
@@ -129,7 +138,7 @@ export function usePreGenerate() {
     knowledgePointName?: string,
     subjectName?: string,
   ): Promise<string> => {
-    // 如果已经生成过，直接返回
+    // 如果已有解析（包含题目自带解析），直接返回
     const existing = getSavedExplanation(questionId);
     if (existing) return existing;
 

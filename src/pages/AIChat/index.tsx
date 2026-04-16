@@ -16,9 +16,11 @@ import { Send, Trash2, Sparkles, Settings2 } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useAIChat } from '@/store/AIChatContext';
+import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
+import { TopAppBar } from '@/components/layout';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
-import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
+import { checkBackendAvailable, fetchModels, getAIConfig } from '@/services/aiClient';
 import { calculateNewProficiency } from '@/utils/review';
 import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
 import ChatBubble from './ChatBubble';
@@ -72,16 +74,21 @@ export default function AIChatPage() {
 
   useEffect(() => {
     const config = getAIConfig();
-    // 豆包模式需要检查 API Key 是否存在
     if (config.provider === 'douban') {
-      if (config.apiKey && config.apiKey.trim().length > 0) {
-        setBackendMode('online');
-      } else {
-        setBackendMode('offline');
-      }
+      setBackendMode(config.apiKey?.trim() && config.modelId?.trim() ? 'online' : 'offline');
       return;
     }
-    // OpenClaw和其他模式检测本地后端
+
+    if (config.provider === 'openclaw') {
+      fetchModels()
+        .then(providers => {
+          const openclaw = providers.find(p => p.name === 'openclaw');
+          setBackendMode(openclaw?.available ? 'online' : 'offline');
+        })
+        .catch(() => setBackendMode('offline'));
+      return;
+    }
+
     checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
   }, []);
 
@@ -133,10 +140,16 @@ export default function AIChatPage() {
       setStreamingMsgId(null);
       aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
 
-      // 豆包模式不需要检测本地后端
       const config = getAIConfig();
       if (config.provider === 'douban') {
-        setBackendMode('online');
+        setBackendMode(config.apiKey?.trim() && config.modelId?.trim() ? 'online' : 'offline');
+      } else if (config.provider === 'openclaw') {
+        fetchModels()
+          .then(providers => {
+            const openclaw = providers.find(p => p.name === 'openclaw');
+            setBackendMode(openclaw?.available ? 'online' : 'offline');
+          })
+          .catch(() => setBackendMode('offline'));
       } else {
         checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
       }
@@ -247,31 +260,70 @@ export default function AIChatPage() {
     setStreamingMsgId(null);
   };
 
+  const { theme } = useTheme();
+  const uiStyle = theme.uiStyle || 'playful';
+
   const config = getAIConfig();
   const modeLabel = backendMode === 'online'
     ? PROVIDER_NAMES[config.provider] || config.provider
     : '离线模式';
 
-  return (
-    <div className="absolute inset-0 flex flex-col bg-bg">
-      <PageHeader
-        title="AI 问答"
-        onBack={() => navigate('home')}
-        rightAction={
-          <div className="flex items-center gap-2">
-            {messages.length > 0 && (
-              <button onClick={handleClear} className="text-text-muted active:opacity-60">
-                <Trash2 size={18} />
-              </button>
-            )}
-            <button onClick={() => setShowSettings(true)} className="text-text-muted active:opacity-60">
-              <Settings2 size={18} />
-            </button>
-          </div>
-        }
-      />
+  const actionButtons = (
+    <div className="flex items-center gap-1">
+      {messages.length > 0 && (
+        <button
+          onClick={handleClear}
+          className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100"
+          style={{ color: theme.textMuted || '#757684' }}
+        >
+          <Trash2 size={18} />
+        </button>
+      )}
+      <button
+        onClick={() => setShowSettings(true)}
+        className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-100"
+        style={{ color: theme.textMuted || '#757684' }}
+      >
+        <Settings2 size={18} />
+      </button>
+    </div>
+  );
 
-      <div className="px-4 py-1.5 text-center shrink-0">
+  return (
+    <div
+      className="flex flex-col"
+      style={{
+        backgroundColor: uiStyle === 'scholar' ? (theme.bg || '#f8f9fa') : 'var(--color-bg)',
+        position: 'absolute',
+        inset: 0,
+      }}
+    >
+      {uiStyle === 'scholar' ? (
+        <TopAppBar
+          subtitle="AI TUTOR SESSION"
+          showAvatar={false}
+          rightContent={actionButtons}
+        />
+      ) : (
+        <PageHeader
+          title="AI 问答"
+          onBack={() => navigate('home')}
+          rightAction={
+            <div className="flex items-center gap-2">
+              {messages.length > 0 && (
+                <button onClick={handleClear} className="text-text-muted active:opacity-60">
+                  <Trash2 size={18} />
+                </button>
+              )}
+              <button onClick={() => setShowSettings(true)} className="text-text-muted active:opacity-60">
+                <Settings2 size={18} />
+              </button>
+            </div>
+          }
+        />
+      )}
+
+      <div className="shrink-0 px-5 py-3 text-center">
         <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${
           backendMode === 'online'
             ? 'bg-green-50 text-green-600'
@@ -289,30 +341,37 @@ export default function AIChatPage() {
 
       <div className="flex-1 overflow-y-auto pb-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full px-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-4">
-              <Sparkles size={28} className="text-violet-500" />
+          <div className="flex min-h-full items-center px-5 pb-10 pt-10 md:px-6">
+            <div
+              className="w-full rounded-[28px] border px-6 py-7 text-center"
+              style={{
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.74))',
+                borderColor: 'rgba(255,255,255,0.82)',
+                boxShadow: '0 24px 48px -36px rgba(15,23,42,0.26)',
+              }}
+            >
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'linear-gradient(135deg, #e8edff, #f6e8ff)' }}>
+                <Sparkles size={28} className="text-violet-500" />
+              </div>
+
+              <h3 className="text-lg font-semibold mb-1" style={{ color: theme.onSurface || '#191c1d' }}>AI 学习助手</h3>
+              <p className="text-sm leading-7" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                可以让它解释知识点、拆题思路、补一题练习，或者把这次对话直接收进知识库。
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-2.5">
+                {['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点'].map(q => (
+                  <button
+                    key={q}
+                    onClick={() => { setInput(q); }}
+                    className="rounded-full border px-3.5 py-2 text-xs active:opacity-70"
+                    style={{ backgroundColor: '#f8f7ff', color: '#6d28d9', borderColor: '#ebe7ff' }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
-
-            <h3 className="text-base font-semibold text-text-primary mb-1">AI 学习助手</h3>
-            <p className="text-sm text-text-muted leading-relaxed">
-              有什么不懂的知识点？问我吧！
-              <br />
-              我会帮你解答并出题测试。
-            </p>
-
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点'].map(q => (
-                <button
-                  key={q}
-                  onClick={() => { setInput(q); }}
-                  className="text-xs bg-violet-50 text-violet-600 px-3 py-1.5 rounded-full border border-violet-100 active:opacity-70"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-
           </div>
         ) : (
           <div className="pt-3">
@@ -336,23 +395,44 @@ export default function AIChatPage() {
         )}
       </div>
 
-      <div className="shrink-0 bg-white border-t border-border px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-        <div className="flex items-center gap-2">
+      <div
+        className="shrink-0 border-t px-4 py-3"
+        style={{
+          backgroundColor: uiStyle === 'scholar' ? '#ffffff' : 'white',
+          borderColor: uiStyle === 'scholar' ? 'rgba(197,197,212,0.3)' : 'var(--color-border)',
+          paddingBottom: uiStyle === 'scholar' ? 'calc(72px + env(safe-area-inset-bottom))' : 'calc(12px + env(safe-area-inset-bottom))',
+        }}
+      >
+        <div
+          className="flex items-center gap-2 rounded-[20px] border p-2"
+          style={uiStyle === 'scholar'
+            ? {
+                backgroundColor: '#f8f9fb',
+                borderColor: 'rgba(197,197,212,0.3)',
+                boxShadow: '0 12px 24px -24px rgba(15,23,42,0.18)',
+              }
+            : undefined}
+        >
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder="输入你的问题..."
-            className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-shadow"
+            style={{
+              backgroundColor: uiStyle === 'scholar' ? (theme.surfaceContainerHigh || '#e7e8e9') : '#f1f5f9',
+              color: theme.onSurface || '#191c1d',
+            }}
             disabled={isLoading}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center active:opacity-80 transition-opacity disabled:opacity-40"
+            className="w-10 h-10 rounded-xl flex items-center justify-center active:opacity-80 transition-opacity disabled:opacity-40"
+            style={{ backgroundColor: theme.primary || '#24389c' }}
           >
-            <Send size={18} />
+            <Send size={18} className="text-white" />
           </button>
         </div>
       </div>

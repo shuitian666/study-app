@@ -95,10 +95,10 @@ export default function SettingsList({
       <button
         key={item.key}
         onClick={item.onClick}
-        className="w-full flex items-center justify-between p-4 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3.5 transition-colors"
         style={{
           backgroundColor: 'transparent',
-          borderBottom: isLast ? 'none' : `1px solid ${theme.outlineVariant || '#c5c5d4'}10`,
+          borderBottom: isLast ? 'none' : `1px solid ${theme.outlineVariant || '#c5c5d4'}06`,
         }}
         onMouseEnter={(e) => {
           if (!item.isDanger) {
@@ -109,11 +109,11 @@ export default function SettingsList({
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3.5">
           {/* 图标 */}
           {item.icon && (
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: getIconBg(item.iconColor) }}
             >
               <span style={{ color: item.iconColor?.replace('text-', '') }}>
