@@ -230,6 +230,18 @@ export default function KnowledgePage() {
                 <Sparkles size={18} />
               </button>
               <button
+                onClick={() => navigate('import-knowledge')}
+                className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+                  color: theme.primary || '#24389c',
+                  border: '1px solid rgba(197,197,212,0.32)',
+                }}
+                title="本地导入"
+              >
+                <Upload size={18} />
+              </button>
+              <button
                 onClick={handleCloudImport}
                 className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
                 style={{
