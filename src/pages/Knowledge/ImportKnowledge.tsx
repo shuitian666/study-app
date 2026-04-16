@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Copy, FileJson, RefreshCw, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/ui/Common';
-import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
@@ -795,7 +794,6 @@ const parseSubmittedSource = (
 export default function ImportKnowledgePage() {
   const { navigate } = useUser();
   const { learningState, learningDispatch, recordHistory } = useLearning();
-  const { checkAchievements } = useGame();
   const { theme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1020,15 +1018,11 @@ export default function ImportKnowledgePage() {
         },
       });
 
-      const nextKnowledgePointCount = learningState.knowledgePoints.length + importedKnowledgePoints.length;
-      const masteredCount = learningState.knowledgePoints.filter(kp => kp.proficiency === 'master').length;
-      checkAchievements({ knowledgePointCount: nextKnowledgePointCount, masteredCount });
       navigate('flashcard-learning');
     } finally {
       setIsImporting(false);
     }
   }, [
-    checkAchievements,
     isImporting,
     learningDispatch,
     learningState.chapters,

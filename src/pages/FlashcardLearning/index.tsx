@@ -12,7 +12,6 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
-import { useGame } from '@/store/GameContext';
 import { ArrowLeft, Home, BookOpen, ChevronRight, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
@@ -110,7 +109,6 @@ export default function FlashcardLearningPage() {
   const { navigate, userState } = useUser();
   const { theme } = useTheme();
   const { learningState, learningDispatch } = useLearning();
-  const { checkAchievements } = useGame();
   const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
   const importedStudySession = learningState.importedStudySession;
   const importSessionIdsKey = importedStudySession?.knowledgePointIds.join(',') ?? '';
@@ -358,14 +356,6 @@ export default function FlashcardLearningPage() {
     } else {
       setSwipeDirection('down');
     }
-
-    // Check achievements
-    const kps = learningState.knowledgePoints;
-    const masteredCount = kps.filter(kp => kp.proficiency === 'master').length;
-    checkAchievements({
-      knowledgePointCount: kps.length,
-      masteredCount,
-    });
 
     // 延迟后跳转到下一张
     setTimeout(() => {
