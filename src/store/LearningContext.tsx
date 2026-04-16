@@ -81,6 +81,7 @@ type LearningAction =
   | { type: 'ADD_KNOWLEDGE_POINT'; payload: KnowledgePoint }
   | { type: 'UPDATE_KNOWLEDGE_POINT'; payload: Partial<KnowledgePoint> & { id: string } }
   | { type: 'DELETE_KNOWLEDGE_POINT'; payload: string }
+  | { type: 'DELETE_IMPORT_BATCH'; payload: { dateKey: string } }
   | { type: 'UPDATE_PROFICIENCY'; payload: { id: string; proficiency: ProficiencyLevel } }
   | { type: 'ADD_QUIZ_RESULT'; payload: QuizResult }
   | { type: 'ADD_WRONG_RECORD'; payload: WrongRecord }
@@ -102,6 +103,34 @@ type LearningAction =
   | { type: 'SET_MEMORY_TIP'; payload: { knowledgePointId: string; tip: string } }
   | { type: 'UPDATE_FSRS_CARD'; payload: { knowledgePointId: string; updates: Partial<KnowledgePointExtended> } };
 
+function getImportDateKey(createdAt?: string): string {
+  if (!createdAt) {
+    return '';
+  }
+
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(createdDate.getTime())) {
+    return createdAt.slice(0, 10);
+  }
+
+  const year = createdDate.getFullYear();
+  const month = String(createdDate.getMonth() + 1).padStart(2, '0');
+  const day = String(createdDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isLocalImportedKnowledgePoint(kp: KnowledgePointExtended, dateKey?: string): boolean {
+  if (kp.source !== 'import' || !kp.id.startsWith('kp-import-')) {
+    return false;
+  }
+
+  if (!dateKey) {
+    return true;
+  }
+
+  return getImportDateKey(kp.createdAt) === dateKey;
+}
+
 function learningReducer(state: LearningState, action: LearningAction): LearningState {
   switch (action.type) {
     case 'ADD_SUBJECT':
@@ -112,6 +141,35 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
       return { ...state, knowledgePoints: [...state.knowledgePoints, action.payload as KnowledgePointExtended] };
     case 'DELETE_KNOWLEDGE_POINT':
       return { ...state, knowledgePoints: state.knowledgePoints.filter(kp => kp.id !== action.payload) };
+    case 'DELETE_IMPORT_BATCH': {
+      const importedBatchIds = new Set(
+        state.knowledgePoints
+          .filter(kp => isLocalImportedKnowledgePoint(kp, action.payload.dateKey))
+          .map(kp => kp.id)
+      );
+
+      if (importedBatchIds.size === 0) {
+        return state;
+      }
+
+      const removedQuestionIds = new Set(
+        state.questions
+          .filter(question => question.knowledgePointId && importedBatchIds.has(question.knowledgePointId))
+          .map(question => question.id)
+      );
+
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.filter(kp => !importedBatchIds.has(kp.id)),
+        questions: state.questions.filter(question => !removedQuestionIds.has(question.id)),
+        wrongRecords: state.wrongRecords.filter(record => !removedQuestionIds.has(record.questionId)),
+        questionExplanations: state.questionExplanations.filter(
+          explanation => !removedQuestionIds.has(explanation.questionId)
+        ),
+        todayReviewItems: state.todayReviewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
+        todayNewItems: state.todayNewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
+      };
+    }
     case 'UPDATE_KNOWLEDGE_POINT':
       return {
         ...state,

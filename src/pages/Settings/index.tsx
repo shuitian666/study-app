@@ -16,6 +16,7 @@ import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import type { AIConfig } from '@/types';
 import { DOUBAN_API_URL, fetchModels, getAIConfig, resetBackendCache, setAIConfig } from '@/services/aiClient';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle, Palette } from 'lucide-react';
 
 // 豆包默认模型
@@ -177,12 +178,10 @@ export default function SettingsPage() {
 
   // 计算今日完成数量
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const todayResults = learningState.quizResults.filter(r => r.completedAt.startsWith(today));
-    const total = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
+    const total = getTodayLearningProgress(learningState).totalCount;
     setTodayCompleted(total);
     setGoalAchieved(total >= dailyGoal);
-  }, [learningState.quizResults, dailyGoal]);
+  }, [learningState, dailyGoal]);
 
   // 保存学习目标
   const handleSaveGoal = () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle2, Copy, FileJson, RefreshCw, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Copy, FileJson, RefreshCw, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/ui/Common';
 import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
@@ -55,6 +55,11 @@ interface TemplateDefinition {
   title: string;
   description: string;
   example: string;
+}
+
+interface ParsedQuestionBlock {
+  questionLines: string[];
+  explanationLines: string[];
 }
 
 const DEFAULT_SUBJECT: Subject = {
@@ -333,9 +338,30 @@ const parseKnowledgeQuestionTemplate = (content: string): {
     const lines = block.split('\n');
     const knowledgeLines: string[] = [];
     const contentLines: string[] = [];
-    const questionLines: string[] = [];
-    const explanationLines: string[] = [];
+    const questionBlocks: ParsedQuestionBlock[] = [];
+    let currentQuestionBlock: ParsedQuestionBlock | null = null;
     let section: 'knowledge' | 'content' | 'question' | 'explanation' = 'knowledge';
+
+    const ensureCurrentQuestionBlock = () => {
+      if (!currentQuestionBlock) {
+        currentQuestionBlock = {
+          questionLines: [],
+          explanationLines: [],
+        };
+      }
+
+      return currentQuestionBlock;
+    };
+
+    const flushCurrentQuestionBlock = () => {
+      if (
+        currentQuestionBlock
+        && (currentQuestionBlock.questionLines.length > 0 || currentQuestionBlock.explanationLines.length > 0)
+      ) {
+        questionBlocks.push(currentQuestionBlock);
+      }
+      currentQuestionBlock = null;
+    };
 
     lines.forEach((rawLine, lineIndex) => {
       const line = rawLine.trim();
@@ -365,9 +391,10 @@ const parseKnowledgeQuestionTemplate = (content: string): {
       }
 
       if (questionMatch) {
+        flushCurrentQuestionBlock();
         section = 'question';
         if (questionMatch[1]) {
-          questionLines.push(questionMatch[1].trim());
+          ensureCurrentQuestionBlock().questionLines.push(questionMatch[1].trim());
         }
         return;
       }
@@ -375,7 +402,7 @@ const parseKnowledgeQuestionTemplate = (content: string): {
       if (explanationMatch) {
         section = 'explanation';
         if (explanationMatch[1]) {
-          explanationLines.push(explanationMatch[1].trim());
+          ensureCurrentQuestionBlock().explanationLines.push(explanationMatch[1].trim());
         }
         return;
       }
@@ -390,15 +417,17 @@ const parseKnowledgeQuestionTemplate = (content: string): {
       } else if (section === 'content') {
         contentLines.push(line);
       } else if (section === 'question') {
-        questionLines.push(line);
+        ensureCurrentQuestionBlock().questionLines.push(line);
       } else {
-        explanationLines.push(line);
+        ensureCurrentQuestionBlock().explanationLines.push(line);
       }
     });
 
+    flushCurrentQuestionBlock();
+
     const knowledgePointId = `template-kp-${index + 1}`;
     const knowledgeName = knowledgeLines.join(' ').trim() || `知识点 ${index + 1}`;
-    const explanation = ensureExplanation(contentLines.join('\n') || explanationLines.join('\n'));
+    const explanation = ensureExplanation(contentLines.join('\n'));
 
     knowledgePoints.push({
       id: knowledgePointId,
@@ -407,19 +436,22 @@ const parseKnowledgeQuestionTemplate = (content: string): {
       type: 'knowledge',
     });
 
-    const question = parseQuestionFromTemplate(
-      questionLines,
-      explanationLines.join('\n') || explanation,
-      knowledgePointId,
-      index,
-    );
+    const baseQuestionIndex = questions.length;
+    questionBlocks.forEach((questionBlock, questionIndex) => {
+      const question = parseQuestionFromTemplate(
+        questionBlock.questionLines,
+        questionBlock.explanationLines.join('\n') || explanation,
+        knowledgePointId,
+        baseQuestionIndex + questionIndex,
+      );
 
-    if (question) {
-      questions.push({
-        ...question,
-        knowledgePointName: knowledgeName,
-      });
-    }
+      if (question) {
+        questions.push({
+          ...question,
+          knowledgePointName: knowledgeName,
+        });
+      }
+    });
   });
 
   return { knowledgePoints, questions };
@@ -659,6 +691,7 @@ export default function ImportKnowledgePage() {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [copiedTemplateId, setCopiedTemplateId] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const availableSubjects = useMemo(
     () => (learningState.subjects.length > 0 ? learningState.subjects : [DEFAULT_SUBJECT]),
@@ -884,6 +917,29 @@ export default function ImportKnowledgePage() {
   const previewCards = previewData?.knowledgePoints.slice(0, 5) ?? [];
   const previewCount = previewData?.knowledgePoints.length ?? 0;
   const showParseControls = !!submittedSource && submittedSource.sourceHint !== 'json';
+  const questionPreviewMap = useMemo(() => {
+    const map = new Map<string, ImportedQuestionDraft[]>();
+
+    if (!previewData) {
+      return map;
+    }
+
+    previewData.questions.forEach(question => {
+      const keys = [
+        question.knowledgePointId?.trim(),
+        normalizeKey(question.knowledgePointName),
+      ].filter(Boolean) as string[];
+
+      keys.forEach(key => {
+        const existing = map.get(key) ?? [];
+        existing.push(question);
+        map.set(key, existing);
+      });
+    });
+
+    return map;
+  }, [previewData]);
+  const previewQuestions = previewData?.questions.slice(0, 5) ?? [];
 
   return (
     <div className="page-scroll pb-4">
@@ -898,39 +954,56 @@ export default function ImportKnowledgePage() {
                 默认优先按模板结构解析，但不强制；普通 TXT 或段落内容也会兜底处理。
               </p>
             </div>
+            <button
+              onClick={() => setShowTemplates(prev => !prev)}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-colors"
+              style={{ backgroundColor: theme.border, color: theme.textPrimary }}
+            >
+              {showTemplates ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {showTemplates ? '收起模板' : '查看模板'}
+            </button>
           </div>
 
-          <div className="space-y-3">
-            {TEMPLATE_LIST.map(template => (
-              <div
-                key={template.id}
-                className="rounded-2xl p-4"
-                style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{template.title}</p>
-                    <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>{template.description}</p>
-                  </div>
-                  <button
-                    onClick={() => handleCopyTemplate(template)}
-                    className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5"
-                    style={{ backgroundColor: theme.border, color: theme.textPrimary }}
-                  >
-                    <Copy size={14} />
-                    {copiedTemplateId === template.id ? '已复制' : '一键复制'}
-                  </button>
-                </div>
-
-                <pre
-                  className="mt-3 rounded-xl p-3 text-xs whitespace-pre-wrap break-words overflow-x-auto"
-                  style={{ backgroundColor: theme.bgCard, color: theme.textSecondary }}
+          {showTemplates ? (
+            <div className="space-y-3">
+              {TEMPLATE_LIST.map(template => (
+                <div
+                  key={template.id}
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}
                 >
-                  {template.example}
-                </pre>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: theme.textPrimary }}>{template.title}</p>
+                      <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>{template.description}</p>
+                    </div>
+                    <button
+                      onClick={() => handleCopyTemplate(template)}
+                      className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5"
+                      style={{ backgroundColor: theme.border, color: theme.textPrimary }}
+                    >
+                      <Copy size={14} />
+                      {copiedTemplateId === template.id ? '已复制' : '一键复制'}
+                    </button>
+                  </div>
+
+                  <pre
+                    className="mt-3 rounded-xl p-3 text-xs whitespace-pre-wrap break-words overflow-x-auto"
+                    style={{ backgroundColor: theme.bgCard, color: theme.textSecondary }}
+                  >
+                    {template.example}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="rounded-xl px-3 py-3 text-xs"
+              style={{ backgroundColor: theme.bg, color: theme.textMuted }}
+            >
+              已收起模板示例，点击右上角“查看模板”后可展开三种导入模板与一键复制。
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 rounded-xl p-1" style={{ backgroundColor: theme.border }}>
@@ -1120,27 +1193,117 @@ export default function ImportKnowledgePage() {
             </div>
 
             <div className="space-y-3">
-              {previewCards.map((item, index) => (
-                <div
-                  key={`${item.id || item.name}-${index}`}
-                  className="rounded-2xl p-4"
-                  style={{ backgroundColor: theme.bgCard, border: `1px solid ${theme.border}` }}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: theme.border, color: theme.textSecondary }}>
-                      卡片 {index + 1}
-                    </span>
-                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${theme.primary}12`, color: theme.primary }}>
-                      {RECOGNIZED_MODE_LABELS[previewData.recognizedMode]}
-                    </span>
+              {previewCards.map((item, index) => {
+                const relatedQuestions =
+                  questionPreviewMap.get(item.id?.trim() || '')
+                  ?? questionPreviewMap.get(normalizeKey(item.name))
+                  ?? [];
+
+                return (
+                  <div
+                    key={`${item.id || item.name}-${index}`}
+                    className="rounded-2xl p-4"
+                    style={{ backgroundColor: theme.bgCard, border: `1px solid ${theme.border}` }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: theme.border, color: theme.textSecondary }}>
+                          卡片 {index + 1}
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${theme.primary}12`, color: theme.primary }}>
+                          {RECOGNIZED_MODE_LABELS[previewData.recognizedMode]}
+                        </span>
+                      </div>
+                      <span
+                        className="text-xs px-2.5 py-1 rounded-full font-medium shrink-0"
+                        style={{
+                          backgroundColor: relatedQuestions.length > 0 ? '#ecfdf5' : theme.border,
+                          color: relatedQuestions.length > 0 ? '#047857' : theme.textMuted,
+                        }}
+                      >
+                        {relatedQuestions.length} 道题
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold mt-3" style={{ color: theme.textPrimary }}>{item.name}</p>
+                    <p className="text-xs mt-2 leading-6 whitespace-pre-wrap" style={{ color: theme.textSecondary }}>
+                      {ensureExplanation(item.explanation)}
+                    </p>
+
+                    {relatedQuestions.length > 0 && (
+                      <div className="mt-3 rounded-xl p-3" style={{ backgroundColor: theme.bg }}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium" style={{ color: theme.textPrimary }}>关联题目</p>
+                          <span className="text-[11px]" style={{ color: theme.textMuted }}>
+                            {relatedQuestions.length} 道
+                          </span>
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          {relatedQuestions.slice(0, 2).map((question, questionIndex) => (
+                            <div key={`${question.id || question.stem}-${questionIndex}`} className="text-xs" style={{ color: theme.textSecondary }}>
+                              <p className="font-medium" style={{ color: theme.textPrimary }}>
+                                题目 {questionIndex + 1}：{question.stem}
+                              </p>
+                              {question.correctAnswers.length > 0 && (
+                                <p className="mt-1" style={{ color: theme.textMuted }}>
+                                  答案：{question.correctAnswers.join('、')}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                          {relatedQuestions.length > 2 && (
+                            <p className="text-[11px]" style={{ color: theme.textMuted }}>
+                              还有 {relatedQuestions.length - 2} 道题目将在导入后一起写入
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm font-semibold mt-3" style={{ color: theme.textPrimary }}>{item.name}</p>
-                  <p className="text-xs mt-2 leading-6 whitespace-pre-wrap" style={{ color: theme.textSecondary }}>
-                    {ensureExplanation(item.explanation)}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {previewQuestions.length > 0 && (
+              <div
+                className="rounded-2xl p-4"
+                style={{ backgroundColor: theme.bgCard, border: `1px solid ${theme.border}` }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold" style={{ color: theme.textPrimary }}>题目预览</p>
+                  <span className="text-xs" style={{ color: theme.textMuted }}>
+                    展示前 {Math.min(previewQuestions.length, 5)} 道
+                  </span>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {previewQuestions.map((question, index) => (
+                    <div
+                      key={`${question.id || question.stem}-${index}`}
+                      className="rounded-xl p-3"
+                      style={{ backgroundColor: theme.bg }}
+                    >
+                      <p className="text-xs font-medium" style={{ color: theme.textPrimary }}>
+                        {index + 1}. {question.stem}
+                      </p>
+                      {question.knowledgePointName && (
+                        <p className="text-[11px] mt-1" style={{ color: theme.textMuted }}>
+                          关联知识点：{question.knowledgePointName}
+                        </p>
+                      )}
+                      {question.options.length > 0 && (
+                        <p className="text-[11px] mt-1" style={{ color: theme.textSecondary }}>
+                          选项：{question.options.map(option => `${option.id}. ${option.text}`).join(' / ')}
+                        </p>
+                      )}
+                      {question.correctAnswers.length > 0 && (
+                        <p className="text-[11px] mt-1" style={{ color: theme.textMuted }}>
+                          答案：{question.correctAnswers.join('、')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <button

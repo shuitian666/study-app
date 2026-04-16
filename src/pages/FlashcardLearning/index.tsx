@@ -13,8 +13,10 @@ import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
-import { ArrowLeft, Home, BookOpen, ChevronRight, X } from 'lucide-react';
+import { ArrowLeft, Home, BookOpen, ChevronRight, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
+import { usePreGenerate } from '@/hooks/usePreGenerate';
+import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
 import {
   knowledgePointToCardInput,
   cardToFsrsFields,
@@ -25,7 +27,8 @@ import {
   type RatingOption,
 } from '@/utils/fsrsScheduler';
 import { Rating } from 'ts-fsrs';
-import type { KnowledgePointExtended } from '@/types';
+import type { KnowledgePointExtended, Question } from '@/types';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 
 // 按钮配置
 const RATING_CONFIG = {
@@ -57,6 +60,13 @@ const RATING_CONFIG = {
     textColor: '#3b82f6',
     borderColor: '#bfdbfe',
   },
+};
+
+const FLASHCARD_SCORE_MAP: Record<RatingOption, number> = {
+  again: 40,
+  hard: 60,
+  good: 80,
+  easy: 100,
 };
 
 function buildSessionQueue(
@@ -101,6 +111,7 @@ export default function FlashcardLearningPage() {
   const { theme } = useTheme();
   const { learningState, learningDispatch } = useLearning();
   const { checkAchievements } = useGame();
+  const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
 
   const importedIdSet = useMemo(() => {
     if (userState.currentPage !== 'flashcard-learning') {
@@ -150,6 +161,13 @@ export default function FlashcardLearningPage() {
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
   // 是否显示知识点预览
   const [showKnowledge, setShowKnowledge] = useState(false);
+  const [sessionMode, setSessionMode] = useState<'flashcard' | 'quiz'>('flashcard');
+  const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [showQuizResult, setShowQuizResult] = useState(false);
+  const [generatingExplanation, setGeneratingExplanation] = useState(false);
+  const [aiAssistAvailable, setAiAssistAvailable] = useState(false);
+  const [aiAssistHint, setAiAssistHint] = useState('请先在设置里配置 AI');
   // 是否正在重现失败卡（用于显示提示）
   const [isRevealingFailed, setIsRevealingFailed] = useState(false);
   // 是否正在处理评分（用于防抖）
@@ -172,6 +190,11 @@ export default function FlashcardLearningPage() {
     setFailedIds(new Set());
     setIsFlipped(false);
     setShowKnowledge(false);
+    setSessionMode('flashcard');
+    setCurrentQuizIndex(0);
+    setSelectedAnswers([]);
+    setShowQuizResult(false);
+    setGeneratingExplanation(false);
     setIsRevealingFailed(false);
   }, [importedIdSet, learningState.knowledgePoints.length]);
 
@@ -179,9 +202,49 @@ export default function FlashcardLearningPage() {
     setShowImportResult(Boolean(importResultSummary));
   }, [importResultSummary]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAIAssist = async () => {
+      const config = getAIConfig();
+
+      if (config.provider === 'douban') {
+        const ready = Boolean(config.apiKey?.trim() && config.modelId?.trim());
+        if (!cancelled) {
+          setAiAssistAvailable(ready);
+          setAiAssistHint(ready ? '' : '请先在设置里配置 AI');
+        }
+        return;
+      }
+
+      const backendReady = await checkBackendAvailable();
+      if (!cancelled) {
+        setAiAssistAvailable(backendReady);
+        setAiAssistHint(backendReady ? '' : '请先在设置里配置 AI');
+      }
+    };
+
+    void checkAIAssist();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // 当前卡片
   const currentKp = queue[currentIdx];
   const totalCards = queue.length;
+  const relatedQuestions = useMemo(
+    () => (currentKp ? learningState.questions.filter(question => question.knowledgePointId === currentKp.id) : []),
+    [currentKp, learningState.questions],
+  );
+  const currentQuizQuestion: Question | null = relatedQuestions[currentQuizIndex] ?? null;
+  const todayLearningCount = useMemo(
+    () => getTodayLearningProgress(learningState).totalCount,
+    [learningState],
+  );
+  const dailyGoal = userState.user?.dailyGoal ?? 10;
+  const todayGoalProgress = Math.min(100, Math.round((todayLearningCount / Math.max(dailyGoal, 1)) * 100));
+  const currentExplanation = currentQuizQuestion ? getSavedExplanation(currentQuizQuestion.id) : null;
   // 有多少张"不会"的卡还没重现
   const failedCount = failedIds.size;
 
@@ -240,6 +303,9 @@ export default function FlashcardLearningPage() {
 
     const cardInput = knowledgePointToCardInput(currentKp);
     const result = reviewCard(cardInput, rating);
+    const relatedQuestionsForCurrent = learningState.questions.filter(
+      question => question.knowledgePointId === currentKp.id
+    );
 
     // 更新 FSRS 字段
     const fsrsUpdates = cardToFsrsFields(result.card);
@@ -251,6 +317,13 @@ export default function FlashcardLearningPage() {
           ...fsrsUpdates,
           proficiency: result.card.state === 2 ? 'normal' : currentKp.proficiency,
         },
+      },
+    });
+    learningDispatch({
+      type: 'RECORD_FLASHCARD_STUDY',
+      payload: {
+        knowledgePointId: currentKp.id,
+        score: FLASHCARD_SCORE_MAP[rating],
       },
     });
 
@@ -287,20 +360,127 @@ export default function FlashcardLearningPage() {
     setTimeout(() => {
       setIsFlipped(false);
       setSwipeDirection(null);
-      moveToNext();
+      setShowKnowledge(false);
+
+      if (relatedQuestionsForCurrent.length > 0) {
+        setCurrentQuizIndex(0);
+        setSelectedAnswers([]);
+        setShowQuizResult(false);
+        setSessionMode('quiz');
+      } else {
+        moveToNext();
+      }
+
       setIsSelecting(false);  // 解锁
     }, 200);
-  }, [currentKp, learningDispatch, learningState.todayReviewItems, moveToNext, isSelecting]);
+  }, [currentKp, isSelecting, learningDispatch, learningState.questions, learningState.todayReviewItems, moveToNext]);
 
   // 上一张卡片
   const goToPrev = useCallback(() => {
     if (currentIdx > 0) {
       setCurrentIdx(prev => prev - 1);
       setIsFlipped(false);
+      setSessionMode('flashcard');
+      setCurrentQuizIndex(0);
+      setSelectedAnswers([]);
+      setShowQuizResult(false);
       setSwipeDirection('up');
       setTimeout(() => setSwipeDirection(null), 200);
     }
   }, [currentIdx]);
+
+  const handleSelectAnswer = useCallback((optionId: string) => {
+    if (showQuizResult || !currentQuizQuestion) return;
+
+    if (currentQuizQuestion.type === 'single_choice' || currentQuizQuestion.type === 'true_false') {
+      setSelectedAnswers([optionId]);
+      return;
+    }
+
+    setSelectedAnswers(prev =>
+      prev.includes(optionId)
+        ? prev.filter(id => id !== optionId)
+        : [...prev, optionId]
+    );
+  }, [currentQuizQuestion, showQuizResult]);
+
+  const handleSubmitQuiz = useCallback(() => {
+    if (!currentKp || !currentQuizQuestion || selectedAnswers.length === 0) {
+      return;
+    }
+
+    const isCorrect =
+      selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+      && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer));
+
+    learningDispatch({
+      type: 'RECORD_QUIZ_ANSWER',
+      payload: {
+        knowledgePointId: currentKp.id,
+        questionId: currentQuizQuestion.id,
+        correct: isCorrect,
+        score: isCorrect ? 100 : 40,
+      },
+    });
+
+    if (!isCorrect) {
+      learningDispatch({
+        type: 'ADD_WRONG_RECORD',
+        payload: {
+          id: `wr-${Date.now()}`,
+          questionId: currentQuizQuestion.id,
+          wrongAnswers: selectedAnswers,
+          correctAnswers: currentQuizQuestion.correctAnswers,
+          addedAt: new Date().toISOString(),
+          reviewedCount: 0,
+          lastReviewedAt: null,
+        },
+      });
+    }
+
+    setShowQuizResult(true);
+  }, [currentKp, currentQuizQuestion, learningDispatch, selectedAnswers]);
+
+  const handleFinishQuiz = useCallback(() => {
+    const hasNextQuestion = currentQuizIndex < relatedQuestions.length - 1;
+
+    if (hasNextQuestion) {
+      setCurrentQuizIndex(prev => prev + 1);
+      setSelectedAnswers([]);
+      setShowQuizResult(false);
+      setGeneratingExplanation(false);
+      return;
+    }
+
+    setSessionMode('flashcard');
+    setCurrentQuizIndex(0);
+    setSelectedAnswers([]);
+    setShowQuizResult(false);
+    setGeneratingExplanation(false);
+    moveToNext();
+  }, [currentQuizIndex, moveToNext, relatedQuestions.length]);
+
+  const handleGenerateExplanation = useCallback(async () => {
+    if (!currentQuizQuestion || !currentKp) {
+      return;
+    }
+
+    const subject = learningState.subjects.find(item => item.id === currentKp.subjectId);
+    setGeneratingExplanation(true);
+
+    try {
+      await generateExplanationOnDemand(
+        currentQuizQuestion.id,
+        { stem: currentQuizQuestion.stem, options: currentQuizQuestion.options },
+        selectedAnswers,
+        currentQuizQuestion.correctAnswers,
+        currentKp.name,
+        subject?.name,
+      );
+    } finally {
+      setGeneratingExplanation(false);
+    }
+  }, [currentKp, currentQuizQuestion, generateExplanationOnDemand, learningState.subjects, selectedAnswers]);
 
   // 键盘快捷键
   useEffect(() => {
@@ -312,6 +492,15 @@ export default function FlashcardLearningPage() {
       switch (e.key) {
         case ' ':
         case 'Enter':
+          if (sessionMode === 'quiz') {
+            e.preventDefault();
+            if (showQuizResult) {
+              handleFinishQuiz();
+            } else {
+              handleSubmitQuiz();
+            }
+            break;
+          }
           e.preventDefault();
           setIsFlipped(prev => !prev);
           break;
@@ -348,7 +537,7 @@ export default function FlashcardLearningPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSelect, goToPrev, navigate, currentKp]);
+  }, [currentKp, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, navigate, sessionMode, showQuizResult]);
 
   // 无卡片时
   if (!currentKp || queue.length === 0) {
@@ -425,17 +614,48 @@ export default function FlashcardLearningPage() {
         </div>
       </div>
 
+      <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
+        <div className="rounded-xl px-3 py-3" style={{ backgroundColor: `${theme.primary}10`, border: `1px solid ${theme.primary}22` }}>
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span style={{ color: theme.textSecondary }}>今日学习目标</span>
+            <span style={{ color: theme.primary, fontWeight: 600 }}>
+              {todayLearningCount} / {dailyGoal}
+            </span>
+          </div>
+          <div className="mt-2 w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${todayGoalProgress}%`, backgroundColor: theme.primary }}
+            />
+          </div>
+        </div>
+      </div>
+
       {showImportResult && importResultSummary && (
         <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
           <div
-            className="rounded-xl px-3 py-2 flex items-start justify-between gap-3"
+            className="rounded-2xl px-4 py-3 flex items-start justify-between gap-3"
             style={{ backgroundColor: '#ecfdf5', color: '#166534', border: '1px solid #a7f3d0' }}
           >
-            <div className="text-xs leading-5">
-              <div className="font-medium">本次导入结果</div>
-              <div>
-                已导入 {importResultSummary.importedKnowledgeCount} 个知识点，{importResultSummary.importedQuestionCount} 道题目
-                {importResultSummary.skippedQuestionCount > 0 ? `，跳过 ${importResultSummary.skippedQuestionCount} 道未能关联的题目` : ''}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold">导入成功</div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#d1fae5', color: '#065f46' }}>
+                  知识点 {importResultSummary.importedKnowledgeCount} 个
+                </span>
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#dcfce7', color: '#166534' }}>
+                  题目 {importResultSummary.importedQuestionCount} 道
+                </span>
+                {importResultSummary.skippedQuestionCount > 0 && (
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                    跳过 {importResultSummary.skippedQuestionCount} 道
+                  </span>
+                )}
+              </div>
+              <div className="text-xs leading-5 mt-2">
+                新导入内容已经进入本次学习队列，可直接开始闪记学习。
+                {importResultSummary.skippedQuestionCount > 0 ? ' 未关联成功的题目没有写入，请回到导入页检查模板结构。' : ''}
+                {' '}当前今日学习进度已累计 {todayLearningCount} / {dailyGoal}。
               </div>
             </div>
             <button
@@ -459,8 +679,8 @@ export default function FlashcardLearningPage() {
         </div>
       )}
 
-      {/* 知识点预览按钮 - 仅在未翻转时显示 */}
-      {!isFlipped && (
+      {/* 知识点预览按钮 - 仅在卡片模式未翻转时显示 */}
+      {sessionMode === 'flashcard' && !isFlipped && (
         <div className="px-4 pt-2">
           <button
             onClick={() => setShowKnowledge(!showKnowledge)}
@@ -501,46 +721,57 @@ export default function FlashcardLearningPage() {
               )}
             </div>
           )}
+
+          {relatedQuestions.length > 0 && (
+            <div
+              className="mt-2 rounded-xl p-3 text-xs"
+              style={{ backgroundColor: '#ecfdf5', color: '#166534', border: '1px solid #a7f3d0' }}
+            >
+              本知识点关联 {relatedQuestions.length} 道题，完成卡片评分后会自动进入配套练习。
+            </div>
+          )}
         </div>
       )}
 
-      {/* Card area with side navigation */}
-      <div className="flex-1 flex items-center relative">
-        {/* Left button - previous */}
-        <button
-          onClick={goToPrev}
-          disabled={currentIdx === 0}
-          className="absolute left-2 w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed z-10"
-          style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
-        >
-          ‹
-        </button>
+      {sessionMode === 'flashcard' ? (
+        <>
+          {/* Card area with side navigation */}
+          <div className="flex-1 flex items-center relative">
+            {/* Left button - previous */}
+            <button
+              onClick={goToPrev}
+              disabled={currentIdx === 0}
+              className="absolute left-2 w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed z-10"
+              style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+            >
+              ‹
+            </button>
 
-        {/* Card */}
-        <div className="flex-1 flex items-center justify-center p-4">
-          <FlashcardCard
-            name={currentKp.name}
-            explanation={currentKp.explanation || '暂无解析'}
-            memoryTip={currentKp.memoryTip}
-            isFlipped={isFlipped}
-            onFlip={handleFlip}
-            swipeDirection={swipeDirection}
-          />
-        </div>
+            {/* Card */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              <FlashcardCard
+                name={currentKp.name}
+                explanation={currentKp.explanation || '暂无解析'}
+                memoryTip={currentKp.memoryTip}
+                isFlipped={isFlipped}
+                onFlip={handleFlip}
+                swipeDirection={swipeDirection}
+              />
+            </div>
 
-        {/* Right button - home */}
-        <button
-          onClick={() => navigate('home')}
-          className="absolute right-2 w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 z-10"
-          style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
-        >
-          <Home size={22} />
-        </button>
-      </div>
+            {/* Right button - home */}
+            <button
+              onClick={() => navigate('home')}
+              className="absolute right-2 w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 z-10"
+              style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+            >
+              <Home size={22} />
+            </button>
+          </div>
 
-      {/* Rating buttons - 4 buttons horizontal layout */}
-      <div className="px-4 pb-6">
-        <div className="grid grid-cols-4 gap-2">
+          {/* Rating buttons - 4 buttons horizontal layout */}
+          <div className="px-4 pb-6">
+            <div className="grid grid-cols-4 gap-2">
           {/* Again - 不会 */}
           <button
             onClick={() => handleSelect('again')}
@@ -613,21 +844,287 @@ export default function FlashcardLearningPage() {
               <div className="text-[10px] mt-0.5 opacity-70">-</div>
             )}
           </button>
-        </div>
+            </div>
 
-        {/* Relearning 状态提示 */}
-        {currentPreview && (currentPreview[Rating.Again]?.isRelearning || currentPreview[Rating.Hard]?.isRelearning) && (
-          <div className="mt-2 text-xs text-center py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-            🔄 进入重新学习模式
+            {/* Relearning 状态提示 */}
+            {currentPreview && (currentPreview[Rating.Again]?.isRelearning || currentPreview[Rating.Hard]?.isRelearning) && (
+              <div className="mt-2 text-xs text-center py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                🔄 进入重新学习模式
+              </div>
+            )}
+
+            {/* Keyboard hints */}
+            <div className="flex justify-center gap-4 mt-3 text-xs" style={{ color: theme.textMuted }}>
+              <span>1/2/3/4</span>
+              <span>空格翻转</span>
+            </div>
           </div>
-        )}
+        </>
+      ) : currentQuizQuestion ? (
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6">
+          <div
+            className="rounded-3xl border p-5 shadow-sm"
+            style={{ borderColor: `${theme.primary}30`, backgroundColor: theme.bgCard }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="text-sm font-medium" style={{ color: theme.textSecondary }}>
+                步骤 2 / 配套练习题
+              </div>
+              <div
+                className="px-3 py-1.5 rounded-full text-sm font-semibold"
+                style={{ backgroundColor: `${theme.primary}12`, color: theme.primary }}
+              >
+                {relatedQuestions.length > 0 ? `${currentQuizIndex + 1} / ${relatedQuestions.length}` : '1 / 1'}
+              </div>
+            </div>
 
-        {/* Keyboard hints */}
-        <div className="flex justify-center gap-4 mt-3 text-xs" style={{ color: theme.textMuted }}>
-          <span>1/2/3/4</span>
-          <span>空格翻转</span>
+            <div
+              className="rounded-2xl px-4 py-4 mb-4"
+              style={{ backgroundColor: `${theme.primary}08`, border: `1px solid ${theme.primary}18` }}
+            >
+              <div className="text-xs font-medium mb-2" style={{ color: theme.textMuted }}>
+                题目
+              </div>
+              <p className="text-base font-semibold leading-7" style={{ color: theme.textPrimary }}>
+                {currentQuizQuestion.stem}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {currentQuizQuestion.options.map((option, index) => {
+                const selected = selectedAnswers.includes(option.id);
+                const isCorrectOption = currentQuizQuestion.correctAnswers.includes(option.id);
+                const label = String.fromCharCode(65 + index);
+                let optionBg = theme.bg;
+                let optionBorder = theme.border;
+                let optionText = theme.textPrimary;
+
+                if (showQuizResult) {
+                  if (isCorrectOption) {
+                    optionBg = '#ecfdf5';
+                    optionBorder = '#86efac';
+                    optionText = '#166534';
+                  } else if (selected) {
+                    optionBg = '#fef2f2';
+                    optionBorder = '#fca5a5';
+                    optionText = '#b91c1c';
+                  }
+                } else if (selected) {
+                  optionBg = `${theme.primary}12`;
+                  optionBorder = theme.primary;
+                }
+
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => handleSelectAnswer(option.id)}
+                    disabled={showQuizResult}
+                    className="w-full text-left rounded-2xl px-4 py-4 border transition-all"
+                    style={{
+                      backgroundColor: optionBg,
+                      borderColor: optionBorder,
+                      color: optionText,
+                      boxShadow: selected && !showQuizResult ? '0 10px 24px -18px rgba(59,130,246,0.45)' : 'none',
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-sm font-bold"
+                        style={{
+                          backgroundColor: showQuizResult
+                            ? isCorrectOption
+                              ? '#bbf7d0'
+                              : selected
+                                ? '#fecaca'
+                                : theme.border
+                            : selected
+                              ? `${theme.primary}20`
+                              : theme.border,
+                          color: showQuizResult
+                            ? isCorrectOption
+                              ? '#166534'
+                              : selected
+                                ? '#b91c1c'
+                                : theme.textSecondary
+                            : selected
+                              ? theme.primary
+                              : theme.textSecondary,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div className="flex-1 pt-0.5">
+                        <div className="text-base leading-7 font-medium">{option.text}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {showQuizResult && (
+              <div
+                className="mt-4 p-4 rounded-2xl text-sm"
+                style={{
+                  backgroundColor:
+                    selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                    && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
+                      ? '#ecfdf5'
+                      : '#fef2f2',
+                  color:
+                    selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                    && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
+                      ? '#166534'
+                      : '#b91c1c',
+                  border: `1px solid ${
+                    selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                    && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
+                      ? '#86efac'
+                      : '#fca5a5'
+                  }`,
+                }}
+              >
+                <div className="font-semibold text-base">
+                  {selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                  && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
+                    ? '回答正确，做得不错！'
+                    : `正确答案：${currentQuizQuestion.correctAnswers.join('、')}`}
+                </div>
+              </div>
+            )}
+
+            {showQuizResult && (
+              <div className="mt-4">
+                {currentExplanation ? (
+                  <div
+                    className="rounded-2xl p-4 border"
+                    style={{ backgroundColor: '#f5f3ff', borderColor: '#ddd6fe', color: '#6b21a8' }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-base font-semibold">题目解析</div>
+                      <button
+                        onClick={() => {
+                          const optionsText = currentQuizQuestion.options
+                            .map((option, index) => `${String.fromCharCode(65 + index)}. ${option.text}`)
+                            .join('\n');
+                          const correctLabels = currentQuizQuestion.correctAnswers
+                            .map(answer => {
+                              const optionIndex = currentQuizQuestion.options.findIndex(option => option.id === answer);
+                              return optionIndex >= 0 ? String.fromCharCode(65 + optionIndex) : answer;
+                            })
+                            .join('、');
+
+                          navigate('ai-chat', {
+                            questionContext: `题目：${currentQuizQuestion.stem}\n\n选项：\n${optionsText}\n\n正确答案：${correctLabels}\n\n解析：${currentExplanation}\n\n请进一步讲解。`,
+                            subjectId: currentKp.subjectId,
+                            knowledgePointId: currentKp.id,
+                          });
+                        }}
+                        disabled={!aiAssistAvailable}
+                        className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: aiAssistAvailable ? '#ede9fe' : '#e5e7eb',
+                          color: aiAssistAvailable ? '#6d28d9' : '#9ca3af',
+                        }}
+                      >
+                        <MessageSquare size={12} />
+                        继续追问 AI
+                      </button>
+                    </div>
+                    <div className="mt-2 leading-7 text-sm">{currentExplanation}</div>
+                    {!aiAssistAvailable && (
+                      <div className="mt-3 text-xs" style={{ color: '#9ca3af' }}>
+                        {aiAssistHint}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      onClick={handleGenerateExplanation}
+                      disabled={generatingExplanation || !aiAssistAvailable}
+                      className="w-full py-3.5 rounded-2xl text-base font-medium flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: aiAssistAvailable ? '#f3e8ff' : '#e5e7eb',
+                        color: aiAssistAvailable ? '#7e22ce' : '#9ca3af',
+                      }}
+                    >
+                      {generatingExplanation ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          正在生成解析...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} />
+                          查看解析（缺失时调用 AI）
+                        </>
+                      )}
+                    </button>
+                    {!aiAssistAvailable && (
+                      <div className="mt-2 text-xs text-center" style={{ color: '#9ca3af' }}>
+                        {aiAssistHint}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              {!showQuizResult ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setSessionMode('flashcard');
+                      setSelectedAnswers([]);
+                      setShowQuizResult(false);
+                      setCurrentQuizIndex(0);
+                      setGeneratingExplanation(false);
+                      moveToNext();
+                    }}
+                    className="py-3.5 rounded-2xl text-base font-medium"
+                    style={{ backgroundColor: theme.border, color: theme.textPrimary }}
+                  >
+                    跳过练习
+                  </button>
+                  <button
+                    onClick={handleSubmitQuiz}
+                    disabled={selectedAnswers.length === 0}
+                    className="py-3.5 rounded-2xl text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                  >
+                    提交答案
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setSessionMode('flashcard');
+                      setSelectedAnswers([]);
+                      setShowQuizResult(false);
+                      setCurrentQuizIndex(0);
+                      setGeneratingExplanation(false);
+                    }}
+                    className="py-3.5 rounded-2xl text-base font-medium"
+                    style={{ backgroundColor: theme.border, color: theme.textPrimary }}
+                  >
+                    回看卡片
+                  </button>
+                  <button
+                    onClick={handleFinishQuiz}
+                    className="py-3.5 rounded-2xl text-base font-medium"
+                    style={{ backgroundColor: theme.primary, color: '#ffffff' }}
+                  >
+                    {currentQuizIndex < relatedQuestions.length - 1 ? '下一题' : '下一张'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

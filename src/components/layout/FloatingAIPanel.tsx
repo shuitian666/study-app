@@ -34,6 +34,8 @@ interface FloatingMenuItem {
 interface FloatingAIPanelProps {
   onPrimaryAction?: () => void;
   menuItems?: FloatingMenuItem[];
+  primaryIcon?: LucideIcon;
+  primaryTitle?: string;
 }
 
 const MENU_SIZE = 232;
@@ -76,6 +78,8 @@ function describeSector(startAngle: number, endAngle: number) {
 export default function FloatingAIPanel({
   onPrimaryAction,
   menuItems = [],
+  primaryIcon: PrimaryIcon,
+  primaryTitle,
 }: FloatingAIPanelProps) {
   const { navigate } = useUser();
   const { theme } = useTheme();
@@ -356,6 +360,7 @@ export default function FloatingAIPanel({
         }}
         onContextMenu={event => event.preventDefault()}
         className="absolute bottom-4 right-4 z-30 flex h-16 w-16 items-center justify-center rounded-full transition-all select-none"
+        title={primaryTitle}
         style={{
           background: isScholar
             ? 'linear-gradient(135deg, rgba(36,56,156,0.95), rgba(83,106,134,0.92))'
@@ -367,20 +372,24 @@ export default function FloatingAIPanel({
           animation: menuOpen ? 'none' : 'learn-fab-pulse 2.4s infinite',
         }}
       >
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 3l7 4-7 4-7-4 7-4z" />
-          <path d="M5 11v4.5c0 1.7 3.1 3.5 7 3.5s7-1.8 7-3.5V11" />
-          <path d="M12 11v8" />
-        </svg>
+        {PrimaryIcon ? (
+          <PrimaryIcon size={28} strokeWidth={2.4} color="#ffffff" />
+        ) : (
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3l7 4-7 4-7-4 7-4z" />
+            <path d="M5 11v4.5c0 1.7 3.1 3.5 7 3.5s7-1.8 7-3.5V11" />
+            <path d="M12 11v8" />
+          </svg>
+        )}
       </button>
 
       <style>{`

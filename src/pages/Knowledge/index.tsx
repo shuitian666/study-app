@@ -6,8 +6,8 @@ import { Undo2, Redo2 } from 'lucide-react';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, Cloud } from 'lucide-react';
-import { TopAppBar } from '@/components/layout';
+import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, Cloud, History, X } from 'lucide-react';
+import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 import CloudDownloadModal from '@/components/ui/CloudDownloadModal';
 
 const sourceConfig = {
@@ -31,9 +31,34 @@ const sourceConfig = {
   },
 };
 
+function getImportDateKey(createdAt?: string) {
+  if (!createdAt) {
+    return '';
+  }
+
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(createdDate.getTime())) {
+    return createdAt.slice(0, 10);
+  }
+
+  const year = createdDate.getFullYear();
+  const month = String(createdDate.getMonth() + 1).padStart(2, '0');
+  const day = String(createdDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatImportDateLabel(dateKey: string) {
+  const [year, month, day] = dateKey.split('-');
+  if (!year || !month || !day) {
+    return dateKey;
+  }
+
+  return `${Number(month)} 月 ${Number(day)} 日`;
+}
+
 export default function KnowledgePage() {
   const { navigate } = useUser();
-  const { learningState, learningDispatch, undo, redo, _canUndo, _canRedo } = useLearning();
+  const { learningState, learningDispatch, undo, redo, recordHistory, _canUndo, _canRedo } = useLearning();
   const { theme } = useTheme();
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +70,7 @@ export default function KnowledgePage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showCloudModal, setShowCloudModal] = useState(false);
+  const [showImportHistory, setShowImportHistory] = useState(false);
   const [recentExpanded, setRecentExpanded] = useState(false);
 
   const uiStyle = theme.uiStyle || 'playful';
@@ -106,6 +132,7 @@ export default function KnowledgePage() {
 
   // 从云端导入知识库 - 打开弹窗
   const handleCloudImport = () => {
+    setShowSortMenu(false);
     setShowCloudModal(true);
   };
 
@@ -131,6 +158,186 @@ export default function KnowledgePage() {
 
   const subjects = learningState.subjects;
   const allKPs = learningState.knowledgePoints;
+  const importBatches = useMemo(() => {
+    const batchMap = new Map<string, { knowledgeCount: number; kpIds: Set<string> }>();
+
+    allKPs.forEach(kp => {
+      if (kp.source !== 'import' || !kp.id.startsWith('kp-import-')) {
+        return;
+      }
+
+      const dateKey = getImportDateKey(kp.createdAt);
+      if (!dateKey) {
+        return;
+      }
+
+      const existing = batchMap.get(dateKey) ?? { knowledgeCount: 0, kpIds: new Set<string>() };
+      existing.knowledgeCount += 1;
+      existing.kpIds.add(kp.id);
+      batchMap.set(dateKey, existing);
+    });
+
+    return Array.from(batchMap.entries())
+      .map(([dateKey, batch]) => ({
+        dateKey,
+        displayDate: formatImportDateLabel(dateKey),
+        knowledgeCount: batch.knowledgeCount,
+        questionCount: learningState.questions.filter(
+          question => question.knowledgePointId && batch.kpIds.has(question.knowledgePointId)
+        ).length,
+      }))
+      .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  }, [allKPs, learningState.questions]);
+
+  const handleDeleteImportBatch = (dateKey: string, knowledgeCount: number, displayDate: string) => {
+    if (!confirm(`确定删除 ${displayDate} 导入的 ${knowledgeCount} 个知识点，以及它们关联的题目吗？`)) {
+      return;
+    }
+
+    recordHistory();
+    learningDispatch({ type: 'DELETE_IMPORT_BATCH', payload: { dateKey } });
+  };
+
+  const openImportHistory = () => {
+    setShowSortMenu(false);
+    setShowImportHistory(true);
+  };
+
+  const knowledgeFabMenuItems = useMemo(() => [
+    {
+      id: 'flashcard',
+      label: '闪记',
+      icon: Sparkles,
+      onSelect: () => navigate('flashcard-learning'),
+      accentColor: theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'local-import',
+      label: '本地导入',
+      icon: Upload,
+      onSelect: () => navigate('import-knowledge'),
+      accentColor: theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'cloud-import',
+      label: '云端导入',
+      icon: Cloud,
+      onSelect: handleCloudImport,
+      accentColor: theme.iconColors?.knowledgeMap || theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'import-history',
+      label: '导入记录',
+      icon: History,
+      onSelect: openImportHistory,
+      accentColor: theme.iconColors?.achievement || theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+  ], [navigate, theme]);
+
+  const importHistoryModal = showImportHistory ? (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div
+        className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+        onClick={() => setShowImportHistory(false)}
+      />
+      <div
+        className="relative z-10 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-h-[78vh] overflow-hidden"
+        style={{ backgroundColor: theme.bgCard, boxShadow: '0 24px 64px -28px rgba(15,23,42,0.42)' }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold" style={{ color: theme.textPrimary }}>导入记录</h3>
+            <p className="text-sm mt-1" style={{ color: theme.textMuted }}>按导入日期撤销本地导入，删除后可用撤销恢复。</p>
+          </div>
+          <button
+            onClick={() => setShowImportHistory(false)}
+            className="shrink-0 p-2 rounded-xl transition-colors"
+            style={{ backgroundColor: theme.bg, color: theme.textMuted }}
+            title="关闭"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="text-sm" style={{ color: theme.textMuted }}>
+            共 {importBatches.length} 条导入记录
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={undo}
+              disabled={!_canUndo}
+              className="px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: _canUndo ? `${theme.primary}16` : theme.bg,
+                color: _canUndo ? theme.primary : theme.textMuted,
+              }}
+            >
+              撤销
+            </button>
+            <button
+              onClick={redo}
+              disabled={!_canRedo}
+              className="px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: _canRedo ? `${theme.primary}16` : theme.bg,
+                color: _canRedo ? theme.primary : theme.textMuted,
+              }}
+            >
+              恢复
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-y-auto max-h-[52vh] pr-1">
+          {importBatches.length === 0 ? (
+            <div
+              className="rounded-2xl px-5 py-10 text-center border"
+              style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.textMuted }}
+            >
+              暂无可撤销的导入记录
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {importBatches.map(batch => (
+                <div
+                  key={batch.dateKey}
+                  className="rounded-2xl px-4 py-4 border"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                        {batch.displayDate}
+                      </div>
+                      <div className="text-xs mt-1" style={{ color: theme.textMuted }}>
+                        {batch.dateKey}
+                      </div>
+                      <div className="text-sm mt-2" style={{ color: theme.textSecondary }}>
+                        {batch.knowledgeCount} 个知识点{batch.questionCount > 0 ? ` · ${batch.questionCount} 道题目` : ''}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteImportBatch(batch.dateKey, batch.knowledgeCount, batch.displayDate)}
+                      className="shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-colors"
+                      style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                      title="删除这次导入"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const filteredKPs = useMemo(() => {
     return allKPs
@@ -197,62 +404,24 @@ export default function KnowledgePage() {
         <div className="pt-5 pb-28 space-y-6">
           {/* Search Bar */}
           <div className="px-6">
-            <div className="flex items-center gap-2">
-              <div
-                className="flex flex-1 items-center gap-3 px-4 py-3 border"
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.76)',
-                  borderRadius: '999px',
-                  borderColor: 'rgba(255,255,255,0.8)',
-                  boxShadow: '0 18px 34px -30px rgba(15,23,42,0.22)',
-                }}
-              >
-                <Search size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} className="shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索知识点..."
-                  className="flex-1 text-sm outline-none bg-transparent"
-                  style={{ color: theme.onSurface || '#191c1d' }}
-                />
-              </div>
-              <button
-                onClick={() => navigate('flashcard-learning')}
-                className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor: theme.primaryFixed || '#dee0ff',
-                  color: theme.primary || '#24389c',
-                  boxShadow: '0 16px 28px -22px rgba(15,23,42,0.24)',
-                }}
-                title="闪记学习"
-              >
-                <Sparkles size={18} />
-              </button>
-              <button
-                onClick={() => navigate('import-knowledge')}
-                className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-                  color: theme.primary || '#24389c',
-                  border: '1px solid rgba(197,197,212,0.32)',
-                }}
-                title="本地导入"
-              >
-                <Upload size={18} />
-              </button>
-              <button
-                onClick={handleCloudImport}
-                className="h-12 w-12 rounded-full flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-                  color: theme.onSurfaceVariant || '#454652',
-                  border: '1px solid rgba(197,197,212,0.32)',
-                }}
-                title="云端导入"
-              >
-                <Cloud size={18} />
-              </button>
+            <div
+              className="flex items-center gap-3 px-4 py-3 border"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.76)',
+                borderRadius: '999px',
+                borderColor: 'rgba(255,255,255,0.8)',
+                boxShadow: '0 18px 34px -30px rgba(15,23,42,0.22)',
+              }}
+            >
+              <Search size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} className="shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索知识点..."
+                className="flex-1 text-sm outline-none bg-transparent"
+                style={{ color: theme.onSurface || '#191c1d' }}
+              />
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2.5">
@@ -346,7 +515,7 @@ export default function KnowledgePage() {
               <div className="p-10 rounded-2xl flex flex-col items-center" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
                 <BookOpen size={36} style={{ color: theme.outlineVariant || '#c5c5d4' }} className="mb-3" />
                 <p className="text-sm font-medium" style={{ color: theme.onSurfaceVariant || '#454652' }}>暂无知识点</p>
-                <p className="text-xs mt-1 text-center" style={{ color: theme.outlineVariant || '#c5c5d4' }}>点击右下角 + 开始添加</p>
+                <p className="text-xs mt-1 text-center" style={{ color: theme.outlineVariant || '#c5c5d4' }}>点按右下角悬浮球添加知识点</p>
               </div>
             ) : recentDisplay.length === 0 ? (
               <div className="p-8 rounded-2xl text-center" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', color: theme.onSurfaceVariant || '#454652' }}>
@@ -408,14 +577,20 @@ export default function KnowledgePage() {
           </div>
         </div>
 
-        {/* FAB */}
-        <button
-          onClick={() => navigate('add-knowledge')}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full flex items-center justify-center z-40 active:scale-95 transition-transform"
-          style={{ backgroundColor: theme.primary || '#24389c', boxShadow: '0 8px 24px -4px rgba(36,56,156,0.45)' }}
-        >
-          <Plus size={24} className="text-white" strokeWidth={2.5} />
-        </button>
+        <FloatingAIPanel
+          onPrimaryAction={() => navigate('add-knowledge')}
+          menuItems={knowledgeFabMenuItems}
+          primaryIcon={Plus}
+          primaryTitle="添加知识点"
+        />
+
+        <CloudDownloadModal
+          isOpen={showCloudModal}
+          onClose={() => setShowCloudModal(false)}
+          onImport={handleCloudImportData}
+        />
+
+        {importHistoryModal}
       </div>
     );
   }
@@ -467,26 +642,6 @@ export default function KnowledgePage() {
                 title="恢复"
               >
                 <Redo2 size={18} className="text-gray-600" />
-              </button>
-              <button
-                onClick={() => navigate('import-knowledge')}
-                className="p-1.5 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                title="导入知识"
-              >
-                <Upload size={18} className="text-blue-600" />
-              </button>
-              <button
-                onClick={handleCloudImport}
-                className="p-1.5 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                title="从云端导入"
-              >
-                <Cloud size={18} className="text-green-600" />
-              </button>
-              <button
-                onClick={() => navigate('add-knowledge')}
-                className="p-1.5 bg-primary/10 rounded-lg"
-              >
-                <Plus size={18} className="text-primary" />
               </button>
             </div>
           )
@@ -649,7 +804,7 @@ export default function KnowledgePage() {
           <EmptyState 
             icon="📚" 
             title="暂无知识点" 
-            description="点击右上角添加" 
+            description="点按右下角悬浮球添加知识点" 
           />
         ) : viewMode === 'list' ? (
           // List View
@@ -749,6 +904,17 @@ export default function KnowledgePage() {
         onClose={() => setShowCloudModal(false)}
         onImport={handleCloudImportData}
       />
+
+      {!isSelectMode && (
+        <FloatingAIPanel
+          onPrimaryAction={() => navigate('add-knowledge')}
+          menuItems={knowledgeFabMenuItems}
+          primaryIcon={Plus}
+          primaryTitle="添加知识点"
+        />
+      )}
+
+      {importHistoryModal}
     </div>
   );
 }

@@ -28,12 +28,63 @@ import { useGame } from '@/store/GameContext';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/review';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, Play, CheckCircle, Map, FileQuestion } from 'lucide-react';
 import { ProgressBar } from '@/components/ui/Common';
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
+
+function PracticeProgressArtwork({
+  primary,
+  secondary,
+}: {
+  primary: string;
+  secondary: string;
+}) {
+  return (
+    <svg width="128" height="104" viewBox="0 0 128 104" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="progressCardGradient" x1="18" y1="16" x2="108" y2="88" gradientUnits="userSpaceOnUse">
+          <stop stopColor={primary} stopOpacity="0.18" />
+          <stop offset="1" stopColor={secondary} stopOpacity="0.26" />
+        </linearGradient>
+      </defs>
+      <rect x="18" y="12" width="78" height="56" rx="18" fill="url(#progressCardGradient)" />
+      <rect x="28" y="24" width="58" height="8" rx="4" fill={primary} fillOpacity="0.18" />
+      <rect x="28" y="40" width="42" height="8" rx="4" fill={secondary} fillOpacity="0.24" />
+      <rect x="28" y="56" width="50" height="8" rx="4" fill={primary} fillOpacity="0.12" />
+      <circle cx="98" cy="76" r="22" fill={secondary} fillOpacity="0.16" />
+      <path d="M98 62v15l10 6" stroke={primary} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="98" cy="76" r="5" fill={primary} />
+    </svg>
+  );
+}
+
+function MasteredCardsArtwork({
+  primary,
+  accent,
+}: {
+  primary: string;
+  accent: string;
+}) {
+  return (
+    <svg width="124" height="104" viewBox="0 0 124 104" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="masteredCardGradient" x1="22" y1="10" x2="104" y2="92" gradientUnits="userSpaceOnUse">
+          <stop stopColor={accent} stopOpacity="0.18" />
+          <stop offset="1" stopColor={primary} stopOpacity="0.26" />
+        </linearGradient>
+      </defs>
+      <rect x="24" y="18" width="56" height="72" rx="16" fill="url(#masteredCardGradient)" />
+      <rect x="44" y="10" width="56" height="72" rx="16" fill="url(#masteredCardGradient)" />
+      <rect x="58" y="28" width="28" height="28" rx="10" fill={primary} fillOpacity="0.14" />
+      <path d="M67 42l6 6 12-14" stroke={accent} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="58" y="64" width="30" height="6" rx="3" fill={primary} fillOpacity="0.18" />
+    </svg>
+  );
+}
 
 export default function HomePage() {
 
@@ -102,7 +153,7 @@ export default function HomePage() {
   const newGoalCompleted = completedNew >= dailyNewGoal;
   const freeLearningMode = reviewCompleted && newGoalCompleted;
   const todayGoal = appState.user?.dailyGoal ?? 10;
-  const todayQuestions = appState.user?.todayQuestions ?? 0;
+  const todayQuestions = getTodayLearningProgress(learningState).totalCount;
   const todayProgress = Math.min(100, Math.round((todayQuestions / Math.max(todayGoal, 1)) * 100));
   const reviewTotal = learningState.todayReviewItems.length;
 
@@ -200,84 +251,103 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-3.5">
             {/* Practice Progress Card */}
             <div
-              className="col-span-1 relative flex h-36 flex-col justify-between overflow-hidden rounded-[24px] p-5 group"
+              className="col-span-1 relative flex h-40 flex-col justify-between overflow-hidden rounded-[26px] p-5"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-                boxShadow: 'none',
+                boxShadow: '0 20px 36px -30px rgba(36, 56, 156, 0.28)',
               }}
             >
-              {/* Decorative background icon */}
               <div
-                className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity"
-                style={{ transform: 'rotate(12deg)' }}
+                className="absolute -right-3 bottom-0 opacity-90"
+                style={{ transform: 'translateY(8px)' }}
               >
-                  <svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="1" style={{ opacity: 0.15 }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M8 12h8" />
-                  <path d="M12 8v8" />
-                </svg>
+                <PracticeProgressArtwork
+                  primary={theme.primary || '#24389c'}
+                  secondary={theme.secondaryLight || '#ffbf00'}
+                />
               </div>
               <div className="flex justify-between items-start relative z-10">
                 <div
-                  className="rounded-xl p-2"
+                  className="rounded-2xl px-3 py-2"
                   style={{ backgroundColor: theme.primaryFixed || '#dee0ff' }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M8 12h8" />
-                    <path d="M12 8v8" />
+                    <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="12" cy="12" r="8" />
                   </svg>
                 </div>
-                <span className="text-[11px] font-bold" style={{ color: theme.primary || '#24389c' }}>{todayProgress}%</span>
+                <span
+                  className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ color: theme.primary || '#24389c', backgroundColor: `${theme.primary || '#24389c'}10` }}
+                >
+                  {todayProgress}%
+                </span>
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 pr-16">
                 <div
-                  className="text-[1.7rem] font-black"
+                  className="text-[1.9rem] font-black leading-none"
                   style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   {todayQuestions}/{todayGoal}
                 </div>
                 <div
-                  className="text-[11px] font-medium uppercase tracking-[0.18em]"
+                  className="text-[11px] font-medium uppercase tracking-[0.18em] mt-2"
                   style={{ color: theme.onSurfaceVariant || '#454652' }}
                 >
                   今日练习进度
+                </div>
+                <div className="mt-3 w-[68%] h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9' }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${todayProgress}%`, background: `linear-gradient(90deg, ${theme.primary || '#24389c'}, ${theme.secondaryLight || '#ffbf00'})` }}
+                  />
                 </div>
               </div>
             </div>
 
             {/* Cards Reviewed */}
             <div
-              className="col-span-1 flex h-36 flex-col justify-between rounded-[24px] p-5"
+              className="col-span-1 relative flex h-40 flex-col justify-between overflow-hidden rounded-[26px] p-5"
               style={{
                 backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-                boxShadow: 'none',
+                boxShadow: '0 20px 36px -30px rgba(16, 185, 129, 0.28)',
               }}
             >
-              <div className="flex justify-between items-start">
+              <div className="absolute -right-4 bottom-0 opacity-90" style={{ transform: 'translateY(6px)' }}>
+                <MasteredCardsArtwork
+                  primary={theme.tertiary || '#73008e'}
+                  accent={theme.accent || '#10b981'}
+                />
+              </div>
+              <div className="flex justify-between items-start relative z-10">
                 <div
-                  className="rounded-xl p-2"
+                  className="rounded-2xl px-3 py-2"
                   style={{ backgroundColor: theme.tertiaryFixed || '#fdd6ff' }}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.tertiary || '#73008e'} strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M3 9h18" />
-                    <path d="M9 21V9" />
+                    <rect x="4" y="5" width="14" height="14" rx="4" />
+                    <path d="m10 12 2 2 4-5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
               </div>
-              <div>
+              <div className="relative z-10 pr-16">
                 <div
-                  className="text-[1.7rem] font-black"
+                  className="text-[1.9rem] font-black leading-none"
                   style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   {stats.masteredCount + stats.normalCount}
                 </div>
                 <div
-                  className="text-[11px] font-medium uppercase tracking-[0.18em]"
+                  className="text-[11px] font-medium uppercase tracking-[0.18em] mt-2"
                   style={{ color: theme.onSurfaceVariant || '#454652' }}
                 >
                   已掌握卡片
+                </div>
+                <div
+                  className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  style={{ backgroundColor: `${theme.accent || '#10b981'}14`, color: theme.accent || '#10b981' }}
+                >
+                  当前掌握率 {stats.totalKnowledgePoints > 0 ? Math.round(((stats.masteredCount + stats.normalCount) / stats.totalKnowledgePoints) * 100) : 0}%
                 </div>
               </div>
             </div>
