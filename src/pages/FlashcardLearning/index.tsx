@@ -12,7 +12,8 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
-import { ArrowLeft, Home, BookOpen, ChevronRight } from 'lucide-react';
+import { useGame } from '@/store/GameContext';
+import { ArrowLeft, Home, BookOpen, ChevronRight, X } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import {
   knowledgePointToCardInput,
@@ -58,10 +59,83 @@ const RATING_CONFIG = {
   },
 };
 
+function buildSessionQueue(
+  knowledgePoints: KnowledgePointExtended[],
+  targetIds?: Set<string>,
+): KnowledgePointExtended[] {
+  const now = new Date();
+  return knowledgePoints
+    .filter(kp => !targetIds || targetIds.has(kp.id))
+    .filter(kp => kp.proficiency !== 'master')
+    .map(kp => {
+      const isOverdue = !!(kp.nextReviewAt && kp.nextReviewAt < now.toISOString());
+      const isDueToday = !!(
+        kp.nextReviewAt &&
+        kp.nextReviewAt.slice(0, 10) === now.toISOString().slice(0, 10)
+      );
+
+      let priority: number;
+      if (kp.fsrsState === 'New' || !kp.fsrsReps) {
+        priority = 3;
+      } else if (isOverdue) {
+        priority = 0;
+      } else if (isDueToday) {
+        priority = 1;
+      } else {
+        priority = 2;
+      }
+
+      return { ...kp, _priority: priority };
+    })
+    .sort((a, b) => {
+      if (a._priority !== b._priority) {
+        return a._priority - b._priority;
+      }
+      const profOrder: Record<string, number> = { none: 0, rusty: 1, normal: 2, master: 3 };
+      return (profOrder[a.proficiency] ?? 0) - (profOrder[b.proficiency] ?? 0);
+    });
+}
+
 export default function FlashcardLearningPage() {
-  const { navigate } = useUser();
+  const { navigate, userState } = useUser();
   const { theme } = useTheme();
   const { learningState, learningDispatch } = useLearning();
+  const { checkAchievements } = useGame();
+
+  const importedIdSet = useMemo(() => {
+    if (userState.currentPage !== 'flashcard-learning') {
+      return undefined;
+    }
+
+    const importedIds = userState.pageParams.importedIds
+      ?.split(',')
+      .map(id => id.trim())
+      .filter(Boolean);
+
+    return importedIds && importedIds.length > 0 ? new Set(importedIds) : undefined;
+  }, [userState.currentPage, userState.pageParams.importedIds]);
+
+  const importResultSummary = useMemo(() => {
+    if (userState.currentPage !== 'flashcard-learning' || userState.pageParams.source !== 'import') {
+      return null;
+    }
+
+    const importedKnowledgeCount = Number.parseInt(userState.pageParams.importedKnowledgeCount ?? '0', 10) || 0;
+    const importedQuestionCount = Number.parseInt(userState.pageParams.importedQuestionCount ?? '0', 10) || 0;
+    const skippedQuestionCount = Number.parseInt(userState.pageParams.skippedQuestionCount ?? '0', 10) || 0;
+
+    return {
+      importedKnowledgeCount,
+      importedQuestionCount,
+      skippedQuestionCount,
+    };
+  }, [
+    userState.currentPage,
+    userState.pageParams.importedKnowledgeCount,
+    userState.pageParams.importedQuestionCount,
+    userState.pageParams.skippedQuestionCount,
+    userState.pageParams.source,
+  ]);
 
   // 卡片翻转状态
   const [isFlipped, setIsFlipped] = useState(false);
@@ -69,7 +143,7 @@ export default function FlashcardLearningPage() {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | 'up' | 'down' | null>(null);
 
   // 学习队列（包含所有待学习的卡片，按优先级排序）
-  const [queue, setQueue] = useState<KnowledgePointExtended[]>([]);
+  const [queue, setQueue] = useState<KnowledgePointExtended[]>(() => buildSessionQueue(learningState.knowledgePoints, importedIdSet));
   // 当前显示的卡片在队列中的索引
   const [currentIdx, setCurrentIdx] = useState(0);
   // 不会的卡片的 ID 集合（用于检测重复）
@@ -80,6 +154,7 @@ export default function FlashcardLearningPage() {
   const [isRevealingFailed, setIsRevealingFailed] = useState(false);
   // 是否正在处理评分（用于防抖）
   const [isSelecting, setIsSelecting] = useState(false);
+  const [showImportResult, setShowImportResult] = useState(true);
 
   // 使用 ref 存储最新状态，避免闭包陷阱
   const queueRef = useRef(queue);
@@ -91,43 +166,18 @@ export default function FlashcardLearningPage() {
   useEffect(() => { failedIdsRef.current = failedIds; }, [failedIds]);
   useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
 
-  // 初始化学习队列
   useEffect(() => {
-    const now = new Date();
-    const sortedKps = learningState.knowledgePoints
-      .filter(kp => kp.proficiency !== 'master')
-      .map(kp => {
-        const isOverdue = !!(kp.nextReviewAt && kp.nextReviewAt < now.toISOString());
-        const isDueToday = !!(
-          kp.nextReviewAt &&
-          kp.nextReviewAt.slice(0, 10) === now.toISOString().slice(0, 10)
-        );
-
-        let priority: number;
-        if (kp.fsrsState === 'New' || !kp.fsrsReps) {
-          priority = 3;
-        } else if (isOverdue) {
-          priority = 0;
-        } else if (isDueToday) {
-          priority = 1;
-        } else {
-          priority = 2;
-        }
-
-        return { ...kp, _priority: priority };
-      })
-      .sort((a, b) => {
-        if (a._priority !== b._priority) {
-          return a._priority - b._priority;
-        }
-        const profOrder: Record<string, number> = { none: 0, rusty: 1, normal: 2, master: 3 };
-        return (profOrder[a.proficiency] ?? 0) - (profOrder[b.proficiency] ?? 0);
-      });
-
-    setQueue(sortedKps);
+    setQueue(buildSessionQueue(learningState.knowledgePoints, importedIdSet));
     setCurrentIdx(0);
     setFailedIds(new Set());
-  }, [learningState.knowledgePoints]);
+    setIsFlipped(false);
+    setShowKnowledge(false);
+    setIsRevealingFailed(false);
+  }, [importedIdSet, learningState.knowledgePoints.length]);
+
+  useEffect(() => {
+    setShowImportResult(Boolean(importResultSummary));
+  }, [importResultSummary]);
 
   // 当前卡片
   const currentKp = queue[currentIdx];
@@ -178,6 +228,7 @@ export default function FlashcardLearningPage() {
     } else {
       // 全部完成
       setIsRevealingFailed(false);
+      setCurrentIdx(currentQueue.length);
     }
   }, []);
 
@@ -223,6 +274,14 @@ export default function FlashcardLearningPage() {
     } else {
       setSwipeDirection('down');
     }
+
+    // Check achievements
+    const kps = learningState.knowledgePoints;
+    const masteredCount = kps.filter(kp => kp.proficiency === 'master').length;
+    checkAchievements({
+      knowledgePointCount: kps.length,
+      masteredCount,
+    });
 
     // 延迟后跳转到下一张
     setTimeout(() => {
@@ -365,6 +424,31 @@ export default function FlashcardLearningPage() {
           />
         </div>
       </div>
+
+      {showImportResult && importResultSummary && (
+        <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
+          <div
+            className="rounded-xl px-3 py-2 flex items-start justify-between gap-3"
+            style={{ backgroundColor: '#ecfdf5', color: '#166534', border: '1px solid #a7f3d0' }}
+          >
+            <div className="text-xs leading-5">
+              <div className="font-medium">本次导入结果</div>
+              <div>
+                已导入 {importResultSummary.importedKnowledgeCount} 个知识点，{importResultSummary.importedQuestionCount} 道题目
+                {importResultSummary.skippedQuestionCount > 0 ? `，跳过 ${importResultSummary.skippedQuestionCount} 道未能关联的题目` : ''}
+              </div>
+            </div>
+            <button
+              onClick={() => setShowImportResult(false)}
+              className="shrink-0 p-1 rounded-lg"
+              style={{ color: '#166534' }}
+              aria-label="关闭导入结果提示"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 失败卡重现提示 */}
       {isRevealingFailed && (
