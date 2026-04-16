@@ -14,7 +14,7 @@ const PERSIST_KEYS = [
   'upPool', 'team', 'redeemedCodes',
   'inventory', 'mail',
   // 【修复】添加今日复习和新学任务，防止刷新后数据丢失
-  'todayReviewItems', 'todayNewItems'
+  'todayReviewItems', 'todayNewItems', 'importedStudySession'
 ] as const;
 
 /**

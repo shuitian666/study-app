@@ -17,6 +17,38 @@ import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } f
 import { saveState, loadState, deepMergeState } from './persistence';
 import { getKnowledgeData, hasKnowledgeData, storeKnowledgeData } from '@/services/indexedDBService';
 
+function buildQuestionExplanationSeeds(
+  questions: Question[],
+  existing: QuestionExplanation[] = []
+): QuestionExplanation[] {
+  const existingIds = new Set(existing.map(e => e.questionId));
+  const now = new Date().toISOString();
+
+  const seeded = questions
+    .filter(q => !existingIds.has(q.id) && typeof q.explanation === 'string' && q.explanation.trim().length > 0)
+    .map(q => ({
+      questionId: q.id,
+      explanation: q.explanation,
+      createdAt: now,
+      updatedAt: now,
+      isUserModified: false,
+    }));
+
+  return [...existing, ...seeded];
+}
+
+interface ImportedStudySession {
+  id: string;
+  source: 'import';
+  knowledgePointIds: string[];
+  subjectId: string;
+  chapterId: string;
+  importedKnowledgeCount: number;
+  importedQuestionCount: number;
+  skippedQuestionCount: number;
+  createdAt: string;
+}
+
 // ---------- State ----------
 export interface LearningState {
   subjects: Subject[];
@@ -28,6 +60,7 @@ export interface LearningState {
   todayReviewItems: ReviewItem[];
   todayNewItems: ReviewItem[];
   questionExplanations: QuestionExplanation[];
+  importedStudySession: ImportedStudySession | null;
   // Undo/Redo history (not persisted, in-memory only)
   _history: LearningState[];
   _historyIndex: number;
@@ -45,7 +78,8 @@ const initialLearningState: LearningState = {
   wrongRecords: [],
   todayReviewItems: [],
   todayNewItems: [],
-  questionExplanations: [],
+  questionExplanations: buildQuestionExplanationSeeds(MOCK_QUESTIONS),
+  importedStudySession: null,
   // Undo/Redo (not persisted)
   _history: [],
   _historyIndex: -1,
@@ -62,6 +96,8 @@ type LearningAction =
   | { type: 'UPDATE_KNOWLEDGE_POINT'; payload: Partial<KnowledgePoint> & { id: string } }
   | { type: 'DELETE_KNOWLEDGE_POINT'; payload: string }
   | { type: 'DELETE_IMPORT_BATCH'; payload: { dateKey: string } }
+  | { type: 'SET_IMPORTED_STUDY_SESSION'; payload: ImportedStudySession }
+  | { type: 'CLEAR_IMPORTED_STUDY_SESSION' }
   | { type: 'UPDATE_PROFICIENCY'; payload: { id: string; proficiency: ProficiencyLevel } }
   | { type: 'ADD_QUIZ_RESULT'; payload: QuizResult }
   | { type: 'ADD_WRONG_RECORD'; payload: WrongRecord }
@@ -138,6 +174,13 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
           .map(question => question.id)
       );
 
+      const nextImportedStudySession = state.importedStudySession
+        ? {
+            ...state.importedStudySession,
+            knowledgePointIds: state.importedStudySession.knowledgePointIds.filter(id => !importedBatchIds.has(id)),
+          }
+        : null;
+
       return {
         ...state,
         knowledgePoints: state.knowledgePoints.filter(kp => !importedBatchIds.has(kp.id)),
@@ -148,8 +191,21 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ),
         todayReviewItems: state.todayReviewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
         todayNewItems: state.todayNewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
+        importedStudySession: nextImportedStudySession && nextImportedStudySession.knowledgePointIds.length > 0
+          ? nextImportedStudySession
+          : null,
       };
     }
+    case 'SET_IMPORTED_STUDY_SESSION':
+      return {
+        ...state,
+        importedStudySession: action.payload,
+      };
+    case 'CLEAR_IMPORTED_STUDY_SESSION':
+      return {
+        ...state,
+        importedStudySession: null,
+      };
     case 'UPDATE_KNOWLEDGE_POINT':
       return {
         ...state,
@@ -296,12 +352,18 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ...action.payload.questions.filter(q => !existingQuestionIds.has(q.id))
       ];
 
+      const mergedQuestionExplanations = buildQuestionExplanationSeeds(
+        mergedQuestions,
+        state.questionExplanations
+      );
+
       return {
         ...state,
         subjects: mergedSubjects,
         chapters: mergedChapters,
         knowledgePoints: mergedKP,
         questions: mergedQuestions,
+        questionExplanations: mergedQuestionExplanations,
       };
     }
     case 'SET_LOADING':
@@ -435,17 +497,21 @@ function getInitialLearningState(): LearningState {
     const todayReviewItems = savedReviewItems.filter(item => item.scheduledAt === today);
     const todayNewItems = savedNewItems.filter(item => item.scheduledAt === today);
 
+    const savedQuestions = saved.questions ?? initialLearningState.questions;
+    const savedQuestionExplanations = (saved.questionExplanations ?? initialLearningState.questionExplanations) as QuestionExplanation[];
+
     return {
       ...initialLearningState,
       subjects: saved.subjects ?? initialLearningState.subjects,
       chapters: saved.chapters ?? initialLearningState.chapters,
       knowledgePoints: saved.knowledgePoints ?? initialLearningState.knowledgePoints,
-      questions: saved.questions ?? initialLearningState.questions,
+      questions: savedQuestions,
       quizResults: saved.quizResults ?? initialLearningState.quizResults,
       wrongRecords: saved.wrongRecords ?? initialLearningState.wrongRecords,
       todayReviewItems,
       todayNewItems,
-      questionExplanations: saved.questionExplanations ?? initialLearningState.questionExplanations,
+      questionExplanations: buildQuestionExplanationSeeds(savedQuestions, savedQuestionExplanations),
+      importedStudySession: (saved.importedStudySession as ImportedStudySession | null | undefined) ?? null,
     };
   }
   return initialLearningState;
@@ -501,6 +567,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       todayReviewItems: learningState.todayReviewItems,
       todayNewItems: learningState.todayNewItems,
       questionExplanations: learningState.questionExplanations,
+      importedStudySession: learningState.importedStudySession,
     });
     saveState(mergedState);
     console.log('[LearningContext] Saved to localStorage, kp count:', learningState.knowledgePoints.length);
