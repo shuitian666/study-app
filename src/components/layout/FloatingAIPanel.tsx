@@ -47,8 +47,11 @@ const START_ANGLE = 148;
 const END_ANGLE = 332;
 const MAGNET_DISTANCE = 34;
 const FAB_BOTTOM_OFFSET = 86;
-const FAB_RIGHT_OFFSET_MOBILE = 12;
-const FAB_RIGHT_OFFSET_DESKTOP = 24;
+const FAB_BUTTON_INSET = 16;
+const FAB_EDGE_GAP_MOBILE = 16;
+const FAB_EDGE_GAP_DESKTOP = 24;
+const FAB_WRAPPER_RIGHT_MOBILE = Math.max(FAB_EDGE_GAP_MOBILE - FAB_BUTTON_INSET, 0);
+const FAB_WRAPPER_RIGHT_DESKTOP = Math.max(FAB_EDGE_GAP_DESKTOP - FAB_BUTTON_INSET, 0);
 
 function toRadians(degrees: number) {
   return (degrees * Math.PI) / 180;
@@ -334,7 +337,7 @@ export default function FloatingAIPanel({
       className="floating-ai-panel-anchor pointer-events-none fixed z-40 h-[232px] w-[232px]"
       style={{
         bottom: `${FAB_BOTTOM_OFFSET}px`,
-        right: `max(${FAB_RIGHT_OFFSET_MOBILE}px, env(safe-area-inset-right))`,
+        right: `max(${FAB_WRAPPER_RIGHT_MOBILE}px, env(safe-area-inset-right))`,
       }}
     >
       {menuOpen && (
@@ -447,7 +450,7 @@ export default function FloatingAIPanel({
       <style>{`
         @media (min-width: 768px) {
           .floating-ai-panel-anchor {
-            right: max(${FAB_RIGHT_OFFSET_DESKTOP}px, env(safe-area-inset-right));
+            right: max(${FAB_WRAPPER_RIGHT_DESKTOP}px, env(safe-area-inset-right));
           }
         }
 
