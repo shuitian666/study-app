@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -331,7 +332,7 @@ export default function FloatingAIPanel({
     };
   }, [isPressed, menuOpen, resolvedItems, sectorAngles]);
 
-  return (
+  const panel = (
     <div
       ref={wrapperRef}
       className="floating-ai-panel-anchor pointer-events-none fixed z-40 h-[232px] w-[232px]"
@@ -468,4 +469,10 @@ export default function FloatingAIPanel({
       `}</style>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return panel;
+  }
+
+  return createPortal(panel, document.body);
 }
