@@ -612,18 +612,6 @@ if (!currentKp || queue.length === 0) {
           className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[640px] -translate-y-1/2 md:block"
           style={desktopGlowStyle}
         />
-        <div
-          className="pointer-events-none absolute left-6 top-6 hidden rounded-full px-3 py-1 text-xs font-medium tracking-[0.18em] uppercase md:block"
-          style={{ backgroundColor: `${theme.bgCard}cc`, color: theme.textMuted, border: `1px solid ${theme.border}` }}
-        >
-          Mobile Learning View
-        </div>
-        <div
-          className="pointer-events-none absolute right-6 top-6 hidden max-w-[220px] rounded-3xl px-4 py-3 text-xs leading-5 md:block"
-          style={{ backgroundColor: `${theme.bgCard}d9`, color: theme.textSecondary, border: `1px solid ${theme.border}` }}
-        >
-          ???????????????????? Web ???
-        </div>
         <div className={desktopShellClassName} style={desktopShellStyle}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: theme.bgCard }}>

@@ -45,7 +45,7 @@ const INNER_RADIUS = 54;
 const ICON_RADIUS = 78;
 const START_ANGLE = 148;
 const END_ANGLE = 332;
-const MAGNET_DISTANCE = 22;
+const MAGNET_DISTANCE = 34;
 
 function toRadians(degrees: number) {
   return (degrees * Math.PI) / 180;
@@ -90,6 +90,7 @@ export default function FloatingAIPanel({
   const longPressTriggered = useRef(false);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const uiStyle = theme.uiStyle || 'playful';
   const isScholar = uiStyle === 'scholar';
@@ -116,12 +117,33 @@ export default function FloatingAIPanel({
     };
   }, []);
 
+  const getMenuCenter = () => {
+    const buttonRect = buttonRef.current?.getBoundingClientRect();
+    if (buttonRect) {
+      return {
+        x: buttonRect.left + buttonRect.width / 2,
+        y: buttonRect.top + buttonRect.height / 2,
+      };
+    }
+
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return null;
+    }
+
+    return {
+      x: rect.left + CENTER,
+      y: rect.top + CENTER,
+    };
+  };
+
   const getActiveItemIdFromPoint = (clientX: number, clientY: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
-    if (!rect || resolvedItems.length === 0) return null;
+    const menuCenter = getMenuCenter();
+    if (!rect || !menuCenter || resolvedItems.length === 0) return null;
 
-    const centerX = rect.left + CENTER;
-    const centerY = rect.top + CENTER;
+    const centerX = menuCenter.x;
+    const centerY = menuCenter.y;
     const dx = clientX - centerX;
     const dy = clientY - centerY;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -287,13 +309,13 @@ export default function FloatingAIPanel({
   }, [isPressed, menuOpen, resolvedItems, sectorAngles]);
 
   return (
-    <div ref={wrapperRef} className="fixed bottom-[86px] right-3 z-40 h-[232px] w-[232px] md:right-6">
+    <div ref={wrapperRef} className="pointer-events-none fixed bottom-[86px] right-3 z-40 h-[232px] w-[232px] md:right-6">
       {menuOpen && (
-        <div className="fixed inset-0 z-0 bg-black/5 backdrop-blur-[1px]" onClick={closeMenu} />
+        <div className="pointer-events-auto fixed inset-0 z-0 bg-black/5 backdrop-blur-[1px]" onClick={closeMenu} />
       )}
 
       {menuOpen && (
-        <div className="absolute inset-0 z-10">
+        <div className="pointer-events-none absolute inset-0 z-10">
           <svg width={MENU_SIZE} height={MENU_SIZE} viewBox={`0 0 ${MENU_SIZE} ${MENU_SIZE}`} className="overflow-visible">
             <defs>
               <filter id="learn-ring-shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -352,6 +374,7 @@ export default function FloatingAIPanel({
       )}
 
       <button
+        ref={buttonRef}
         onMouseDown={event => startPress(event.clientX, event.clientY)}
         onTouchStart={event => {
           const touch = event.touches[0];
@@ -359,7 +382,7 @@ export default function FloatingAIPanel({
           startPress(touch.clientX, touch.clientY);
         }}
         onContextMenu={event => event.preventDefault()}
-        className="absolute bottom-4 right-4 z-30 flex h-16 w-16 items-center justify-center rounded-full transition-all select-none"
+        className="pointer-events-auto absolute bottom-4 right-4 z-30 flex h-16 w-16 items-center justify-center rounded-full transition-all select-none"
         title={primaryTitle}
         style={{
           background: isScholar
@@ -368,7 +391,7 @@ export default function FloatingAIPanel({
           boxShadow: isScholar
             ? '0 18px 32px -16px rgba(36, 56, 156, 0.46)'
             : '0 20px 36px -18px rgba(226, 85, 121, 0.48)',
-          transform: isPressed ? 'scale(0.9)' : 'scale(1)',
+          transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
           animation: menuOpen ? 'none' : 'learn-fab-pulse 2.4s infinite',
         }}
       >
