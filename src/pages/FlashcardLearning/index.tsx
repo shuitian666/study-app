@@ -264,8 +264,7 @@ export default function FlashcardLearningPage() {
   // 翻转卡片
   const handleFlip = useCallback(() => {
     setIsFlipped(prev => !prev);
-    // 翻转时关闭知识点预览和重现提示
-    setShowKnowledge(false);
+    // 保留知识点入口，避免翻转后页面高度突变
     setIsRevealingFailed(false);
   }, []);
 
@@ -708,8 +707,8 @@ if (!currentKp || queue.length === 0) {
         </div>
       )}
 
-      {/* 知识点预览按钮 - 仅在卡片模式未翻转时显示 */}
-      {sessionMode === 'flashcard' && !isFlipped && (
+      {/* 知识点预览按钮 - 保持占位稳定，避免翻页后卡片整体上跳 */}
+      {sessionMode === 'flashcard' && (
         <div className="px-4 pt-2">
           <button
             onClick={() => setShowKnowledge(!showKnowledge)}
@@ -721,7 +720,7 @@ if (!currentKp || queue.length === 0) {
           >
             <div className="flex items-center gap-2 text-sm" style={{ color: '#1e40af' }}>
               <BookOpen size={14} />
-              <span>先回顾知识点：{currentKp.name}</span>
+              <span>{isFlipped ? '查看关联知识点：' : '先回顾知识点：'}{currentKp.name}</span>
             </div>
             <ChevronRight
               size={14}
