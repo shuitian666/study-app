@@ -686,7 +686,7 @@ export default function HomePage() {
         </div>
 
         {/* Floating AI Button */}
-        <FloatingAIPanel />
+        <FloatingAIPanel ownerPage="home" />
       </div>
     );
   }

@@ -310,7 +310,7 @@ export default function QuizPage() {
           )}
         </div>
 
-        <FloatingAIPanel />
+        <FloatingAIPanel ownerPage="quiz" />
       </div>
     );
   }
