@@ -38,7 +38,7 @@ export default function HomePage() {
 
   const { state: appState, dispatch: appDispatch, getLearningStats } = useApp();
   const { learningState, learningDispatch } = useLearning();
-  const { navigate } = useUser();
+  const { navigate, userState } = useUser();
   const { theme } = useTheme();
   const stats = getLearningStats();
 
@@ -686,7 +686,7 @@ export default function HomePage() {
         </div>
 
         {/* Floating AI Button */}
-        <FloatingAIPanel />
+        {userState.currentPage === 'home' && <FloatingAIPanel />}
       </div>
     );
   }
