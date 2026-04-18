@@ -57,7 +57,7 @@ function formatImportDateLabel(dateKey: string) {
 }
 
 export default function KnowledgePage() {
-  const { navigate, userState } = useUser();
+  const { navigate } = useUser();
   const { learningState, learningDispatch, undo, redo, recordHistory, _canUndo, _canRedo } = useLearning();
   const { theme } = useTheme();
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -577,14 +577,13 @@ export default function KnowledgePage() {
           </div>
         </div>
 
-        {userState.currentPage === 'knowledge' && (
-          <FloatingAIPanel
-            onPrimaryAction={() => navigate('add-knowledge')}
-            menuItems={knowledgeFabMenuItems}
-            primaryIcon={Plus}
-            primaryTitle="添加知识点"
-          />
-        )}
+        <FloatingAIPanel
+          ownerPage="knowledge"
+          onPrimaryAction={() => navigate('add-knowledge')}
+          menuItems={knowledgeFabMenuItems}
+          primaryIcon={Plus}
+          primaryTitle="添加知识点"
+        />
 
         <CloudDownloadModal
           isOpen={showCloudModal}
@@ -907,8 +906,9 @@ export default function KnowledgePage() {
         onImport={handleCloudImportData}
       />
 
-      {!isSelectMode && userState.currentPage === 'knowledge' && (
+      {!isSelectMode && (
         <FloatingAIPanel
+          ownerPage="knowledge"
           onPrimaryAction={() => navigate('add-knowledge')}
           menuItems={knowledgeFabMenuItems}
           primaryIcon={Plus}

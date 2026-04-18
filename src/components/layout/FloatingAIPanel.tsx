@@ -37,6 +37,7 @@ interface FloatingAIPanelProps {
   menuItems?: FloatingMenuItem[];
   primaryIcon?: LucideIcon;
   primaryTitle?: string;
+  ownerPage?: string;
 }
 
 const MENU_SIZE = 232;
@@ -87,8 +88,9 @@ export default function FloatingAIPanel({
   menuItems = [],
   primaryIcon: PrimaryIcon,
   primaryTitle,
+  ownerPage,
 }: FloatingAIPanelProps) {
-  const { navigate } = useUser();
+  const { navigate, userState } = useUser();
   const { theme } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -128,6 +130,16 @@ export default function FloatingAIPanel({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (ownerPage && userState.currentPage !== ownerPage) {
+      setMenuOpen(false);
+      setActiveItemId(null);
+      setIsPressed(false);
+      longPressTriggered.current = false;
+      clearLongPress();
+    }
+  }, [ownerPage, userState.currentPage]);
 
   const getMenuCenter = () => {
     const buttonRect = buttonRef.current?.getBoundingClientRect();
@@ -331,6 +343,10 @@ export default function FloatingAIPanel({
       window.removeEventListener('touchcancel', handleTouchCancel);
     };
   }, [isPressed, menuOpen, resolvedItems, sectorAngles]);
+
+  if (ownerPage && userState.currentPage !== ownerPage) {
+    return null;
+  }
 
   const panel = (
     <div
