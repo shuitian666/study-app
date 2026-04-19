@@ -21,7 +21,7 @@
  * ============================================================================
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import { useLearning } from '@/store/LearningContext';
 import { useUser } from '@/store/UserContext';
@@ -30,7 +30,7 @@ import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play, CheckCircle, BookOpen, Map, FileQuestion, Zap } from 'lucide-react';
+import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play, CheckCircle, BookOpen, Map, FileQuestion, Upload, Zap } from 'lucide-react';
 import { ProgressBar } from '@/components/ui/Common';
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 
@@ -108,7 +108,34 @@ export default function HomePage() {
     { level: 'none', count: stats.noneCount },
   ];
 
-  const homeFloatingPanel = <FloatingAIPanel ownerPage="home" />;
+  const homeFabMenuItems = useMemo(() => [
+    {
+      id: 'start-learning',
+      label: '开始学习',
+      icon: Play,
+      onSelect: () => navigate('review-session', { type: 'review' }),
+      accentColor: theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'import-knowledge',
+      label: '导入知识',
+      icon: Upload,
+      onSelect: () => navigate('import-knowledge'),
+      accentColor: theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'checkin',
+      label: '签到',
+      icon: CalendarCheck,
+      onSelect: () => navigate('checkin'),
+      accentColor: theme.iconColors?.checkin || theme.primary,
+      backgroundColor: theme.bgCard,
+    },
+  ], [navigate, theme]);
+
+  const homeFloatingPanel = <FloatingAIPanel ownerPage="home" menuItems={homeFabMenuItems} />;
 
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
