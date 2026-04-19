@@ -38,6 +38,7 @@ interface FloatingAIPanelProps {
   primaryIcon?: LucideIcon;
   primaryTitle?: string;
   ownerPage?: string;
+  hidden?: boolean;
 }
 
 const MENU_SIZE = 232;
@@ -89,6 +90,7 @@ export default function FloatingAIPanel({
   primaryIcon: PrimaryIcon,
   primaryTitle,
   ownerPage,
+  hidden = false,
 }: FloatingAIPanelProps) {
   const { navigate, userState } = useUser();
   const { theme } = useTheme();
@@ -107,6 +109,8 @@ export default function FloatingAIPanel({
   const isScholar = uiStyle === 'scholar';
 
   const resolvedItems = useMemo(() => menuItems.slice(0, 4), [menuItems]);
+  const hasMenuItems = resolvedItems.length > 0;
+  const shouldHide = hidden || (ownerPage ? userState.currentPage !== ownerPage : false);
   const sectorAngles = useMemo(() => {
     if (resolvedItems.length === 0) return [] as Array<{ start: number; end: number; mid: number }>;
 
@@ -132,14 +136,14 @@ export default function FloatingAIPanel({
   }, []);
 
   useEffect(() => {
-    if (ownerPage && userState.currentPage !== ownerPage) {
+    if (shouldHide) {
       setMenuOpen(false);
       setActiveItemId(null);
       setIsPressed(false);
       longPressTriggered.current = false;
       clearLongPress();
     }
-  }, [ownerPage, userState.currentPage]);
+  }, [shouldHide]);
 
   const getMenuCenter = () => {
     const buttonRect = buttonRef.current?.getBoundingClientRect();
@@ -220,6 +224,7 @@ export default function FloatingAIPanel({
     setMenuOpen(false);
     setActiveItemId(null);
     longPressTriggered.current = false;
+    pointerStart.current = null;
     setPulseSuspended(true);
     if (pulseResumeTimer.current) {
       window.clearTimeout(pulseResumeTimer.current);
@@ -239,12 +244,21 @@ export default function FloatingAIPanel({
   };
 
   const startPress = (clientX: number, clientY: number) => {
+    setPulseSuspended(true);
+    if (pulseResumeTimer.current) {
+      window.clearTimeout(pulseResumeTimer.current);
+      pulseResumeTimer.current = null;
+    }
     setIsPressed(true);
     longPressTriggered.current = false;
     pointerStart.current = { x: clientX, y: clientY };
 
     if (longPressTimer.current) {
       window.clearTimeout(longPressTimer.current);
+    }
+
+    if (!hasMenuItems) {
+      return;
     }
 
     longPressTimer.current = window.setTimeout(() => {
@@ -264,9 +278,17 @@ export default function FloatingAIPanel({
   const endPress = (clientX: number, clientY: number) => {
     clearLongPress();
     setIsPressed(false);
+    pointerStart.current = null;
 
     if (!longPressTriggered.current) {
       handlePrimaryAction();
+      if (pulseResumeTimer.current) {
+        window.clearTimeout(pulseResumeTimer.current);
+      }
+      pulseResumeTimer.current = window.setTimeout(() => {
+        setPulseSuspended(false);
+        pulseResumeTimer.current = null;
+      }, 160);
       return;
     }
 
@@ -283,7 +305,18 @@ export default function FloatingAIPanel({
   const cancelPress = () => {
     clearLongPress();
     setIsPressed(false);
-    closeMenu();
+    pointerStart.current = null;
+    if (menuOpen || longPressTriggered.current) {
+      closeMenu();
+      return;
+    }
+    if (pulseResumeTimer.current) {
+      window.clearTimeout(pulseResumeTimer.current);
+    }
+    pulseResumeTimer.current = window.setTimeout(() => {
+      setPulseSuspended(false);
+      pulseResumeTimer.current = null;
+    }, 160);
   };
 
   useEffect(() => {
@@ -344,7 +377,7 @@ export default function FloatingAIPanel({
     };
   }, [isPressed, menuOpen, resolvedItems, sectorAngles]);
 
-  if (ownerPage && userState.currentPage !== ownerPage) {
+  if (shouldHide) {
     return null;
   }
 
@@ -420,49 +453,53 @@ export default function FloatingAIPanel({
         </div>
       )}
 
-      <button
-        ref={buttonRef}
-        onMouseDown={event => startPress(event.clientX, event.clientY)}
-        onTouchStart={event => {
-          const touch = event.touches[0];
-          if (!touch) return;
-          startPress(touch.clientX, touch.clientY);
-        }}
-        onContextMenu={event => event.preventDefault()}
-        className="pointer-events-auto absolute bottom-4 right-4 z-30 flex h-16 w-16 items-center justify-center rounded-full transition-all select-none"
-        title={primaryTitle}
-        style={{
-          background: isScholar
-            ? 'linear-gradient(135deg, rgba(36,56,156,0.95), rgba(83,106,134,0.92))'
-            : 'linear-gradient(135deg, rgba(255,111,145,0.98), rgba(255,179,71,0.96))',
-          boxShadow: isScholar
-            ? '0 18px 32px -16px rgba(36, 56, 156, 0.46)'
-            : '0 20px 36px -18px rgba(226, 85, 121, 0.48)',
-          transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
-          transformOrigin: 'center center',
-          willChange: 'transform',
-          animation: menuOpen || pulseSuspended ? 'none' : 'learn-fab-pulse 2.4s infinite',
-        }}
-      >
-        {PrimaryIcon ? (
-          <PrimaryIcon size={28} strokeWidth={2.4} color="#ffffff" />
-        ) : (
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 3l7 4-7 4-7-4 7-4z" />
-            <path d="M5 11v4.5c0 1.7 3.1 3.5 7 3.5s7-1.8 7-3.5V11" />
-            <path d="M12 11v8" />
-          </svg>
-        )}
-      </button>
+      <div className="absolute bottom-4 right-4 z-30 h-16 w-16">
+        <button
+          ref={buttonRef}
+          onMouseDown={event => startPress(event.clientX, event.clientY)}
+          onTouchStart={event => {
+            const touch = event.touches[0];
+            if (!touch) return;
+            startPress(touch.clientX, touch.clientY);
+          }}
+          onContextMenu={event => event.preventDefault()}
+          className="pointer-events-auto flex h-full w-full select-none items-center justify-center rounded-full transition-transform duration-150"
+          title={primaryTitle}
+          style={{
+            background: isScholar
+              ? 'linear-gradient(135deg, rgba(36,56,156,0.95), rgba(83,106,134,0.92))'
+              : 'linear-gradient(135deg, rgba(255,111,145,0.98), rgba(255,179,71,0.96))',
+            boxShadow: isScholar
+              ? '0 18px 32px -16px rgba(36, 56, 156, 0.46)'
+              : '0 20px 36px -18px rgba(226, 85, 121, 0.48)',
+            transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
+            transformOrigin: 'center center',
+            willChange: 'transform',
+            animation: menuOpen || pulseSuspended ? 'none' : 'learn-fab-pulse 2.4s infinite',
+            touchAction: 'none',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          {PrimaryIcon ? (
+            <PrimaryIcon size={28} strokeWidth={2.4} color="#ffffff" />
+          ) : (
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3l7 4-7 4-7-4 7-4z" />
+              <path d="M5 11v4.5c0 1.7 3.1 3.5 7 3.5s7-1.8 7-3.5V11" />
+              <path d="M12 11v8" />
+            </svg>
+          )}
+        </button>
+      </div>
 
       <style>{`
         @media (min-width: 768px) {

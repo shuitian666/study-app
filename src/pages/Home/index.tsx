@@ -108,6 +108,8 @@ export default function HomePage() {
     { level: 'none', count: stats.noneCount },
   ];
 
+  const homeFloatingPanel = <FloatingAIPanel ownerPage="home" />;
+
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
     return (
@@ -686,7 +688,7 @@ export default function HomePage() {
         </div>
 
         {/* Floating AI Button */}
-        <FloatingAIPanel ownerPage="home" />
+        {homeFloatingPanel}
       </div>
     );
   }
@@ -1052,6 +1054,8 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {homeFloatingPanel}
     </div>
   );
 }

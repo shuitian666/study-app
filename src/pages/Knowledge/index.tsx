@@ -238,6 +238,17 @@ export default function KnowledgePage() {
     },
   ], [navigate, theme]);
 
+  const knowledgeFloatingPanel = (
+    <FloatingAIPanel
+      hidden={isSelectMode}
+      ownerPage="knowledge"
+      onPrimaryAction={() => navigate('add-knowledge')}
+      menuItems={knowledgeFabMenuItems}
+      primaryIcon={Plus}
+      primaryTitle="添加知识点"
+    />
+  );
+
   const importHistoryModal = showImportHistory ? (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div
@@ -398,7 +409,7 @@ export default function KnowledgePage() {
     const tileTexts = [theme.primary || '#24389c', '#795900', '#1a56db', theme.tertiary || '#73008e', '#0369a1', '#166534'];
 
     return (
-      <div className="page-scroll relative" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
+      <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
         <TopAppBar />
 
         <div className="pt-5 pb-28 space-y-6">
@@ -577,13 +588,7 @@ export default function KnowledgePage() {
           </div>
         </div>
 
-        <FloatingAIPanel
-          ownerPage="knowledge"
-          onPrimaryAction={() => navigate('add-knowledge')}
-          menuItems={knowledgeFabMenuItems}
-          primaryIcon={Plus}
-          primaryTitle="添加知识点"
-        />
+        {knowledgeFloatingPanel}
 
         <CloudDownloadModal
           isOpen={showCloudModal}
@@ -906,15 +911,7 @@ export default function KnowledgePage() {
         onImport={handleCloudImportData}
       />
 
-      {!isSelectMode && (
-        <FloatingAIPanel
-          ownerPage="knowledge"
-          onPrimaryAction={() => navigate('add-knowledge')}
-          menuItems={knowledgeFabMenuItems}
-          primaryIcon={Plus}
-          primaryTitle="添加知识点"
-        />
-      )}
+      {knowledgeFloatingPanel}
 
       {importHistoryModal}
     </div>
