@@ -39,6 +39,7 @@ interface FloatingAIPanelProps {
   primaryTitle?: string;
   ownerPage?: string;
   hidden?: boolean;
+  placement?: 'viewport' | 'contained';
 }
 
 const MENU_SIZE = 232;
@@ -50,11 +51,7 @@ const START_ANGLE = 148;
 const END_ANGLE = 332;
 const MAGNET_DISTANCE = 34;
 const FAB_BOTTOM_OFFSET = 86;
-const FAB_BUTTON_INSET = 16;
-const FAB_EDGE_GAP_MOBILE = 16;
-const FAB_EDGE_GAP_DESKTOP = 24;
-const FAB_WRAPPER_RIGHT_MOBILE = Math.max(FAB_EDGE_GAP_MOBILE - FAB_BUTTON_INSET, 0);
-const FAB_WRAPPER_RIGHT_DESKTOP = Math.max(FAB_EDGE_GAP_DESKTOP - FAB_BUTTON_INSET, 0);
+const APP_SHELL_MAX_WIDTH = 430;
 
 function toRadians(degrees: number) {
   return (degrees * Math.PI) / 180;
@@ -91,6 +88,7 @@ export default function FloatingAIPanel({
   primaryTitle,
   ownerPage,
   hidden = false,
+  placement = 'viewport',
 }: FloatingAIPanelProps) {
   const { navigate, userState } = useUser();
   const { theme } = useTheme();
@@ -105,10 +103,7 @@ export default function FloatingAIPanel({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const pulseResumeTimer = useRef<number | null>(null);
 
-  const uiStyle = theme.uiStyle || 'playful';
-  const isScholar = uiStyle === 'scholar';
-
-  const resolvedItems = useMemo(() => menuItems.slice(0, 4), [menuItems]);
+  const resolvedItems = useMemo(() => menuItems.slice(0, 5), [menuItems]);
   const hasMenuItems = resolvedItems.length > 0;
   const shouldHide = hidden || (ownerPage ? userState.currentPage !== ownerPage : false);
   const sectorAngles = useMemo(() => {
@@ -383,13 +378,21 @@ export default function FloatingAIPanel({
 
   const panel = (
     <div
-      ref={wrapperRef}
-      className="floating-ai-panel-anchor pointer-events-none fixed z-40 h-[232px] w-[232px]"
+      className={placement === 'contained'
+        ? 'pointer-events-none relative z-40 h-16 w-16 overflow-visible'
+        : 'pointer-events-none fixed bottom-0 left-1/2 z-40 h-[320px] w-[min(100vw,430px)] -translate-x-1/2'}
       style={{
-        bottom: `${FAB_BOTTOM_OFFSET}px`,
-        right: `max(${FAB_WRAPPER_RIGHT_MOBILE}px, env(safe-area-inset-right))`,
+        ...(placement === 'contained' ? {} : { width: `min(100vw, ${APP_SHELL_MAX_WIDTH}px)` }),
       }}
     >
+      <div
+        ref={wrapperRef}
+        className="absolute h-[232px] w-[232px] overflow-visible"
+        style={{
+          bottom: placement === 'contained' ? '0px' : `${FAB_BOTTOM_OFFSET}px`,
+          right: '0px',
+        }}
+      >
       {menuOpen && (
         <div className="pointer-events-auto fixed inset-0 z-0 bg-black/5 backdrop-blur-[1px]" onClick={closeMenu} />
       )}
@@ -453,7 +456,7 @@ export default function FloatingAIPanel({
         </div>
       )}
 
-      <div className="absolute bottom-4 right-4 z-30 h-16 w-16">
+      <div className={`absolute z-30 h-16 w-16 ${placement === 'contained' ? 'bottom-0 right-0' : 'bottom-4 right-4'}`}>
         <button
           ref={buttonRef}
           onMouseDown={event => startPress(event.clientX, event.clientY)}
@@ -466,12 +469,8 @@ export default function FloatingAIPanel({
           className="pointer-events-auto flex h-full w-full select-none items-center justify-center rounded-full transition-transform duration-150"
           title={primaryTitle}
           style={{
-            background: isScholar
-              ? 'linear-gradient(135deg, rgba(36,56,156,0.95), rgba(83,106,134,0.92))'
-              : 'linear-gradient(135deg, rgba(255,111,145,0.98), rgba(255,179,71,0.96))',
-            boxShadow: isScholar
-              ? '0 18px 32px -16px rgba(36, 56, 156, 0.46)'
-              : '0 20px 36px -18px rgba(226, 85, 121, 0.48)',
+            background: '#4f46e5',
+            boxShadow: '0 16px 36px rgba(79,70,229,0.35)',
             transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
             transformOrigin: 'center center',
             willChange: 'transform',
@@ -502,28 +501,23 @@ export default function FloatingAIPanel({
       </div>
 
       <style>{`
-        @media (min-width: 768px) {
-          .floating-ai-panel-anchor {
-            right: max(${FAB_WRAPPER_RIGHT_DESKTOP}px, env(safe-area-inset-right));
-          }
-        }
-
         @keyframes learn-fab-pulse {
           0% {
-            box-shadow: 0 0 0 0 rgba(255, 111, 145, 0.24);
+            box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 0 rgba(79,70,229,0.18);
           }
           70% {
-            box-shadow: 0 0 0 18px rgba(255, 111, 145, 0);
+            box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 18px rgba(79,70,229,0);
           }
           100% {
-            box-shadow: 0 0 0 0 rgba(255, 111, 145, 0);
+            box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 0 rgba(79,70,229,0);
           }
         }
       `}</style>
+      </div>
     </div>
   );
 
-  if (typeof document === 'undefined') {
+  if (placement === 'contained' || typeof document === 'undefined') {
     return panel;
   }
 

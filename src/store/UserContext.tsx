@@ -13,6 +13,13 @@ import type {
 } from '@/types';
 import { saveState, loadState } from './persistence';
 
+const THEME_STYLE_KEY = 'study-app:theme-style';
+
+function getStoredThemeStyle() {
+  const saved = localStorage.getItem(THEME_STYLE_KEY);
+  return saved === 'default' || saved === 'fluidScholar' ? saved : undefined;
+}
+
 // ---------- State ----------
 export interface UserState {
   user: User | null;
@@ -69,12 +76,24 @@ function userReducer(state: UserState, action: UserAction): UserState {
       const hasAnsweredToday = localStorage.getItem(todayKey) !== null;
       // 今天没答就先进每日一题，答完再进首页
       const targetPage = hasAnsweredToday ? 'home' : 'daily-question';
-      return { ...state, user: action.payload, isLoggedIn: true, currentPage: targetPage };
+      const preservedThemeStyle = getStoredThemeStyle() ?? state.user?.themeStyle ?? action.payload.themeStyle;
+      return {
+        ...state,
+        user: {
+          ...action.payload,
+          themeStyle: preservedThemeStyle,
+        },
+        isLoggedIn: true,
+        currentPage: targetPage,
+      };
     case 'LOGOUT':
       return { ...state, user: null, isLoggedIn: false, currentPage: 'login' };
     case 'NAVIGATE':
       return { ...state, currentPage: action.payload.page, pageParams: action.payload.params ?? {} };
     case 'UPDATE_USER':
+      if (action.payload.themeStyle === 'default' || action.payload.themeStyle === 'fluidScholar') {
+        localStorage.setItem(THEME_STYLE_KEY, action.payload.themeStyle);
+      }
       return {
         ...state,
         user: state.user ? { ...state.user, ...action.payload } : null,

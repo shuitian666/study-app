@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { useTheme } from '@/store/ThemeContext';
 
 interface FlashcardCardProps {
@@ -19,6 +21,10 @@ export default function FlashcardCard({
   swipeDirection,
 }: FlashcardCardProps) {
   const { theme } = useTheme();
+  const sanitizedExplanation = useMemo(
+    () => DOMPurify.sanitize(explanation),
+    [explanation]
+  );
 
   const getSwipeGradient = () => {
     if (swipeDirection === 'left') return 'linear-gradient(to right, rgba(239, 68, 68, 0.3), transparent)';
@@ -92,7 +98,7 @@ export default function FlashcardCard({
               <div
                 className="text-base leading-relaxed mb-4"
                 style={{ color: theme.textPrimary }}
-                dangerouslySetInnerHTML={{ __html: explanation }}
+                dangerouslySetInnerHTML={{ __html: sanitizedExplanation }}
               />
 
               {/* Memory tip if exists */}

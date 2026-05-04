@@ -95,7 +95,11 @@ export async function* streamChat(params: {
     throw new Error(`Chat request failed: ${res.status}`);
   }
 
-  const reader = res.body!.getReader();
+  if (!res.body) {
+    throw new Error('Empty response body');
+  }
+
+  const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
 
@@ -276,7 +280,11 @@ export async function* streamChatDouban(
       throw new Error(`豆包API调用失败: ${res.status}`);
     }
 
-    const reader = res.body!.getReader();
+    if (!res.body) {
+      throw new Error('Empty response body');
+    }
+
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
 

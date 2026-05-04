@@ -176,10 +176,10 @@ export default function ReviewSessionPage() {
 
       <div className="px-4 pt-4">
         <div className="rounded-2xl p-5 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <div className="text-xs mb-1" style={{ color: theme.textMuted }}>{subject?.icon} {subject?.name}</div>
-              <h2 className="text-xl font-bold" style={{ color: theme.textPrimary }}>{currentKP.name}</h2>
+          <div className="flex items-start justify-between mb-3 gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs mb-1 truncate" style={{ color: theme.textMuted }}>{subject?.icon} {subject?.name}</div>
+              <h2 className="text-xl font-bold truncate" style={{ color: theme.textPrimary }}>{currentKP.name}</h2>
             </div>
             <ProficiencyBadge level={currentKP.proficiency} />
           </div>

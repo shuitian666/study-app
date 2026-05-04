@@ -524,23 +524,33 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
   // 加载IndexedDB中的知识库数据
   useEffect(() => {
+    let isCancelled = false;
+
     const loadKnowledgeData = async () => {
       try {
-        learningDispatch({ type: 'SET_LOADING', payload: true });
+        if (!isCancelled) {
+          learningDispatch({ type: 'SET_LOADING', payload: true });
+        }
         const hasData = await hasKnowledgeData();
         if (hasData) {
           const data = await getKnowledgeData();
-          learningDispatch({
-            type: 'SET_KNOWLEDGE_DATA',
-            payload: data
-          });
-          console.log('[LearningContext] Loaded from IndexedDB:', data.knowledgePoints.length, 'knowledge points');
+          if (!isCancelled) {
+            learningDispatch({
+              type: 'SET_KNOWLEDGE_DATA',
+              payload: data
+            });
+            console.log('[LearningContext] Loaded from IndexedDB:', data.knowledgePoints.length, 'knowledge points');
+          }
         }
       } catch (error) {
-        console.error('Failed to load knowledge data from IndexedDB:', error);
+        if (!isCancelled) {
+          console.error('Failed to load knowledge data from IndexedDB:', error);
+        }
       } finally {
-        learningDispatch({ type: 'SET_LOADING', payload: false });
-        isIndexedDBLoaded.current = true;
+        if (!isCancelled) {
+          learningDispatch({ type: 'SET_LOADING', payload: false });
+          isIndexedDBLoaded.current = true;
+        }
       }
     };
 
@@ -548,6 +558,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       loadKnowledgeData();
       isFirstRender.current = false;
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // 持久化状态到 localStorage - 使用深度合并防止覆盖其他 Context 的数据
@@ -576,9 +590,11 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   // 同步学习状态到 AppContext（用于 Home 页和签到条件判定）
   useEffect(() => {
     if (isFirstRender.current) return;
+    let isCancelled = false;
 
     // 动态导入避免循环依赖
     import('./syncRegistry').then(({ getAppDispatch }) => {
+      if (isCancelled) return;
       const appDispatch = getAppDispatch();
       if (appDispatch) {
         appDispatch({ type: 'SYNC_QUIZ_RESULTS', payload: learningState.quizResults });
@@ -592,6 +608,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         });
       }
     });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [
     learningState.quizResults,
     learningState.wrongRecords,
@@ -601,6 +621,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
   // 当知识库数据变化时，同步到IndexedDB
   useEffect(() => {
+    let isCancelled = false;
+
     const saveKnowledgeData = async () => {
       try {
         const kpCount = learningState.knowledgePoints.length;
@@ -611,15 +633,23 @@ export function LearningProvider({ children }: { children: ReactNode }) {
           knowledgePoints: learningState.knowledgePoints,
           questions: learningState.questions,
         });
-        console.log('[IndexedDB] Save complete, kpCount:', learningState.knowledgePoints.length);
+        if (!isCancelled) {
+          console.log('[IndexedDB] Save complete, kpCount:', learningState.knowledgePoints.length);
+        }
       } catch (error) {
-        console.error('[IndexedDB] Failed to save knowledge data:', error);
+        if (!isCancelled) {
+          console.error('[IndexedDB] Failed to save knowledge data:', error);
+        }
       }
     };
 
     if (!isFirstRender.current && isIndexedDBLoaded.current) {
       saveKnowledgeData();
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions]);
 
   const getLearningStats = useCallback((): LearningStats => {

@@ -92,7 +92,7 @@ export default function KnowledgePage() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-  
+
   // 获取动画类名
   const getAnimationClass = (delay: number) => {
     const baseClass = `scroll-${animationEffect}`;
@@ -389,8 +389,8 @@ export default function KnowledgePage() {
     const profBadgeConfig: Record<string, { label: string; color: string; bg: string }> = {
       master: { label: '已熟练', color: '#0d6e49', bg: '#dcfce7' },
       normal: { label: '掌握中', color: '#b45309', bg: '#fef3c7' },
-      rusty:  { label: '需复习', color: '#c2410c', bg: '#ffedd5' },
-      none:   { label: '未学习', color: '#757684', bg: '#f3f4f5' },
+      rusty: { label: '需复习', color: '#c2410c', bg: '#ffedd5' },
+      none: { label: '未学习', color: '#757684', bg: '#f3f4f5' },
     };
 
     const recentKPs = [...filteredKPs]
@@ -405,7 +405,7 @@ export default function KnowledgePage() {
     });
     const recentDisplay = recentExpanded ? todayLearnedKPs : recentKPs.slice(0, 2);
 
-    const tileBgs   = [theme.primaryFixed || '#dee0ff', theme.secondaryFixed || '#ffdfa0', '#e8f0fe', theme.tertiaryFixed || '#fdd6ff', '#e0f2fe', '#f0fdf4'];
+    const tileBgs = [theme.primaryFixed || '#dee0ff', theme.secondaryFixed || '#ffdfa0', '#e8f0fe', theme.tertiaryFixed || '#fdd6ff', '#e0f2fe', '#f0fdf4'];
     const tileTexts = [theme.primary || '#24389c', '#795900', '#1a56db', theme.tertiary || '#73008e', '#0369a1', '#166534'];
 
     return (
@@ -416,12 +416,12 @@ export default function KnowledgePage() {
           {/* Search Bar */}
           <div className="px-6">
             <div
-              className="flex items-center gap-3 px-4 py-3 border"
+              className="flex items-center gap-3 px-4 py-3"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.76)',
+                backgroundColor: '#ffffff',
                 borderRadius: '999px',
-                borderColor: 'rgba(255,255,255,0.8)',
-                boxShadow: '0 18px 34px -30px rgba(15,23,42,0.22)',
+                border: '1.5px solid rgba(0,0,0,0.14)',
+                boxShadow: '0 2px 12px rgba(15,23,42,0.10)',
               }}
             >
               <Search size={18} style={{ color: theme.onSurfaceVariant || '#454652' }} className="shrink-0" />
@@ -441,7 +441,15 @@ export default function KnowledgePage() {
                 { label: '已掌握', value: masteredCount },
                 { label: '待巩固', value: reviewCount },
               ].map(item => (
-                <div key={item.label} className="rounded-2xl px-3.5 py-3" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
+                <div
+                  key={item.label}
+                  className="rounded-2xl px-3.5 py-3"
+                  style={{
+                    backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+                    boxShadow: '0 2px 8px rgba(15,23,42,0.08)',
+                    border: '1px solid rgba(0,0,0,0.06)',
+                  }}
+                >
                   <div className="text-[0.62rem] uppercase tracking-[0.16em]" style={{ color: theme.onSurfaceVariant || '#454652' }}>{item.label}</div>
                   <div className="mt-1 text-lg font-extrabold" style={{ color: theme.onSurface || '#191c1d' }}>{item.value}</div>
                 </div>
@@ -509,7 +517,7 @@ export default function KnowledgePage() {
 
           {/* 最近学习 List */}
           <div className="px-6">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3 flex items-center justify-between">
               <h3 className="font-bold text-base" style={{ color: theme.onSurface || '#191c1d', fontFamily: '"Plus Jakarta Sans","Noto Sans SC",sans-serif' }}>
                 {recentExpanded ? '今日学习过的' : (selectedSubject ? learningState.subjects.find(s => s.id === selectedSubject)?.name : '最近学习')}
               </h3>
@@ -523,22 +531,24 @@ export default function KnowledgePage() {
             </div>
 
             {filteredKPs.length === 0 ? (
-              <div className="p-10 rounded-2xl flex flex-col items-center" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
+              <div className="rounded-[28px] border border-white/70 bg-white/82 p-10 flex flex-col items-center shadow-[0_20px_48px_-30px_rgba(15,23,42,0.2)] backdrop-blur-2xl" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}>
                 <BookOpen size={36} style={{ color: theme.outlineVariant || '#c5c5d4' }} className="mb-3" />
                 <p className="text-sm font-medium" style={{ color: theme.onSurfaceVariant || '#454652' }}>暂无知识点</p>
                 <p className="text-xs mt-1 text-center" style={{ color: theme.outlineVariant || '#c5c5d4' }}>点按右下角悬浮球添加知识点</p>
               </div>
             ) : recentDisplay.length === 0 ? (
-              <div className="p-8 rounded-2xl text-center" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', color: theme.onSurfaceVariant || '#454652' }}>
+              <div className="rounded-[28px] border border-white/70 bg-white/82 p-8 text-center shadow-[0_20px_48px_-30px_rgba(15,23,42,0.2)] backdrop-blur-2xl" style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', color: theme.onSurfaceVariant || '#454652' }}>
                 {recentExpanded ? '今天还没有学习记录' : '暂无最近学习记录'}
               </div>
             ) : (
               <div className="space-y-3">
                 {recentDisplay.map(kp => {
                   const subject = learningState.subjects.find(s => s.id === kp.subjectId);
-                  const badge   = profBadgeConfig[kp.proficiency] || profBadgeConfig.none;
-                  const subIdx  = learningState.subjects.findIndex(s => s.id === kp.subjectId);
-                  const iconBg  = tileBgs[subIdx >= 0 ? subIdx % tileBgs.length : 0];
+                  const source = sourceConfig[kp.source || 'manual'] || sourceConfig.manual;
+                  const SourceIcon = source.icon;
+                  const badge = profBadgeConfig[kp.proficiency] || profBadgeConfig.none;
+                  const subIdx = learningState.subjects.findIndex(s => s.id === kp.subjectId);
+                  const iconBg = tileBgs[subIdx >= 0 ? subIdx % tileBgs.length : 0];
                   const timeAgo = (() => {
                     const ts = (kp as any).updatedAt || (kp as any).createdAt;
                     if (!ts) return '';
@@ -551,21 +561,35 @@ export default function KnowledgePage() {
                     <button
                       key={kp.id}
                       onClick={() => navigate('knowledge-detail', { id: kp.id })}
-                      className="w-full p-4 rounded-2xl flex items-start gap-4 text-left active:scale-[0.98] transition-transform"
+                      className="flex w-full items-start gap-4 rounded-[28px] border border-white/70 bg-white/82 p-4 text-left shadow-[0_18px_42px_-30px_rgba(15,23,42,0.18)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_52px_-28px_rgba(15,23,42,0.22)] active:scale-[0.98]"
                       style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}
                     >
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: iconBg }}>
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl" style={{ backgroundColor: iconBg }}>
                         {subject?.icon || '📚'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="mb-2 flex items-start justify-between gap-2">
                           <span className="font-bold text-sm line-clamp-1" style={{ color: theme.onSurface || '#191c1d' }}>{kp.name}</span>
                           <span
-                            className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
                             style={{ backgroundColor: badge.bg, color: badge.color }}
                           >
                             {badge.label}
                           </span>
+                        </div>
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium"
+                            style={{ backgroundColor: '#f8fafc', color: theme.onSurfaceVariant || '#454652' }}
+                          >
+                            <SourceIcon size={12} />
+                            {source.label}
+                          </span>
+                          {subject?.name && (
+                            <span className="text-[11px]" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                              {subject.name}
+                            </span>
+                          )}
                         </div>
                         {kp.explanation && (
                           <p className="text-xs line-clamp-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>{kp.explanation}</p>
@@ -729,10 +753,9 @@ export default function KnowledgePage() {
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setSelectedSubject(null)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              selectedSubject === null ? 'text-white' : ''
-            }`}
-            style={{ 
+            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedSubject === null ? 'text-white' : ''
+              }`}
+            style={{
               backgroundColor: selectedSubject === null ? theme.primary : theme.bgCard,
               color: selectedSubject === null ? '#ffffff' : theme.textSecondary
             }}
@@ -744,10 +767,9 @@ export default function KnowledgePage() {
             <button
               key={s.id}
               onClick={() => setSelectedSubject(s.id === selectedSubject ? null : s.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                selectedSubject === s.id ? 'text-white' : ''
-              }`}
-              style={{ 
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedSubject === s.id ? 'text-white' : ''
+                }`}
+              style={{
                 backgroundColor: selectedSubject === s.id ? theme.primary : theme.bgCard,
                 color: selectedSubject === s.id ? '#ffffff' : theme.textSecondary
               }}
@@ -778,13 +800,13 @@ export default function KnowledgePage() {
             </button>
           ))}
         </div>
-        
+
         {/* View mode toggle */}
         <div className="flex gap-1">
           <button
             onClick={() => setViewMode('list')}
             className={`p-1.5 rounded-lg transition-colors`}
-            style={{ 
+            style={{
               backgroundColor: viewMode === 'list' ? `${theme.primary}20` : 'transparent',
               color: viewMode === 'list' ? theme.primary : theme.textMuted
             }}
@@ -794,7 +816,7 @@ export default function KnowledgePage() {
           <button
             onClick={() => setViewMode('grid')}
             className={`p-1.5 rounded-lg transition-colors`}
-            style={{ 
+            style={{
               backgroundColor: viewMode === 'grid' ? `${theme.primary}20` : 'transparent',
               color: viewMode === 'grid' ? theme.primary : theme.textMuted
             }}
@@ -807,10 +829,10 @@ export default function KnowledgePage() {
       {/* Content */}
       <div className={`px-4 ${getAnimationClass(4)}`}>
         {Object.keys(grouped).length === 0 ? (
-          <EmptyState 
-            icon="📚" 
-            title="暂无知识点" 
-            description="点按右下角悬浮球添加知识点" 
+          <EmptyState
+            icon="📚"
+            title="暂无知识点"
+            description="点按右下角悬浮球添加知识点"
           />
         ) : viewMode === 'list' ? (
           // List View
@@ -825,28 +847,26 @@ export default function KnowledgePage() {
                   return (
                     <div
                       key={kp.id}
-                      className={`w-full rounded-xl p-3 border shadow-sm text-left flex items-center justify-between ${
-                        isSelectMode ? 'cursor-pointer' : ''
-                      }`}
-                      style={{ 
-                        backgroundColor: theme.bgCard, 
+                      className={`w-full rounded-xl p-3 border shadow-sm text-left flex items-center justify-between ${isSelectMode ? 'cursor-pointer' : ''
+                        }`}
+                      style={{
+                        backgroundColor: theme.bgCard,
                         borderColor: isSelected ? theme.primary : theme.border
                       }}
                       onClick={() => isSelectMode ? toggleSelect(kp.id) : undefined}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {isSelectMode && (
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            isSelected ? 'border-primary bg-primary' : 'border-gray-300'
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-gray-300'
+                            }`}>
                             {isSelected && <Check size={12} className="text-white" />}
                           </div>
                         )}
                         <div className="flex-1 min-w-0" onClick={!isSelectMode ? () => navigate('knowledge-detail', { id: kp.id }) : undefined}>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium truncate" style={{ color: theme.textPrimary }}>{kp.name}</span>
-                            <ProficiencyBadge level={kp.proficiency} />
-                            <span className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px]`}
+                            <span className="text-sm font-medium truncate min-w-0 flex-1" style={{ color: theme.textPrimary }}>{kp.name}</span>
+                            <span className="shrink-0"><ProficiencyBadge level={kp.proficiency} /></span>
+                            <span className={`shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px]`}
                               style={{ color: sourceConfig[src].color.replace('text-', ''), backgroundColor: theme.bgCard }}>
                               {(() => { const Icon = sourceConfig[src].icon; return <Icon size={10} />; })()}
                               {sourceConfig[src].label}
@@ -879,15 +899,14 @@ export default function KnowledgePage() {
                   key={kp.id}
                   onClick={() => isSelectMode ? toggleSelect(kp.id) : navigate('knowledge-detail', { id: kp.id })}
                   className={`rounded-xl p-4 border shadow-sm text-left relative`}
-                  style={{ 
-                    backgroundColor: theme.bgCard, 
+                  style={{
+                    backgroundColor: theme.bgCard,
                     borderColor: isSelected ? theme.primary : theme.border
                   }}
                 >
                   {isSelectMode && (
-                    <div className={`absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      isSelected ? 'border-primary bg-primary' : 'border-gray-300'
-                    }`}>
+                    <div className={`absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-primary bg-primary' : 'border-gray-300'
+                      }`}>
                       {isSelected && <Check size={12} className="text-white" />}
                     </div>
                   )}

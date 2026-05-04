@@ -244,8 +244,8 @@ export default function QuizPage() {
                         >
                           {subject.icon}
                         </div>
-                        <div className="text-left">
-                          <div className="text-sm font-semibold" style={{ color: theme.onSurface || '#191c1d' }}>
+                        <div className="text-left min-w-0">
+                          <div className="text-sm font-semibold truncate" style={{ color: theme.onSurface || '#191c1d' }}>
                             {subject.name}
                           </div>
                           <div className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>
@@ -326,7 +326,7 @@ export default function QuizPage() {
           <button
             onClick={() => navigate('wrong-book')}
             className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between active:scale-[0.98]"
-            style={{ 
+            style={{
               background: 'linear-gradient(90deg, #fee2e2 0%, #fed7aa 100%)',
               borderColor: '#fecaca'
             }}
@@ -416,8 +416,8 @@ export default function QuizPage() {
                       >
                         {subject.icon}
                       </div>
-                      <div className="text-left">
-                        <div className="font-semibold text-base" style={{ color: theme.textPrimary }}>{subject.name}</div>
+                      <div className="text-left min-w-0">
+                        <div className="font-semibold text-base truncate" style={{ color: theme.textPrimary }}>{subject.name}</div>
                         <div className="text-sm mt-1" style={{ color: theme.textSecondary }}>
                           {questionCount} 道题 · {kpCount} 个知识点
                         </div>
@@ -454,7 +454,7 @@ export default function QuizPage() {
                       <div className="mt-2 w-full rounded-full h-1.5" style={{ backgroundColor: theme.border }}>
                         <div
                           className="h-full rounded-full"
-                          style={{ 
+                          style={{
                             width: `${percentage}%`,
                             backgroundColor: percentage >= 80 ? '#10b981' : percentage >= 60 ? '#f59e0b' : '#ef4444'
                           }}

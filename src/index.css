@@ -161,13 +161,12 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -186,7 +185,12 @@ body {
 }
 
 /* 标题样式 */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   color: var(--color-text-primary);
@@ -308,7 +312,7 @@ h4 {
 }
 
 /* Normal scrollable pages: don't flex-shrink, let content overflow to scroll */
-.scroll-container > .page-scroll {
+.scroll-container>.page-scroll {
   flex: 0 0 auto;
 }
 
@@ -321,34 +325,119 @@ h4 {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ===== Page Fade-In Transition ===== */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-fade-in {
+  animation: page-fade-in 0.22s ease-out both;
+}
+
+/* For full-screen overlay pages (fixed inset-0): only fade opacity, no transform */
+@keyframes page-fade-opacity {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.page-fade-opacity {
+  animation: page-fade-opacity 0.18s ease-out both;
+}
+
 /* ===== Lottery Animations ===== */
 @keyframes shake {
-  0%, 100% { transform: rotate(0deg); }
-  10% { transform: rotate(-12deg); }
-  20% { transform: rotate(12deg); }
-  30% { transform: rotate(-10deg); }
-  40% { transform: rotate(10deg); }
-  50% { transform: rotate(-8deg); }
-  60% { transform: rotate(8deg); }
-  70% { transform: rotate(-5deg); }
-  80% { transform: rotate(5deg); }
-  90% { transform: rotate(-2deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  10% {
+    transform: rotate(-12deg);
+  }
+
+  20% {
+    transform: rotate(12deg);
+  }
+
+  30% {
+    transform: rotate(-10deg);
+  }
+
+  40% {
+    transform: rotate(10deg);
+  }
+
+  50% {
+    transform: rotate(-8deg);
+  }
+
+  60% {
+    transform: rotate(8deg);
+  }
+
+  70% {
+    transform: rotate(-5deg);
+  }
+
+  80% {
+    transform: rotate(5deg);
+  }
+
+  90% {
+    transform: rotate(-2deg);
+  }
 }
 
 @keyframes slide-out {
-  0% { opacity: 0; transform: translateY(40px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scale-in {
-  0% { opacity: 0; transform: scale(0.7); }
-  60% { transform: scale(1.05); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+
+  60% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .animate-shake {
@@ -373,8 +462,15 @@ h4 {
 
 /* ===== AI Streaming cursor ===== */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 .streaming-cursor {
@@ -385,8 +481,13 @@ h4 {
 
 /* ===== AI Settings slide-up ===== */
 @keyframes slide-up {
-  0% { transform: translateY(100%); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(100%);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
 }
 
 .animate-slide-up {
@@ -395,19 +496,43 @@ h4 {
 
 /* ===== Avatar & Background Animations ===== */
 @keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
+
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-gradient-shift {
@@ -428,13 +553,27 @@ h4 {
 
 /* ===== 页面过渡动画 ===== */
 @keyframes fade-slide-in {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fade-slide-out {
-  0% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-20px); }
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
 }
 
 .animate-fade-slide-in {
@@ -447,45 +586,105 @@ h4 {
 
 /* ===== 滚动动画 ===== */
 @keyframes scroll-reveal {
-  0% { opacity: 0; transform: translateY(30px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scroll-fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes scroll-scale-in {
-  0% { opacity: 0; transform: scale(0.8); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes scroll-rotate-in {
-  0% { opacity: 0; transform: translateY(30px) rotate(-5deg); }
-  100% { opacity: 1; transform: translateY(0) rotate(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(30px) rotate(-5deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
 }
 
 @keyframes scroll-bounce-in {
-  0% { opacity: 0; transform: translateY(50px); }
-  60% { transform: translateY(-10px); }
-  80% { transform: translateY(5px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+
+  60% {
+    transform: translateY(-10px);
+  }
+
+  80% {
+    transform: translateY(5px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scroll-slide-left {
-  0% { opacity: 0; transform: translateX(-30px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes scroll-slide-right {
-  0% { opacity: 0; transform: translateX(30px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes scroll-slide-up {
-  0% { opacity: 0; transform: translateY(30px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .scroll-slide-up {
@@ -592,18 +791,39 @@ h4 {
 
 /* ===== 交互反馈动画 ===== */
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 @keyframes ripple {
-  0% { transform: scale(0); opacity: 1; }
-  100% { transform: scale(4); opacity: 0; }
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
 }
 
 .animate-pulse {
@@ -640,13 +860,25 @@ h4 {
 
 /* ===== 加载动画 ===== */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(1.5); opacity: 0; }
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 
 .animate-spin {
@@ -659,8 +891,15 @@ h4 {
 
 /* ===== 数字计数动画 ===== */
 @keyframes count-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-count-up {

@@ -24,7 +24,6 @@ import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
 import { allBackgrounds } from '@/pages/AvatarEdit';
-import { Loader2 } from 'lucide-react';
 
 // 懒加载所有页面组件，减少首屏加载体积
 const LoginPage = React.lazy(() => import('@/pages/Login'));
@@ -54,14 +53,23 @@ const FlashcardLearningPage = React.lazy(() => import('@/pages/FlashcardLearning
 
 // 加载占位组件
 const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+  <div className="flex min-h-screen flex-col" style={{ backgroundColor: 'var(--color-bg-var)' }}>
+    <div className="flex-1 space-y-4 p-6">
+      <div className="h-6 w-2/3 animate-pulse rounded-2xl" style={{ backgroundColor: 'var(--color-surface-container-high-var)' }} />
+      <div className="h-4 w-1/2 animate-pulse rounded-2xl" style={{ backgroundColor: 'var(--color-surface-container-high-var)' }} />
+      <div className="mt-6 grid grid-cols-2 gap-4">
+        <div className="h-32 animate-pulse rounded-[var(--radius-xl)]" style={{ backgroundColor: 'var(--color-surface-container-low-var)' }} />
+        <div className="h-32 animate-pulse rounded-[var(--radius-xl)]" style={{ backgroundColor: 'var(--color-surface-container-low-var)' }} />
+      </div>
+      <div className="mt-2 h-40 animate-pulse rounded-[var(--radius-xl)]" style={{ backgroundColor: 'var(--color-surface-container-low-var)' }} />
+    </div>
+    <div className="h-[82px] w-full" style={{ backgroundColor: 'var(--color-surface-container-lowest-var)' }} />
   </div>
 );
 
 function AppContent() {
   const { userState, navigate } = useUser();
-  
+
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
     const backgroundId = userState.user?.background;
@@ -128,14 +136,14 @@ function AppContent() {
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <filter id="noiseFilter">
-                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
-                <feColorMatrix type="saturate" values="0"/>
+                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+                <feColorMatrix type="saturate" values="0" />
                 <feComponentTransfer>
-                  <feFuncA type="linear" slope="0.05"/>
+                  <feFuncA type="linear" slope="0.05" />
                 </feComponentTransfer>
               </filter>
             </defs>
-            <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+            <rect width="100%" height="100%" filter="url(#noiseFilter)" />
           </svg>
           {/* 微妙的渐变光晕 */}
           <div className="absolute top-0 left-1/4 w-1/2 h-32 bg-white/30 rounded-full blur-3xl"></div>
@@ -150,7 +158,10 @@ function AppContent() {
   const renderPage = () => {
     switch (userState.currentPage) {
       case 'login': return <LoginPage />;
-      case 'home': return <HomePage />;
+      case 'home': return <HomePage isActive />;
+      case 'daily-question':
+      case 'subject-detail':
+        return <HomePage isActive />;
       case 'profile': return <ProfilePage />;
       case 'knowledge': return <KnowledgePage />;
       case 'knowledge-detail': return <KnowledgeDetailPage />;
@@ -173,7 +184,7 @@ function AppContent() {
       case 'mail': return <MailPage />;
       case 'avatar-edit': return <AvatarEditPage />;
       case 'flashcard-learning': return <FlashcardLearningPage />;
-      default: return <HomePage />;
+      default: return <HomePage isActive />;
     }
   };
 
@@ -187,6 +198,7 @@ function AppContent() {
   type MainTab = typeof mainTabs[number];
   const currentIndex = mainTabs.indexOf(userState.currentPage as MainTab);
   const isMainTab = currentIndex >= 0;
+  const isHomeScreen = userState.currentPage === 'home' || userState.currentPage === 'daily-question' || userState.currentPage === 'subject-detail';
 
   // 检测是否为大屏幕（电脑）启用滑动切换，小屏幕（手机）保持原有方式
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth > 768);
@@ -194,6 +206,7 @@ function AppContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [offsetX, setOffsetX] = useState(0);
+  const shouldUsePhoneShell = !isLargeScreen || !isMainTab || isFullScreen || isHomeScreen;
 
   // 监听屏幕尺寸变化
   useEffect(() => {
@@ -203,19 +216,32 @@ function AppContent() {
   }, []);
 
   // 恢复大屏幕布局，启用左右换页效果
-  if (!isLargeScreen || !isMainTab || isFullScreen) {
+  if (shouldUsePhoneShell) {
     return (
-      <div className="fixed inset-0 flex justify-center" style={{ background: currentBackground }}>
-        <div className="w-full max-w-[480px] flex flex-col relative">
-          {renderBackgroundPattern(currentPattern)}
-          <div className="flex-1 overflow-y-auto relative z-10">
-            <div className="pb-20 safe-bottom">
+      <div
+        className={`fixed inset-0 flex w-full justify-center ${isHomeScreen ? 'min-h-dvh md:min-h-screen md:items-center md:bg-slate-50' : 'min-h-dvh'}`}
+        style={isHomeScreen ? undefined : { background: currentBackground }}
+      >
+        <div
+          className={`relative flex w-full max-w-[430px] flex-col overflow-hidden ${isHomeScreen ? 'min-h-dvh bg-[#F8FAFF] md:h-[860px] md:min-h-0 md:w-[430px] md:flex-none md:rounded-[var(--radius-3xl)] md:border md:border-slate-200 md:shadow-[0_30px_80px_rgba(15,23,42,0.12)]' : 'min-h-dvh'}`}
+        >
+          {!isHomeScreen && renderBackgroundPattern(currentPattern)}
+          <div className={`relative z-10 flex-1 ${isHomeScreen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className={isHomeScreen ? 'h-full' : 'pb-20 safe-bottom'}>
               <Suspense fallback={<LoadingFallback />}>
-                {renderPage()}
+                {isHomeScreen ? renderPage() : isFullScreen ? (
+                  <div key={userState.currentPage} className="page-fade-opacity">
+                    {renderPage()}
+                  </div>
+                ) : (
+                  <div key={userState.currentPage} className="page-fade-in">
+                    {renderPage()}
+                  </div>
+                )}
               </Suspense>
             </div>
           </div>
-          {userState.isLoggedIn && !isFullScreen && <TabBar />}
+          {userState.isLoggedIn && !isFullScreen && !isHomeScreen && <TabBar />}
           <AchievementPopup />
           <LotteryDrawModal />
         </div>
@@ -227,14 +253,14 @@ function AppContent() {
   const prevIndex = currentIndex === 0 ? mainTabs.length - 1 : currentIndex - 1;
   const nextIndex = currentIndex === mainTabs.length - 1 ? 0 : currentIndex + 1;
 
-  const renderMainTab = (tabName: string) => {
+  const renderMainTab = (tabName: string, isActive: boolean) => {
     switch (tabName) {
-      case 'home': return <HomePage />;
+      case 'home': return <HomePage isActive={isActive} />;
       case 'knowledge': return <KnowledgePage />;
       case 'quiz': return <QuizPage />;
       case 'knowledge-map': return <KnowledgeMapPage />;
       case 'profile': return <ProfilePage />;
-      default: return <HomePage />;
+      default: return <HomePage isActive={false} />;
     }
   };
 
@@ -371,7 +397,7 @@ function AppContent() {
           >
             <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
               <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[prevIndex])}
+                {renderMainTab(mainTabs[prevIndex], false)}
               </Suspense>
             </div>
           </div>
@@ -387,7 +413,7 @@ function AppContent() {
           >
             <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
               <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[currentIndex])}
+                {renderMainTab(mainTabs[currentIndex], true)}
               </Suspense>
             </div>
           </div>
@@ -403,7 +429,7 @@ function AppContent() {
           >
             <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
               <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[nextIndex])}
+                {renderMainTab(mainTabs[nextIndex], false)}
               </Suspense>
             </div>
           </div>

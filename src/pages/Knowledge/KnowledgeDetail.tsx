@@ -48,7 +48,7 @@ export default function KnowledgeDetailPage() {
   };
 
   const handleCopyWord = () => {
-    navigator.clipboard.writeText(kp.name).catch(() => {});
+    navigator.clipboard.writeText(kp.name).catch(() => { });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -68,7 +68,7 @@ export default function KnowledgeDetailPage() {
   const parseTextWithLinks = (text: string) => {
     const names = Object.keys(knowledgeNameMap).sort((a, b) => b.length - a.length);
     // 按长度降序排序，优先匹配长名称（避免"桂枝"被"桂枝汤"截断）
-    
+
     if (names.length === 0) return [<>{text}</>];
 
     // 逐个转义特殊字符
@@ -110,7 +110,7 @@ export default function KnowledgeDetailPage() {
           <div className="text-center mb-4">
             <h2 className="text-3xl font-bold mb-2">{kp.name}</h2>
             <div className="flex items-center justify-center gap-2">
-              <button 
+              <button
                 onClick={handleCopyWord}
                 className="p-2 rounded-full transition-colors"
                 style={{ backgroundColor: theme.border }}
@@ -120,11 +120,11 @@ export default function KnowledgeDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span>{subject?.icon} {subject?.name}</span>
-              <span className="text-text-muted">·</span>
-              <span>{chapter?.name}</span>
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="truncate">{subject?.icon} {subject?.name}</span>
+              <span className="text-text-muted shrink-0">·</span>
+              <span className="truncate">{chapter?.name}</span>
             </div>
             <ProficiencyBadge level={kp.proficiency} />
           </div>
@@ -166,7 +166,7 @@ export default function KnowledgeDetailPage() {
             {explanationLines.map((line, index) => {
               const trimmed = line.trim();
               const parsed = parseTextWithLinks(trimmed);
-              
+
               // 检测句子（以句号、问号、感叹号结尾）
               if (/[。？！.?!]$/.test(trimmed)) {
                 return (
@@ -175,7 +175,7 @@ export default function KnowledgeDetailPage() {
                   </p>
                 );
               }
-              
+
               // 检测要点（以冒号结尾或短句）
               if (/[：:]$/.test(trimmed) || trimmed.length < 30) {
                 return (
@@ -185,7 +185,7 @@ export default function KnowledgeDetailPage() {
                   </div>
                 );
               }
-              
+
               // 其他内容
               return (
                 <p key={index} className="text-sm text-text-secondary leading-relaxed">
@@ -224,9 +224,8 @@ export default function KnowledgeDetailPage() {
               <button
                 key={level}
                 onClick={() => handleSetProficiency(level)}
-                className={`rounded-xl p-2.5 text-center border-2 transition-all ${
-                  isActive ? 'shadow-md scale-105' : 'border-transparent'
-                }`}
+                className={`rounded-xl p-2.5 text-center border-2 transition-all ${isActive ? 'shadow-md scale-105' : 'border-transparent'
+                  }`}
                 style={isActive ? { borderColor: config.color, backgroundColor: config.bgColor } : { backgroundColor: theme.border }}
               >
                 <div className="text-xs font-medium" style={{ color: config.color }}>
@@ -262,8 +261,8 @@ export default function KnowledgeDetailPage() {
                     const hasPrefix = /^[A-G]\.\s/.test(opt.text);
                     const isCorrect = q.correctAnswers.includes(opt.id);
                     return (
-                      <div 
-                        key={opt.id} 
+                      <div
+                        key={opt.id}
                         className="text-xs px-2 py-1 rounded"
                         style={{
                           backgroundColor: isCorrect ? 'rgba(34, 197, 94, 0.15)' : theme.border,

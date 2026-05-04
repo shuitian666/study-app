@@ -29,10 +29,10 @@ function generateCalendar(year: number, month: number) {
   const lastDay = new Date(year, month + 1, 0);
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = firstDay.getDay(); // 0 是周日
-  
+
   // 转换为周一开头（中国日历习惯）
   const paddedDays: Array<{ date: Date; dateStr: string; day: number } | null> = Array.from({ length: (startingDayOfWeek + 6) % 7 }, () => null);
-  
+
   for (let i = 1; i <= daysInMonth; i++) {
     const date = new Date(year, month, i);
     paddedDays.push({
@@ -41,7 +41,7 @@ function generateCalendar(year: number, month: number) {
       day: i
     });
   }
-  
+
   return paddedDays;
 }
 
@@ -62,16 +62,16 @@ export default function CheckinPage() {
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
-  
+
   // 已打卡日期集合（用于快速判断）- 使用 useMemo 缓存
   const checkedDates = useMemo(() =>
     new Set(checkin.records.map(r => r.date)),
     [checkin.records]
   );
-  
+
   // 生成当月日历
   const calendarDays = generateCalendar(currentYear, currentMonth);
-  
+
   // 切换月份
   const prevMonth = () => {
     let newYear = currentYear;
@@ -83,7 +83,7 @@ export default function CheckinPage() {
     setCurrentYear(newYear);
     setCurrentMonth(newMonth);
   };
-  
+
   const nextMonth = () => {
     let newYear = currentYear;
     let newMonth = currentMonth + 1;
@@ -94,7 +94,7 @@ export default function CheckinPage() {
     setCurrentYear(newYear);
     setCurrentMonth(newMonth);
   };
-  
+
   const goToToday = () => {
     const now = new Date();
     setCurrentYear(now.getFullYear());
@@ -221,274 +221,192 @@ export default function CheckinPage() {
       <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
         <TopAppBar />
 
-        <div className="px-6 pt-6 space-y-6 pb-32">
-          {/* Hero Streak & Reward Section - Asymmetric Bento */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Streak Card - Primary gradient */}
-            <div
-              className="col-span-2 md:col-span-1 p-6 rounded-lg relative overflow-hidden flex flex-col justify-between h-44"
-              style={{
-                background: `linear-gradient(135deg, ${theme.primary}, ${theme.tertiary || '#73008e'})`,
-              }}
-            >
-              <div className="relative z-10">
-                <span
-                  className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase mb-3"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#ffffff' }}
-                >
-                  Daily Streak
-                </span>
-                <h2 className="text-3xl font-black" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: '#ffffff' }}>
-                  连续签到 {checkin.streak} 天
-                </h2>
-                <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                  继续保持！离下一个里程碑仅差 3 天。
-                </p>
-              </div>
-              <div className="mt-4 relative z-10">
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
-                  <div className="h-full rounded-full" style={{ backgroundColor: theme.secondaryContainer || '#ffbf00', width: '70%' }} />
-                </div>
-              </div>
-              {/* Abstract background shapes */}
-              <div
-                className="absolute top-[-20%] right-[-10%] w-40 h-40 rounded-full opacity-20"
-                style={{ backgroundColor: '#ffffff', filter: 'blur(40px)' }}
-              />
-            </div>
+        <div className="px-4 pt-4 pb-28 space-y-3">
 
-            {/* Reward Card */}
-            <div
-              className="col-span-2 md:col-span-1 p-6 rounded-lg flex flex-col items-center justify-center text-center h-44"
-              style={{
-                backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-                boxShadow: 'none',
-              }}
-            >
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
-                style={{ backgroundColor: theme.secondaryFixed || '#ffdfa0' }}
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={theme.onSecondaryFixed || '#261a00'} strokeWidth="2">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-bold" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: theme.onSurface }}>恭喜获得奖励!</h3>
-              <p className="text-sm mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>今日获得 50 学习积分</p>
-            </div>
-          </div>
-
-          {/* Calendar Section */}
+          {/* ── 1. 签到日历（主要区域） ─────────────────── */}
           <div
-            className="p-6 rounded-lg"
-            style={{ backgroundColor: theme.surfaceContainerLow || '#f3f4f5' }}
+            className="overflow-hidden rounded-[1.5rem]"
+            style={{
+              backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+              border: '1px solid rgba(0,0,0,0.06)',
+              boxShadow: '0 2px 14px rgba(15,23,42,0.08)',
+            }}
           >
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: theme.onSurface }}>
+            {/* 月份导航 */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-2">
+              <h3 className="text-base font-bold" style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, Noto Sans SC, sans-serif' }}>
                 签到日历
               </h3>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={prevMonth}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{ color: theme.onSurfaceVariant }}
-                >
-                  <ChevronLeft size={20} />
+              <div className="flex items-center gap-1">
+                <button onClick={prevMonth} className="flex h-8 w-8 items-center justify-center rounded-full active:scale-95 transition-transform" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                  <ChevronLeft size={18} />
                 </button>
-                <span className="font-bold" style={{ color: theme.onSurface }}>{currentYear}年 {currentMonth + 1}月</span>
-                <button
-                  onClick={nextMonth}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{ color: theme.onSurfaceVariant }}
-                >
-                  <ChevronRight size={20} />
+                <span className="w-[6.5rem] text-center text-sm font-semibold" style={{ color: theme.onSurface || '#191c1d' }}>
+                  {currentYear}年 {currentMonth + 1}月
+                </span>
+                <button onClick={nextMonth} className="flex h-8 w-8 items-center justify-center rounded-full active:scale-95 transition-transform" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                  <ChevronRight size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
+            {/* 星期标题 */}
+            <div className="grid grid-cols-7 px-4 pb-1">
               {WEEKDAYS.map(day => (
-                <div key={day} className="text-center text-xs font-bold uppercase" style={{ color: theme.outline || '#757684' }}>
+                <div key={day} className="text-center text-[11px] font-bold" style={{ color: theme.onSurfaceVariant || '#454652' }}>
                   {day}
                 </div>
               ))}
             </div>
 
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-2">
+            {/* 日历格子 */}
+            <div className="grid grid-cols-7 gap-y-0.5 px-4 pb-4">
               {calendarDays.map((day, index) => {
                 if (!day) return <div key={index} className="aspect-square" />;
-
                 const isChecked = checkedDates.has(day.dateStr);
                 const isToday = day.dateStr === today;
-
                 return (
                   <div
                     key={index}
-                    className="aspect-square flex items-center justify-center relative transition-all duration-300 hover:scale-105 cursor-pointer"
+                    className="aspect-square flex items-center justify-center relative select-none transition-transform active:scale-95"
                     style={{
                       borderRadius: '50%',
-                      backgroundColor: isChecked
-                        ? theme.primary
-                        : isToday
-                          ? `${theme.primary}20`
-                          : 'transparent',
-                      color: isChecked
-                        ? '#ffffff'
-                        : isToday
-                          ? theme.primary
-                          : theme.onSurfaceVariant,
+                      backgroundColor: isChecked ? (theme.primary || '#24389c') : isToday ? `${theme.primary || '#24389c'}18` : 'transparent',
+                      color: isChecked ? '#ffffff' : isToday ? (theme.primary || '#24389c') : (theme.onSurfaceVariant || '#454652'),
                       fontWeight: isChecked || isToday ? 'bold' : 'normal',
-                      fontSize: '14px',
+                      fontSize: '13px',
                     }}
                   >
                     {day.day}
                     {isToday && !isChecked && (
-                      <div
-                        className="absolute -bottom-0.5 w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: theme.primary }}
-                      />
+                      <div className="absolute bottom-0.5 w-1 h-1 rounded-full" style={{ backgroundColor: theme.primary || '#24389c' }} />
                     )}
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          {/* Checkin Button Section */}
-          <div
-            className="p-6 rounded-lg"
-            style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff', boxShadow: 'none' }}
-          >
-            {todayChecked ? (
-              <div
-                className="w-full py-4 rounded-xl text-center font-medium"
-                style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}
-              >
-                今日已签到 ✓
-              </div>
-            ) : !canCheckin ? (
-              <div
-                className="w-full py-4 rounded-xl text-center"
-                style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9', color: theme.onSurfaceVariant }}
-              >
-                完成学习任务后可签到
-              </div>
-            ) : (
-              <button
-                onClick={() => performCheckin('normal')}
-                className="w-full py-4 rounded-xl font-bold active:scale-[0.98] transition-transform"
-                style={{ background: `linear-gradient(135deg, ${theme.primary}, ${theme.tertiary || '#73008e'})`, color: '#ffffff' }}
-              >
-                立即签到
-              </button>
-            )}
-
-            {/* Streak info */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-2">
-                <Flame size={18} style={{ color: '#f97316' }} />
-                <span className="text-sm font-bold" style={{ color: theme.onSurface }}>连续 {checkin.streak} 天</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Ticket size={14} style={{ color: theme.secondary || '#795900' }} />
-                <span className="text-xs" style={{ color: theme.onSurfaceVariant }}>补签卡 x{checkin.makeupCards}</span>
-              </div>
+            {/* 签到按钮 */}
+            <div className="px-4 pb-5">
+              {todayChecked ? (
+                <div
+                  className="flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold"
+                  style={{ backgroundColor: `${theme.primary || '#24389c'}14`, color: theme.primary || '#24389c' }}
+                >
+                  <CheckCircle size={17} />
+                  今日已签到
+                </div>
+              ) : !canCheckin ? (
+                <div
+                  className="rounded-2xl py-3.5 text-center text-sm font-medium"
+                  style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9', color: theme.onSurfaceVariant || '#454652' }}
+                >
+                  完成学习任务后可签到
+                </div>
+              ) : (
+                <button
+                  onClick={() => performCheckin('normal')}
+                  className="w-full rounded-2xl py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+                  style={{ background: `linear-gradient(135deg, ${theme.primary || '#24389c'}, ${theme.tertiary || '#73008e'})` }}
+                >
+                  立即签到
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Achievement Badges */}
+          {/* ── 2. 连续签到状态（紧凑横条） ────────────── */}
           <div
-            className="p-6 rounded-lg"
-            style={{ backgroundColor: theme.surfaceContainerLow || '#f3f4f5' }}
+            className="flex items-center justify-between rounded-2xl px-5 py-3.5"
+            style={{
+              backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+              border: '1px solid rgba(0,0,0,0.05)',
+              boxShadow: '0 1px 6px rgba(15,23,42,0.06)',
+            }}
           >
-            <h3 className="text-lg font-bold mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: theme.onSurface }}>成就勋章</h3>
-            <div className="flex flex-wrap gap-6">
-              <div className="flex flex-col items-center gap-2">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: `${theme.primary}20` }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={theme.primary} strokeWidth="2">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                    <path d="M6 12v5c3 3 9 3 12 0v-5" />
+            <div className="flex items-center gap-2">
+              <Flame size={18} style={{ color: '#f97316' }} />
+              <span className="text-sm font-bold" style={{ color: theme.onSurface || '#191c1d' }}>连续 {checkin.streak} 天</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Ticket size={14} style={{ color: theme.secondary || '#795900' }} />
+              <span className="text-xs font-medium" style={{ color: theme.onSurfaceVariant || '#454652' }}>补签卡 x{checkin.makeupCards}</span>
+            </div>
+          </div>
+
+          {/* ── 3. 签到奖励（仅签到后才显示） ─────────── */}
+          {todayChecked && (
+            <div
+              className="flex items-center gap-4 rounded-2xl px-5 py-4"
+              style={{ backgroundColor: theme.secondaryFixed || '#ffdfa0', border: '1px solid rgba(0,0,0,0.04)' }}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+                <Star size={18} style={{ color: theme.onSecondaryFixed || '#261a00' }} fill="currentColor" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold" style={{ color: theme.onSecondaryFixed || '#261a00' }}>签到成功！</p>
+                <p className="text-xs mt-0.5" style={{ color: theme.onSecondaryFixed || '#261a00', opacity: 0.7 }}>获得 50 学习积分</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── 4. 每日福签 ──────────────────────────── */}
+          <div
+            className="flex items-center justify-between rounded-2xl px-5 py-4"
+            style={{ backgroundColor: theme.tertiaryFixed || '#fdd6ff', border: '1px solid rgba(0,0,0,0.04)' }}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: theme.onTertiaryFixed || '#340042', opacity: 0.55 }}>
+                Daily Fortune
+              </p>
+              <h3 className="text-base font-black mt-0.5" style={{ color: theme.onTertiaryFixed || '#340042', fontFamily: 'Plus Jakarta Sans, Noto Sans SC, sans-serif' }}>
+                每日福签
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: theme.onTertiaryFixed || '#340042', opacity: 0.65 }}>
+                为今日学习祈愿
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('lottery')}
+              className="ml-4 shrink-0 rounded-2xl text-sm font-bold transition-transform active:scale-[0.97]"
+              style={{ backgroundColor: theme.tertiary || '#73008e', color: '#ffffff', padding: '8px 16px' }}
+            >
+              抽签
+            </button>
+          </div>
+
+          {/* ── 5. 成就勋章（紧凑行） ────────────────── */}
+          <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: theme.surfaceContainerLow || '#f3f4f5' }}>
+            <h3 className="mb-3 text-sm font-bold" style={{ color: theme.onSurface || '#191c1d' }}>成就勋章</h3>
+            <div className="flex items-center gap-5">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${theme.primary || '#24389c'}20` }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={theme.primary || '#24389c'} strokeWidth="2">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold" style={{ color: theme.onSurface }}>初学者</span>
+                <span className="text-[10px] font-bold" style={{ color: theme.onSurface || '#191c1d' }}>初学者</span>
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: `${theme.secondary}20` }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={theme.secondary} strokeWidth="2">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: `${theme.secondary || '#795900'}20` }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={theme.secondary || '#795900'} strokeWidth="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold" style={{ color: theme.onSurface }}>知识达人</span>
+                <span className="text-[10px] font-bold" style={{ color: theme.onSurface || '#191c1d' }}>知识达人</span>
               </div>
-              <div className="flex flex-col items-center gap-2 opacity-40">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ backgroundColor: theme.surfaceContainerHighest || '#e1e3e4' }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={theme.outline || '#757684'} strokeWidth="2">
+              <div className="flex flex-col items-center gap-1.5 opacity-35">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: theme.surfaceContainerHighest || '#e1e3e4' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={theme.outline || '#757684'} strokeWidth="2">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold" style={{ color: theme.onSurface }}>学霸领袖</span>
+                <span className="text-[10px] font-bold" style={{ color: theme.onSurface || '#191c1d' }}>学霸领袖</span>
               </div>
             </div>
           </div>
 
-          {/* Lucky Wheel Card */}
-          <div
-            className="p-6 rounded-lg relative overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${theme.tertiaryFixed || '#fdd6ff'}, ${theme.tertiary || '#73008e'})` }}
-          >
-            <div
-              className="rounded-lg p-6"
-              style={{ backgroundColor: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(10px)' }}
-            >
-              <span className="text-xs font-bold uppercase tracking-wider opacity-70" style={{ color: theme.onTertiaryFixed || '#340042' }}>
-                Daily Luck
-              </span>
-              <h3 className="text-xl font-black mt-1 mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: theme.onTertiaryFixed || '#340042' }}>
-                幸运大转盘
-              </h3>
-              <p className="text-sm font-medium mb-4 opacity-80" style={{ color: theme.onTertiaryFixed || '#340042' }}>
-                今日剩余抽奖机会: <span className="font-bold">1</span> 次
-              </p>
-              <button
-                onClick={() => navigate('lottery')}
-                className="w-full py-3 rounded-xl font-bold active:scale-[0.98] transition-transform"
-                style={{ backgroundColor: theme.tertiary || '#73008e', color: '#ffffff' }}
-              >
-                开始抽奖
-              </button>
-            </div>
-          </div>
         </div>
-
-        {/* Floating AI Button */}
-        <button
-          className="fixed bottom-24 right-6 px-6 py-4 rounded-full shadow-xl flex items-center gap-3 z-40"
-          style={{
-            backgroundColor: theme.tertiaryFixed || '#fdd6ff',
-            color: theme.onTertiaryFixed || '#340042',
-            boxShadow: `0 8px 24px -4px rgba(115, 0, 142, 0.3)`,
-          }}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: theme.tertiary || '#73008e', color: '#ffffff' }}
-          >
-            <Sparkles size={16} />
-          </div>
-          <span className="font-bold text-sm">AI 助教建议</span>
-        </button>
       </div>
     );
   }
@@ -571,7 +489,7 @@ export default function CheckinPage() {
             打卡日历
           </h3>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={prevMonth}
               className="p-2 rounded-lg hover:bg-gray-50 text-text-muted transition-colors"
               style={{ borderRadius: '12px' }}
@@ -585,7 +503,7 @@ export default function CheckinPage() {
             >
               {currentYear}年{currentMonth + 1}月
             </button>
-            <button 
+            <button
               onClick={nextMonth}
               className="p-2 rounded-lg hover:bg-gray-50 text-text-muted transition-colors"
               style={{ borderRadius: '12px' }}
@@ -608,25 +526,23 @@ export default function CheckinPage() {
         <div className="grid grid-cols-7 gap-2">
           {calendarDays.map((day, index) => {
             if (!day) return <div key={index} className="aspect-square" />;
-            
+
             const isChecked = checkedDates.has(day.dateStr);
             const isToday = day.dateStr === today;
-            
+
             return (
               <div
                 key={index}
-                className={`aspect-square flex items-center justify-center relative transition-all duration-300 hover:scale-105 cursor-pointer ${
-                  isChecked
-                    ? 'bg-green-50 text-green-600 font-medium'
-                    : 'bg-gray-50 text-text-muted hover:bg-gray-100'
-                } ${
-                  isToday
+                className={`aspect-square flex items-center justify-center relative transition-all duration-300 hover:scale-105 cursor-pointer ${isChecked
+                  ? 'bg-green-50 text-green-600 font-medium'
+                  : 'bg-gray-50 text-text-muted hover:bg-gray-100'
+                  } ${isToday
                     ? 'ring-2 ring-primary ring-offset-2'
                     : ''
-                }`}
-                style={{ 
+                  }`}
+                style={{
                   borderRadius: '12px',
-                  boxShadow: isChecked 
+                  boxShadow: isChecked
                     ? 'inset 0 0 0 1px rgba(16, 185, 129, 0.2), 0 2px 4px rgba(16, 185, 129, 0.1)'
                     : 'none'
                 }}
@@ -706,7 +622,7 @@ export default function CheckinPage() {
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${Math.min(100,(completedNewCount / dailyNewGoal) * 100)}%`,
+                  width: `${Math.min(100, (completedNewCount / dailyNewGoal) * 100)}%`,
                   backgroundColor: newLearnCompleted ? '#10b981' : '#3b82f6',
                 }}
               />
@@ -721,8 +637,8 @@ export default function CheckinPage() {
               </p>
             ) : (
               <p className="text-xs text-text-muted">
-                {reviewCompleted 
-                  ? `再完成 ${dailyNewGoal - completedNewCount} 个新学即可签到` 
+                {reviewCompleted
+                  ? `再完成 ${dailyNewGoal - completedNewCount} 个新学即可签到`
                   : '完成复习和新学任务后即可签到'}
               </p>
             )}
@@ -756,21 +672,20 @@ export default function CheckinPage() {
                       if (isPast && !record) handleMakeup(date);
                     }}
                     disabled={!!record || isToday || (!isPast)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium transition-all ${
-                      record
-                        ? record.type === 'makeup'
-                          ? 'bg-blue-100 text-blue-600'
-                          : record.type === 'team'
-                            ? 'bg-accent/10 text-accent ring-2 ring-accent/30'
-                            : 'bg-accent/10 text-accent'
-                        : isToday
-                          ? todayChecked
-                            ? 'bg-accent/10 text-accent'
-                            : 'bg-primary/10 text-primary border-2 border-primary'
-                          : isPast
-                            ? 'bg-gray-100 text-text-muted'
-                            : 'bg-gray-50 text-text-muted/50'
-                    }`}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium transition-all ${record
+                      ? record.type === 'makeup'
+                        ? 'bg-blue-100 text-blue-600'
+                        : record.type === 'team'
+                          ? 'bg-accent/10 text-accent ring-2 ring-accent/30'
+                          : 'bg-accent/10 text-accent'
+                      : isToday
+                        ? todayChecked
+                          ? 'bg-accent/10 text-accent'
+                          : 'bg-primary/10 text-primary border-2 border-primary'
+                        : isPast
+                          ? 'bg-gray-100 text-text-muted'
+                          : 'bg-gray-50 text-text-muted/50'
+                      }`}
                   >
                     {record || (isToday && todayChecked) ? '✓' : new Date(date).getDate()}
                   </button>

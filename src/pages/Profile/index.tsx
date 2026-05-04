@@ -410,7 +410,7 @@ export default function ProfilePage() {
     <div className="page-scroll pb-4">
       {/* Profile Header - 渐变背景 */}
       <div
-        className="text-white px-5 pt-16 pb-8 rounded-b-[40px] overflow-hidden"
+        className="text-white px-5 pt-5 pb-5 rounded-b-3xl overflow-hidden"
         style={{
           backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
         }}

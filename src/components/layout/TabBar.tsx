@@ -37,7 +37,11 @@ const tabs: TabItem[] = [
 
 const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
 
-export default function TabBar() {
+interface TabBarProps {
+  placement?: 'viewport' | 'contained';
+}
+
+export default function TabBar({ placement = 'viewport' }: TabBarProps) {
   const { userState, navigate } = useUser();
   const { theme } = useTheme();
 
@@ -48,25 +52,51 @@ export default function TabBar() {
     return null;
   }
 
-  // ===== Scholar 风格（Fluid Scholar）=====
-  if (uiStyle === 'scholar') {
+  if (placement === 'contained') {
+    const activeColor = uiStyle === 'scholar' ? (layoutConfig.tabBarActiveColor || '#24389c') : '#6366f1';
+    const activeBg = uiStyle === 'scholar' ? (layoutConfig.tabBarActiveBg || '#dee0ff') : undefined;
+
+    // Playful contained: match viewport TabBar style (flat, same height)
+    if (uiStyle !== 'scholar') {
+      return (
+        <nav className="h-[56px] w-full border-t border-white/20 bg-white/70 backdrop-blur-xl">
+          <div className="flex h-full items-center justify-around">
+            {tabs.map(tab => {
+              const isActive = userState.currentPage === tab.key;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => navigate(tab.key)}
+                  className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 rounded-full mx-1 ${isActive ? 'bg-primary/10 scale-105' : 'active:opacity-60'}`}
+                >
+                  <Icon
+                    size={isActive ? 22 : 20}
+                    className={isActive ? 'text-primary' : 'text-text-muted'}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                  />
+                  <span className={`text-[10px] leading-tight ${isActive ? 'text-primary font-semibold' : 'text-text-muted'}`}>
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      );
+    }
+
     return (
       <nav
-        className="fixed bottom-0 left-0 w-full z-50 safe-bottom"
+        className="h-[78px] w-full border-t backdrop-blur-xl"
         style={{
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          borderRadius: '1.75rem 1.75rem 0 0',
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          borderColor: 'rgba(0,0,0,0.06)',
+          boxShadow: '0 -8px 24px -4px rgba(15,23,42,0.06)',
         }}
       >
-        <div
-          className="flex items-center justify-around px-4 py-3"
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '3rem 3rem 0 0',
-            boxShadow: '0 -8px 24px -4px rgba(25, 28, 29, 0.06)',
-          }}
-        >
+        <div className="flex h-full items-center justify-around px-4 pb-3 pt-2">
           {tabs.map(tab => {
             const isActive = userState.currentPage === tab.key;
             const Icon = tab.icon;
@@ -74,38 +104,74 @@ export default function TabBar() {
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.key)}
-                className="flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-300"
-                style={{
-                  borderRadius: '20px',
-                  transform: isActive ? 'scale(0.9)' : 'scale(1)',
-                }}
+                className="flex h-full flex-1 flex-col items-center justify-center gap-1 transition-transform duration-200 active:scale-[0.96]"
               >
-                {isActive ? (
-                  <div
-                    className="px-4 py-1.5 rounded-full"
-                    style={{
-                      backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff',
-                    }}
-                  >
-                    <Icon
-                      size={20}
-                      style={{ color: layoutConfig.tabBarActiveColor || '#24389c' }}
-                      strokeWidth={2.5}
-                    />
+                {uiStyle === 'scholar' && isActive ? (
+                  <div className="px-3 py-1.5 rounded-full" style={{ backgroundColor: activeBg }}>
+                    <Icon size={20} style={{ color: activeColor }} strokeWidth={2.5} />
                   </div>
                 ) : (
                   <Icon
-                    size={20}
-                    style={{ color: theme.onSurfaceVariant || '#454652' }}
-                    strokeWidth={1.8}
+                    size={22}
+                    style={{ color: isActive ? activeColor : '#64748b' }}
+                    strokeWidth={isActive ? 2.5 : 1.9}
                   />
                 )}
                 <span
-                  className="text-[11px] font-bold tracking-wide"
+                  className="text-[11px] leading-tight"
                   style={{
-                    color: isActive
-                      ? layoutConfig.tabBarActiveColor || '#24389c'
-                      : theme.onSurfaceVariant || '#454652',
+                    color: isActive ? activeColor : '#64748b',
+                    fontWeight: isActive ? 700 : 500,
+                  }}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
+
+  // ===== Scholar 风格（Fluid Scholar）=====
+  if (uiStyle === 'scholar') {
+    return (
+      <nav
+        className="fixed bottom-0 left-1/2 z-50 w-[min(100vw,430px)] -translate-x-1/2 h-[78px] border-t backdrop-blur-xl"
+        style={{
+          borderRadius: '1.75rem 1.75rem 0 0',
+          backgroundColor: 'rgba(255,255,255,0.85)',
+          borderColor: 'rgba(0,0,0,0.06)',
+          boxShadow: '0 -8px 24px -4px rgba(15,23,42,0.06)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div className="flex h-full items-center justify-around px-4 pb-3 pt-2">
+          {tabs.map(tab => {
+            const isActive = userState.currentPage === tab.key;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => navigate(tab.key)}
+                className="flex h-full flex-1 flex-col items-center justify-center gap-1 transition-transform duration-200 active:scale-[0.96]"
+              >
+                {isActive ? (
+                  <div
+                    className="px-3 py-1.5 rounded-full"
+                    style={{ backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff' }}
+                  >
+                    <Icon size={20} style={{ color: layoutConfig.tabBarActiveColor || '#24389c' }} strokeWidth={2.5} />
+                  </div>
+                ) : (
+                  <Icon size={22} style={{ color: theme.onSurfaceVariant || '#454652' }} strokeWidth={1.8} />
+                )}
+                <span
+                  className="text-[11px] leading-tight"
+                  style={{
+                    color: isActive ? layoutConfig.tabBarActiveColor || '#24389c' : theme.onSurfaceVariant || '#454652',
+                    fontWeight: isActive ? 700 : 500,
                   }}
                 >
                   {tab.label}
@@ -120,7 +186,7 @@ export default function TabBar() {
 
   // ===== Playful 风格（默认）=====
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 safe-bottom">
+    <div className="fixed bottom-0 left-1/2 z-50 w-[min(100vw,430px)] -translate-x-1/2 safe-bottom">
       {/* 苹果风格：底部半透明磨砂玻璃效果 */}
       <div className="bg-white/70 backdrop-blur-xl border-t border-white/20">
         <div className="flex items-center justify-around h-[56px]">

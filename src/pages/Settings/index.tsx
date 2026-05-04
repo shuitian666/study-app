@@ -25,17 +25,17 @@ export default function SettingsPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState } = useLearning();
   const { theme } = useTheme();
-  
+
   // 读取已保存配置
   const savedConfig = getAIConfig();
-  
+
   // 当前模式: 'douban' = 云端豆包, 'offline' = 离线模式, 'openclaw' = 本地 OpenClaw
   const [aiMode, setAiMode] = useState<'douban' | 'offline' | 'openclaw'>(() => {
     if (savedConfig.provider === 'douban') return 'douban';
     if (savedConfig.provider === 'openclaw') return 'openclaw';
     return 'offline';
   });
-  
+
   // API Key 输入框
   const [apiKey, setApiKey] = useState(() => {
     return savedConfig.apiKey || '';
@@ -43,18 +43,18 @@ export default function SettingsPage() {
   const [modelId, setModelId] = useState(() => {
     return savedConfig.modelId || DEFAULT_DOUBAN_MODEL;
   });
-  
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  
+
   // 销号确认弹窗
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
-  
+
   // 保存AI模式
   const saveAIMode = (mode: 'douban' | 'offline' | 'openclaw') => {
     setSaving(true);
-    
+
     if (mode === 'douban') {
       // 配置豆包云端API - 使用用户输入的 API Key 和模型 ID
       const newConfig: AIConfig = {
@@ -79,13 +79,13 @@ export default function SettingsPage() {
       };
       setAIConfig(newConfig);
     }
-    
+
     setAiMode(mode);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
-  
+
   // 学习目标状态
   const [dailyGoal, setDailyGoal] = useState(() => {
     const saved = localStorage.getItem('daily-question-goal');
@@ -93,7 +93,7 @@ export default function SettingsPage() {
   });
   const [goalAchieved, setGoalAchieved] = useState(false);
   const [todayCompleted, setTodayCompleted] = useState(0);
-  
+
   // 主界面动画效果状态（首页、知识库、图谱、我的、刷题中心）
   const [mainAnimationEffect, setMainAnimationEffect] = useState(() => {
     const saved = localStorage.getItem('main-animation-effect');
@@ -123,12 +123,12 @@ export default function SettingsPage() {
   // 保存学习目标
   const handleSaveGoal = () => {
     localStorage.setItem('daily-question-goal', String(dailyGoal));
-    userDispatch({ 
-      type: 'SET_DAILY_GOAL', 
-      payload: dailyGoal 
+    userDispatch({
+      type: 'SET_DAILY_GOAL',
+      payload: dailyGoal
     });
   };
-  
+
   // 保存主界面动画效果
   const handleSaveMainAnimationEffect = (effect: string) => {
     localStorage.setItem('main-animation-effect', effect);
@@ -153,10 +153,10 @@ export default function SettingsPage() {
   // 销号处理
   const handleDestroyAccount = () => {
     if (destroyConfirmText !== '确认销号') return;
-    
+
     // 清除所有本地存储
     localStorage.clear();
-    
+
     // 彻底重置状态
     userDispatch({ type: 'RESET_ALL' });
     navigate('login');
@@ -178,8 +178,8 @@ export default function SettingsPage() {
   return (
     <div className="page-scroll pb-4">
       {/* 渐变头部背景 */}
-      <div 
-        className="text-white px-5 pt-16 pb-6 rounded-b-[40px] mb-4 overflow-hidden"
+      <div
+        className="text-white px-5 pt-5 pb-4 rounded-b-3xl mb-4 overflow-hidden"
         style={{
           backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
         }}
@@ -216,15 +216,15 @@ export default function SettingsPage() {
               )}
               <div>
                 <div className="text-sm font-medium">
-                  {aiMode === 'douban' ? '豆包 AI (云端)' : 
-                   aiMode === 'openclaw' ? 'OpenClaw (本地)' : '离线模式'}
+                  {aiMode === 'douban' ? '豆包 AI (云端)' :
+                    aiMode === 'openclaw' ? 'OpenClaw (本地)' : '离线模式'}
                 </div>
                 <div className="text-xs text-text-muted">
-                  {aiMode === 'douban' 
+                  {aiMode === 'douban'
                     ? `使用 doubao-lite-32k 模型`
                     : aiMode === 'openclaw'
-                    ? '连接本地 OpenClaw 服务，使用本地知识库'
-                    : '使用预设任务流，无AI能力'}
+                      ? '连接本地 OpenClaw 服务，使用本地知识库'
+                      : '使用预设任务流，无AI能力'}
                 </div>
               </div>
             </div>
@@ -235,19 +235,18 @@ export default function SettingsPage() {
               </span>
             )}
           </div>
-          
+
           {/* 模式选择 */}
           <div className="p-4 space-y-3">
             <div className="text-xs text-text-muted mb-2">选择AI模式</div>
-            
+
             {/* 豆包云端 */}
             <button
               onClick={() => setAiMode('douban')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                isDoubanMode 
-                  ? 'border-purple-500 bg-purple-50' 
-                  : 'border-border bg-white hover:border-purple-300'
-              }`}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${isDoubanMode
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-border bg-white hover:border-purple-300'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -262,7 +261,7 @@ export default function SettingsPage() {
                 {isDoubanMode && <Check size={18} className="text-purple-500" />}
               </div>
             </button>
-            
+
             {/* 豆包配置 */}
             {isDoubanMode && (
               <div className="mt-3 space-y-3">
@@ -305,11 +304,10 @@ export default function SettingsPage() {
             {/* OpenClaw 本地接入 - 用户要求手动选择接入 ✅ */}
             <button
               onClick={() => setAiMode('openclaw')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                aiMode === 'openclaw'
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-border bg-white hover:border-green-300'
-              }`}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${aiMode === 'openclaw'
+                ? 'border-green-500 bg-green-50'
+                : 'border-border bg-white hover:border-green-300'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -328,11 +326,10 @@ export default function SettingsPage() {
             {/* 离线模式 */}
             <button
               onClick={() => setAiMode('offline')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                aiMode === 'offline'
-                  ? 'border-gray-400 bg-gray-50'
-                  : 'border-border bg-white hover:border-gray-300'
-              }`}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${aiMode === 'offline'
+                ? 'border-gray-400 bg-gray-50'
+                : 'border-border bg-white hover:border-gray-300'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -375,9 +372,9 @@ export default function SettingsPage() {
               <span>{todayCompleted} / {dailyGoal} 题</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-              <div 
+              <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ 
+                style={{
                   width: `${Math.min(100, (todayCompleted / dailyGoal) * 100)}%`,
                   backgroundColor: goalAchieved ? '#10b981' : '#f59e0b'
                 }}
@@ -397,7 +394,7 @@ export default function SettingsPage() {
               <span className="text-xs text-text-secondary">每日目标（题目数）</span>
               <span className="text-sm font-bold text-primary">{dailyGoal} 题</span>
             </div>
-            
+
             <input
               type="range"
               min="10"
@@ -407,7 +404,7 @@ export default function SettingsPage() {
               onChange={e => setDailyGoal(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
             />
-            
+
             <div className="flex justify-between text-[10px] text-text-muted mt-1">
               <span>10题</span>
               <span>50题</span>
@@ -446,11 +443,10 @@ export default function SettingsPage() {
               <button
                 key={effect.value}
                 onClick={() => handleSaveMainAnimationEffect(effect.value)}
-                className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
-                  mainAnimationEffect === effect.value
-                    ? 'border-secondary bg-secondary/5'
-                    : 'border-border bg-white hover:border-secondary/30'
-                }`}
+                className={`w-full p-3 rounded-xl border-2 transition-all text-left ${mainAnimationEffect === effect.value
+                  ? 'border-secondary bg-secondary/5'
+                  : 'border-border bg-white hover:border-secondary/30'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -488,11 +484,10 @@ export default function SettingsPage() {
               <button
                 key={effect.value}
                 onClick={() => handleSaveSubAnimationEffect(effect.value)}
-                className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
-                  subAnimationEffect === effect.value
-                    ? 'border-accent bg-accent/5'
-                    : 'border-border bg-white hover:border-accent/30'
-                }`}
+                className={`w-full p-3 rounded-xl border-2 transition-all text-left ${subAnimationEffect === effect.value
+                  ? 'border-accent bg-accent/5'
+                  : 'border-border bg-white hover:border-accent/30'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -521,11 +516,10 @@ export default function SettingsPage() {
             {/* 经典风格 */}
             <button
               onClick={() => handleSaveThemeStyle('default')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                themeStyle === 'default'
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border bg-white hover:border-primary/30'
-              }`}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${themeStyle === 'default'
+                ? 'border-primary bg-primary/5'
+                : 'border-border bg-white hover:border-primary/30'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -547,11 +541,10 @@ export default function SettingsPage() {
             {/* Fluid Scholar 风格 */}
             <button
               onClick={() => handleSaveThemeStyle('fluidScholar')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                themeStyle === 'fluidScholar'
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border bg-white hover:border-primary/30'
-              }`}
+              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${themeStyle === 'fluidScholar'
+                ? 'border-primary bg-primary/5'
+                : 'border-border bg-white hover:border-primary/30'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
