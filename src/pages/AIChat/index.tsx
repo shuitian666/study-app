@@ -210,7 +210,7 @@ export default function AIChatPage() {
 
   const handleAddToKnowledge = (content: string) => {
     const firstLine = content.split('\n')[0].replace(/[#*]/g, '').trim();
-    const name = firstLine.length > 20 ?firstLine.slice(0, 20) + '...' : firstLine;
+    const name = firstLine.length > 20 ? firstLine.slice(0, 20) + '...' : firstLine;
 
     learningDispatch({
       type: 'ADD_KNOWLEDGE_POINT',
@@ -222,7 +222,7 @@ export default function AIChatPage() {
         explanation: content.slice(0, 500),
         proficiency: 'none',
         lastReviewedAt: null,
-        nextReviewAt: new Date().toISOString(),
+        nextReviewAt: null,   // 首次学习后由 FSRS 调度
         reviewCount: 0,
         createdAt: new Date().toISOString(),
         source: 'ai',
@@ -272,17 +272,15 @@ export default function AIChatPage() {
       />
 
       <div className="px-4 py-1.5 text-center shrink-0">
-        <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${
-          backendMode === 'online'
+        <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${backendMode === 'online'
             ? 'bg-green-50 text-green-600'
             : backendMode === 'offline'
-            ? 'bg-amber-50 text-amber-600'
-            : 'bg-gray-50 text-gray-400'
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            backendMode === 'online' ? 'bg-green-500' :
-            backendMode === 'offline' ? 'bg-amber-500' : 'bg-gray-300'
-          }`} />
+              ? 'bg-amber-50 text-amber-600'
+              : 'bg-gray-50 text-gray-400'
+          }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${backendMode === 'online' ? 'bg-green-500' :
+              backendMode === 'offline' ? 'bg-amber-500' : 'bg-gray-300'
+            }`} />
           {backendMode === 'checking' ? '检测中...' : modeLabel}
         </span>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -56,7 +56,11 @@ function formatImportDateLabel(dateKey: string) {
   return `${Number(month)} 月 ${Number(day)} 日`;
 }
 
-export default function KnowledgePage() {
+interface KnowledgePageProps {
+  isActive?: boolean;
+}
+
+export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
   const { navigate } = useUser();
   const { learningState, learningDispatch, undo, redo, recordHistory, _canUndo, _canRedo } = useLearning();
   const { theme } = useTheme();
@@ -75,29 +79,9 @@ export default function KnowledgePage() {
 
   const uiStyle = theme.uiStyle || 'playful';
 
-  // 动画效果 - 使用主界面动画设置
-  const [animationEffect, setAnimationEffect] = useState(() => {
-    const saved = localStorage.getItem('main-animation-effect');
-    return saved || 'slide-up';
-  });
-
-  // 监听动画效果变化
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'main-animation-effect' && e.newValue) {
-        setAnimationEffect(e.newValue);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
   // 获取动画类名
   const getAnimationClass = (delay: number) => {
-    const baseClass = `scroll-${animationEffect}`;
-    const delayClass = `reveal-delay-${delay}`;
-    return `${baseClass} ${delayClass}`;
+    return `scroll-slide-up reveal-delay-${delay}`;
   };
 
   const toggleSelectMode = () => {
@@ -240,7 +224,7 @@ export default function KnowledgePage() {
 
   const knowledgeFloatingPanel = (
     <FloatingAIPanel
-      hidden={isSelectMode}
+      hidden={!isActive || isSelectMode}
       ownerPage="knowledge"
       onPrimaryAction={() => navigate('add-knowledge')}
       menuItems={knowledgeFabMenuItems}

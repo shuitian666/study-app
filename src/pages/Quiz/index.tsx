@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -8,49 +8,19 @@ import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 
 export type LearningIntention = 'mixed' | 'new' | 'review' | 'weak' | 'custom';
 
-export default function QuizPage() {
+interface QuizPageProps {
+  isActive?: boolean;
+}
+
+export default function QuizPage({ isActive = true }: QuizPageProps) {
   const { navigate } = useUser();
   const { learningState } = useLearning();
   const { theme } = useTheme();
   const [selectedIntention, setSelectedIntention] = useState<LearningIntention>('mixed');
-  const [animationEffect, setAnimationEffect] = useState<string>('slide-up');
-
   const uiStyle = theme.uiStyle || 'playful';
 
-  useEffect(() => {
-    const savedEffect = localStorage.getItem('main-animation-effect');
-    if (savedEffect) {
-      setAnimationEffect(savedEffect);
-    }
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'main-animation-effect' && e.newValue) {
-        setAnimationEffect(e.newValue);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
   const getAnimationClass = (index: number) => {
-    switch (animationEffect) {
-      case 'fade-in':
-        return `scroll-fade-in delay-${index}`;
-      case 'scale-in':
-        return `scroll-scale-in delay-${index}`;
-      case 'rotate-in':
-        return `scroll-rotate-in delay-${index}`;
-      case 'bounce-in':
-        return `scroll-bounce-in delay-${index}`;
-      case 'slide-left':
-        return `scroll-slide-left delay-${index}`;
-      case 'slide-right':
-        return `scroll-slide-right delay-${index}`;
-      case 'slide-up':
-      default:
-        return `scroll-slide-up delay-${index}`;
-    }
+    return `scroll-slide-up delay-${index}`;
   };
 
   const subjectsWithQuestions = learningState.subjects.filter(s =>
@@ -310,7 +280,7 @@ export default function QuizPage() {
           )}
         </div>
 
-        <FloatingAIPanel ownerPage="quiz" />
+        <FloatingAIPanel ownerPage="quiz" hidden={!isActive} />
       </div>
     );
   }

@@ -1,122 +1,99 @@
 import { generateTodayReviewPlan, calculateNewProficiency, getNextReviewDate } from './review';
 import type { KnowledgePoint, ReviewItem, ProficiencyLevel } from '@/types';
 
-// 测试间隔重复算法
-describe('Spaced Repetition Algorithm', () => {
-  // 模拟知识点数据
-  const mockKnowledgePoints: KnowledgePoint[] = [
-    // 新学知识点
-    {
-      id: 'kp1',
-      subjectId: 'sub1',
-      chapterId: 'chap1',
-      content: '知识点1',
-      proficiency: 'none' as ProficiencyLevel,
-      reviewCount: 0,
-      lastReviewedAt: null,
-      nextReviewAt: null,
-      createdAt: new Date().toISOString(),
-    },
-    // 需要复习的知识点（nextReviewAt <= 今天）
-    {
-      id: 'kp2',
-      subjectId: 'sub1',
-      chapterId: 'chap1',
-      content: '知识点2',
-      proficiency: 'normal' as ProficiencyLevel,
-      reviewCount: 2,
-      lastReviewedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-      nextReviewAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-    // 不需要复习的知识点（nextReviewAt > 今天）
-    {
-      id: 'kp3',
-      subjectId: 'sub1',
-      chapterId: 'chap1',
-      content: '知识点3',
-      proficiency: 'master' as ProficiencyLevel,
-      reviewCount: 5,
-      lastReviewedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      nextReviewAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-    // 已学习但未达到复习时间的知识点
-    {
-      id: 'kp4',
-      subjectId: 'sub1',
-      chapterId: 'chap1',
-      content: '知识点4',
-      proficiency: 'rusty' as ProficiencyLevel,
-      reviewCount: 1,
-      lastReviewedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      nextReviewAt: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-  ];
+function dayOffset(days: number): string {
+  return new Date(Date.now() + days * 86400000).toISOString();
+}
 
-  test('generateTodayReviewPlan should generate correct review and new items', () => {
-    const { review, newItems } = generateTodayReviewPlan(mockKnowledgePoints);
-    
-    // 验证新学项目
-    expect(newItems).toHaveLength(1);
-    expect(newItems[0].knowledgePointId).toBe('kp1');
-    expect(newItems[0].type).toBe('new');
-    
-    // 验证复习项目
-    expect(review).toHaveLength(1);
-    expect(review[0].knowledgePointId).toBe('kp2');
-    expect(review[0].type).toBe('review');
+function dateKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function kp(overrides: Partial<KnowledgePoint>): KnowledgePoint {
+  return {
+    id: 'kp',
+    subjectId: 'sub1',
+    chapterId: 'chap1',
+    name: 'Knowledge point',
+    explanation: 'Explanation',
+    proficiency: 'none',
+    reviewCount: 0,
+    lastReviewedAt: null,
+    nextReviewAt: null,
+    createdAt: dayOffset(0),
+    source: 'manual',
+    ...overrides,
+  };
+}
+
+describe('daily review plan', () => {
+  test('new account knowledge is planned as new, not review', () => {
+    const points = [
+      kp({ id: 'new-1', proficiency: 'none', reviewCount: 0, lastReviewedAt: null, nextReviewAt: null }),
+      kp({ id: 'new-2', proficiency: 'none', reviewCount: 0, lastReviewedAt: null, nextReviewAt: dayOffset(-10) }),
+    ];
+
+    const { review, newItems } = generateTodayReviewPlan(points);
+
+    expect(review).toHaveLength(0);
+    expect(newItems.map(item => item.knowledgePointId)).toEqual(['new-1', 'new-2']);
   });
 
-  test('generateTodayReviewPlan should preserve existing new items', () => {
+  test('only previously learned due cards enter review', () => {
+    const points = [
+      kp({ id: 'due', proficiency: 'normal', reviewCount: 2, lastReviewedAt: dayOffset(-8), nextReviewAt: dayOffset(-1) }),
+      kp({ id: 'future', proficiency: 'normal', reviewCount: 2, lastReviewedAt: dayOffset(-1), nextReviewAt: dayOffset(3) }),
+      kp({ id: 'unlearned-overdue', proficiency: 'none', reviewCount: 0, lastReviewedAt: null, nextReviewAt: dayOffset(-3) }),
+    ];
+
+    const { review, newItems } = generateTodayReviewPlan(points);
+
+    expect(review.map(item => item.knowledgePointId)).toEqual(['due']);
+    expect(newItems.map(item => item.knowledgePointId)).toEqual(['unlearned-overdue']);
+  });
+
+  test('completed new items are preserved when regenerating today plan', () => {
     const existingNewItems: ReviewItem[] = [
       {
-        knowledgePointId: 'kp1',
+        knowledgePointId: 'new-1',
         type: 'new',
-        scheduledAt: new Date().toISOString().slice(0, 10),
+        scheduledAt: dateKey(),
         completed: true,
       },
     ];
-    
-    const { review, newItems } = generateTodayReviewPlan(mockKnowledgePoints, existingNewItems);
-    
-    // 验证已存在的新学项目被保留，且状态正确
+
+    const { newItems } = generateTodayReviewPlan(
+      [kp({ id: 'new-1', reviewCount: 0, lastReviewedAt: null, nextReviewAt: null })],
+      existingNewItems,
+    );
+
     expect(newItems).toHaveLength(1);
-    expect(newItems[0].knowledgePointId).toBe('kp1');
     expect(newItems[0].completed).toBe(true);
   });
+});
 
-  test('calculateNewProficiency should increase proficiency on correct answer', () => {
+describe('spaced repetition helpers', () => {
+  test('calculateNewProficiency increases on correct answer', () => {
     expect(calculateNewProficiency('none', true)).toBe('rusty');
     expect(calculateNewProficiency('rusty', true)).toBe('normal');
     expect(calculateNewProficiency('normal', true)).toBe('master');
-    expect(calculateNewProficiency('master', true)).toBe('master'); // 最高级别
+    expect(calculateNewProficiency('master', true)).toBe('master');
   });
 
-  test('calculateNewProficiency should decrease proficiency on incorrect answer', () => {
+  test('calculateNewProficiency decreases on incorrect answer', () => {
     expect(calculateNewProficiency('master', false)).toBe('normal');
     expect(calculateNewProficiency('normal', false)).toBe('rusty');
     expect(calculateNewProficiency('rusty', false)).toBe('none');
-    expect(calculateNewProficiency('none', false)).toBe('none'); // 最低级别
+    expect(calculateNewProficiency('none', false)).toBe('none');
   });
 
-  test('getNextReviewDate should return correct date based on proficiency', () => {
-    const date1 = new Date(getNextReviewDate('none'));
-    const date2 = new Date(getNextReviewDate('rusty'));
-    const date3 = new Date(getNextReviewDate('normal'));
-    const date4 = new Date(getNextReviewDate('master'));
-    
-    // 验证日期顺序：none < rusty < normal < master
-    expect(date1 < date2).toBe(true);
-    expect(date2 < date3).toBe(true);
-    expect(date3 < date4).toBe(true);
-    
-    // 验证日期都是未来日期
-    const now = new Date();
-    expect(date1 > now).toBe(true);
-    expect(date2 > now).toBe(true);
-    expect(date3 > now).toBe(true);
-    expect(date4 > now).toBe(true);
+  test('getNextReviewDate follows proficiency intervals', () => {
+    const dates = (['none', 'rusty', 'normal', 'master'] as ProficiencyLevel[])
+      .map(level => new Date(getNextReviewDate(level)).getTime());
+
+    expect(dates[0]).toBeLessThan(dates[1]);
+    expect(dates[1]).toBeLessThan(dates[2]);
+    expect(dates[2]).toBeLessThan(dates[3]);
+    dates.forEach(time => expect(time).toBeGreaterThan(Date.now()));
   });
 });

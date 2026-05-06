@@ -37,6 +37,25 @@ function buildQuestionExplanationSeeds(
   return [...existing, ...seeded];
 }
 
+function normalizeDefaultKnowledgePoints(
+  knowledgePoints: KnowledgePointExtended[]
+): KnowledgePointExtended[] {
+  return knowledgePoints.map(kp => ({
+    ...kp,
+    proficiency: 'none',
+    lastReviewedAt: null,
+    nextReviewAt: null,
+    reviewCount: 0,
+    studyRecords: [],
+    quizRecords: [],
+    currentScore: 0,
+    fsrsState: 'New',
+    fsrsReps: 0,
+    fsrsLapses: 0,
+    fsrsLearningSteps: 0,
+  }));
+}
+
 interface ImportedStudySession {
   id: string;
   source: 'import';
@@ -72,7 +91,7 @@ export interface LearningState {
 const initialLearningState: LearningState = {
   subjects: MOCK_SUBJECTS,
   chapters: MOCK_CHAPTERS,
-  knowledgePoints: MOCK_KNOWLEDGE_POINTS,
+  knowledgePoints: normalizeDefaultKnowledgePoints(MOCK_KNOWLEDGE_POINTS),
   questions: MOCK_QUESTIONS,
   quizResults: [],
   wrongRecords: [],
@@ -117,7 +136,8 @@ type LearningAction =
   | { type: 'RECORD_QUIZ_ANSWER'; payload: { knowledgePointId: string; questionId: string; correct: boolean; score: number } }
   | { type: 'UPDATE_KNOWLEDGE_POINT_SCORE'; payload: { id: string; score: number } }
   | { type: 'SET_MEMORY_TIP'; payload: { knowledgePointId: string; tip: string } }
-  | { type: 'UPDATE_FSRS_CARD'; payload: { knowledgePointId: string; updates: Partial<KnowledgePointExtended> } };
+  | { type: 'UPDATE_FSRS_CARD'; payload: { knowledgePointId: string; updates: Partial<KnowledgePointExtended> } }
+  | { type: 'RESET_ALL' };
 
 function getImportDateKey(createdAt?: string): string {
   if (!createdAt) {
@@ -433,6 +453,8 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ),
       };
     }
+    case 'RESET_ALL':
+      return initialLearningState;
     default:
       return state;
   }

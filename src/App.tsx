@@ -163,11 +163,11 @@ function AppContent() {
       case 'subject-detail':
         return <HomePage isActive />;
       case 'profile': return <ProfilePage />;
-      case 'knowledge': return <KnowledgePage />;
+      case 'knowledge': return <KnowledgePage isActive />;
       case 'knowledge-detail': return <KnowledgeDetailPage />;
       case 'add-knowledge': return <AddKnowledgePage />;
       case 'import-knowledge': return <ImportKnowledgePage />;
-      case 'quiz': return <QuizPage />;
+      case 'quiz': return <QuizPage isActive />;
       case 'quiz-session': return <QuizSessionPage />;
       case 'quiz-result': return <QuizResultPage />;
       case 'wrong-book': return <WrongBookPage />;
@@ -256,8 +256,8 @@ function AppContent() {
   const renderMainTab = (tabName: string, isActive: boolean) => {
     switch (tabName) {
       case 'home': return <HomePage isActive={isActive} />;
-      case 'knowledge': return <KnowledgePage />;
-      case 'quiz': return <QuizPage />;
+      case 'knowledge': return <KnowledgePage isActive={isActive} />;
+      case 'quiz': return <QuizPage isActive={isActive} />;
       case 'knowledge-map': return <KnowledgeMapPage />;
       case 'profile': return <ProfilePage />;
       default: return <HomePage isActive={false} />;

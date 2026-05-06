@@ -21,7 +21,6 @@
  * ============================================================================
  */
 
-import { useEffect, useState } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -48,27 +47,9 @@ export default function ProfilePage() {
   const uiStyle = theme.uiStyle || 'playful';
   const layoutConfig = UILAYOUT_CONFIGS[uiStyle];
 
-  // 动画效果
-  const [animationEffect, setAnimationEffect] = useState(() => {
-    const saved = localStorage.getItem('main-animation-effect');
-    return saved || 'slide-up';
-  });
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'main-animation-effect' && e.newValue) {
-        setAnimationEffect(e.newValue);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
   const getAnimationClass = (delay: number) => {
     if (layoutConfig.animationStyle === 'simple') return '';
-    const baseClass = `scroll-${animationEffect}`;
-    const delayClass = `reveal-delay-${delay}`;
-    return `${baseClass} ${delayClass}`;
+    return `scroll-slide-up reveal-delay-${delay}`;
   };
 
   // 当前称号
@@ -87,9 +68,14 @@ export default function ProfilePage() {
       <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
         <TopAppBar />
 
-        <div className="px-6 py-8 space-y-6 max-w-2xl mx-auto">
-          {/* Profile Header - Centered */}
-          <div className="flex flex-col items-center text-center space-y-4">
+        {/* ── Hero Banner ── */}
+        <div
+          className="relative overflow-hidden px-6 pt-5 pb-8"
+          style={{
+            background: `linear-gradient(180deg, ${theme.primaryFixed || '#dee0ff'}bb 0%, ${theme.bg || '#f8f9fa'} 100%)`,
+          }}
+        >
+          <div className="flex flex-col items-center text-center gap-3">
             {/* Avatar */}
             <button
               onClick={() => navigate('avatar-edit')}
@@ -101,7 +87,7 @@ export default function ProfilePage() {
                   if (!frameConfig) return null;
                   return (
                     <div
-                      className="w-32 h-32 rounded-full flex items-center justify-center"
+                      className="w-24 h-24 rounded-full flex items-center justify-center"
                       style={{
                         background: frameConfig.gradient,
                         clipPath: frameConfig.shapeTransform || 'circle(50%)',
@@ -111,7 +97,7 @@ export default function ProfilePage() {
                         {isCustomAvatar ? (
                           <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
                         ) : (
-                          <span className="text-4xl">{user?.avatar || '👤'}</span>
+                          <span className="text-3xl">{user?.avatar || '👤'}</span>
                         )}
                       </div>
                     </div>
@@ -119,21 +105,24 @@ export default function ProfilePage() {
                 })()
               ) : (
                 <div
-                  className="w-32 h-32 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-xl"
-                  style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9' }}
+                  className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-[3px] shadow-lg"
+                  style={{
+                    backgroundColor: theme.surfaceContainerHigh || '#e7e8e9',
+                    borderColor: `${theme.primaryFixed || '#dee0ff'}cc`,
+                  }}
                 >
                   {isCustomAvatar && user?.avatar ? (
                     <img src={user.avatar} alt="头像" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-4xl">{user?.avatar || '👤'}</span>
+                    <span className="text-3xl">{user?.avatar || '👤'}</span>
                   )}
                 </div>
               )}
               <div
-                className="absolute bottom-1 right-1 p-2 rounded-full shadow-lg"
+                className="absolute bottom-0.5 right-0.5 p-1.5 rounded-full shadow-md"
                 style={{ backgroundColor: theme.primary }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
@@ -143,156 +132,84 @@ export default function ProfilePage() {
             {/* Name & Title */}
             <div>
               <h1
-                className="text-2xl font-extrabold"
+                className="text-xl font-extrabold"
                 style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
                 {user?.nickname ?? '未登录'}
               </h1>
               {currentTitle && (
                 <span
-                  className="inline-block text-xs px-3 py-1 rounded-full font-medium mt-2"
+                  className="inline-block text-xs px-2.5 py-0.5 rounded-full font-medium mt-1.5"
                   style={{
                     background: currentTitle.gradient,
-                    color: currentTitle.textColor
+                    color: currentTitle.textColor,
                   }}
                 >
                   {currentTitle.name}
                 </span>
               )}
-              <p className="text-sm mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>
-                已学习 {stats.streakDays} 天
-              </p>
             </div>
 
-            {/* Edit Profile Button */}
-            <button
-              onClick={() => navigate('settings')}
-              className="px-8 py-3 rounded-xl font-semibold text-sm hover:opacity-90 active:scale-95 transition-all"
-              style={{
-                backgroundColor: theme.primary,
-                color: theme.onPrimary || '#ffffff',
-                boxShadow: '0 4px 12px -2px rgba(36, 56, 156, 0.25)',
-              }}
-            >
-              编辑个人资料
-            </button>
-          </div>
-
-          {/* Learning Statistics - Bento Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Learning Time - Wider */}
+            {/* Stats Row */}
             <div
-              className="col-span-2 p-6 rounded-2xl relative overflow-hidden"
+              className="flex items-center w-full max-w-xs rounded-2xl overflow-hidden"
               style={{
-                backgroundColor: theme.primaryFixed || '#dee0ff',
-                boxShadow: 'none',
+                backgroundColor: 'rgba(255,255,255,0.65)',
+                border: `1px solid ${theme.outlineVariant || '#c5c5d4'}44`,
+                backdropFilter: 'blur(8px)',
               }}
             >
-              <div
-                className="absolute -right-4 -top-4 opacity-10"
-                style={{ transform: 'rotate(15deg)' }}
-              >
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke={theme.primary} strokeWidth="1">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </div>
-              <span
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: theme.primary || '#24389c' }}
-              >
-                学习总时长
-              </span>
-              <div className="mt-auto">
-                <span
-                  className="text-4xl font-black"
+              <div className="flex-1 text-center py-3">
+                <p
+                  className="text-lg font-extrabold leading-none"
                   style={{ color: theme.primary || '#24389c', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
-                  128
-                </span>
-                <span
-                  className="text-lg font-medium ml-1"
-                  style={{ color: theme.primary || '#24389c', opacity: 0.7 }}
-                >
-                  小时
-                </span>
-              </div>
-            </div>
-
-            {/* Rank */}
-            <div
-              className="p-6 rounded-2xl"
-              style={{
-                backgroundColor: theme.secondaryFixed || '#ffdfa0',
-                boxShadow: 'none',
-              }}
-            >
-              <span
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: theme.onSecondaryFixedVariant || '#5c4300' }}
-              >
-                当前排名
-              </span>
-              <div className="mt-auto">
-                <span
-                  className="text-4xl font-black"
-                  style={{ color: theme.onSecondaryFixed || '#261a00', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-                >
-                  #42
-                </span>
-                <p className="text-xs mt-1" style={{ color: theme.onSecondaryFixedVariant || '#5c4300', opacity: 0.8 }}>
-                  全校领先 5%
+                  {stats.streakDays}
                 </p>
+                <p className="text-[10px] mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>连续天数</p>
               </div>
-            </div>
-
-            {/* XP */}
-            <div
-              className="p-6 rounded-2xl"
-              style={{
-                backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-                boxShadow: 'none',
-              }}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: theme.tertiaryFixed || '#fdd6ff' }}
+              <div className="w-px self-stretch my-2" style={{ backgroundColor: theme.outlineVariant || '#c5c5d4' }} />
+              <div className="flex-1 text-center py-3">
+                <p
+                  className="text-lg font-extrabold leading-none"
+                  style={{ color: theme.primary || '#24389c', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.tertiary || '#73008e'} strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.onSurfaceVariant || '#454652' }}>
-                  经验值 (XP)
+                  {stats.totalKnowledgePoints}
                 </p>
-                <p className="text-2xl font-black" style={{ color: theme.onSurface || '#191c1d', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                <p className="text-[10px] mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>知识点</p>
+              </div>
+              <div className="w-px self-stretch my-2" style={{ backgroundColor: theme.outlineVariant || '#c5c5d4' }} />
+              <div className="flex-1 text-center py-3">
+                <p
+                  className="text-lg font-extrabold leading-none"
+                  style={{ color: theme.primary || '#24389c', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                >
                   {user?.totalPoints ?? 0}
                 </p>
-                <p className="text-xs mt-1" style={{ color: theme.tertiary || '#73008e' }}>
-                  距离升级还需 550 XP
-                </p>
+                <p className="text-[10px] mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>经验值</p>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Content ── */}
+        <div className="px-6 pb-10 space-y-4">
 
           {/* Learning Profile */}
           <div
-            className="p-6 rounded-2xl"
+            className="p-5 rounded-2xl"
             style={{
               backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-              boxShadow: 'none',
+              border: `1px solid ${theme.outlineVariant || '#c5c5d4'}30`,
             }}
           >
-            <div className="flex items-center justify-between text-xs mb-3">
-              <span style={{ color: theme.onSurfaceVariant || '#454652' }}>掌握度分布</span>
-              <span style={{ color: theme.onSurfaceVariant || '#454652' }}>共 {stats.totalKnowledgePoints} 个知识点</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold" style={{ color: theme.onSurface || '#191c1d' }}>掌握度分布</span>
+              <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>共 {stats.totalKnowledgePoints} 个知识点</span>
             </div>
 
             {/* Stacked bar */}
-            <div className="w-full h-1.5 rounded-full overflow-hidden flex" style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9' }}>
+            <div className="w-full h-3 rounded-full overflow-hidden flex" style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9' }}>
               {profData.map(d => {
                 const pct = stats.totalKnowledgePoints > 0 ? (d.count / stats.totalKnowledgePoints) * 100 : 0;
                 if (pct === 0) return null;
@@ -306,26 +223,29 @@ export default function ProfilePage() {
               })}
             </div>
 
-            <div className="grid grid-cols-4 gap-2 mt-4">
+            <div className="grid grid-cols-4 gap-1 mt-4">
               {profData.map(d => (
-                <div key={d.level} className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PROFICIENCY_MAP[d.level].color }} />
-                  <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>
-                    {PROFICIENCY_MAP[d.level].label} {d.count}
+                <div key={d.level} className="flex flex-col items-center gap-0.5">
+                  <div className="w-2 h-2 rounded-full mb-0.5" style={{ backgroundColor: PROFICIENCY_MAP[d.level].color }} />
+                  <span className="text-[10px]" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                    {PROFICIENCY_MAP[d.level].label}
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: theme.onSurface || '#191c1d' }}>
+                    {d.count}
                   </span>
                 </div>
               ))}
             </div>
 
             {stats.weakSubjects.length > 0 && (
-              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${theme.outlineVariant || '#c5c5d4'}15` }}>
-                <div className="text-xs mb-2" style={{ color: theme.onSurfaceVariant || '#454652' }}>薄弱学科</div>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${theme.outlineVariant || '#c5c5d4'}25` }}>
+                <div className="text-xs font-medium mb-2" style={{ color: theme.onSurfaceVariant || '#454652' }}>薄弱学科</div>
+                <div className="flex flex-wrap gap-1.5">
                   {stats.weakSubjects.map(s => (
                     <span
                       key={s}
-                      className="text-xs px-2 py-1 rounded-full"
-                      style={{ backgroundColor: `${theme.error || '#ba1a1a'}15`, color: theme.error || '#ba1a1a' }}
+                      className="text-xs px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${theme.error || '#ba1a1a'}12`, color: theme.error || '#ba1a1a' }}
                     >
                       {s}
                     </span>
@@ -337,7 +257,7 @@ export default function ProfilePage() {
 
           {/* Settings List - iOS Style */}
           <SettingsList
-            title="应用设置"
+            title="功能入口"
             items={[
               {
                 key: 'checkin',
@@ -392,7 +312,7 @@ export default function ProfilePage() {
           {/* Logout */}
           <button
             onClick={() => userDispatch({ type: 'LOGOUT' })}
-            className="w-full py-4 text-center rounded-2xl font-bold text-sm transition-colors"
+            className="w-full py-3.5 text-center rounded-2xl font-semibold text-sm transition-colors"
             style={{
               backgroundColor: `${theme.error || '#ba1a1a'}10`,
               color: theme.error || '#ba1a1a',

@@ -32,17 +32,21 @@ import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play, CheckCircle, BookOpen, Settings } from 'lucide-react';
 import { ProgressBar } from '@/components/ui/Common';
+import OnboardingGuide from '@/components/ui/OnboardingGuide';
 import { FloatingAIPanel, TabBar } from '@/components/layout';
 
 interface HomePageProps {
   isActive?: boolean;
 }
 
+const ONBOARDING_STORAGE_KEY = 'study-app:onboarding-completed:v1';
+const ONBOARDING_FORCE_OPEN_KEY = 'study-app:onboarding-force-open:v1';
+
 export default function HomePage({ isActive = true }: HomePageProps) {
 
   const { state: appState, dispatch: appDispatch, getLearningStats } = useApp();
   const { learningState, learningDispatch } = useLearning();
-  const { navigate } = useUser();
+  const { userState, userDispatch, navigate } = useUser();
   const { theme } = useTheme();
   const stats = getLearningStats();
 
@@ -51,28 +55,11 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
   // 本地缓存鼓励语，避免每次渲染随机变化
   const [fallbackEncouragement] = useState(() => getEncouragement());
-
-  // 动画效果 - playful 风格使用动画
-  const [animationEffect, setAnimationEffect] = useState(() => {
-    const saved = localStorage.getItem('main-animation-effect');
-    return saved || 'slide-up';
-  });
-
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'main-animation-effect' && e.newValue) {
-        setAnimationEffect(e.newValue);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const getAnimationClass = (delay: number) => {
     if (layoutConfig.animationStyle === 'simple') return '';
-    const baseClass = `scroll-${animationEffect}`;
-    const delayClass = `reveal-delay-${delay}`;
-    return `${baseClass} ${delayClass}`;
+    return `scroll-slide-up reveal-delay-${delay}`;
   };
 
   // 生成今日复习计划
@@ -81,6 +68,37 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     learningDispatch({ type: 'SET_REVIEW_ITEMS', payload: { review, newItems } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!isActive || userState.currentPage !== 'home') return;
+
+    try {
+      const shouldForceOpen =
+        userState.pageParams.showGuide === '1' ||
+        localStorage.getItem(ONBOARDING_FORCE_OPEN_KEY) === '1';
+
+      // Always clear the force-open key first, so any subsequent crash won't loop
+      localStorage.removeItem(ONBOARDING_FORCE_OPEN_KEY);
+
+      if (shouldForceOpen) {
+        setIsGuideOpen(true);
+        userDispatch({ type: 'NAVIGATE', payload: { page: 'home' } });
+        return;
+      }
+
+      const hasCompletedOnboarding = localStorage.getItem(ONBOARDING_STORAGE_KEY) === '1';
+      if (!hasCompletedOnboarding) {
+        setIsGuideOpen(true);
+      }
+    } catch (e) {
+      console.error('[Home] onboarding effect error', e);
+    }
+  }, [isActive, userDispatch, userState.currentPage, userState.pageParams.showGuide]);
+
+  const handleCloseGuide = () => {
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, '1');
+    setIsGuideOpen(false);
+  };
 
   // Daily smart encouragement
   useEffect(() => {
@@ -114,10 +132,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   ];
 
   const openPrimaryLearning = () => {
-    if (reviewPending > 0) {
-      navigate('review-session', { type: 'review' });
-      return;
-    }
     navigate('flashcard-learning');
   };
 
@@ -187,7 +201,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       detail: reviewPending > 0 ? '优先清空待复习卡片' : '今日复习已完成',
       progress: `${completedReview}/${totalReviewTasks}`,
       ratio: totalReviewTasks > 0 ? completedReview / totalReviewTasks : 1,
-      onClick: () => navigate('review-session', { type: 'review' }),
+      onClick: () => navigate('flashcard-learning'),
     },
     {
       key: 'new-learning',
@@ -300,9 +314,22 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
   const GreetingBlock = () => (
     <section className="mb-7 w-full">
-      <p className="text-[15px] font-medium" style={{ color: theme.textSecondary }}>
-        {homeGreeting}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-[15px] font-medium" style={{ color: theme.textSecondary }}>
+          {homeGreeting}
+        </p>
+        {stats.streakDays > 0 && (
+          <div
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+            style={{
+              backgroundColor: `${theme.secondaryFixed || '#ffdfa0'}cc`,
+              color: theme.onSecondaryFixedVariant || '#5c4300',
+            }}
+          >
+            🔥 {stats.streakDays} 天
+          </div>
+        )}
+      </div>
       <h1
         className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight"
         style={{ color: theme.textPrimary, fontFamily: 'Plus Jakarta Sans, Noto Sans SC, sans-serif' }}
@@ -407,7 +434,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           今日任务
         </h3>
         <button
-          onClick={() => navigate(reviewPending > 0 ? 'review-session' : 'flashcard-learning', reviewPending > 0 ? { type: 'review' } : undefined)}
+          onClick={() => navigate('flashcard-learning')}
           className="inline-flex items-center gap-1 text-sm font-semibold"
           style={{ color: theme.primary }}
         >
@@ -461,7 +488,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
     return (
-      <div className="relative flex h-full max-w-[430px] flex-col overflow-hidden" style={{ backgroundColor: theme.bg || '#F8FAFF' }}>
+      <div className="relative flex h-full max-w-[430px] flex-col overflow-hidden" style={{ background: `linear-gradient(175deg, ${theme.primaryFixed || '#dee0ff'}44 0%, ${theme.bg || '#F8FAFF'} 35%)` }}>
         <main className="h-full overflow-y-auto px-6 pb-[132px] pt-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <BrandHeader />
           <GreetingBlock />
@@ -479,6 +506,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
             {homeFloatingPanel}
           </div>
         )}
+        <OnboardingGuide
+          open={isGuideOpen}
+          onClose={handleCloseGuide}
+        />
       </div>
     );
   }
@@ -538,7 +569,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => reviewPending > 0 && navigate('review-session', { type: 'review' })}
+                onClick={() => navigate('flashcard-learning')}
                 className="text-left transition-transform active:scale-[0.97]"
                 style={{
                   background: reviewPending > 0
@@ -559,13 +590,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
               </button>
 
               <button
-                onClick={() => {
-                  if (reviewPending > 0) {
-                    navigate('review-session', { type: 'review' });
-                  } else {
-                    navigate('review-session', { type: 'new' });
-                  }
-                }}
+                onClick={() => navigate('flashcard-learning')}
                 className="text-left transition-transform active:scale-[0.97]"
                 style={{
                   background: freeLearningMode
@@ -857,6 +882,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           {homeFloatingPanel}
         </div>
       )}
+      <OnboardingGuide
+        open={isGuideOpen}
+        onClose={handleCloseGuide}
+      />
     </div>
   );
 }

@@ -21,7 +21,7 @@ export function getTodayLearningProgress(
 
   learningState.knowledgePoints.forEach(knowledgePoint => {
     (knowledgePoint.studyRecords || []).forEach(record => {
-      if (getLocalDateKey(record.date) === todayKey) {
+      if (getLocalDateKey(record.date) === todayKey && record.score >= 80) {
         flashcardKnowledgeIds.add(record.knowledgePointId || knowledgePoint.id);
       }
     });

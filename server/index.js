@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { chatCompletion, extractContent, listAvailableProviders } from './providers.js';
 import { 
   CHAT_SYSTEM_PROMPT, 
@@ -16,6 +18,10 @@ import {
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distDir = path.resolve(__dirname, '../dist');
 
 // ===== GET /api/models =====
 app.get('/api/models', async (_req, res) => {
@@ -529,6 +535,13 @@ ${relatedTo.length > 0 ? `需要关联讲解这些前置知识点：${relatedTo.
 });
 
 const PORT = process.env.PORT || 3001;
+
+app.use(express.static(distDir));
+
+app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
+  res.sendFile(path.join(distDir, 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`AI proxy server running on http://localhost:${PORT}`);
   console.log('✅ OpenClaw 智能私教已接入！支持：');

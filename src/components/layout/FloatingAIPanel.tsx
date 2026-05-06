@@ -234,7 +234,7 @@ export default function FloatingAIPanel({
     if (onPrimaryAction) {
       onPrimaryAction();
     } else {
-      navigate('review-session', { type: 'review' });
+      navigate('flashcard-learning');
     }
   };
 
@@ -393,114 +393,114 @@ export default function FloatingAIPanel({
           right: '0px',
         }}
       >
-      {menuOpen && (
-        <div className="pointer-events-auto fixed inset-0 z-0 bg-black/5 backdrop-blur-[1px]" onClick={closeMenu} />
-      )}
+        {menuOpen && (
+          <div className="pointer-events-auto fixed inset-0 z-0 bg-black/5 backdrop-blur-[1px]" onClick={closeMenu} />
+        )}
 
-      {menuOpen && (
-        <div className="pointer-events-none absolute inset-0 z-10">
-          <svg width={MENU_SIZE} height={MENU_SIZE} viewBox={`0 0 ${MENU_SIZE} ${MENU_SIZE}`} className="overflow-visible">
-            <defs>
-              <filter id="learn-ring-shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="rgba(15,23,42,0.16)" />
-              </filter>
-            </defs>
+        {menuOpen && (
+          <div className="pointer-events-none absolute inset-0 z-10">
+            <svg width={MENU_SIZE} height={MENU_SIZE} viewBox={`0 0 ${MENU_SIZE} ${MENU_SIZE}`} className="overflow-visible">
+              <defs>
+                <filter id="learn-ring-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="rgba(15,23,42,0.16)" />
+                </filter>
+              </defs>
+              {resolvedItems.map((item, index) => {
+                const sector = sectorAngles[index];
+                if (!sector) return null;
+                const isActive = activeItemId === item.id;
+
+                return (
+                  <path
+                    key={item.id}
+                    d={describeSector(sector.start, sector.end)}
+                    fill={isActive
+                      ? `${item.accentColor || theme.primary || '#24389c'}34`
+                      : 'rgba(107,114,128,0.14)'}
+                    stroke={isActive
+                      ? item.accentColor || theme.primary || '#24389c'
+                      : 'rgba(107,114,128,0.32)'}
+                    strokeWidth={isActive ? 1.45 : 1.1}
+                    filter="url(#learn-ring-shadow)"
+                  />
+                );
+              })}
+            </svg>
+
             {resolvedItems.map((item, index) => {
+              const Icon = item.icon;
               const sector = sectorAngles[index];
               if (!sector) return null;
+              const point = polarPoint(ICON_RADIUS, sector.mid);
               const isActive = activeItemId === item.id;
 
               return (
-                <path
+                <div
                   key={item.id}
-                  d={describeSector(sector.start, sector.end)}
-                  fill={isActive
-                    ? `${item.accentColor || theme.primary || '#24389c'}34`
-                    : 'rgba(107,114,128,0.14)'}
-                  stroke={isActive
-                    ? item.accentColor || theme.primary || '#24389c'
-                    : 'rgba(107,114,128,0.32)'}
-                  strokeWidth={isActive ? 1.45 : 1.1}
-                  filter="url(#learn-ring-shadow)"
-                />
+                  className="absolute flex h-11 w-11 items-center justify-center transition-all duration-150"
+                  style={{
+                    left: `${point.x - 22}px`,
+                    top: `${point.y - 22}px`,
+                    color: isActive
+                      ? item.accentColor || theme.primary || '#24389c'
+                      : (theme.onSurfaceVariant || '#4b5563'),
+                    filter: isActive ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.22))' : 'none',
+                    transform: isActive ? 'scale(1.16)' : 'scale(1)',
+                    opacity: isActive ? 1 : 0.9,
+                  }}
+                >
+                  <Icon size={20} strokeWidth={isActive ? 2.6 : 2.2} />
+                </div>
               );
             })}
-          </svg>
+          </div>
+        )}
 
-          {resolvedItems.map((item, index) => {
-            const Icon = item.icon;
-            const sector = sectorAngles[index];
-            if (!sector) return null;
-            const point = polarPoint(ICON_RADIUS, sector.mid);
-            const isActive = activeItemId === item.id;
-
-            return (
-              <div
-                key={item.id}
-                className="absolute flex h-11 w-11 items-center justify-center transition-all duration-150"
-                style={{
-                  left: `${point.x - 22}px`,
-                  top: `${point.y - 22}px`,
-                  color: isActive
-                    ? item.accentColor || theme.primary || '#24389c'
-                    : (theme.onSurfaceVariant || '#4b5563'),
-                  filter: isActive ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.22))' : 'none',
-                  transform: isActive ? 'scale(1.16)' : 'scale(1)',
-                  opacity: isActive ? 1 : 0.9,
-                }}
+        <div className={`absolute z-30 h-16 w-16 ${placement === 'contained' ? 'bottom-0 right-0' : 'bottom-4 right-4'}`}>
+          <button
+            ref={buttonRef}
+            onMouseDown={event => startPress(event.clientX, event.clientY)}
+            onTouchStart={event => {
+              const touch = event.touches[0];
+              if (!touch) return;
+              startPress(touch.clientX, touch.clientY);
+            }}
+            onContextMenu={event => event.preventDefault()}
+            className="pointer-events-auto flex h-full w-full select-none items-center justify-center rounded-full transition-transform duration-150"
+            title={primaryTitle}
+            style={{
+              background: '#4f46e5',
+              boxShadow: '0 16px 36px rgba(79,70,229,0.35)',
+              transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
+              transformOrigin: 'center center',
+              willChange: 'transform',
+              animation: menuOpen || pulseSuspended ? 'none' : 'learn-fab-pulse 2.4s infinite',
+              touchAction: 'none',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {PrimaryIcon ? (
+              <PrimaryIcon size={28} strokeWidth={2.4} color="#ffffff" />
+            ) : (
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <Icon size={20} strokeWidth={isActive ? 2.6 : 2.2} />
-              </div>
-            );
-          })}
+                <path d="M12 3l7 4-7 4-7-4 7-4z" />
+                <path d="M5 11v4.5c0 1.7 3.1 3.5 7 3.5s7-1.8 7-3.5V11" />
+                <path d="M12 11v8" />
+              </svg>
+            )}
+          </button>
         </div>
-      )}
 
-      <div className={`absolute z-30 h-16 w-16 ${placement === 'contained' ? 'bottom-0 right-0' : 'bottom-4 right-4'}`}>
-        <button
-          ref={buttonRef}
-          onMouseDown={event => startPress(event.clientX, event.clientY)}
-          onTouchStart={event => {
-            const touch = event.touches[0];
-            if (!touch) return;
-            startPress(touch.clientX, touch.clientY);
-          }}
-          onContextMenu={event => event.preventDefault()}
-          className="pointer-events-auto flex h-full w-full select-none items-center justify-center rounded-full transition-transform duration-150"
-          title={primaryTitle}
-          style={{
-            background: '#4f46e5',
-            boxShadow: '0 16px 36px rgba(79,70,229,0.35)',
-            transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
-            transformOrigin: 'center center',
-            willChange: 'transform',
-            animation: menuOpen || pulseSuspended ? 'none' : 'learn-fab-pulse 2.4s infinite',
-            touchAction: 'none',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          {PrimaryIcon ? (
-            <PrimaryIcon size={28} strokeWidth={2.4} color="#ffffff" />
-          ) : (
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 3l7 4-7 4-7-4 7-4z" />
-              <path d="M5 11v4.5c0 1.7 3.1 3.5 7 3.5s7-1.8 7-3.5V11" />
-              <path d="M12 11v8" />
-            </svg>
-          )}
-        </button>
-      </div>
-
-      <style>{`
+        <style>{`
         @keyframes learn-fab-pulse {
           0% {
             box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 0 rgba(79,70,229,0.18);

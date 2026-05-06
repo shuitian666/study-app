@@ -246,9 +246,9 @@ const parseJsonContent = (content: string): ParsedImportData => {
         stem: String(question.stem ?? '').trim(),
         options: Array.isArray(question.options)
           ? question.options.map((option: any, index: number) => ({
-              id: String(option.id ?? `option-${index + 1}`),
-              text: cleanOptionPrefix(String(option.text ?? option.label ?? '').trim()),
-            }))
+            id: String(option.id ?? `option-${index + 1}`),
+            text: cleanOptionPrefix(String(option.text ?? option.label ?? '').trim()),
+          }))
           : [],
         correctAnswers: Array.isArray(question.correctAnswers)
           ? question.correctAnswers.map((answer: any) => String(answer))
@@ -948,7 +948,7 @@ export default function ImportKnowledgePage() {
           proficiency: item.proficiency ?? 'none',
           source: item.source ?? 'import',
           lastReviewedAt: null,
-          nextReviewAt: now,
+          nextReviewAt: null,   // 新导入卡不预设复习时间，首次学习后由 FSRS 调度
           reviewCount: 0,
           createdAt: now,
           studyRecords: [],

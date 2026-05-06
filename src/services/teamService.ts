@@ -1,7 +1,7 @@
 import type { TeamState } from '@/types';
 import { createSimulatedTeammate, generateInviteCode } from './teamSimulator';
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = '';
 
 // 切换模式：true = 使用真实API, false = 使用模拟
 const USE_REAL_API = true;

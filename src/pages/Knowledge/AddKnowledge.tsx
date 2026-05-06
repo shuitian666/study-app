@@ -55,7 +55,7 @@ export default function AddKnowledgePage() {
       proficiency,
       source: 'manual' as const,
       lastReviewedAt: null,
-      nextReviewAt: new Date().toISOString(),
+      nextReviewAt: null,   // 首次学习后由 FSRS 调度
       reviewCount: 0,
       createdAt: new Date().toISOString(),
     };
@@ -65,9 +65,9 @@ export default function AddKnowledgePage() {
 
   return (
     <div className="page-scroll pb-4">
-      <PageHeader 
-        title="添加知识点" 
-        onBack={() => navigate('knowledge')} 
+      <PageHeader
+        title="添加知识点"
+        onBack={() => navigate('knowledge')}
         rightAction={
           <button
             onClick={undo}
@@ -90,9 +90,8 @@ export default function AddKnowledgePage() {
               <button
                 key={s.id}
                 onClick={() => { setSubjectId(s.id); setChapterId(''); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  subjectId === s.id ? 'text-white' : ''
-                }`}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${subjectId === s.id ? 'text-white' : ''
+                  }`}
                 style={{
                   backgroundColor: subjectId === s.id ? theme.primary : theme.border,
                   color: subjectId === s.id ? '#ffffff' : theme.textSecondary
@@ -113,9 +112,8 @@ export default function AddKnowledgePage() {
                 <button
                   key={c.id}
                   onClick={() => setChapterId(c.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    chapterId === c.id ? 'text-white' : ''
-                  }`}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${chapterId === c.id ? 'text-white' : ''
+                    }`}
                   style={{
                     backgroundColor: chapterId === c.id ? theme.primary : theme.border,
                     color: chapterId === c.id ? '#ffffff' : theme.textSecondary
@@ -137,8 +135,8 @@ export default function AddKnowledgePage() {
             onChange={e => setName(e.target.value)}
             placeholder="例如：三角函数的基本性质"
             className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors"
-            style={{ 
-              backgroundColor: theme.bgCard, 
+            style={{
+              backgroundColor: theme.bgCard,
               border: `1px solid ${theme.border}`,
               color: theme.textPrimary
             }}
@@ -154,8 +152,8 @@ export default function AddKnowledgePage() {
             placeholder="详细解释这个知识点的含义..."
             rows={4}
             className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
-            style={{ 
-              backgroundColor: theme.bgCard, 
+            style={{
+              backgroundColor: theme.bgCard,
               border: `1px solid ${theme.border}`,
               color: theme.textPrimary
             }}

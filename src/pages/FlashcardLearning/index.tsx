@@ -26,8 +26,9 @@ import {
   type RatingOption,
 } from '@/utils/fsrsScheduler';
 import { Rating } from 'ts-fsrs';
-import type { KnowledgePointExtended, Question } from '@/types';
+import type { KnowledgePointExtended, Question, ReviewItem } from '@/types';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
+import { generateTodayReviewPlan } from '@/utils/review';
 
 // 按钮配置
 const RATING_CONFIG = {
@@ -68,6 +69,13 @@ const FLASHCARD_SCORE_MAP: Record<RatingOption, number> = {
   easy: 100,
 };
 
+const POST_GOAL_GROUP_SIZE = 15;
+
+type SessionPhase = 'import' | 'review' | 'new' | 'free';
+
+function isGoalRating(rating: RatingOption): boolean {
+  return rating === 'good' || rating === 'easy';
+}
 function buildSessionQueue(
   knowledgePoints: KnowledgePointExtended[],
   targetIds?: Set<string>,
@@ -105,6 +113,38 @@ function buildSessionQueue(
     });
 }
 
+function getPendingPlanIds(items: ReviewItem[], targetIds?: Set<string>): Set<string> {
+  return new Set(
+    items
+      .filter(item => !item.completed)
+      .filter(item => !targetIds || targetIds.has(item.knowledgePointId))
+      .map(item => item.knowledgePointId)
+  );
+}
+function pickSessionPlan(
+  knowledgePoints: KnowledgePointExtended[],
+  reviewItems: ReviewItem[],
+  newItems: ReviewItem[],
+  targetIds?: Set<string>,
+  importIds?: Set<string>,
+): { phase: SessionPhase; queue: KnowledgePointExtended[] } {
+  if (importIds && importIds.size > 0) {
+    return { phase: 'import', queue: buildSessionQueue(knowledgePoints, importIds) };
+  }
+
+  const pendingReviewIds = getPendingPlanIds(reviewItems, targetIds);
+  if (pendingReviewIds.size > 0) {
+    return { phase: 'review', queue: buildSessionQueue(knowledgePoints, pendingReviewIds) };
+  }
+
+  const pendingNewIds = getPendingPlanIds(newItems, targetIds);
+  if (pendingNewIds.size > 0) {
+    return { phase: 'new', queue: buildSessionQueue(knowledgePoints, pendingNewIds) };
+  }
+
+  return { phase: 'free', queue: buildSessionQueue(knowledgePoints, targetIds) };
+}
+
 export default function FlashcardLearningPage() {
   const { navigate, userState } = useUser();
   const { theme } = useTheme();
@@ -131,13 +171,67 @@ export default function FlashcardLearningPage() {
     };
   }, [importedStudySession]);
 
+  // --- 学习范围（章节/科目）选择 ---
+  const [selectedCategory, setSelectedCategory] = useState<{ type: 'subject' | 'chapter'; id: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem('study-app:selected-category');
+      return saved ? (JSON.parse(saved) as { type: 'subject' | 'chapter'; id: string }) : null;
+    } catch { return null; }
+  });
+  const [, setSuppressCategoryPicker] = useState(
+    () => localStorage.getItem('study-app:suppress-category-picker') === 'true',
+  );
+  const [showCategoryPicker, setShowCategoryPicker] = useState(() => {
+    // 首次进入且未设置过分类时自动弹出选择器
+    if (localStorage.getItem('study-app:suppress-category-picker') === 'true') return false;
+    if (localStorage.getItem('study-app:selected-category')) return false;
+    if (importedStudySession) return false;
+    return true;
+  });
+  const [expandedSubjectInPicker, setExpandedSubjectInPicker] = useState<string | null>(null);
+  const [pendingSuppressInPicker, setPendingSuppressInPicker] = useState(false);
+
+  const categoryFilterIds = useMemo<Set<string> | undefined>(() => {
+    if (!selectedCategory) return undefined;
+    const kps = learningState.knowledgePoints;
+    if (selectedCategory.type === 'subject') {
+      return new Set(kps.filter(kp => kp.subjectId === selectedCategory.id).map(kp => kp.id));
+    }
+    return new Set(kps.filter(kp => kp.chapterId === selectedCategory.id).map(kp => kp.id));
+    // 只在 KP 数量变化（新增/删除）或分类切换时重建，不在评分更新时重建
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, learningState.knowledgePoints.length]);
+
+  // importedStudySession 优先级高于 category 过滤
+  // 用于触发队列重建的稳定 key（避免评分时 effectiveTargetIds 引用变化导致误重建）
+  const selectedCategoryKey = selectedCategory
+    ? `${selectedCategory.type}:${selectedCategory.id}`
+    : 'all';
+
+  const sessionPlan = useMemo(
+    () => pickSessionPlan(
+      learningState.knowledgePoints,
+      learningState.todayReviewItems,
+      learningState.todayNewItems,
+      categoryFilterIds,
+      importSessionIdSet,
+    ),
+    [
+      learningState.knowledgePoints,
+      learningState.todayReviewItems,
+      learningState.todayNewItems,
+      categoryFilterIds,
+      importSessionIdSet,
+    ],
+  );
+
   // 卡片翻转状态
   const [isFlipped, setIsFlipped] = useState(false);
   // 滑动方向
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | 'up' | 'down' | null>(null);
 
   // 学习队列（包含所有待学习的卡片，按优先级排序）
-  const [queue, setQueue] = useState<KnowledgePointExtended[]>(() => buildSessionQueue(learningState.knowledgePoints, importSessionIdSet));
+  const [queue, setQueue] = useState<KnowledgePointExtended[]>(() => sessionPlan.queue);
   // 当前显示的卡片在队列中的索引
   const [currentIdx, setCurrentIdx] = useState(0);
   // 不会的卡片的 ID 集合（用于检测重复）
@@ -148,6 +242,7 @@ export default function FlashcardLearningPage() {
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [showQuizResult, setShowQuizResult] = useState(false);
+  const [showOptionsExpanded, setShowOptionsExpanded] = useState(true);
   const [generatingExplanation, setGeneratingExplanation] = useState(false);
   const [aiAssistAvailable, setAiAssistAvailable] = useState(false);
   const [aiAssistHint, setAiAssistHint] = useState('请先在设置里配置 AI');
@@ -156,7 +251,7 @@ export default function FlashcardLearningPage() {
   // 是否正在处理评分（用于防抖）
   const [isSelecting, setIsSelecting] = useState(false);
   const [showImportResult, setShowImportResult] = useState(true);
-
+  // 本次 session 已完成（Good/Easy）的卡片数（不依赖 todayPlan 列表，始终可靠）
   // 使用 ref 存储最新状态，避免闭包陷阱
   const queueRef = useRef(queue);
   const failedIdsRef = useRef(failedIds);
@@ -170,7 +265,7 @@ export default function FlashcardLearningPage() {
   useEffect(() => { importSessionRef.current = importedStudySession; }, [importedStudySession]);
 
   useEffect(() => {
-    setQueue(buildSessionQueue(learningState.knowledgePoints, importSessionIdSet));
+    setQueue(sessionPlan.queue);
     setCurrentIdx(0);
     setFailedIds(new Set());
     setIsFlipped(false);
@@ -179,9 +274,23 @@ export default function FlashcardLearningPage() {
     setCurrentQuizIndex(0);
     setSelectedAnswers([]);
     setShowQuizResult(false);
+    setShowOptionsExpanded(true);
     setGeneratingExplanation(false);
     setIsRevealingFailed(false);
-  }, [importSessionIdsKey, importSessionIdSet, learningState.knowledgePoints.length]);
+    // 依赖稳定 key（import 变化 / 分类切换 / KP 数量变化），不因评分更新触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importSessionIdsKey, selectedCategoryKey, learningState.knowledgePoints.length, sessionPlan.phase]);
+
+  // 进入学习页时刷新今日计划（确保 todayReviewItems / todayNewItems 是最新的）
+  useEffect(() => {
+    const { review, newItems } = generateTodayReviewPlan(
+      learningState.knowledgePoints,
+      learningState.todayNewItems,
+    );
+    learningDispatch({ type: 'SET_REVIEW_ITEMS', payload: { review, newItems } });
+    // 只在首次 mount 时运行
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setShowImportResult(Boolean(importResultSummary));
@@ -229,9 +338,24 @@ export default function FlashcardLearningPage() {
     };
   }, []);
 
+  // 当前分类全部掌握后，自动清除分类并重新弹出选择器
+  useEffect(() => {
+    if (!selectedCategory || learningState.isLoading) return;
+    const kps = learningState.knowledgePoints;
+    const categoryKps = selectedCategory.type === 'subject'
+      ? kps.filter(kp => kp.subjectId === selectedCategory.id)
+      : kps.filter(kp => kp.chapterId === selectedCategory.id);
+    if (categoryKps.length > 0 && categoryKps.every(kp => kp.proficiency === 'master')) {
+      setSelectedCategory(null);
+      setSuppressCategoryPicker(false);
+      localStorage.removeItem('study-app:selected-category');
+      localStorage.removeItem('study-app:suppress-category-picker');
+      setShowCategoryPicker(true);
+    }
+  }, [selectedCategory, learningState.knowledgePoints, learningState.isLoading]);
+
   // 当前卡片
   const currentKp = queue[currentIdx];
-  const totalCards = queue.length;
   const relatedQuestions = useMemo(
     () => (currentKp ? learningState.questions.filter(question => question.knowledgePointId === currentKp.id) : []),
     [currentKp, learningState.questions],
@@ -242,10 +366,52 @@ export default function FlashcardLearningPage() {
     [learningState],
   );
   const dailyGoal = userState.user?.dailyGoal ?? 10;
-  const todayGoalProgress = Math.min(100, Math.round((todayLearningCount / Math.max(dailyGoal, 1)) * 100));
+
+  // session 进度百分比（以初始队列为分母，失败卡重现时分母不变）
+  const safeDailyGoal = Math.max(1, dailyGoal);
+  const hasReachedDailyGoal = todayLearningCount >= safeDailyGoal;
+  const extraLearningCount = Math.max(0, todayLearningCount - safeDailyGoal);
+  const extraGroupNumber = Math.floor(extraLearningCount / POST_GOAL_GROUP_SIZE) + 1;
+  const extraGroupCompleted = extraLearningCount % POST_GOAL_GROUP_SIZE;
+  const progressLabel = hasReachedDailyGoal ? `加练第 ${extraGroupNumber} 组` : '今日目标';
+  const progressValue = hasReachedDailyGoal
+    ? `${extraGroupCompleted} / ${POST_GOAL_GROUP_SIZE}`
+    : `${Math.min(todayLearningCount, safeDailyGoal)} / ${safeDailyGoal}`;
+  const learningProgressPct = hasReachedDailyGoal
+    ? Math.round((extraGroupCompleted / POST_GOAL_GROUP_SIZE) * 100)
+    : Math.min(100, Math.round((todayLearningCount / safeDailyGoal) * 100));
   const currentExplanation = currentQuizQuestion ? getSavedExplanation(currentQuizQuestion.id) : null;
   // 有多少张"不会"的卡还没重现
-  const failedCount = failedIds.size;
+  // 当前分类标签与进度
+  const currentSubject = currentKp ? learningState.subjects.find(s => s.id === currentKp.subjectId) : null;
+  const currentChapter = currentKp ? learningState.chapters.find(c => c.id === currentKp.chapterId) : null;
+  const categoryLabel: string = selectedCategory?.type === 'chapter'
+    ? (learningState.chapters.find(c => c.id === selectedCategory.id)?.name ?? '当前章节')
+    : selectedCategory?.type === 'subject'
+      ? (learningState.subjects.find(s => s.id === selectedCategory.id)?.name ?? '当前科目')
+      : (currentChapter?.name ?? currentSubject?.name ?? '全部内容');
+
+  // 选择器内各科目/章节进度（仅在打开时计算）
+  const subjectProgress = useMemo(() => {
+    return learningState.subjects.map(subject => {
+      const kps = learningState.knowledgePoints.filter(kp => kp.subjectId === subject.id);
+      const total = kps.length;
+      const mastered = kps.filter(kp => kp.proficiency === 'master').length;
+      const chapters = learningState.chapters
+        .filter(c => c.subjectId === subject.id)
+        .sort((a, b) => a.order - b.order)
+        .map(chapter => {
+          const chKps = kps.filter(kp => kp.chapterId === chapter.id);
+          return {
+            chapter,
+            total: chKps.length,
+            mastered: chKps.filter(kp => kp.proficiency === 'master').length,
+          };
+        })
+        .filter(cp => cp.total > 0);
+      return { subject, total, mastered, chapters };
+    }).filter(sp => sp.total > 0);
+  }, [learningState.subjects, learningState.chapters, learningState.knowledgePoints]);
 
   const exitLearning = useCallback(() => {
     if (importSessionRef.current) {
@@ -253,6 +419,36 @@ export default function FlashcardLearningPage() {
     }
     navigate('home');
   }, [learningDispatch, navigate]);
+
+  const openCategoryPicker = useCallback(() => {
+    setExpandedSubjectInPicker(null);
+    setPendingSuppressInPicker(false);
+    setShowCategoryPicker(true);
+  }, []);
+
+  const handleCategoryConfirm = useCallback((category: { type: 'subject' | 'chapter'; id: string } | null) => {
+    setSelectedCategory(category);
+    if (category) {
+      localStorage.setItem('study-app:selected-category', JSON.stringify(category));
+    } else {
+      localStorage.removeItem('study-app:selected-category');
+    }
+    if (pendingSuppressInPicker) {
+      setSuppressCategoryPicker(true);
+      localStorage.setItem('study-app:suppress-category-picker', 'true');
+    }
+    setPendingSuppressInPicker(false);
+    setShowCategoryPicker(false);
+  }, [pendingSuppressInPicker]);
+
+  const handleCategoryPickerDone = useCallback(() => {
+    if (pendingSuppressInPicker) {
+      setSuppressCategoryPicker(true);
+      localStorage.setItem('study-app:suppress-category-picker', 'true');
+    }
+    setPendingSuppressInPicker(false);
+    setShowCategoryPicker(false);
+  }, [pendingSuppressInPicker]);
 
   // 预览当前卡片在不同评分下的结果
   const currentPreview = useMemo(() => {
@@ -315,7 +511,7 @@ export default function FlashcardLearningPage() {
       question => question.knowledgePointId === currentKp.id
     );
 
-    // 更新 FSRS 字段
+    // 更新 FSRS 字段（同时递增 reviewCount，确保卡片不再被误判为全新卡）
     const fsrsUpdates = cardToFsrsFields(result.card);
     learningDispatch({
       type: 'UPDATE_FSRS_CARD',
@@ -324,25 +520,30 @@ export default function FlashcardLearningPage() {
         updates: {
           ...fsrsUpdates,
           proficiency: result.card.state === 2 ? 'normal' : currentKp.proficiency,
+          reviewCount: (currentKp.reviewCount ?? 0) + 1,
         },
       },
     });
-    learningDispatch({
-      type: 'RECORD_FLASHCARD_STUDY',
-      payload: {
-        knowledgePointId: currentKp.id,
-        score: FLASHCARD_SCORE_MAP[rating],
-      },
-    });
+    const countsForGoal = isGoalRating(rating);
+    if (countsForGoal) {
+      learningDispatch({
+        type: 'RECORD_FLASHCARD_STUDY',
+        payload: {
+          knowledgePointId: currentKp.id,
+          score: FLASHCARD_SCORE_MAP[rating],
+        },
+      });
+    }
 
-    // 完成复习项
-    const reviewItem = learningState.todayReviewItems.find(
-      r => r.knowledgePointId === currentKp.id
-    );
-    if (reviewItem) {
+    // 完成当日计划项（复习项或新学项都要标记）
+    const isInTodayPlan =
+      learningState.todayReviewItems.some(r => r.knowledgePointId === currentKp.id) ||
+      learningState.todayNewItems.some(r => r.knowledgePointId === currentKp.id);
+    if (countsForGoal && isInTodayPlan) {
       learningDispatch({ type: 'COMPLETE_REVIEW_ITEM', payload: currentKp.id });
     }
 
+    // session 本地计数：Good/Easy 才算"过了这张"
     // 设置滑动方向
     if (isAgain(rating)) {
       setSwipeDirection('left');
@@ -366,6 +567,7 @@ export default function FlashcardLearningPage() {
         setCurrentQuizIndex(0);
         setSelectedAnswers([]);
         setShowQuizResult(false);
+        setShowOptionsExpanded(true);
         setSessionMode('quiz');
       } else {
         moveToNext();
@@ -373,7 +575,7 @@ export default function FlashcardLearningPage() {
 
       setIsSelecting(false);  // 解锁
     }, 200);
-  }, [currentKp, isSelecting, learningDispatch, learningState.questions, learningState.todayReviewItems, moveToNext]);
+  }, [currentKp, isSelecting, learningDispatch, learningState.questions, learningState.todayReviewItems, learningState.todayNewItems, moveToNext]);
 
   // 上一张卡片
   const goToPrev = useCallback(() => {
@@ -384,6 +586,7 @@ export default function FlashcardLearningPage() {
       setCurrentQuizIndex(0);
       setSelectedAnswers([]);
       setShowQuizResult(false);
+      setShowOptionsExpanded(true);
       setSwipeDirection('up');
       setTimeout(() => setSwipeDirection(null), 200);
     }
@@ -439,6 +642,7 @@ export default function FlashcardLearningPage() {
     }
 
     setShowQuizResult(true);
+    setShowOptionsExpanded(false);
   }, [currentKp, currentQuizQuestion, learningDispatch, selectedAnswers]);
 
   const handleFinishQuiz = useCallback(() => {
@@ -448,6 +652,7 @@ export default function FlashcardLearningPage() {
       setCurrentQuizIndex(prev => prev + 1);
       setSelectedAnswers([]);
       setShowQuizResult(false);
+      setShowOptionsExpanded(true);
       setGeneratingExplanation(false);
       return;
     }
@@ -456,6 +661,7 @@ export default function FlashcardLearningPage() {
     setCurrentQuizIndex(0);
     setSelectedAnswers([]);
     setShowQuizResult(false);
+    setShowOptionsExpanded(true);
     setGeneratingExplanation(false);
     moveToNext();
   }, [currentQuizIndex, moveToNext, relatedQuestions.length]);
@@ -569,20 +775,29 @@ export default function FlashcardLearningPage() {
           <div className={desktopShellClassName} style={desktopShellStyle}>
             <div className="flex items-center justify-center h-full">
               <div className="text-center px-6">
-                <div className="text-6xl mb-6">??</div>
+                <div className="text-6xl mb-6">🎉</div>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: theme.textPrimary }}>
-                  ????
+                  全部学完了！
                 </h2>
                 <p className="text-base mb-8" style={{ color: theme.textSecondary }}>
-                  ???????????????
+                  当前范围的知识点已全部完成
                 </p>
-                <button
-                  onClick={exitLearning}
-                  className="px-8 py-3 rounded-xl font-medium text-white"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  ????
-                </button>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={openCategoryPicker}
+                    className="px-8 py-3 rounded-xl font-medium"
+                    style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}
+                  >
+                    选择其他章节
+                  </button>
+                  <button
+                    onClick={exitLearning}
+                    className="px-8 py-3 rounded-xl font-medium text-white"
+                    style={{ backgroundColor: theme.primary }}
+                  >
+                    返回首页
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -596,10 +811,6 @@ export default function FlashcardLearningPage() {
   const hardPreview = currentPreview?.[Rating.Hard];
   const goodPreview = currentPreview?.[Rating.Good];
   const easyPreview = currentPreview?.[Rating.Easy];
-  // 显示进度信息
-  const progressText = failedCount > 0
-    ? `${currentIdx + 1} / ${totalCards} (+${failedCount}待复习)`
-    : `${currentIdx + 1} / ${totalCards}`;
 
   return (
     <div
@@ -621,43 +832,42 @@ export default function FlashcardLearningPage() {
             >
               <ArrowLeft size={20} style={{ color: theme.primary }} />
             </button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium" style={{ color: theme.textSecondary }}>
-                {progressText}
+            {/* 分类选择 chip */}
+            <button
+              onClick={openCategoryPicker}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-70 transition-opacity max-w-[180px]"
+              style={{ backgroundColor: `${theme.primary}12`, border: `1px solid ${theme.primary}28` }}
+            >
+              <span className="text-xs font-medium truncate" style={{ color: theme.primary }}>
+                {categoryLabel}
               </span>
-            </div>
+              <ChevronRight size={12} style={{ color: theme.primary, transform: 'rotate(90deg)', flexShrink: 0 }} />
+            </button>
             <div className="w-10" />
           </div>
 
-          {/* Progress bar */}
-          <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
-            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={{
-                  width: `${((currentIdx + 1) / totalCards) * 100}%`,
-                  backgroundColor: theme.primary
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
-            <div className="rounded-xl px-3 py-3" style={{ backgroundColor: `${theme.primary}10`, border: `1px solid ${theme.primary}22` }}>
-              <div className="flex items-center justify-between gap-3 text-xs">
-                <span style={{ color: theme.textSecondary }}>??????</span>
-                <span style={{ color: theme.primary, fontWeight: 600 }}>
-                  {todayLearningCount} / {dailyGoal}
+          {/* 本次 session 进度条 */}
+          {queue.length >= 0 && (
+            <div className="px-4 pt-2 pb-1" style={{ backgroundColor: theme.bgCard }}>
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span style={{ color: theme.textSecondary }}>
+                  {progressLabel}
+                </span>
+                <span style={{ color: hasReachedDailyGoal ? '#10b981' : theme.primary, fontWeight: 600 }}>
+                  {progressValue}
                 </span>
               </div>
-              <div className="mt-2 w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+              <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
                 <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{ width: `${todayGoalProgress}%`, backgroundColor: theme.primary }}
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${learningProgressPct}%`,
+                    backgroundColor: hasReachedDailyGoal ? '#10b981' : theme.primary,
+                  }}
                 />
               </div>
             </div>
-          </div>
+          )}
 
           {showImportResult && importResultSummary && (
             <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
@@ -918,7 +1128,44 @@ export default function FlashcardLearningPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {currentQuizQuestion.options.map((option, index) => {
+                  {/* 已作答时显示折叠/展开控制条 */}
+                  {showQuizResult && (
+                    <button
+                      onClick={() => setShowOptionsExpanded(v => !v)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-medium transition-all"
+                      style={{
+                        backgroundColor: (() => {
+                          const isCorrect = selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                            && selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a));
+                          return isCorrect ? '#ecfdf5' : '#fef2f2';
+                        })(),
+                        color: (() => {
+                          const isCorrect = selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                            && selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a));
+                          return isCorrect ? '#166534' : '#b91c1c';
+                        })(),
+                        border: `1px solid ${(() => {
+                          const isCorrect = selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                            && selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a));
+                          return isCorrect ? '#86efac' : '#fca5a5';
+                        })()}`,
+                      }}
+                    >
+                      <span>
+                        {(() => {
+                          const isCorrect = selectedAnswers.length === currentQuizQuestion.correctAnswers.length
+                            && selectedAnswers.every(a => currentQuizQuestion.correctAnswers.includes(a));
+                          return isCorrect ? '✓ 回答正确' : `✗ 正确答案：${currentQuizQuestion.correctAnswers.map(id => {
+                            const idx = currentQuizQuestion.options.findIndex(o => o.id === id);
+                            return idx >= 0 ? String.fromCharCode(65 + idx) : id;
+                          }).join('、')}`;
+                        })()}
+                      </span>
+                      <span className="text-xs opacity-60">{showOptionsExpanded ? '收起选项 ↑' : '查看选项 ↓'}</span>
+                    </button>
+                  )}
+                  {/* 选项列表：未作答时始终显示，已作答后按展开状态显示 */}
+                  {(!showQuizResult || showOptionsExpanded) && currentQuizQuestion.options.map((option, index) => {
                     const selected = selectedAnswers.includes(option.id);
                     const isCorrectOption = currentQuizQuestion.correctAnswers.includes(option.id);
                     const label = String.fromCharCode(65 + index);
@@ -989,35 +1236,7 @@ export default function FlashcardLearningPage() {
                   })}
                 </div>
 
-                {showQuizResult && (
-                  <div
-                    className="mt-4 p-4 rounded-2xl text-sm"
-                    style={{
-                      backgroundColor:
-                        selectedAnswers.length === currentQuizQuestion.correctAnswers.length
-                          && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
-                          ? '#ecfdf5'
-                          : '#fef2f2',
-                      color:
-                        selectedAnswers.length === currentQuizQuestion.correctAnswers.length
-                          && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
-                          ? '#166534'
-                          : '#b91c1c',
-                      border: `1px solid ${selectedAnswers.length === currentQuizQuestion.correctAnswers.length
-                          && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
-                          ? '#86efac'
-                          : '#fca5a5'
-                        }`,
-                    }}
-                  >
-                    <div className="font-semibold text-base">
-                      {selectedAnswers.length === currentQuizQuestion.correctAnswers.length
-                        && selectedAnswers.every(answer => currentQuizQuestion.correctAnswers.includes(answer))
-                        ? '回答正确，做得不错！'
-                        : `正确答案：${currentQuizQuestion.correctAnswers.join('、')}`}
-                    </div>
-                  </div>
-                )}
+                {/* 正确/错误结果提示（已折叠为顶部控制条，不再单独显示） */}
 
                 {showQuizResult && (
                   <div className="mt-4">
@@ -1105,6 +1324,7 @@ export default function FlashcardLearningPage() {
                           setSessionMode('flashcard');
                           setSelectedAnswers([]);
                           setShowQuizResult(false);
+                          setShowOptionsExpanded(true);
                           setCurrentQuizIndex(0);
                           setGeneratingExplanation(false);
                           moveToNext();
@@ -1130,6 +1350,7 @@ export default function FlashcardLearningPage() {
                           setSessionMode('flashcard');
                           setSelectedAnswers([]);
                           setShowQuizResult(false);
+                          setShowOptionsExpanded(true);
                           setCurrentQuizIndex(0);
                           setGeneratingExplanation(false);
                         }}
@@ -1153,6 +1374,148 @@ export default function FlashcardLearningPage() {
           ) : null}
         </div>
       </div>
+
+      {/* ===== 分类选择器底部弹层 ===== */}
+      {showCategoryPicker && (
+        <div
+          className="fixed inset-0 z-[60] flex flex-col justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowCategoryPicker(false); }}
+        >
+          <div
+            className="rounded-t-3xl max-h-[80vh] flex flex-col"
+            style={{ backgroundColor: theme.bg, boxShadow: '0 -8px 32px rgba(0,0,0,0.18)' }}
+          >
+            {/* 弹层顶部 */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+              <h2 className="text-base font-bold" style={{ color: theme.textPrimary }}>选择学习范围</h2>
+              <button
+                onClick={() => setShowCategoryPicker(false)}
+                className="p-1.5 rounded-full"
+                style={{ backgroundColor: theme.border, color: theme.textSecondary }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* 列表区（可滚动） */}
+            <div className="overflow-y-auto flex-1 px-4 pb-2">
+              {/* 全部内容 */}
+              <button
+                onClick={() => handleCategoryConfirm(null)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-2xl mb-2 border-2 transition-all active:opacity-70"
+                style={{
+                  backgroundColor: !selectedCategory ? `${theme.primary}12` : theme.bgCard,
+                  borderColor: !selectedCategory ? theme.primary : theme.border,
+                }}
+              >
+                <span className="text-sm font-semibold" style={{ color: !selectedCategory ? theme.primary : theme.textPrimary }}>
+                  全部内容
+                </span>
+                <span className="text-xs" style={{ color: theme.textMuted }}>
+                  {learningState.knowledgePoints.filter(kp => kp.proficiency !== 'master').length} 待学
+                </span>
+              </button>
+
+              {/* 各科目 */}
+              {subjectProgress.map(({ subject, total, mastered, chapters }) => {
+                const isExpanded = expandedSubjectInPicker === subject.id;
+                const subjectSelected = selectedCategory?.type === 'subject' && selectedCategory.id === subject.id;
+                const pending = total - mastered;
+                return (
+                  <div key={subject.id} className="mb-2">
+                    {/* 科目行 */}
+                    <div
+                      className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 transition-all"
+                      style={{
+                        backgroundColor: subjectSelected ? `${theme.primary}12` : theme.bgCard,
+                        borderColor: subjectSelected ? theme.primary : theme.border,
+                      }}
+                    >
+                      <button
+                        onClick={() => handleCategoryConfirm({ type: 'subject', id: subject.id })}
+                        className="flex-1 flex items-center gap-2 text-left"
+                      >
+                        <span className="text-base">{subject.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate" style={{ color: subjectSelected ? theme.primary : theme.textPrimary }}>
+                            {subject.name}
+                          </div>
+                          <div className="text-xs mt-0.5" style={{ color: theme.textMuted }}>
+                            {mastered}/{total} 已掌握 · {pending} 待学
+                          </div>
+                        </div>
+                      </button>
+                      {chapters.length > 0 && (
+                        <button
+                          onClick={() => setExpandedSubjectInPicker(isExpanded ? null : subject.id)}
+                          className="shrink-0 p-1.5 rounded-lg transition-colors"
+                          style={{ backgroundColor: `${theme.primary}10`, color: theme.primary }}
+                        >
+                          <ChevronRight
+                            size={14}
+                            style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                          />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 章节列表 */}
+                    {isExpanded && chapters.map(({ chapter, total: chTotal, mastered: chMastered }) => {
+                      const chPending = chTotal - chMastered;
+                      const chSelected = selectedCategory?.type === 'chapter' && selectedCategory.id === chapter.id;
+                      return (
+                        <button
+                          key={chapter.id}
+                          onClick={() => handleCategoryConfirm({ type: 'chapter', id: chapter.id })}
+                          className="w-full flex items-center justify-between pl-8 pr-4 py-2.5 mt-1 rounded-xl border transition-all active:opacity-70"
+                          style={{
+                            backgroundColor: chSelected ? `${theme.primary}10` : `${theme.bgCard}cc`,
+                            borderColor: chSelected ? theme.primary : theme.border,
+                          }}
+                        >
+                          <span className="text-sm text-left truncate" style={{ color: chSelected ? theme.primary : theme.textPrimary }}>
+                            {chapter.name}
+                          </span>
+                          <span className="text-xs shrink-0 ml-2" style={{ color: theme.textMuted }}>
+                            {chMastered}/{chTotal} · {chPending}待
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 底部操作区 */}
+            <div className="px-5 pt-3 pb-6 shrink-0 border-t" style={{ borderColor: theme.border }}>
+              <button
+                onClick={() => setPendingSuppressInPicker(p => !p)}
+                className="flex items-center gap-2 mb-4 active:opacity-70"
+              >
+                <div
+                  className="w-5 h-5 rounded flex items-center justify-center border-2 shrink-0"
+                  style={{
+                    backgroundColor: pendingSuppressInPicker ? theme.primary : 'transparent',
+                    borderColor: pendingSuppressInPicker ? theme.primary : theme.border,
+                  }}
+                >
+                  {pendingSuppressInPicker && <span className="text-white text-xs font-bold">✓</span>}
+                </div>
+                <span className="text-sm" style={{ color: theme.textSecondary }}>不再自动弹出此选择器</span>
+              </button>
+              <button
+                onClick={handleCategoryPickerDone}
+                className="w-full py-3.5 rounded-2xl text-base font-semibold"
+                style={{ backgroundColor: theme.primary, color: '#fff' }}
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

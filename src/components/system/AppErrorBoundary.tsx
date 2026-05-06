@@ -22,6 +22,8 @@ export default class AppErrorBoundary extends Component<AppErrorBoundaryProps, A
   }
 
   private handleReload = () => {
+    // Clear the onboarding force-open key so refresh doesn't trigger a repeated crash
+    try { localStorage.removeItem('study-app:onboarding-force-open:v1'); } catch { /* ignore */ }
     window.location.reload();
   };
 
