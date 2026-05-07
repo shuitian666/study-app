@@ -16,7 +16,7 @@ const typeConfig = {
   background: { icon: '🖼️', label: '背景' },
   theme: { icon: '🎨', label: '主题' },
   title: { icon: '🏷️', label: '称号' },
-  coin_bag: { icon: '💰', label: '金币袋' },
+  coin_bag: { icon: '💰', label: '星币袋' },
   vip_card: { icon: '👑', label: 'VIP卡' },
 };
 

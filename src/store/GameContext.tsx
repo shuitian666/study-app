@@ -96,7 +96,8 @@ type GameAction =
   | { type: 'DRAW_UP'; payload: UpPoolResult }
   | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
   | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string };
+  | { type: 'REDEEM_CODE'; payload: string }
+  | { type: 'RESET_ALL' };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -124,6 +125,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       let regularTickets = 0;
       let upTickets = 0;
+      let streakCoins = 0;
       let streakLabel: string | undefined;
 
       if (!isMakeup) {
@@ -134,7 +136,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const streakReward = STREAK_REWARDS.find(r => r.days === streak);
-      if (streakReward) {
+      if (streakReward && !isMakeup) {
+        streakCoins = streakReward.coins;
         upTickets = streakReward.upDraws;
         streakLabel = streakReward.label;
       }
@@ -152,7 +155,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           regular: state.drawBalance.regular + regularTickets,
           up: state.drawBalance.up + upTickets,
         },
-        lastCheckinReward: { regularTickets, upTickets, streakCoins: 0, streakLabel },
+        lastCheckinReward: { regularTickets, upTickets, streakCoins, streakLabel },
         team: state.team && action.payload.type === 'team'
           ? { ...state.team, todayCheckedIn: true }
           : state.team,
@@ -300,6 +303,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         },
       };
     }
+
+    case 'RESET_ALL':
+      return initialGameState;
 
     default:
       return state;

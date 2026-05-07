@@ -13,10 +13,12 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import type { AIConfig } from '@/types';
 import { getAIConfig, setAIConfig } from '@/services/aiClient';
 import { clearKnowledgeData } from '@/services/indexedDBService';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle, Palette, BookOpen } from 'lucide-react';
 
 // 豆包默认模型
@@ -26,6 +28,7 @@ const ONBOARDING_FORCE_OPEN_KEY = 'study-app:onboarding-force-open:v1';
 export default function SettingsPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
+  const { gameDispatch } = useGame();
   const { theme } = useTheme();
 
   // 读取已保存配置
@@ -102,14 +105,12 @@ export default function SettingsPage() {
     return userState.user?.themeStyle || 'default';
   });
 
-  // 计算今日完成数量
+  // 计算今日完成学习量
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const todayResults = learningState.quizResults.filter(r => r.completedAt.startsWith(today));
-    const total = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
+    const total = getTodayLearningProgress(learningState).totalCount;
     setTodayCompleted(total);
     setGoalAchieved(total >= dailyGoal);
-  }, [learningState.quizResults, dailyGoal]);
+  }, [learningState, dailyGoal]);
 
   // 保存学习目标
   const handleSaveGoal = () => {
@@ -148,6 +149,7 @@ export default function SettingsPage() {
 
     // 彻底重置状态
     learningDispatch({ type: 'RESET_ALL' });
+    gameDispatch({ type: 'RESET_ALL' });
     userDispatch({ type: 'RESET_ALL' });
     navigate('login');
   };
@@ -359,7 +361,7 @@ export default function SettingsPage() {
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs text-text-muted mb-2">
               <span>今日完成</span>
-              <span>{todayCompleted} / {dailyGoal} 题</span>
+              <span>{todayCompleted} / {dailyGoal} 项</span>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
               <div
@@ -381,8 +383,8 @@ export default function SettingsPage() {
           {/* 目标设置 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-secondary">每日目标（题目数）</span>
-              <span className="text-sm font-bold text-primary">{dailyGoal} 题</span>
+              <span className="text-xs text-text-secondary">每日目标（学习量）</span>
+              <span className="text-sm font-bold text-primary">{dailyGoal} 项</span>
             </div>
 
             <input
@@ -396,8 +398,8 @@ export default function SettingsPage() {
             />
 
             <div className="flex justify-between text-[10px] text-text-muted mt-1">
-              <span>10题</span>
-              <span>50题</span>
+              <span>10项</span>
+              <span>50项</span>
             </div>
           </div>
 
@@ -492,7 +494,7 @@ export default function SettingsPage() {
           <ul className="space-y-1 text-blue-600">
             <li>• <strong>豆包AI</strong>：需要网络，智能程度高</li>
             <li>• <strong>离线模式</strong>：无需联网，功能有限</li>
-            <li>• 完成{dailyGoal}题可达成今日学习目标</li>
+            <li>• 完成{dailyGoal}项学习量可达成今日学习目标</li>
             <li>• Fluid Scholar 风格将统一配色，适配所有背景</li>
           </ul>
         </div>

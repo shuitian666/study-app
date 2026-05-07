@@ -13,7 +13,7 @@ const TYPE_LABELS: Record<ShopItemType, string> = {
   ai_skin: 'AI助手皮肤',
   theme: '主题',
   vip_card: 'VIP会员',
-  coin_bag: '金币袋',
+  coin_bag: '星币袋',
 };
 
 // 兑换码配置（与 GameContext 中的保持一致）

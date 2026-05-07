@@ -20,6 +20,16 @@ function getStoredThemeStyle() {
   return saved === 'default' || saved === 'fluidScholar' ? saved : undefined;
 }
 
+function normalizeUser(user: User): User {
+  const dailyGoal = Number.isFinite(user.dailyGoal) && user.dailyGoal > 0 ? user.dailyGoal : 10;
+  return {
+    ...user,
+    dailyGoal,
+    dailyNewGoal: dailyGoal,
+    totalPoints: Number.isFinite(user.totalPoints) ? user.totalPoints : 0,
+  };
+}
+
 // ---------- State ----------
 export interface UserState {
   user: User | null;
@@ -55,6 +65,7 @@ type UserAction =
   | { type: 'LOGOUT' }
   | { type: 'NAVIGATE'; payload: { page: PageName; params?: Record<string, string> } }
   | { type: 'UPDATE_USER'; payload: Partial<User> }
+  | { type: 'ADD_STAR_COINS'; payload: number }
   | { type: 'SET_DAILY_ENCOURAGEMENT'; payload: { text: string; date: string } }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
@@ -79,10 +90,10 @@ function userReducer(state: UserState, action: UserAction): UserState {
       const preservedThemeStyle = getStoredThemeStyle() ?? state.user?.themeStyle ?? action.payload.themeStyle;
       return {
         ...state,
-        user: {
+        user: normalizeUser({
           ...action.payload,
           themeStyle: preservedThemeStyle,
-        },
+        }),
         isLoggedIn: true,
         currentPage: targetPage,
       };
@@ -98,6 +109,13 @@ function userReducer(state: UserState, action: UserAction): UserState {
         ...state,
         user: state.user ? { ...state.user, ...action.payload } : null,
       };
+    case 'ADD_STAR_COINS':
+      return {
+        ...state,
+        user: state.user
+          ? { ...state.user, totalPoints: Math.max(0, state.user.totalPoints + action.payload) }
+          : null,
+      };
     case 'SET_DAILY_ENCOURAGEMENT':
       return {
         ...state,
@@ -107,7 +125,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
     case 'SET_DAILY_GOAL':
       return {
         ...state,
-        user: state.user ? { ...state.user, dailyGoal: action.payload } : state.user,
+        user: state.user ? { ...state.user, dailyGoal: action.payload, dailyNewGoal: action.payload } : state.user,
       };
     case 'UPDATE_TODAY_GOAL_STATUS':
       return {
@@ -317,7 +335,7 @@ function getInitialUserState(): UserState {
   if (saved) {
     return {
       ...initialUserState,
-      user: saved.user ?? initialUserState.user,
+      user: saved.user ? normalizeUser(saved.user) : initialUserState.user,
       isLoggedIn: saved.isLoggedIn ?? initialUserState.isLoggedIn,
       currentPage: 'login',
       pageParams: saved.pageParams ?? initialUserState.pageParams,

@@ -22,7 +22,7 @@ export default function LoginPage() {
         totalPoints: 0,
         createdAt: new Date().toISOString(),
         dailyGoal: 10,
-        dailyNewGoal: 15,
+        dailyNewGoal: 10,
         todayQuestions: 0,
         goalAchievedToday: false,
         // 形象相关

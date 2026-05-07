@@ -30,6 +30,7 @@ import type { ProficiencyLevel } from '@/types';
 import { allFrames, allTitles } from '@/pages/AvatarEdit';
 import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
+import { calculateLearningExperience } from '@/utils/achievementProgress';
 
 export function getBorderRadius(size: 'small' | 'large') {
   return size === 'large' ? '16px' : '8px';
@@ -42,6 +43,7 @@ export default function ProfilePage() {
   const { theme } = useTheme();
   const stats = getLearningStats();
   const user = userState.user;
+  const learningExperience = calculateLearningExperience(learningState, gameState.checkin);
   const isCustomAvatar = user ? (user.avatar?.startsWith('data:') || user.avatar?.startsWith('http')) ?? false : false;
 
   const uiStyle = theme.uiStyle || 'playful';
@@ -184,7 +186,7 @@ export default function ProfilePage() {
                   className="text-lg font-extrabold leading-none"
                   style={{ color: theme.primary || '#24389c', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
-                  {user?.totalPoints ?? 0}
+                  {learningExperience}
                 </p>
                 <p className="text-[10px] mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>经验值</p>
               </div>

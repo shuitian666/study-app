@@ -3,6 +3,7 @@ import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { Undo2, Redo2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
@@ -10,7 +11,7 @@ import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, Lis
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 import CloudDownloadModal from '@/components/ui/CloudDownloadModal';
 
-const sourceConfig = {
+const sourceConfig: Record<string, { label: string; color: string; bgColor: string; icon: LucideIcon }> = {
   manual: {
     label: '手动',
     color: 'text-gray-600',
@@ -188,14 +189,6 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
   };
 
   const knowledgeFabMenuItems = useMemo(() => [
-    {
-      id: 'flashcard',
-      label: '闪记',
-      icon: Sparkles,
-      onSelect: () => navigate('flashcard-learning'),
-      accentColor: theme.primary,
-      backgroundColor: theme.bgCard,
-    },
     {
       id: 'local-import',
       label: '本地导入',
@@ -827,6 +820,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                 {kps.map(kp => {
                   const subject = subjects.find(s => s.id === kp.subjectId);
                   const src = kp.source || 'manual';
+                  const source = sourceConfig[src] || sourceConfig.manual;
                   const isSelected = selectedIds.has(kp.id);
                   return (
                     <div
@@ -851,9 +845,9 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                             <span className="text-sm font-medium truncate min-w-0 flex-1" style={{ color: theme.textPrimary }}>{kp.name}</span>
                             <span className="shrink-0"><ProficiencyBadge level={kp.proficiency} /></span>
                             <span className={`shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px]`}
-                              style={{ color: sourceConfig[src].color.replace('text-', ''), backgroundColor: theme.bgCard }}>
-                              {(() => { const Icon = sourceConfig[src].icon; return <Icon size={10} />; })()}
-                              {sourceConfig[src].label}
+                              style={{ color: source.color.replace('text-', ''), backgroundColor: theme.bgCard }}>
+                              {(() => { const Icon = source.icon; return <Icon size={10} />; })()}
+                              {source.label}
                             </span>
                           </div>
 

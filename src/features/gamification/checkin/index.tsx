@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -7,6 +7,7 @@ import { Calendar, Ticket, Flame, BookOpen, CheckCircle, Sparkles, Star, Chevron
 import { STREAK_REWARDS } from '@/data/incentive-mock';
 import { TopAppBar } from '@/components/layout';
 import TeamPanel from './TeamPanel';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
@@ -51,10 +52,11 @@ export default function CheckinPage() {
   const { gameState, gameDispatch } = useGame();
   const { theme } = useTheme();
   const { checkin, team, drawBalance, lastCheckinReward } = gameState;
-  const { quizResults, todayReviewItems, todayNewItems } = learningState;
+  const { todayReviewItems } = learningState;
   const { user } = userState;
   const today = getToday();
   const todayChecked = checkin.records.some(r => r.date === today);
+  const checkinInFlightRef = useRef(false);
 
   const uiStyle = theme.uiStyle || 'playful';
 
@@ -101,27 +103,20 @@ export default function CheckinPage() {
     setCurrentMonth(now.getMonth());
   };
 
-  // 计算今日答题数量 - 使用 useMemo 缓存避免重复计算
-  // 注意：使用 toISOString().slice(0, 10) 确保日期格式一致（UTC），与 AppContext 保持一致
-  const todayResults = useMemo(() =>
-    quizResults.filter(r => new Date(r.completedAt).toISOString().slice(0, 10) === today),
-    [quizResults, today]
+  // 学习目标：闪卡 Good/Easy、学习中做题、刷题题量统一计入今日学习量。
+  const dailyGoal = Math.max(1, user?.dailyGoal ?? 10);
+  const todayLearningProgress = useMemo(
+    () => getTodayLearningProgress(learningState),
+    [learningState]
   );
-  const todayQuestions = useMemo(() =>
-    todayResults.reduce((sum, r) => sum + r.totalQuestions, 0),
-    [todayResults]
-  );
-
-  // 学习目标
-  const dailyGoal = user?.dailyGoal ?? 10;
-  const dailyNewGoal = user?.dailyNewGoal ?? 15;
+  const todayLearningCount = todayLearningProgress.totalCount;
   const goalProgress = useMemo(() =>
-    Math.min((todayQuestions / dailyGoal) * 100, 100),
-    [todayQuestions, dailyGoal]
+    Math.min((todayLearningCount / dailyGoal) * 100, 100),
+    [todayLearningCount, dailyGoal]
   );
   const goalAchieved = useMemo(() =>
-    todayQuestions >= dailyGoal,
-    [todayQuestions, dailyGoal]
+    todayLearningCount >= dailyGoal,
+    [todayLearningCount, dailyGoal]
   );
 
   // 复习完成检查
@@ -130,21 +125,15 @@ export default function CheckinPage() {
     [todayReviewItems]
   );
 
-  // 新学完成检查：已完成的新学数 >= 每日新学目标
-  const completedNewCount = useMemo(() =>
-    todayNewItems.filter(r => r.completed).length,
-    [todayNewItems]
-  );
-  const newLearnCompleted = useMemo(() =>
-    completedNewCount >= dailyNewGoal,
-    [completedNewCount, dailyNewGoal]
+  const pendingReviewCount = todayReviewItems.filter(r => !r.completed).length;
+
+  // 签到条件：达到统一的今日学习目标即可签到。
+  const canCheckin = useMemo(() =>
+    goalAchieved && !todayChecked,
+    [goalAchieved, todayChecked]
   );
 
-  // 签到条件：复习完成 + 新学完成 OR 完成做题目标
-  const canCheckin = useMemo(() =>
-    ((reviewCompleted && newLearnCompleted) || goalAchieved) && !todayChecked,
-    [reviewCompleted, newLearnCompleted, goalAchieved, todayChecked]
-  );
+  const currentStreakReward = STREAK_REWARDS.find(r => r.days === checkin.streak);
 
   const last7 = getLast7Days();
 
@@ -153,7 +142,8 @@ export default function CheckinPage() {
   const bothReady = hasActiveTeam && team!.members.every(m => m.progress.isReady);
 
   const performCheckin = (type: 'normal' | 'team') => {
-    if (!canCheckin || !user) return;
+    if (!canCheckin || !user || checkinInFlightRef.current) return;
+    checkinInFlightRef.current = true;
 
     // 先计算新的签到天数和奖励
     const tempRecords = [...checkin.records, { date: today, type, teamId: type === 'team' ? team?.id : undefined }];
@@ -180,8 +170,8 @@ export default function CheckinPage() {
     // 立即发放星币奖励
     if (streakCoins > 0) {
       userDispatch({
-        type: 'UPDATE_USER',
-        payload: { totalPoints: user.totalPoints + streakCoins }
+        type: 'ADD_STAR_COINS',
+        payload: streakCoins
       });
       console.log(`[签到奖励] 立即获得 ${streakCoins} 星币`);
     }
@@ -345,7 +335,11 @@ export default function CheckinPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold" style={{ color: theme.onSecondaryFixed || '#261a00' }}>签到成功！</p>
-                <p className="text-xs mt-0.5" style={{ color: theme.onSecondaryFixed || '#261a00', opacity: 0.7 }}>获得 50 学习积分</p>
+                <p className="text-xs mt-0.5" style={{ color: theme.onSecondaryFixed || '#261a00', opacity: 0.7 }}>
+                  {currentStreakReward?.coins
+                    ? `获得 ${currentStreakReward.coins} 星币`
+                    : '今日签到奖励已入账'}
+                </p>
               </div>
             </div>
           )}
@@ -595,11 +589,11 @@ export default function CheckinPage() {
         </h3>
 
         <div className="bg-white p-4 border border-border shadow-sm space-y-3" style={{ borderRadius: getBorderRadius('large') }}>
-          {/* 做题进度 */}
+          {/* 今日学习量 */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-text-muted">做题进度</span>
-              <span className="text-xs text-text-muted">{todayQuestions} / {dailyGoal} 题</span>
+              <span className="text-xs text-text-muted">今日完成</span>
+              <span className="text-xs text-text-muted">{todayLearningCount} / {dailyGoal} 项</span>
             </div>
             <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
               <div
@@ -612,18 +606,17 @@ export default function CheckinPage() {
             </div>
           </div>
 
-          {/* 新学进度 */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-text-muted">新学进度</span>
-              <span className="text-xs text-text-muted">{completedNewCount} / {dailyNewGoal} 个</span>
+              <span className="text-xs text-text-muted">待复习状态</span>
+              <span className="text-xs text-text-muted">{pendingReviewCount} 项待复习</span>
             </div>
             <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${Math.min(100, (completedNewCount / dailyNewGoal) * 100)}%`,
-                  backgroundColor: newLearnCompleted ? '#10b981' : '#3b82f6',
+                  width: `${reviewCompleted ? 100 : 0}%`,
+                  backgroundColor: reviewCompleted ? '#10b981' : '#3b82f6',
                 }}
               />
             </div>
@@ -631,15 +624,13 @@ export default function CheckinPage() {
 
           {/* 签到条件提示 */}
           <div className="pt-2 border-t border-border">
-            {(reviewCompleted && newLearnCompleted) || goalAchieved ? (
+            {goalAchieved ? (
               <p className="text-xs text-accent font-medium flex items-center gap-1">
                 <CheckCircle size={12} /> 已满足签到条件
               </p>
             ) : (
               <p className="text-xs text-text-muted">
-                {reviewCompleted
-                  ? `再完成 ${dailyNewGoal - completedNewCount} 个新学即可签到`
-                  : '完成复习和新学任务后即可签到'}
+                再完成 {Math.max(dailyGoal - todayLearningCount, 0)} 项学习量即可签到
               </p>
             )}
           </div>

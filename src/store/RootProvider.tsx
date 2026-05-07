@@ -11,6 +11,7 @@ import { LearningProvider } from './LearningContext';
 import { GameProvider } from './GameContext';
 import { AIChatProvider } from './AIChatContext';
 import { ThemeProvider } from './ThemeContext';
+import AchievementWatcher from '@/components/system/AchievementWatcher';
 
 export function RootProvider({ children }: { children: ReactNode }) {
   return (
@@ -20,6 +21,7 @@ export function RootProvider({ children }: { children: ReactNode }) {
           <LearningProvider>
             <GameProvider>
               <AIChatProvider>
+                <AchievementWatcher />
                 {children}
               </AIChatProvider>
             </GameProvider>

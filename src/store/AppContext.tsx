@@ -725,7 +725,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_DAILY_GOAL':
       return {
         ...state,
-        user: state.user ? { ...state.user, dailyGoal: action.payload } : state.user,
+        user: state.user ? { ...state.user, dailyGoal: action.payload, dailyNewGoal: action.payload } : state.user,
       };
     case 'UPDATE_TODAY_GOAL_STATUS':
       return {
@@ -820,7 +820,7 @@ function reducer(state: AppState, action: Action): AppState {
         const attachment = mail.attachments[attachmentIndex];
         if (attachment && !attachment.claimed) {
           if (attachment.type === 'coin') {
-            // 金币直接加
+            // 星币直接加
             newUser = { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity };
           } else if (attachment.type === 'makeup_card') {
             // 补签卡可以堆叠
@@ -1140,93 +1140,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'RECORD_HISTORY', payload: {} });
     }
   }, [state.isLoggedIn]);
-
-  // ========== 自动检测成就解锁 ==========
-  useEffect(() => {
-    if (!state.isLoggedIn) return;
-
-    const stats = getLearningStats();
-    const totalKnowledge = stats.totalKnowledgePoints;
-    const totalQuizzes = stats.totalQuizzes;
-
-    // 从 localStorage 读取 GameContext 的 checkin 数据（权威数据源）
-    const savedState = loadState();
-    const checkinData = savedState?.checkin as { records: { date: string; type: string }[]; streak: number; totalCheckins: number } | undefined;
-    const checkinRecords = checkinData?.records || [];
-    const checkinStreak = checkinData?.streak || 0;
-    const checkinTotal = checkinData?.totalCheckins || 0;
-    const makeupUsed = checkinTotal - checkinRecords.filter(r => r.type !== 'makeup').length;
-    const perfectQuizzesCount = state.quizResults.filter(q => q.score === 100).length;
-
-    // 遍历所有未解锁成就，检查条件
-    state.achievements.forEach(ach => {
-      if (ach.unlocked) return;
-
-      let met = false;
-      const cond = ach.condition;
-
-      switch (cond.type) {
-        // 初次学习 - 完成第一次知识点学习
-        case 'first_learn':
-          met = state.todayReviewItems.some(r => r.completed) || state.todayNewItems.some(r => r.completed);
-          break;
-        // 首次签到
-        case 'first_checkin':
-          met = checkinTotal >= cond.value;
-          break;
-        // 连续学习天数
-        case 'streak_days':
-          met = checkinStreak >= cond.value;
-          break;
-        // 掌握知识点数量
-        case 'master_count':
-          met = stats.masteredCount >= cond.value;
-          break;
-        // 累计知识点数量（含未掌握的）
-        case 'total_knowledge':
-          met = totalKnowledge >= cond.value;
-          break;
-        // 累计签到天数
-        case 'total_checkins':
-          met = checkinTotal >= cond.value;
-          break;
-        // 累计测验次数
-        case 'total_quizzes':
-          met = totalQuizzes >= cond.value;
-          break;
-        // 使用补签卡次数
-        case 'makeup_used':
-          met = makeupUsed >= cond.value;
-          break;
-        // 满分测验（任意一次得100分）
-        case 'perfect_quiz':
-          met = perfectQuizzesCount >= cond.value;
-          break;
-        // 连续满分次数（10次满分）
-        case 'one_session_correct':
-          met = perfectQuizzesCount >= cond.value;
-          break;
-        // 错题本清零：曾有过错题，现在全部清除了
-        case 'clear_wrong':
-          met = state.quizResults.length > 0 && state.wrongRecords.length === 0;
-          break;
-      }
-
-      if (met) {
-        dispatch({ type: 'UNLOCK_ACHIEVEMENT', payload: ach.id });
-      }
-    });
-  }, [
-    state.isLoggedIn,
-    state.knowledgePoints.length,
-    state.checkin.totalCheckins,
-    state.checkin.streak,
-    state.quizResults.length,
-    state.wrongRecords.length,
-    state.todayReviewItems,
-    state.todayNewItems,
-    state.achievements
-  ]);
 
   return (
     <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>

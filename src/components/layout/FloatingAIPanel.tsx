@@ -43,12 +43,12 @@ interface FloatingAIPanelProps {
 }
 
 const MENU_SIZE = 232;
-const CENTER = 184;
+const CENTER = 200;
 const OUTER_RADIUS = 102;
 const INNER_RADIUS = 54;
 const ICON_RADIUS = 78;
-const START_ANGLE = 148;
-const END_ANGLE = 332;
+const START_ANGLE = 182;
+const END_ANGLE = 272;
 const MAGNET_DISTANCE = 34;
 const FAB_BOTTOM_OFFSET = 86;
 const APP_SHELL_MAX_WIDTH = 430;

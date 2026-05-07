@@ -6,11 +6,9 @@
  * 【双风格布局】
  *
  * 【Playful 风格】
- * 1. 渐变头部：问候语 + 用户昵称 + 连续学习天数 + AI 鼓励语
+ * 1. 问候卡片：目标进度 + 用户昵称 + 连续学习天数 + AI 鼓励语
  * 2. 今日学习任务卡片：2列任务
  * 3. 学习总览：掌握度分布条 + 四级统计
- * 4. 每日福利：4宫格快捷入口
- * 5. 快速开始：emoji + 2x3网格
  *
  * 【Scholar 风格 - Fluid Scholar 设计系统】
  * 1. TopAppBar 顶部导航栏
@@ -26,7 +24,9 @@ import { useApp } from '@/store/AppContext';
 import { useLearning } from '@/store/LearningContext';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
+import { useGame } from '@/store/GameContext';
 import { generateTodayReviewPlan, getGreeting, getEncouragement } from '@/utils/review';
+import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
@@ -44,9 +44,10 @@ const ONBOARDING_FORCE_OPEN_KEY = 'study-app:onboarding-force-open:v1';
 
 export default function HomePage({ isActive = true }: HomePageProps) {
 
-  const { state: appState, dispatch: appDispatch, getLearningStats } = useApp();
-  const { learningState, learningDispatch } = useLearning();
+  const { state: appState, dispatch: appDispatch } = useApp();
+  const { learningState, learningDispatch, getLearningStats } = useLearning();
   const { userState, userDispatch, navigate } = useUser();
+  const { gameState } = useGame();
   const { theme } = useTheme();
   const stats = getLearningStats();
 
@@ -104,24 +105,24 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (appState.dailyEncouragementDate !== today) {
-      getSmartEncouragement(stats, appState.wrongRecords.length, appState.checkin.streak)
+      getSmartEncouragement(stats, learningState.wrongRecords.length, gameState.checkin.streak)
         .then(text => {
           appDispatch({ type: 'SET_DAILY_ENCOURAGEMENT', payload: { text, date: today } });
         })
         .catch(() => { });
     }
-  }, [appState.dailyEncouragementDate, appState.wrongRecords.length, appState.checkin.streak, appDispatch]);
+  }, [appState.dailyEncouragementDate, learningState.wrongRecords.length, gameState.checkin.streak, appDispatch, stats]);
 
   const encouragementText = appState.dailyEncouragement ?? fallbackEncouragement;
 
   // 学习数据
   const reviewPending = learningState.todayReviewItems.filter(r => !r.completed).length;
   const completedNew = learningState.todayNewItems.filter(r => r.completed).length;
-  const dailyNewGoal = appState.user?.dailyNewGoal ?? 15;
-  const reviewCompleted = reviewPending === 0;
-  const newGoalCompleted = completedNew >= dailyNewGoal;
-  const hasPendingNew = learningState.todayNewItems.filter(r => !r.completed).length > 0;
-  const freeLearningMode = reviewCompleted && newGoalCompleted && hasPendingNew;
+  const dailyGoal = Math.max(1, userState.user?.dailyGoal ?? 10);
+  const todayLearningProgress = getTodayLearningProgress(learningState);
+  const todayLearningCount = todayLearningProgress.totalCount;
+  const dailyGoalCompleted = todayLearningCount >= dailyGoal;
+  const freeLearningMode = dailyGoalCompleted;
   const masteryCount = stats.masteredCount + stats.normalCount;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
@@ -184,16 +185,16 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     <FloatingAIPanel
       menuItems={homeFabMenuItems}
       placement="contained"
+      ownerPage="home"
       primaryIcon={Sparkles}
       primaryTitle="开始学习"
       onPrimaryAction={openPrimaryLearning}
     />
   );
   const todayDate = new Date().toISOString().slice(0, 10);
-  const hasCheckedInToday = appState.checkin.records.some(record => record.date === todayDate);
+  const hasCheckedInToday = gameState.checkin.records.some(record => record.date === todayDate);
   const completedReview = learningState.todayReviewItems.length - reviewPending;
   const totalReviewTasks = learningState.todayReviewItems.length;
-  const totalCompletedTasks = completedReview + completedNew + (hasCheckedInToday ? 1 : 0);
   const mainTaskEntries = [
     {
       key: 'review',
@@ -205,10 +206,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     },
     {
       key: 'new-learning',
-      name: '推进新知识学习',
-      detail: newGoalCompleted ? '今日新学目标已完成' : `还差 ${Math.max(dailyNewGoal - completedNew, 0)} 个知识点`,
-      progress: `${completedNew}/${dailyNewGoal}`,
-      ratio: dailyNewGoal > 0 ? Math.min(1, completedNew / dailyNewGoal) : 0,
+      name: '完成今日目标',
+      detail: dailyGoalCompleted ? '今日学习目标已完成' : `还差 ${Math.max(dailyGoal - todayLearningCount, 0)} 项学习量`,
+      progress: `${Math.min(todayLearningCount, dailyGoal)}/${dailyGoal}`,
+      ratio: Math.min(1, todayLearningCount / dailyGoal),
       onClick: () => navigate('flashcard-learning'),
     },
     {
@@ -228,11 +229,11 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const dynamicHeadline = useMemo(() => {
     if (reviewPending > 0 && completedNew === 0) return `先清掉 ${reviewPending} 张复习卡`;
     if (reviewPending > 0) return `还有 ${reviewPending} 张卡待复习`;
-    if (!newGoalCompleted) return `再学 ${dailyNewGoal - completedNew} 个知识点`;
+    if (!dailyGoalCompleted) return `再完成 ${dailyGoal - todayLearningCount} 项学习量`;
     if (freeLearningMode) return '今日目标全部完成 🎉';
     if (hasCheckedInToday) return '保持节奏，继续前进';
     return '新的一天，从这里开始';
-  }, [reviewPending, completedNew, newGoalCompleted, dailyNewGoal, freeLearningMode, hasCheckedInToday]);
+  }, [reviewPending, completedNew, dailyGoalCompleted, dailyGoal, todayLearningCount, freeLearningMode, hasCheckedInToday]);
 
   const scholarStatsCards = [
     {
@@ -249,10 +250,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     {
       key: 'today-finished',
       icon: CheckCircle,
-      value: totalCompletedTasks,
+      value: todayLearningCount,
       suffix: '项',
       label: '今日完成进度',
-      hint: `待复习 ${reviewPending} 项 · 新学 ${completedNew}/${dailyNewGoal}`,
+      hint: `待复习 ${reviewPending} 项 · 目标 ${Math.min(todayLearningCount, dailyGoal)}/${dailyGoal}`,
       accent: theme.accent || '#0ea5e9',
       chipBg: `${theme.accent || '#0ea5e9'}1E`,
       glow: `${theme.accent || '#0ea5e9'}38`,
@@ -518,32 +519,60 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   return (
     <div className="relative h-full">
       <main className="absolute inset-x-0 top-0 bottom-[56px] overflow-y-auto pb-32 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Gradient Header */}
-        <div
-          className="text-white px-6 pt-5 pb-6 rounded-b-3xl overflow-hidden"
-          style={{
-            backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
-          }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold">{getGreeting()}</h2>
-              <p className="text-sm mt-0.5" style={{ color: '#ffffff' }}>{appState.user?.nickname ?? '同学'}</p>
-            </div>
-            <div className="bg-white/20 rounded-full px-3 py-1">
-              <span className="text-sm">🔥 {stats.streakDays}天</span>
-            </div>
-          </div>
-
-          {/* AI encouragement */}
-          <button
-            onClick={() => navigate('ai-chat')}
-            className="w-full bg-white/10 rounded-xl p-3 flex items-start gap-2 active:bg-white/20 transition-colors text-left"
+        {/* Greeting Card */}
+        <div className="px-5 pt-5">
+          <section
+            className="relative overflow-hidden rounded-[28px] border p-5 shadow-[0_16px_36px_-24px_rgba(15,23,42,0.45)]"
+            style={{
+              background: `radial-gradient(circle at 90% 12%, ${theme.primary}20, transparent 34%), linear-gradient(135deg, ${theme.bgCard}, ${theme.primary}0F)`,
+              borderColor: theme.border,
+            }}
           >
-            <Sparkles size={16} className="text-secondary-light mt-0.5 shrink-0" />
-            <p className="text-sm flex-1" style={{ color: '#ffffff' }}>{encouragementText}</p>
-            <ChevronRight size={14} className="text-white/50 mt-0.5 shrink-0" />
-          </button>
+            <div
+              className="absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl"
+              style={{ backgroundColor: `${theme.primary}22` }}
+            />
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-medium" style={{ color: theme.textMuted }}>{getGreeting()}</p>
+                <h2 className="mt-1 text-2xl font-black leading-tight" style={{ color: theme.textPrimary }}>
+                  {dynamicHeadline}
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
+                  {userState.user?.nickname ?? '同学'}，今日已完成 {todayLearningCount}/{dailyGoal} 项
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('settings')}
+                className="shrink-0 rounded-2xl p-2.5 active:scale-[0.97] transition-transform"
+                style={{ backgroundColor: `${theme.primary}14`, color: theme.primary }}
+                aria-label="设置"
+              >
+                <Settings size={18} />
+              </button>
+            </div>
+
+            <div className="relative mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl px-3 py-2.5" style={{ backgroundColor: `${theme.primary}12` }}>
+                <div className="text-lg font-bold" style={{ color: theme.primary }}>{stats.streakDays} 天</div>
+                <div className="text-[10px]" style={{ color: theme.textSecondary }}>连续学习</div>
+              </div>
+              <div className="rounded-2xl px-3 py-2.5" style={{ backgroundColor: `${theme.secondary}16` }}>
+                <div className="text-lg font-bold" style={{ color: theme.secondary }}>{userState.user?.totalPoints ?? 0}</div>
+                <div className="text-[10px]" style={{ color: theme.textSecondary }}>星币余额</div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('ai-chat')}
+              className="relative mt-4 w-full rounded-2xl p-3 flex items-start gap-2 active:scale-[0.99] transition-transform text-left"
+              style={{ backgroundColor: theme.bg, color: theme.textPrimary }}
+            >
+              <Sparkles size={16} className="mt-0.5 shrink-0" style={{ color: theme.primary }} />
+              <p className="text-sm flex-1" style={{ color: theme.textSecondary }}>{encouragementText}</p>
+              <ChevronRight size={14} className="mt-0.5 shrink-0" style={{ color: theme.textMuted }} />
+            </button>
+          </section>
         </div>
 
         {/* Today's Tasks */}
@@ -595,7 +624,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
                 style={{
                   background: freeLearningMode
                     ? `linear-gradient(135deg, ${theme.success}20, ${theme.accent}20)`
-                    : reviewPending > 0 || completedNew < dailyNewGoal
+                    : reviewPending > 0 || !dailyGoalCompleted
                       ? `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}20)`
                       : `linear-gradient(135deg, ${theme.success}20, ${theme.accent}20)`,
                   borderRadius: 'var(--card-radius)',
@@ -615,14 +644,14 @@ export default function HomePage({ isActive = true }: HomePageProps) {
                   </span>
                 </div>
                 <div className="text-2xl font-bold" style={{ color: freeLearningMode ? theme.success : theme.primary }}>
-                  {freeLearningMode ? '🎉' : reviewPending > 0 ? `${reviewPending}` : `${completedNew}/${dailyNewGoal}`}
+                  {freeLearningMode ? '🎉' : reviewPending > 0 ? `${reviewPending}` : `${Math.min(todayLearningCount, dailyGoal)}/${dailyGoal}`}
                 </div>
                 <div className="text-[10px] mt-0.5" style={{ color: freeLearningMode ? theme.accent : theme.primaryLight }}>
                   {freeLearningMode
                     ? '目标已完成，自由学习'
                     : reviewPending > 0
-                      ? `待复习 + ${dailyNewGoal} 新学目标`
-                      : `新学 ${completedNew}/${dailyNewGoal}`}
+                      ? `待复习 + ${dailyGoal} 项目标`
+                      : `目标 ${Math.min(todayLearningCount, dailyGoal)}/${dailyGoal}`}
                 </div>
               </button>
             </div>
@@ -666,178 +695,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Incentive Shortcuts */}
-        <div className={`mt-4 ${getAnimationClass(3)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm">每日福利</h3>
-          </div>
-
-          <div className="grid grid-cols-4 gap-3 pr-20">
-            <button
-              onClick={() => navigate('checkin')}
-              className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <CalendarCheck size={20} style={{ color: theme.iconColors.checkin }} />
-              <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>签到</span>
-            </button>
-
-            <button
-              onClick={() => navigate('achievements')}
-              className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <Trophy size={20} style={{ color: theme.iconColors.achievement }} />
-              <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>成就</span>
-            </button>
-
-            <button
-              onClick={() => navigate('shop')}
-              className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <ShoppingBag size={20} style={{ color: theme.iconColors.shop }} />
-              <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>商城</span>
-            </button>
-
-            <button
-              onClick={() => navigate('ranking')}
-              className="flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <Medal size={20} style={{ color: theme.iconColors.ranking }} />
-              <span className="text-[11px] font-medium" style={{ color: theme.textPrimary }}>排行</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className={`mt-4 ${getAnimationClass(4)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
-          <h3 className="font-semibold text-sm mb-3">快速开始</h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate('quiz')}
-              className="text-left active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <div className="text-2xl mb-2">📝</div>
-              <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>开始刷题</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>选择题测试</div>
-            </button>
-
-            <button
-              onClick={() => navigate('knowledge')}
-              className="text-left active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <div className="text-2xl mb-2">📚</div>
-              <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>知识库</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>管理知识点</div>
-            </button>
-
-            <button
-              onClick={() => navigate('knowledge-map')}
-              className="text-left active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <div className="text-2xl mb-2">🗺️</div>
-              <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>知识图谱</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>可视化学习进度</div>
-            </button>
-
-            <button
-              onClick={() => navigate('quiz', { tab: 'wrong' })}
-              className="text-left active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <div className="text-2xl mb-2">❌</div>
-              <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>错题本</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>{appState.wrongRecords.length} 道错题</div>
-            </button>
-
-            <button
-              onClick={() => navigate('ai-chat')}
-              className="text-left active:scale-[0.97] transition-transform"
-              style={{
-                background: `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}10)`,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                border: 'none',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              }}
-            >
-              <Bot size={24} style={{ color: theme.primary }} className="mb-2" />
-              <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>AI 问答</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>智能学习助手</div>
-            </button>
-
-            <button
-              onClick={() => navigate('flashcard-learning')}
-              className="text-left active:scale-[0.97] transition-transform"
-              style={{
-                backgroundColor: theme.bgCard,
-                borderRadius: 'var(--card-radius)',
-                padding: 'var(--card-padding)',
-                boxShadow: theme.cardShadow !== 'none' ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
-                border: 'none',
-              }}
-            >
-              <div className="text-2xl mb-2">🧠</div>
-              <div className="font-medium text-sm" style={{ color: theme.textPrimary }}>闪记学习</div>
-              <div className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>记忆卡片式学习</div>
-            </button>
           </div>
         </div>
 

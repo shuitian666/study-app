@@ -1,5 +1,4 @@
 import { useGame } from '@/store/GameContext';
-import { useUser } from '@/store/UserContext';
 import { Star } from 'lucide-react';
 
 // Static particle styles for visual effect
@@ -28,7 +27,6 @@ const PARTICLE_STYLES = [
 
 export default function AchievementPopup() {
   const { gameState, gameDispatch } = useGame();
-  const { userState, userDispatch } = useUser();
   const popup = gameState.achievementPopup;
 
   // 如果签到奖励弹窗正在显示，则不显示成就弹窗（等签到弹窗关闭后再显示成就）
@@ -36,16 +34,8 @@ export default function AchievementPopup() {
 
   const isHiddenAchievement = popup.achievement.category === 'hidden';
 
-  // 关闭弹窗时发放成就奖励金币
+  // 奖励在解锁时已经发放，弹窗只负责展示。
   const handleDismiss = () => {
-    const rewardCoins = popup.achievement.reward.coins;
-    if (rewardCoins > 0 && userState.user) {
-      userDispatch({
-        type: 'UPDATE_USER',
-        payload: { totalPoints: userState.user.totalPoints + rewardCoins }
-      });
-      console.log(`[成就奖励] 获得 ${rewardCoins} 星币`);
-    }
     gameDispatch({ type: 'DISMISS_ACHIEVEMENT_POPUP' });
   };
 
