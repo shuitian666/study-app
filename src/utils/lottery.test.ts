@@ -37,11 +37,16 @@ describe('Lottery Algorithm', () => {
 
   test('drawLottery should update pity counters correctly', () => {
     const pity: LotteryPityState = { sinceLastSSR: 5, sinceLastSR: 3 };
-    
-    // 测试非SSR/SR的情况
-    const { newPity: newPity1 } = drawLottery(pity);
-    expect(newPity1.sinceLastSSR).toBeGreaterThan(pity.sinceLastSSR);
-    expect(newPity1.sinceLastSR).toBeGreaterThan(pity.sinceLastSR);
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    try {
+      // 固定为非 SSR/SR 结果，避免随机抽中 SR 后导致测试偶发失败。
+      const { newPity: newPity1 } = drawLottery(pity);
+      expect(newPity1.sinceLastSSR).toBeGreaterThan(pity.sinceLastSSR);
+      expect(newPity1.sinceLastSR).toBeGreaterThan(pity.sinceLastSR);
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });
 

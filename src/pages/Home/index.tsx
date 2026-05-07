@@ -31,7 +31,6 @@ import { getSmartEncouragement } from '@/services/aiService';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 import { Brain, Target, TrendingUp, ChevronRight, Sparkles, CalendarCheck, Trophy, ShoppingBag, Medal, Bot, Play, CheckCircle, BookOpen, Settings } from 'lucide-react';
-import { ProgressBar } from '@/components/ui/Common';
 import OnboardingGuide from '@/components/ui/OnboardingGuide';
 import { FloatingAIPanel, TabBar } from '@/components/layout';
 
@@ -124,6 +123,14 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const dailyGoalCompleted = todayLearningCount >= dailyGoal;
   const freeLearningMode = dailyGoalCompleted;
   const masteryCount = stats.masteredCount + stats.normalCount;
+  const dailyGoalPercent = Math.min(100, Math.round((todayLearningCount / dailyGoal) * 100));
+  const remainingGoalCount = Math.max(dailyGoal - todayLearningCount, 0);
+  const warmNextAction = reviewPending > 0 ? '先复习几张卡' : freeLearningMode ? '再加练一小组' : '开始新学一轮';
+  const warmMoodText = reviewPending > 0
+    ? '小书包提醒你：先把到期卡片清一清。'
+    : freeLearningMode
+      ? '今日目标完成了，可以轻松加练。'
+      : `还差 ${remainingGoalCount} 项就能签到。`;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -519,183 +526,193 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   return (
     <div className="relative h-full">
       <main className="absolute inset-x-0 top-0 bottom-[56px] overflow-y-auto pb-32 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {/* Greeting Card */}
-        <div className="px-5 pt-5">
+        {/* Warm Cartoon Header */}
+        <div className="px-4 pt-4">
           <section
-            className="relative overflow-hidden rounded-[28px] border p-5 shadow-[0_16px_36px_-24px_rgba(15,23,42,0.45)]"
+            className="relative overflow-hidden rounded-[32px] border p-5 shadow-[0_18px_44px_-28px_rgba(146,64,14,0.45)]"
             style={{
-              background: `radial-gradient(circle at 90% 12%, ${theme.primary}20, transparent 34%), linear-gradient(135deg, ${theme.bgCard}, ${theme.primary}0F)`,
-              borderColor: theme.border,
+              background: 'radial-gradient(circle at 16% 18%, #ffffff 0 9%, transparent 10%), radial-gradient(circle at 88% 12%, #ffe7ba 0 16%, transparent 17%), linear-gradient(145deg, #fff7ed 0%, #ffedd5 52%, #fef3c7 100%)',
+              borderColor: '#fed7aa',
             }}
           >
-            <div
-              className="absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl"
-              style={{ backgroundColor: `${theme.primary}22` }}
-            />
+            <div className="absolute -left-6 top-8 h-16 w-16 rounded-full bg-white/60" />
+            <div className="absolute right-12 top-7 h-8 w-16 rounded-full bg-white/70" />
+            <div className="absolute right-5 top-12 h-6 w-12 rounded-full bg-white/60" />
+            <div className="absolute -bottom-10 right-2 h-28 w-28 rounded-full bg-orange-200/55" />
+            <div className="absolute bottom-5 left-6 h-2 w-2 rounded-full bg-orange-300" />
+            <div className="absolute bottom-10 left-24 h-2 w-2 rounded-full bg-amber-300" />
+
             <div className="relative flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs font-medium" style={{ color: theme.textMuted }}>{getGreeting()}</p>
-                <h2 className="mt-1 text-2xl font-black leading-tight" style={{ color: theme.textPrimary }}>
+              <div className="min-w-0 flex-1">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-[11px] font-bold text-orange-700 shadow-sm">
+                  <span>暖暖学习桌</span>
+                  <span>🍞</span>
+                </div>
+                <h2 className="mt-3 text-[26px] font-black leading-tight text-orange-950">
                   {dynamicHeadline}
                 </h2>
-                <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
-                  {userState.user?.nickname ?? '同学'}，今日已完成 {todayLearningCount}/{dailyGoal} 项
+                <p className="mt-1.5 text-sm leading-relaxed text-orange-800/75">
+                  {userState.user?.nickname ?? '同学'}，{warmMoodText}
                 </p>
+                <div className="mt-3 flex items-start gap-2 rounded-2xl bg-white/65 px-3 py-2 text-xs leading-relaxed text-orange-800/70">
+                  <Sparkles size={14} className="mt-0.5 shrink-0 text-orange-500" />
+                  <span className="line-clamp-2">{encouragementText}</span>
+                </div>
               </div>
               <button
                 onClick={() => navigate('settings')}
-                className="shrink-0 rounded-2xl p-2.5 active:scale-[0.97] transition-transform"
-                style={{ backgroundColor: `${theme.primary}14`, color: theme.primary }}
+                className="shrink-0 rounded-2xl bg-white/75 p-2.5 text-orange-700 shadow-sm transition-transform active:scale-[0.97]"
                 aria-label="设置"
               >
                 <Settings size={18} />
               </button>
             </div>
 
-            <div className="relative mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl px-3 py-2.5" style={{ backgroundColor: `${theme.primary}12` }}>
-                <div className="text-lg font-bold" style={{ color: theme.primary }}>{stats.streakDays} 天</div>
-                <div className="text-[10px]" style={{ color: theme.textSecondary }}>连续学习</div>
+            <div className="relative mt-5 flex items-end justify-between gap-4">
+              <div className="min-w-0 flex-1 rounded-[24px] bg-white/72 p-4 shadow-[inset_0_0_0_1px_rgba(251,146,60,0.18)]">
+                <div className="flex items-center justify-between text-xs font-bold text-orange-700">
+                  <span>今日目标</span>
+                  <span>{Math.min(todayLearningCount, dailyGoal)} / {dailyGoal}</span>
+                </div>
+                <div className="mt-2 h-3 overflow-hidden rounded-full bg-orange-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-300 transition-all duration-500"
+                    style={{ width: `${dailyGoalPercent}%` }}
+                  />
+                </div>
+                <button
+                  onClick={() => navigate('flashcard-learning')}
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-orange-500 py-2.5 text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(234,88,12,0.8)] transition-transform active:scale-[0.98]"
+                >
+                  {warmNextAction}
+                  <ChevronRight size={15} />
+                </button>
               </div>
-              <div className="rounded-2xl px-3 py-2.5" style={{ backgroundColor: `${theme.secondary}16` }}>
-                <div className="text-lg font-bold" style={{ color: theme.secondary }}>{userState.user?.totalPoints ?? 0}</div>
-                <div className="text-[10px]" style={{ color: theme.textSecondary }}>星币余额</div>
+
+              <div className="relative flex h-[118px] w-[102px] shrink-0 items-end justify-center">
+                <div className="absolute bottom-0 h-20 w-20 rounded-[28px] bg-orange-400 shadow-[inset_-8px_-10px_0_rgba(194,65,12,0.18)]" />
+                <div className="absolute bottom-[54px] h-12 w-12 rounded-full bg-amber-200 shadow-sm" />
+                <div className="absolute bottom-[70px] left-8 h-2 w-2 rounded-full bg-orange-950" />
+                <div className="absolute bottom-[70px] right-8 h-2 w-2 rounded-full bg-orange-950" />
+                <div className="absolute bottom-[61px] h-2 w-5 rounded-b-full border-b-2 border-orange-900" />
+                <div className="absolute bottom-[18px] h-8 w-14 rounded-2xl bg-white/75 text-center text-2xl leading-8">📚</div>
               </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Today's Route */}
+        <div className={`mt-4 ${getAnimationClass(1)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
+          <section className="rounded-[30px] border border-orange-100 bg-white p-4 shadow-[0_14px_34px_-26px_rgba(146,64,14,0.5)]">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-1.5 text-sm font-black text-orange-950">
+                <Target size={16} className="text-orange-500" />
+                今日小路线
+              </h3>
+              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                {reviewPending > 0 ? '先复习' : freeLearningMode ? '已完成' : '新学中'}
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2.5">
+              <button
+                onClick={() => navigate('flashcard-learning')}
+                className="rounded-[22px] border p-3 text-left transition-transform active:scale-[0.97]"
+                style={{
+                  backgroundColor: reviewPending > 0 ? '#fff7ed' : '#f8fafc',
+                  borderColor: reviewPending > 0 ? '#fdba74' : '#e2e8f0',
+                }}
+              >
+                <div className="mb-2 text-2xl">🧺</div>
+                <div className="text-xl font-black text-orange-950">{reviewPending}</div>
+                <div className="text-[10px] font-bold text-orange-700/70">待复习</div>
+              </button>
+
+              <button
+                onClick={() => navigate('flashcard-learning')}
+                className="rounded-[22px] border border-emerald-100 bg-emerald-50 p-3 text-left transition-transform active:scale-[0.97]"
+              >
+                <div className="mb-2 text-2xl">🌱</div>
+                <div className="text-xl font-black text-emerald-800">{Math.min(todayLearningCount, dailyGoal)}</div>
+                <div className="text-[10px] font-bold text-emerald-700/70">已完成</div>
+              </button>
+
+              <button
+                onClick={() => navigate('checkin')}
+                className="rounded-[22px] border border-rose-100 bg-rose-50 p-3 text-left transition-transform active:scale-[0.97]"
+              >
+                <div className="mb-2 text-2xl">{hasCheckedInToday ? '🍓' : '🍯'}</div>
+                <div className="text-xl font-black text-rose-700">{hasCheckedInToday ? '✓' : remainingGoalCount}</div>
+                <div className="text-[10px] font-bold text-rose-700/70">{hasCheckedInToday ? '已签到' : '差几项'}</div>
+              </button>
             </div>
 
             <button
-              onClick={() => navigate('ai-chat')}
-              className="relative mt-4 w-full rounded-2xl p-3 flex items-start gap-2 active:scale-[0.99] transition-transform text-left"
-              style={{ backgroundColor: theme.bg, color: theme.textPrimary }}
+              onClick={() => navigate('flashcard-learning')}
+              className="mt-3 flex w-full items-center justify-between rounded-[22px] bg-orange-50 px-4 py-3 text-left transition-transform active:scale-[0.99]"
             >
-              <Sparkles size={16} className="mt-0.5 shrink-0" style={{ color: theme.primary }} />
-              <p className="text-sm flex-1" style={{ color: theme.textSecondary }}>{encouragementText}</p>
-              <ChevronRight size={14} className="mt-0.5 shrink-0" style={{ color: theme.textMuted }} />
+              <div>
+                <div className="text-sm font-black text-orange-950">{warmNextAction}</div>
+                <div className="mt-0.5 text-xs text-orange-700/70">{warmMoodText}</div>
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-500 text-white">
+                <Play size={16} fill="currentColor" />
+              </div>
             </button>
           </section>
         </div>
 
-        {/* Today's Tasks */}
-        <div className={`mt-4 ${getAnimationClass(1)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
-          <div
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 4px 12px -2px rgba(0, 0, 0, 0.1)' : 'none',
-              border: `1px solid ${theme.border}`,
-            }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm flex items-center gap-1.5">
-                <Target size={16} style={{ color: theme.primary }} />
-                今日学习任务
-              </h3>
-              <span className="text-xs" style={{ color: theme.textMuted }}>
-                {reviewPending > 0 ? '复习中' : freeLearningMode ? '目标完成 🎉' : '新学中'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => navigate('flashcard-learning')}
-                className="text-left transition-transform active:scale-[0.97]"
-                style={{
-                  background: reviewPending > 0
-                    ? `linear-gradient(135deg, ${theme.secondaryLight}20, ${theme.secondary}20)`
-                    : theme.bgCard,
-                  borderRadius: 'var(--card-radius)',
-                  padding: 'var(--card-padding)',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                }}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Brain size={14} style={{ color: reviewPending > 0 ? theme.secondary : theme.textMuted }} />
-                  <span className="text-xs font-medium" style={{ color: reviewPending > 0 ? theme.secondary : theme.textMuted }}>待复习</span>
-                </div>
-                <div className="text-2xl font-bold" style={{ color: reviewPending > 0 ? theme.secondary : theme.textMuted }}>{reviewPending}</div>
-                <div className="text-[10px] mt-0.5" style={{ color: reviewPending > 0 ? theme.secondaryLight : theme.textMuted }}>个知识点</div>
-              </button>
-
-              <button
-                onClick={() => navigate('flashcard-learning')}
-                className="text-left transition-transform active:scale-[0.97]"
-                style={{
-                  background: freeLearningMode
-                    ? `linear-gradient(135deg, ${theme.success}20, ${theme.accent}20)`
-                    : reviewPending > 0 || !dailyGoalCompleted
-                      ? `linear-gradient(135deg, ${theme.primary}20, ${theme.primaryLight}20)`
-                      : `linear-gradient(135deg, ${theme.success}20, ${theme.accent}20)`,
-                  borderRadius: 'var(--card-radius)',
-                  padding: 'var(--card-padding)',
-                  border: 'none',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                }}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  {freeLearningMode ? (
-                    <CheckCircle size={14} style={{ color: theme.success }} />
-                  ) : (
-                    <Play size={14} style={{ color: theme.primary }} />
-                  )}
-                  <span className="text-xs font-medium" style={{ color: freeLearningMode ? theme.success : theme.primary }}>
-                    {freeLearningMode ? '自由学习' : '开始学习'}
-                  </span>
-                </div>
-                <div className="text-2xl font-bold" style={{ color: freeLearningMode ? theme.success : theme.primary }}>
-                  {freeLearningMode ? '🎉' : reviewPending > 0 ? `${reviewPending}` : `${Math.min(todayLearningCount, dailyGoal)}/${dailyGoal}`}
-                </div>
-                <div className="text-[10px] mt-0.5" style={{ color: freeLearningMode ? theme.accent : theme.primaryLight }}>
-                  {freeLearningMode
-                    ? '目标已完成，自由学习'
-                    : reviewPending > 0
-                      ? `待复习 + ${dailyGoal} 项目标`
-                      : `目标 ${Math.min(todayLearningCount, dailyGoal)}/${dailyGoal}`}
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Learning Overview */}
+        {/* Learning Garden */}
         <div className={`mt-4 ${getAnimationClass(2)}`} style={{ paddingLeft: 'var(--page-padding)', paddingRight: 'var(--page-padding)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm flex items-center gap-1.5">
-              <TrendingUp size={16} style={{ color: theme.primary }} />
-              学习总览
-            </h3>
-            <button onClick={() => navigate('profile')} className="text-xs flex items-center gap-0.5" style={{ color: theme.primary }}>
-              详情 <ChevronRight size={12} />
-            </button>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: theme.bgCard,
-              borderRadius: 'var(--card-radius)',
-              padding: 'var(--card-padding)',
-              boxShadow: theme.cardShadow !== 'none' ? '0 4px 12px -2px rgba(0, 0, 0, 0.1)' : 'none',
-              border: 'none',
-            }}
-          >
-            <div className="flex items-center justify-between text-xs mb-2">
-              <span style={{ color: theme.textSecondary }}>掌握度分布</span>
-              <span style={{ color: theme.textSecondary }}>共 {stats.totalKnowledgePoints} 个知识点</span>
+          <section className="rounded-[30px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-4 shadow-[0_14px_34px_-28px_rgba(6,95,70,0.45)]">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-1.5 text-sm font-black text-emerald-950">
+                <TrendingUp size={16} className="text-emerald-500" />
+                学习小花园
+              </h3>
+              <button onClick={() => navigate('profile')} className="flex items-center gap-0.5 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-700 shadow-sm">
+                详情 <ChevronRight size={12} />
+              </button>
             </div>
 
-            <ProgressBar value={stats.masteredCount + stats.normalCount} max={stats.totalKnowledgePoints} color="bg-accent" />
-            <div className="grid grid-cols-4 gap-2 mt-3">
-              {profData.map(d => (
-                <div key={d.level} className="text-center">
-                  <div className="text-lg font-bold" style={{ color: PROFICIENCY_MAP[d.level].color }}>
-                    {d.count}
+            <div className="mt-4 rounded-[24px] bg-white/75 p-4">
+              <div className="mb-2 flex items-center justify-between text-xs font-bold text-emerald-800/75">
+                <span>掌握度分布</span>
+                <span>共 {stats.totalKnowledgePoints} 个知识点</span>
+              </div>
+              <div className="flex h-4 overflow-hidden rounded-full bg-emerald-100">
+                {profData.map(d => {
+                  const pct = stats.totalKnowledgePoints > 0 ? (d.count / stats.totalKnowledgePoints) * 100 : 0;
+                  if (pct === 0) return null;
+                  return (
+                    <div
+                      key={d.level}
+                      className="h-full transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: PROFICIENCY_MAP[d.level].color }}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {profData.map(d => (
+                  <div key={d.level} className="rounded-2xl bg-white p-2 text-center shadow-sm">
+                    <div className="text-lg font-black" style={{ color: PROFICIENCY_MAP[d.level].color }}>
+                      {d.count}
+                    </div>
+                    <div className="text-[10px] font-bold" style={{ color: theme.textSecondary }}>{PROFICIENCY_MAP[d.level].label}</div>
                   </div>
-                  <div className="text-[10px]" style={{ color: theme.textSecondary }}>{PROFICIENCY_MAP[d.level].label}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+
+            <div className="mt-3 flex items-center gap-2 rounded-[22px] bg-white/70 px-3 py-2.5">
+              <span className="text-2xl">🌼</span>
+              <p className="min-w-0 flex-1 text-xs leading-relaxed text-emerald-800/70">
+                每完成一项学习，花园就多长一点；完成目标后还能继续加练一组。
+              </p>
+            </div>
+          </section>
         </div>
 
         {/* Weak Subjects */}
