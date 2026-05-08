@@ -14,20 +14,20 @@ import CloudDownloadModal from '@/components/ui/CloudDownloadModal';
 const sourceConfig: Record<string, { label: string; color: string; bgColor: string; icon: LucideIcon }> = {
   manual: {
     label: '手动',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-100',
+    color: '#667085',
+    bgColor: '#f8fafc',
     icon: BookOpen,
   },
   ai: {
     label: 'AI',
-    color: 'text-violet-600',
-    bgColor: 'bg-violet-50',
+    color: '#6f9f64',
+    bgColor: '#eaf4dd',
     icon: Sparkles,
   },
   import: {
     label: '导入',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
+    color: '#4f7f7a',
+    bgColor: '#e8f1ef',
     icon: BookOpen,
   },
 };
@@ -844,8 +844,8 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium truncate min-w-0 flex-1" style={{ color: theme.textPrimary }}>{kp.name}</span>
                             <span className="shrink-0"><ProficiencyBadge level={kp.proficiency} /></span>
-                            <span className={`shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px]`}
-                              style={{ color: source.color.replace('text-', ''), backgroundColor: theme.bgCard }}>
+                            <span className="shrink-0 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px]"
+                              style={{ color: source.color, backgroundColor: source.bgColor }}>
                               {(() => { const Icon = source.icon; return <Icon size={10} />; })()}
                               {source.label}
                             </span>

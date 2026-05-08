@@ -53,13 +53,13 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
   }
 
   if (placement === 'contained') {
-    const activeColor = uiStyle === 'scholar' ? (layoutConfig.tabBarActiveColor || '#24389c') : '#6366f1';
+    const activeColor = uiStyle === 'scholar' ? (layoutConfig.tabBarActiveColor || '#24389c') : (theme.primary || '#6f9f64');
     const activeBg = uiStyle === 'scholar' ? (layoutConfig.tabBarActiveBg || '#dee0ff') : undefined;
 
     // Playful contained: match viewport TabBar style (flat, same height)
     if (uiStyle !== 'scholar') {
       return (
-        <nav className="h-[56px] w-full border-t border-white/20 bg-white/70 backdrop-blur-xl">
+        <nav className="h-[56px] w-full border-t bg-white/95 backdrop-blur-xl" style={{ borderColor: theme.border }}>
           <div className="flex h-full items-center justify-around">
             {tabs.map(tab => {
               const isActive = userState.currentPage === tab.key;
@@ -68,14 +68,15 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
                 <button
                   key={tab.key}
                   onClick={() => navigate(tab.key)}
-                  className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 rounded-full mx-1 ${isActive ? 'bg-primary/10 scale-105' : 'active:opacity-60'}`}
+                  className="mx-1 flex h-full flex-1 flex-col items-center justify-center gap-1 rounded-lg transition-all duration-200 active:opacity-70"
+                  style={{ backgroundColor: isActive ? `${activeColor}14` : 'transparent' }}
                 >
                   <Icon
                     size={isActive ? 22 : 20}
-                    className={isActive ? 'text-primary' : 'text-text-muted'}
+                    style={{ color: isActive ? activeColor : theme.textMuted }}
                     strokeWidth={isActive ? 2.5 : 1.8}
                   />
-                  <span className={`text-[10px] leading-tight ${isActive ? 'text-primary font-semibold' : 'text-text-muted'}`}>
+                  <span className="text-[10px] leading-tight" style={{ color: isActive ? activeColor : theme.textMuted, fontWeight: isActive ? 700 : 500 }}>
                     {tab.label}
                   </span>
                 </button>
@@ -187,8 +188,7 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
   // ===== Playful 风格（默认）=====
   return (
     <div className="fixed bottom-0 left-1/2 z-50 w-[min(100vw,430px)] -translate-x-1/2 safe-bottom">
-      {/* 苹果风格：底部半透明磨砂玻璃效果 */}
-      <div className="bg-white/70 backdrop-blur-xl border-t border-white/20">
+      <div className="border-t bg-white/95 backdrop-blur-xl" style={{ borderColor: theme.border }}>
         <div className="flex items-center justify-around h-[56px]">
           {tabs.map(tab => {
             const isActive = userState.currentPage === tab.key;
@@ -197,14 +197,15 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.key)}
-                className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200 rounded-full mx-1 ${isActive ? 'bg-primary/10 scale-105' : 'active:opacity-60'}`}
+                className="mx-1 flex h-full flex-1 flex-col items-center justify-center gap-1 rounded-lg transition-all duration-200 active:opacity-70"
+                style={{ backgroundColor: isActive ? `${theme.primary}14` : 'transparent' }}
               >
                 <Icon
                   size={isActive ? 22 : 20}
-                  className={isActive ? 'text-primary' : 'text-text-muted'}
+                  style={{ color: isActive ? theme.primary : theme.textMuted }}
                   strokeWidth={isActive ? 2.5 : 1.8}
                 />
-                <span className={`text-[10px] leading-tight ${isActive ? 'text-primary font-semibold' : 'text-text-muted'}`}>
+                <span className="text-[10px] leading-tight" style={{ color: isActive ? theme.primary : theme.textMuted, fontWeight: isActive ? 700 : 500 }}>
                   {tab.label}
                 </span>
               </button>

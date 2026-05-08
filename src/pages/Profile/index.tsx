@@ -330,11 +330,11 @@ export default function ProfilePage() {
   // ===== Playful 风格渲染（保持原有样式）=====
   return (
     <div className="page-scroll pb-4">
-      {/* Profile Header - 渐变背景 */}
       <div
-        className="text-white px-5 pt-5 pb-5 rounded-b-3xl overflow-hidden"
+        className="mx-4 mt-4 rounded-2xl border px-5 pt-5 pb-5 shadow-sm"
         style={{
-          backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
+          backgroundColor: theme.bgCard,
+          borderColor: theme.border,
         }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -370,7 +370,7 @@ export default function ProfilePage() {
               ) : (
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.4)' }}
+                  style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}
                 >
                   {isCustomAvatar && user?.avatar ? (
                     <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
@@ -384,7 +384,7 @@ export default function ProfilePage() {
               </div>
             </button>
             <div className="flex flex-col">
-              <h2 className="text-lg font-bold" style={{ color: '#ffffff' }}>{user?.nickname ?? '未登录'}</h2>
+              <h2 className="text-lg font-bold" style={{ color: theme.textPrimary }}>{user?.nickname ?? '未登录'}</h2>
               {currentTitle && (
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 self-start" style={{
                   background: currentTitle.gradient,
@@ -393,30 +393,31 @@ export default function ProfilePage() {
                   {currentTitle.icon} {currentTitle.name}
                 </span>
               )}
-              <p className="text-xs mt-0.5" style={{ color: '#ffffff' }}>已学习 {stats.streakDays} 天</p>
+              <p className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>已学习 {stats.streakDays} 天</p>
             </div>
           </div>
           <button
             onClick={() => navigate('settings')}
-            className="p-2 bg-white/20 rounded-full active:bg-white/30 transition-colors"
+            className="rounded-full p-2 transition-colors active:opacity-70"
+            style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}
           >
-            <Settings size={18} style={{ color: '#ffffff' }} />
+            <Settings size={18} style={{ color: theme.textSecondary }} />
           </button>
         </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white/20 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold" style={{ color: '#ffffff' }}>{stats.totalKnowledgePoints}</div>
-            <div className="text-[10px]" style={{ color: '#ffffff' }}>知识点</div>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}>
+            <div className="text-xl font-bold" style={{ color: theme.primary }}>{stats.totalKnowledgePoints}</div>
+            <div className="text-[10px]" style={{ color: theme.textSecondary }}>知识点</div>
           </div>
-          <div className="bg-white/20 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold" style={{ color: '#ffffff' }}>{stats.streakDays}</div>
-            <div className="text-[10px]" style={{ color: '#ffffff' }}>学习天数</div>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}>
+            <div className="text-xl font-bold" style={{ color: theme.primary }}>{stats.streakDays}</div>
+            <div className="text-[10px]" style={{ color: theme.textSecondary }}>学习天数</div>
           </div>
-          <div className="bg-white/20 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold" style={{ color: '#ffffff' }}>{user?.totalPoints ?? 0}</div>
-            <div className="text-[10px]" style={{ color: '#ffffff' }}>星币</div>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}>
+            <div className="text-xl font-bold" style={{ color: theme.secondary }}>{user?.totalPoints ?? 0}</div>
+            <div className="text-[10px]" style={{ color: theme.textSecondary }}>星币</div>
           </div>
         </div>
       </div>

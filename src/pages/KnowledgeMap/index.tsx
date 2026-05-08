@@ -432,17 +432,17 @@ export default function KnowledgeMapPage() {
   // ===== Playful 风格渲染 =====
   return (
     <div className="page-scroll pb-4">
-      {/* 渐变头部背景 */}
       <div
-        className="text-white px-6 pt-5 pb-8 rounded-b-3xl mb-4 overflow-hidden"
+        className="mx-4 mt-4 mb-4 rounded-2xl border px-5 py-5 shadow-sm"
         style={{
-          backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
+          backgroundColor: theme.bgCard,
+          borderColor: theme.border,
         }}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">知识图谱</h2>
+          <h2 className="text-lg font-bold" style={{ color: theme.textPrimary }}>知识图谱</h2>
         </div>
-        <p className="text-sm mt-1" style={{ color: '#ffffff' }}>可视化掌握知识进度</p>
+        <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>可视化掌握知识进度</p>
       </div>
 
       {/* Legend */}

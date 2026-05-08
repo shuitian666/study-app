@@ -297,20 +297,20 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
             onClick={() => navigate('wrong-book')}
             className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between active:scale-[0.98]"
             style={{
-              background: 'linear-gradient(90deg, #fee2e2 0%, #fed7aa 100%)',
-              borderColor: '#fecaca'
+              backgroundColor: theme.bgCard,
+              borderColor: theme.border,
             }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fecaca' }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fef2f2' }}>
                 <AlertCircle size={24} style={{ color: '#dc2626' }} />
               </div>
               <div className="text-left">
-                <div className="text-base font-semibold" style={{ color: '#991b1b' }}>错题本</div>
-                <div className="text-sm mt-0.5" style={{ color: '#dc2626' }}>{learningState.wrongRecords.length} 道错题等待复习</div>
+                <div className="text-base font-semibold" style={{ color: theme.textPrimary }}>错题本</div>
+                <div className="text-sm mt-0.5" style={{ color: theme.textSecondary }}>{learningState.wrongRecords.length} 道错题等待复习</div>
               </div>
             </div>
-            <RotateCcw size={20} style={{ color: '#f87171' }} />
+            <RotateCcw size={20} style={{ color: '#dc2626' }} />
           </button>
         </div>
       )}
@@ -318,8 +318,8 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
       {/* 学习倾向选择 - 用户可以指定今天学习重点 */}
       <div className={`px-4 pt-5 ${getAnimationClass(2)}`}>
         <div className="rounded-2xl p-4 border mb-5" style={{
-          background: `linear-gradient(135deg, ${theme.primary}08 0%, ${theme.primaryLight}08 100%)`,
-          borderColor: `${theme.primary}30`
+          backgroundColor: theme.bgCard,
+          borderColor: theme.border
         }}>
           <div className="flex items-center gap-2 mb-3">
             <Compass size={16} style={{ color: theme.primary }} />
