@@ -14,40 +14,35 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
+import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/store/ThemeContext';
-import type { AIConfig } from '@/types';
-import { getAIConfig, setAIConfig } from '@/services/aiClient';
+import { fetchAIConfig, saveAIConfig } from '@/services/aiClient';
 import { clearKnowledgeData } from '@/services/indexedDBService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle, Palette, BookOpen } from 'lucide-react';
 
 // 豆包默认模型
-const DEFAULT_DOUBAN_MODEL = 'doubao-lite-32k';
+const DEFAULT_AI_MODEL = 'deepseek-chat';
+const DEFAULT_AI_BASE_URL = 'https://api.deepseek.com';
 const ONBOARDING_FORCE_OPEN_KEY = 'study-app:onboarding-force-open:v1';
 
 export default function SettingsPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
   const { gameDispatch } = useGame();
+  const { dispatch: appDispatch } = useApp();
   const { theme } = useTheme();
 
-  // 读取已保存配置
-  const savedConfig = getAIConfig();
-
-  // 当前模式: 'douban' = 云端豆包, 'offline' = 离线模式, 'openclaw' = 本地 OpenClaw
-  const [aiMode, setAiMode] = useState<'douban' | 'offline' | 'openclaw'>(() => {
-    if (savedConfig.provider === 'douban') return 'douban';
-    if (savedConfig.provider === 'openclaw') return 'openclaw';
-    return 'offline';
-  });
+  const [aiMode, setAiMode] = useState<'platform' | 'custom' | 'offline' | 'douban' | 'openclaw'>('platform');
 
   // API Key 输入框
   const [apiKey, setApiKey] = useState(() => {
-    return savedConfig.apiKey || '';
+    return '';
   });
   const [modelId, setModelId] = useState(() => {
-    return savedConfig.modelId || DEFAULT_DOUBAN_MODEL;
+    return DEFAULT_AI_MODEL;
   });
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_AI_BASE_URL);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -56,45 +51,44 @@ export default function SettingsPage() {
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
 
+  useEffect(() => {
+    fetchAIConfig()
+      .then(status => {
+        setAiMode(status.mode);
+        setBaseUrl(status.baseUrl || DEFAULT_AI_BASE_URL);
+        setModelId(status.model || DEFAULT_AI_MODEL);
+      })
+      .catch(() => {});
+  }, []);
+
   // 保存AI模式
-  const saveAIMode = (mode: 'douban' | 'offline' | 'openclaw') => {
+  const saveAIMode = async (mode: 'platform' | 'custom' | 'offline') => {
     setSaving(true);
-
-    if (mode === 'douban') {
-      // 配置豆包云端API - 使用用户输入的 API Key 和模型 ID
-      const newConfig: AIConfig = {
-        provider: 'douban',
-        presetId: 'douban',
-        apiKey: apiKey.trim(),
-        modelId: modelId.trim(),
-      };
-      setAIConfig(newConfig);
-    } else if (mode === 'openclaw') {
-      // OpenClaw 本地接入 - 手动选择接入，使用本地 OpenClaw 服务
-      const newConfig: AIConfig = {
-        provider: 'openclaw',
-        presetId: 'openclaw-local',
-      };
-      setAIConfig(newConfig);
-    } else {
-      // 离线模式 - 使用本地Mock
-      const newConfig: AIConfig = {
-        provider: 'ollama',
-        presetId: 'ollama-local',
-      };
-      setAIConfig(newConfig);
+    try {
+      if (mode === 'offline') {
+        await saveAIConfig({ mode: 'platform' });
+      } else if (mode === 'custom') {
+        await saveAIConfig({
+          mode: 'custom',
+          baseUrl: baseUrl.trim(),
+          model: modelId.trim(),
+          apiKey: apiKey.trim() || undefined,
+        });
+      } else {
+        await saveAIConfig({ mode: 'platform' });
+      }
+      setAiMode(mode);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
     }
-
-    setAiMode(mode);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   };
 
   // 学习目标状态 —— 优先用 userState 中已持久化的值，再回退到 localStorage，最后默认 10
   const [dailyGoal, setDailyGoal] = useState(() => {
     if (userState.user?.dailyGoal) return userState.user.dailyGoal;
-    const saved = localStorage.getItem('daily-question-goal');
+    const saved = localStorage.getItem('daily-goal') ?? localStorage.getItem('daily-question-goal');
     return saved ? parseInt(saved) : 10;
   });
   const [goalAchieved, setGoalAchieved] = useState(false);
@@ -114,7 +108,8 @@ export default function SettingsPage() {
 
   // 保存学习目标
   const handleSaveGoal = () => {
-    localStorage.setItem('daily-question-goal', String(dailyGoal));
+    localStorage.setItem('daily-goal', String(dailyGoal));
+    localStorage.removeItem('daily-question-goal');
     userDispatch({
       type: 'SET_DAILY_GOAL',
       payload: dailyGoal
@@ -148,13 +143,17 @@ export default function SettingsPage() {
     }
 
     // 彻底重置状态
+    appDispatch({ type: 'RESET_ALL' });
     learningDispatch({ type: 'RESET_ALL' });
     gameDispatch({ type: 'RESET_ALL' });
     userDispatch({ type: 'RESET_ALL' });
     navigate('login');
   };
 
-  const isDoubanMode = aiMode === 'douban';
+  const isCustomMode = aiMode === 'custom' || aiMode === 'douban';
+  const isDoubanMode = isCustomMode;
+  const normalizedAiMode: 'platform' | 'custom' | 'offline' =
+    aiMode === 'douban' ? 'custom' : aiMode === 'openclaw' ? 'platform' : aiMode;
 
   // 根据主题获取圆角大小
   const getBorderRadius = (size: 'small' | 'medium' | 'large' = 'medium') => {
@@ -339,7 +338,7 @@ export default function SettingsPage() {
 
             {/* 保存按钮 */}
             <button
-              onClick={() => saveAIMode(aiMode)}
+              onClick={() => saveAIMode(normalizedAiMode)}
               disabled={saving || (aiMode === 'douban' && (!apiKey.trim() || !modelId.trim()))}
               className="w-full mt-2 py-2.5 bg-purple-500 text-white text-sm rounded-xl font-medium active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
             >

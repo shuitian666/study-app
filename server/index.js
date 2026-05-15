@@ -1,58 +1,215 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { chatCompletion, extractContent, listAvailableProviders } from './providers.js';
-import { 
-  CHAT_SYSTEM_PROMPT, 
-  QUIZ_SYSTEM_PROMPT,
-  SMART_QUIZ_SYSTEM_PROMPT,
-  ENCOURAGE_SYSTEM_PROMPT,
-  STUDY_REPORT_PROMPT,
-  DAILY_SUGGESTION_PROMPT,
-  OPENCLAW_KB_SYSTEM,
-  buildChatMessages 
-} from './prompts.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { db, createUser, getAssets, getInventory, getUserByPhone, getUserById, nowIso, toPublicUser } from './db.js';
+import { sendVerificationEmail } from './mailer.js';
+import { CHAT_SYSTEM_PROMPT, QUIZ_SYSTEM_PROMPT, buildChatMessages } from './prompts.js';
+import { chatCompletion, extractContent, getAiConfigStatus } from './providers.js';
+import {
+  clearSessionCookie,
+  encryptSecret,
+  getSessionId,
+  hashValue,
+  hashPassword,
+  randomCode,
+  makeRateLimiter,
+  sanitizeError,
+  setSessionCookie,
+  verifyPassword,
+} from './security.js';
 
 const app = express();
-app.use(cors({ origin: true }));
-app.use(express.json());
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS origin denied'));
+  },
+  credentials: true,
+}));
+app.use(express.json({ limit: '1mb' }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.resolve(__dirname, '../dist');
 
-// ===== GET /api/models =====
-app.get('/api/models', async (_req, res) => {
+function makeSession(userId) {
+  const sessionId = `ses_${crypto.randomUUID()}`;
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  db.prepare('INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)')
+    .run(sessionId, userId, expiresAt, nowIso());
+  return sessionId;
+}
+
+function authOptional(req, _res, next) {
+  const sessionId = getSessionId(req);
+  if (!sessionId) return next();
+  const session = db.prepare('SELECT * FROM sessions WHERE id = ? AND expires_at > ?').get(sessionId, nowIso());
+  if (!session) return next();
+  const user = getUserById(session.user_id);
+  if (user) req.user = user;
+  return next();
+}
+
+function requireAuth(req, res, next) {
+  authOptional(req, res, () => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    return next();
+  });
+}
+
+function publicUserPayload(user) {
+  const assets = getAssets(user.id);
+  return {
+    user: toPublicUser(user, assets),
+    assets: {
+      coins: assets?.coins ?? 0,
+      experience: assets?.experience ?? 0,
+      checkinStreak: assets?.checkin_streak ?? 0,
+    },
+    inventory: getInventory(user.id).map(item => ({
+      id: item.id,
+      type: item.item_type,
+      name: item.name,
+      quantity: item.quantity,
+      payload: JSON.parse(item.payload || '{}'),
+    })),
+    aiConfigStatus: getAiConfigStatus(user.id),
+  };
+}
+
+const authLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'auth' });
+const emailLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, keyPrefix: 'email' });
+const aiLimiter = makeRateLimiter({ windowMs: 60 * 1000, max: 30, keyPrefix: 'ai' });
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function consumeEmailCode(email, code) {
+  const row = db.prepare(`
+    SELECT * FROM email_codes
+    WHERE email = ? AND consumed_at IS NULL AND expires_at > ?
+    ORDER BY created_at DESC LIMIT 1
+  `).get(email, nowIso());
+  if (!row || row.code_hash !== hashValue(code)) return false;
+  db.prepare('UPDATE email_codes SET consumed_at = ? WHERE id = ?').run(nowIso(), row.id);
+  return true;
+}
+
+app.post('/api/auth/email/send', emailLimiter, async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Invalid email' });
+  if (getUserByPhone(email)) return res.status(409).json({ error: 'Account already exists' });
+
+  const code = randomCode();
+  db.prepare(`
+    INSERT INTO email_codes (id, email, code_hash, expires_at, ip, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    `emc_${crypto.randomUUID()}`,
+    email,
+    hashValue(code),
+    new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    req.ip,
+    nowIso(),
+  );
+
   try {
-    const providers = await listAvailableProviders();
-    res.json({ providers });
+    await sendVerificationEmail(email, code);
+    res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Email send error:', sanitizeError(err));
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
-// ===== POST /api/chat (SSE 流式) =====
-app.post('/api/chat', async (req, res) => {
-  const { provider = 'ollama', messages = [], knowledgeContext, apiKey, modelId, groupId } = req.body;
+app.post('/api/auth/register', authLimiter, (req, res) => {
+  const email = String(req.body.email || req.body.phone || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+  const code = String(req.body.code || '').trim();
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Invalid email' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (!consumeEmailCode(email, code)) return res.status(400).json({ error: 'Invalid verification code' });
+  if (getUserByPhone(email)) return res.status(409).json({ error: 'Account already exists' });
 
-  // 如果 provider 是 openclaw，使用知识库关联系统提示
-  const systemPrompt = provider === 'openclaw' ? OPENCLAW_KB_SYSTEM : CHAT_SYSTEM_PROMPT;
-  const fullMessages = buildChatMessages(systemPrompt, knowledgeContext, messages);
-  
-  // 用户配置（支持前端动态传入）
-  const userConfig = { apiKey, modelId, groupId };
+  const user = createUser(email, hashPassword(password));
+  const sessionId = makeSession(user.id);
+  setSessionCookie(res, sessionId);
+  return res.json(publicUserPayload(user));
+});
 
-  // 设置 SSE headers
+app.post('/api/auth/login', authLimiter, (req, res) => {
+  const email = String(req.body.email || req.body.phone || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+  const user = getUserByPhone(email);
+  if (!user || !verifyPassword(password, user.password_hash || '')) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  const sessionId = makeSession(user.id);
+  setSessionCookie(res, sessionId);
+  return res.json(publicUserPayload(user));
+});
+
+app.post('/api/auth/logout', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(getSessionId(req));
+  clearSessionCookie(res);
+  res.json({ ok: true });
+});
+
+app.get('/api/me', requireAuth, (req, res) => {
+  res.json(publicUserPayload(req.user));
+});
+
+app.get('/api/ai/config', requireAuth, (req, res) => {
+  res.json(getAiConfigStatus(req.user.id));
+});
+
+app.put('/api/ai/config', requireAuth, (req, res) => {
+  const mode = req.body.mode === 'custom' ? 'custom' : 'platform';
+  const baseUrl = String(req.body.baseUrl || '').trim();
+  const model = String(req.body.model || '').trim();
+  const apiKey = String(req.body.apiKey || '').trim();
+
+  if (mode === 'custom' && (!baseUrl || !model)) {
+    return res.status(400).json({ error: 'Base URL and model are required' });
+  }
+
+  const existing = db.prepare('SELECT encrypted_api_key FROM user_ai_configs WHERE user_id = ?').get(req.user.id);
+  const encrypted = apiKey ? encryptSecret(apiKey) : existing?.encrypted_api_key || null;
+  if (mode === 'custom' && !encrypted) {
+    return res.status(400).json({ error: 'API key is required' });
+  }
+
+  db.prepare(`
+    INSERT INTO user_ai_configs (user_id, mode, base_url, model, encrypted_api_key, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id)
+    DO UPDATE SET mode = excluded.mode, base_url = excluded.base_url, model = excluded.model,
+      encrypted_api_key = excluded.encrypted_api_key, updated_at = excluded.updated_at
+  `).run(req.user.id, mode, mode === 'custom' ? baseUrl : null, mode === 'custom' ? model : null, mode === 'custom' ? encrypted : null, nowIso());
+
+  res.json(getAiConfigStatus(req.user.id));
+});
+
+app.get('/api/models', authOptional, (_req, res) => {
+  res.json({ providers: [{ name: 'server', available: true, models: ['platform', 'custom'] }] });
+});
+
+app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
+  const { messages = [], knowledgeContext } = req.body;
+  const fullMessages = buildChatMessages(CHAT_SYSTEM_PROMPT, knowledgeContext, messages);
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // 禁用 nginx 缓冲
+  res.setHeader('X-Accel-Buffering', 'no');
 
   try {
-    const response = await chatCompletion(provider, fullMessages, { stream: true, userConfig });
-
+    const response = await chatCompletion(req.user?.id, fullMessages, { stream: true });
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -60,495 +217,85 @@ app.post('/api/chat', async (req, res) => {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
-
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        if (!trimmed.startsWith('data: ')) continue;
         const payload = trimmed.slice(6);
-        if (payload === '[DONE]') {
-          res.write(`data: ${JSON.stringify({ content: '', done: true })}\n\n`);
-          continue;
-        }
+        if (payload === '[DONE]') continue;
         try {
           const chunk = JSON.parse(payload);
           const content = chunk.choices?.[0]?.delta?.content || '';
-          if (content) {
-            res.write(`data: ${JSON.stringify({ content, done: false })}\n\n`);
-          }
-        } catch { /* skip malformed chunks */ }
+          if (content) res.write(`data: ${JSON.stringify({ content, done: false })}\n\n`);
+        } catch {
+          // Ignore partial chunks.
+        }
       }
     }
-
-    // 确保发送完成信号
     res.write(`data: ${JSON.stringify({ content: '', done: true })}\n\n`);
     res.end();
   } catch (err) {
-    console.error('Chat error:', err.message);
-    // 如果 headers 已发送，通过 SSE 发送错误
-    if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: err.message, done: true })}\n\n`);
-      res.end();
-    } else {
-      res.status(500).json({ error: err.message });
-    }
-  }
-
-  // 防止连接悬挂
-  req.on('close', () => {
+    console.error('Chat error:', sanitizeError(err));
+    res.write(`data: ${JSON.stringify({ error: sanitizeError(err), done: true })}\n\n`);
     res.end();
-  });
-});
-
-// ===== POST /api/quiz (JSON) =====
-app.post('/api/quiz', async (req, res) => {
-  const { 
-    provider = 'ollama', 
-    knowledgePointNames = [], 
-    knowledgePoints = [], // 智能模式：[{id, name, masteryLevel, wrongCount, lastReviewedAt}]
-    subjectName = '', 
-    apiKey, 
-    modelId, 
-    groupId,
-    mode = 'random' // random | smart (智能私教模式)
-  } = req.body;
-
-  // 智能私教模式：基于掌握程度自动选题
-  if (mode === 'smart' && knowledgePoints.length > 0) {
-    const userContent = `# 学生知识点掌握情况
-
-以下是学生当前${subjectName ? `【${subjectName}】` : ''}的知识点掌握情况：
-${knowledgePoints.map(kp => `- ${kp.name}：掌握等级 ${kp.masteryLevel}/3（未掌握=1，掌握中=2，已掌握=3），错题数：${kp.wrongCount || 0}，上次复习：${kp.lastReviewedAt || '从未'}`).join('\n')}
-
-请你作为私教，根据遗忘曲线和掌握程度，选择一道当前最需要练习的知识点出题。`;
-
-    const messages = [
-      { role: 'system', content: SMART_QUIZ_SYSTEM_PROMPT },
-      { role: 'user', content: userContent },
-    ];
-    
-    const userConfig = { apiKey, modelId, groupId };
-
-    try {
-      const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.8, userConfig });
-      const text = await extractContent(response);
-
-      // 尝试解析 JSON（去掉可能的 markdown 代码块标记）
-      const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-      const result = JSON.parse(cleaned);
-
-      // 校验必要字段
-      if (!result.question || !result.question.stem || !result.question.options || !result.question.correctAnswers) {
-        return res.json({ question: null, error: 'incomplete_fields' });
-      }
-
-      res.json({ 
-        question: result.question,
-        selectedKnowledgePoint: result.selectedKnowledgePoint,
-        mode: 'smart'
-      });
-    } catch (err) {
-      console.error('Smart Quiz error:', err.message);
-      res.json({ question: null, error: err.message });
-    }
-  } else {
-    // 传统随机模式：指定知识点出题
-    const userContent = `请根据以下知识点出一道选择题：\n知识点：${knowledgePointNames.join('、')}\n学科：${subjectName}`;
-    const messages = [
-      { role: 'system', content: QUIZ_SYSTEM_PROMPT },
-      { role: 'user', content: userContent },
-    ];
-    
-    const userConfig = { apiKey, modelId, groupId };
-
-    try {
-      const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.8, userConfig });
-      const text = await extractContent(response);
-
-      // 尝试解析 JSON（去掉可能的 markdown 代码块标记）
-      const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-      const question = JSON.parse(cleaned);
-
-      // 校验必要字段
-      if (!question.stem || !question.options || !question.correctAnswers) {
-        return res.json({ question: null, error: 'incomplete_fields' });
-      }
-
-      res.json({ question, mode: 'random' });
-    } catch (err) {
-      console.error('Quiz error:', err.message);
-      res.json({ question: null, error: err.message });
-    }
   }
 });
 
-// ===== POST /api/encourage (JSON) =====
-app.post('/api/encourage', async (req, res) => {
-  const { provider = 'ollama', stats = {}, wrongCount = 0, streak = 0, apiKey, modelId, groupId } = req.body;
-
-  const userContent = `学生统计：总知识点${stats.totalKnowledgePoints || 0}个，已掌握${stats.masteredCount || 0}个，错题${wrongCount}道，连续学习${streak}天，弱科：${(stats.weakSubjects || []).join('、') || '无'}`;
+app.post('/api/quiz', authOptional, aiLimiter, async (req, res) => {
+  const { knowledgePointNames = [], subjectName = '' } = req.body;
   const messages = [
-    { role: 'system', content: ENCOURAGE_SYSTEM_PROMPT },
-    { role: 'user', content: userContent },
+    { role: 'system', content: QUIZ_SYSTEM_PROMPT },
+    { role: 'user', content: `Create one multiple-choice question for ${subjectName}. Knowledge points: ${knowledgePointNames.join(', ')}. Return JSON only.` },
   ];
-  
-  const userConfig = { apiKey, modelId, groupId };
 
   try {
-    const response = await chatCompletion(provider, messages, {
-      stream: false,
-      temperature: 0.9,
-      maxTokens: 100,
-      userConfig,
-    });
+    const response = await chatCompletion(req.user?.id, messages, { stream: false, temperature: 0.8 });
     const text = await extractContent(response);
-    res.json({ text: text || '今天也要加油哦！' });
+    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+    res.json({ question: JSON.parse(cleaned), mode: 'smart' });
   } catch (err) {
-    console.error('Encourage error:', err.message);
-    res.json({ text: '今天也要加油哦！', error: err.message });
+    console.error('Quiz error:', sanitizeError(err));
+    res.json({ question: null, error: sanitizeError(err) });
   }
 });
 
-// ===== 组队 API =====
-// 内存存储队伍数据（生产环境应使用数据库）
-const teams = new Map();
+app.post('/api/explain', authOptional, aiLimiter, async (req, res) => {
+  const { question, selectedAnswer, correctAnswer, knowledgePoint, subjectName } = req.body;
+  const messages = [
+    { role: 'system', content: 'You are a concise learning tutor. Explain the answer clearly.' },
+    { role: 'user', content: JSON.stringify({ subjectName, knowledgePoint, question, selectedAnswer, correctAnswer }) },
+  ];
 
-// 生成6位邀请码
-function generateInviteCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
-
-// POST /api/team/create - 创建队伍
-app.post('/api/team/create', (req, res) => {
-  const { userId, userName, userAvatar } = req.body;
-  
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
+  try {
+    const response = await chatCompletion(req.user?.id, messages, { stream: false, temperature: 0.7 });
+    res.json({ explanation: await extractContent(response) });
+  } catch (err) {
+    console.error('Explain error:', sanitizeError(err));
+    res.json({ explanation: null, error: sanitizeError(err) });
   }
-  
-  const teamId = `team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const inviteCode = generateInviteCode();
-  
-  const team = {
-    id: teamId,
-    inviteCode,
-    members: [{
-      id: userId,
-      name: userName || '用户',
-      avatar: userAvatar || '👤',
-      isSimulated: false,
-      progress: { taskCompletionRate: 0, studyMinutes: 0, isReady: false, lastUpdated: new Date().toISOString() },
-    }],
-    status: 'waiting',
-    createdAt: new Date().toISOString(),
-    todayCheckedIn: false,
-  };
-  
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: nowIso() });
+});
+
+const teams = new Map();
+app.post('/api/team/create', (req, res) => {
+  const teamId = `team-${Date.now()}`;
+  const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const team = { id: teamId, inviteCode, members: [], status: 'waiting', createdAt: nowIso(), todayCheckedIn: false };
   teams.set(teamId, team);
   res.json({ teamId, inviteCode, team });
 });
-
-// POST /api/team/join - 加入队伍
-app.post('/api/team/join', (req, res) => {
-  const { inviteCode, userId, userName, userAvatar } = req.body;
-  
-  if (!inviteCode || !userId) {
-    return res.status(400).json({ error: 'inviteCode and userId are required' });
-  }
-  
-  // 查找队伍
-  let targetTeam = null;
-  for (const [id, team] of teams) {
-    if (team.inviteCode === inviteCode.toUpperCase() && team.status === 'waiting') {
-      targetTeam = { ...team, id };
-      break;
-    }
-  }
-  
-  if (!targetTeam) {
-    return res.status(404).json({ error: 'Team not found or not joinable' });
-  }
-  
-  // 添加成员
-  const newMember = {
-    id: userId,
-    name: userName || '用户',
-    avatar: userAvatar || '👤',
-    isSimulated: false,
-    progress: { taskCompletionRate: 0, studyMinutes: 0, isReady: false, lastUpdated: new Date().toISOString() },
-  };
-  
-  targetTeam.members.push(newMember);
-  targetTeam.status = 'active';
-  teams.set(targetTeam.id, targetTeam);
-  
-  res.json({
-    teamId: targetTeam.id,
-    inviteCode: targetTeam.inviteCode,
-    members: targetTeam.members,
-    status: targetTeam.status,
-    createdAt: targetTeam.createdAt,
-  });
-});
-
-// GET /api/team/:teamId - 获取队伍状态
-app.get('/api/team/:teamId', (req, res) => {
-  const team = teams.get(req.params.teamId);
-  
-  if (!team) {
-    return res.status(404).json({ error: 'Team not found' });
-  }
-  
-  res.json(team);
-});
-
-// GET /api/team/code/:inviteCode - 通过邀请码获取队伍状态
-app.get('/api/team/code/:inviteCode', (req, res) => {
-  const code = req.params.inviteCode.toUpperCase();
-  
-  for (const [id, team] of teams) {
-    if (team.inviteCode === code) {
-      return res.json(team);
-    }
-  }
-  
-  res.status(404).json({ error: 'Team not found' });
-});
-
-// POST /api/team/progress - 更新成员进度
-app.post('/api/team/progress', (req, res) => {
-  const { teamId, userId, progress } = req.body;
-  
-  if (!teamId || !userId || !progress) {
-    return res.status(400).json({ error: 'teamId, userId, and progress are required' });
-  }
-  
-  const team = teams.get(teamId);
-  if (!team) {
-    return res.status(404).json({ error: 'Team not found' });
-  }
-  
-  const member = team.members.find(m => m.id === userId);
-  if (member) {
-    member.progress = {
-      ...progress,
-      lastUpdated: new Date().toISOString(),
-    };
-    teams.set(teamId, team);
-  }
-  
-  res.json({ success: true });
-});
-
-// POST /api/team/dissolve - 解散队伍
-app.post('/api/team/dissolve', (req, res) => {
-  const { teamId } = req.body;
-  
-  if (!teamId) {
-    return res.status(400).json({ error: 'teamId is required' });
-  }
-  
-  teams.delete(teamId);
-  res.json({ success: true });
-});
-
-// ===== POST /api/explain - AI生成题目解析 =====
-app.post('/api/explain', async (req, res) => {
-  const { 
-    provider = 'ollama', 
-    question, 
-    selectedAnswer, 
-    correctAnswer,
-    knowledgePoint,
-    subjectName,
-    apiKey, 
-    modelId, 
-    groupId 
-  } = req.body;
-
-  const userContent = `请为以下题目生成详细的解析：
-
-学科：${subjectName || '未知'}
-知识点：${knowledgePoint || '未知'}
-
-题目：${question.stem || question}
-选项：${question.options ? question.options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o.text}`).join('\n') : ''}
-用户答案：${selectedAnswer}
-正确答案：${correctAnswer}
-
-请生成包含以下内容的详细解析：
-1. ✅ 正确答案分析
-2. ❌ 错误选项逐个解析
-3. 📚 **相关知识点讲解**（这里需要关联基础知识，帮学生复习）
-4. 💡 记忆技巧（如果适用）
-5. 🔗 关联知识扩展（相关的相似知识点、前置知识）
-
-请用清晰、有条理的方式回答，就像私教一对一辅导。利用知识库中的内容帮助学生融会贯通。`;
-
-  const messages = [
-    { role: 'system', content: '你是一位专业的私教学习导师，擅长解释知识点和题目。你会主动关联相关知识库内容，帮助学生建立知识网络。请用简洁明了的语言解释问题。' },
-    { role: 'user', content: userContent },
-  ];
-
-  const userConfig = { apiKey, modelId, groupId };
-
-  try {
-    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.7, userConfig });
-    const text = await extractContent(response);
-    res.json({ explanation: text });
-  } catch (err) {
-    console.error('Explain error:', err.message);
-    res.json({ explanation: '抱歉，无法生成解析。请稍后重试。', error: err.message });
-  }
-});
-
-// 健康检查端点
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// ===== POST /api/study-report - 生成学习报告 =====
-app.post('/api/study-report', async (req, res) => {
-  const { 
-    provider = 'ollama', 
-    knowledgeStats = [], 
-    totalKnowledgePoints = 0,
-    masteredCount = 0,
-    subjectName = '',
-    apiKey, 
-    modelId, 
-    groupId 
-  } = req.body;
-
-  const userContent = `# 学生学习数据
-
-学科：${subjectName || '全部'}
-总知识点：${totalKnowledgePoints}
-已掌握：${masteredCount}
-
-知识点详情：
-${knowledgeStats.map(kp => `- ${kp.name}: 掌握等级 ${kp.masteryLevel}/3，错题数 ${kp.wrongCount || 0}`).join('\n')}
-
-请生成学习报告。`;
-
-  const messages = [
-    { role: 'system', content: STUDY_REPORT_PROMPT },
-    { role: 'user', content: userContent },
-  ];
-  
-  const userConfig = { apiKey, modelId, groupId };
-
-  try {
-    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.7, userConfig });
-    const text = await extractContent(response);
-    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-    const report = JSON.parse(cleaned);
-    res.json({ report });
-  } catch (err) {
-    console.error('Study report error:', err.message);
-    res.json({ report: null, error: err.message });
-  }
-});
-
-// ===== POST /api/daily-suggestion - 获取每日学习建议 =====
-app.post('/api/daily-suggestion', async (req, res) => {
-  const { 
-    provider = 'ollama', 
-    knowledgeStats = [], 
-    totalKnowledgePoints = 0,
-    masteredCount = 0,
-    subjectName = '',
-    apiKey, 
-    modelId, 
-    groupId 
-  } = req.body;
-
-  const userContent = `# 学生学习数据
-
-学科：${subjectName || '全部'}
-总知识点：${totalKnowledgePoints}
-已掌握：${masteredCount}
-
-知识点掌握情况：
-${knowledgeStats.map(kp => `- ${kp.name}: 掌握等级 ${kp.masteryLevel}/3，错题数 ${kp.wrongCount || 0}，上次复习 ${kp.lastReviewedAt || '从未'}`).join('\n')}
-
-请给出今天的学习建议。`;
-
-  const messages = [
-    { role: 'system', content: DAILY_SUGGESTION_PROMPT },
-    { role: 'user', content: userContent },
-  ];
-  
-  const userConfig = { apiKey, modelId, groupId };
-
-  try {
-    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.7, userConfig });
-    const text = await extractContent(response);
-    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-    const result = JSON.parse(cleaned);
-    res.json(result);
-  } catch (err) {
-    console.error('Daily suggestion error:', err.message);
-    res.json({ suggestions: null, error: err.message });
-  }
-});
-
-// ===== POST /api/knowledge-explain - 知识库关联讲解 =====
-app.post('/api/knowledge-explain', async (req, res) => {
-  const { 
-    provider = 'ollama', 
-    knowledgePoint,
-    subjectName,
-    relatedTo = [],
-    apiKey, 
-    modelId, 
-    groupId 
-  } = req.body;
-
-  const userContent = `请给我讲解知识点"${knowledgePoint}"（学科：${subjectName}）。
-
-${relatedTo.length > 0 ? `需要关联讲解这些前置知识点：${relatedTo.join('、')}` : ''}
-
-请结合OpenClaw知识库中的内容，进行清晰有条理的讲解，主动关联相关知识帮助理解。`;
-
-  const messages = [
-    { role: 'system', content: OPENCLAW_KB_SYSTEM },
-    { role: 'user', content: userContent },
-  ];
-  
-  const userConfig = { apiKey, modelId, groupId };
-
-  try {
-    const response = await chatCompletion(provider, messages, { stream: false, temperature: 0.6, userConfig });
-    const explanation = await extractContent(response);
-    res.json({ explanation });
-  } catch (err) {
-    console.error('Knowledge explain error:', err.message);
-    res.json({ explanation: null, error: err.message });
-  }
-});
+app.get('/api/team/:teamId', (req, res) => res.json(teams.get(req.params.teamId) || null));
 
 const PORT = process.env.PORT || 3001;
-
 app.use(express.static(distDir));
-
 app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));
 });
-
 app.listen(PORT, () => {
-  console.log(`AI proxy server running on http://localhost:${PORT}`);
-  console.log('✅ OpenClaw 智能私教已接入！支持：');
-  console.log('  - /api/quiz 智能出题（随机/智能模式）');
-  console.log('  - /api/explain 关联式题目解析');
-  console.log('  - /api/study-report 学习报告');
-  console.log('  - /api/daily-suggestion 每日学习建议');
-  console.log('  - /api/knowledge-explain 知识点关联讲解');
-  console.log('支持云端 API Key 动态配置！');
+  console.log(`Server running on http://localhost:${PORT}`);
 });

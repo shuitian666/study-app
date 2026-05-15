@@ -1,107 +1,188 @@
 import { useState } from 'react';
+import { BookOpen, Lock, Phone, Sparkles } from 'lucide-react';
+import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
-import { Sparkles } from 'lucide-react';
+import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface, isDarkTheme } from '@/utils/adaptiveTheme';
+import { loginWithPassword, registerWithPassword, sendEmailCode } from '@/services/aiClient';
 import type { User } from '@/types';
 
 export default function LoginPage() {
-  const { userState, userDispatch } = useUser();
+  const { userDispatch } = useUser();
+  const { theme } = useTheme();
+  const dark = isDarkTheme(theme);
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleWechatLogin = () => {
+  const handleSubmit = async () => {
+    setError('');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('请输入有效邮箱');
+      return;
+    }
+    if (password.length < 8) {
+      setError('密码至少 8 位');
+      return;
+    }
+
     setLoading(true);
-    // Simulate WeChat login
-    setTimeout(() => {
-      // 如果已有保存的用户数据，保留使用（不丢失 totalPoints 等）
-      // 只在首次登录时才创建默认用户
-      const existingUser = userState.user;
-      const mockUser: User = existingUser ?? {
-        id: 'user-1',
-        nickname: '学习达人',
-        avatar: '👤',
-        learningDays: 15,
-        totalPoints: 0,
-        createdAt: new Date().toISOString(),
-        dailyGoal: 10,
-        dailyNewGoal: 10,
-        todayQuestions: 0,
-        goalAchievedToday: false,
-        // 形象相关
-        avatarFrame: null,
-        aiSkin: null,
-        background: null,
-        unlockedAvatars: ['👤', '🦊', '🐰', '🐼'],
-        unlockedFrames: ['⬜', '🧊'],
-        unlockedAiSkins: ['🤖'],
-        unlockedBackgrounds: [],
-        themeStyle: 'default',
-      };
-      userDispatch({ type: 'LOGIN', payload: mockUser });
+    try {
+      const payload = mode === 'login'
+        ? await loginWithPassword(email.trim(), password)
+        : await registerWithPassword(email.trim(), password, code.trim());
+      userDispatch({ type: 'LOGIN', payload: payload.user as User });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '登录失败');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
+  const handleSendCode = async () => {
+    setError('');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('请输入有效邮箱');
+      return;
+    }
+    setSendingCode(true);
+    try {
+      await sendEmailCode(email.trim());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '发送失败');
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  const features = [
+    { icon: 'AI', text: '服务端 AI 代理，平台密钥不进前端' },
+    { icon: 'KEY', text: '支持用户自定义 OpenAI 兼容 API' },
+    { icon: 'DB', text: '账号、资产和 AI 配置存服务器' },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-primary/10 overflow-y-auto py-12">
-      {/* Logo */}
-      <div className="mb-10 flex flex-col items-center">
-        <div className="w-28 h-28 bg-gradient-to-br from-primary via-primary-light to-accent rounded-[32px] flex items-center justify-center mb-6 shadow-xl shadow-primary/20">
-          <span className="text-6xl">📖</span>
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">智学助手</h1>
-        <p className="text-base text-gray-500 flex items-center gap-1.5">
-          <Sparkles size={16} className="text-primary" />
-          <span>AI驱动的自适应学习平台</span>
-        </p>
-      </div>
-
-      {/* Features */}
-      <div className="w-full max-w-sm space-y-3 mb-10">
-        {[
-          { icon: '🧠', text: '智能复习计划，科学记忆' },
-          { icon: '📊', text: '知识图谱，可视化掌握度' },
-          { icon: '✍️', text: '题库练习，自动判分解析' },
-          { icon: '🤖', text: 'AI问答，随时随地解惑' },
-        ].map((f, i) => (
+    <div className="min-h-screen overflow-y-auto px-6 py-10" style={getAdaptivePageBackground(theme)}>
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-sm flex-col justify-center">
+        <div className="mb-8 flex flex-col items-center">
           <div
-            key={i}
-            className="flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-4 shadow-sm border border-white/60"
+            className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] shadow-xl"
+            style={{
+              background: dark
+                ? `linear-gradient(135deg, ${theme.surfaceContainerHigh || '#263652'} 0%, ${theme.primaryFixed || '#254a74'} 100%)`
+                : `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 52%, ${theme.accent} 100%)`,
+              boxShadow: dark ? '0 24px 60px rgba(0,0,0,0.32)' : `0 18px 38px ${theme.primary}24`,
+            }}
           >
-            <div className="w-8 h-8 flex items-center justify-center text-2xl shrink-0">{f.icon}</div>
-            <span className="text-sm text-gray-600 font-medium">{f.text}</span>
+            <BookOpen size={50} style={{ color: dark ? theme.primaryLight : '#ffffff' }} />
           </div>
-        ))}
-      </div>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: theme.textPrimary }}>智学助手</h1>
+          <p className="flex items-center gap-1.5 text-base" style={{ color: theme.textSecondary }}>
+            <Sparkles size={16} style={{ color: theme.primary }} />
+            <span>登录后同步你的账号资产和 AI 配置</span>
+          </p>
+        </div>
 
-      {/* Login Button */}
-      <div className="w-full max-w-sm space-y-4">
-        <button
-          onClick={handleWechatLogin}
-          disabled={loading}
-          className="w-full bg-[#07c160] hover:bg-[#06ae56] text-white font-semibold py-4 rounded-2xl text-base flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 active:scale-[0.98] disabled:opacity-60 transition-all"
-        >
-          {loading ? (
-            <span className="inline-block w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.045c.134 0 .24-.11.24-.245 0-.06-.024-.12-.04-.178l-.325-1.233a.492.492 0 0 1 .177-.554C23.028 18.48 24 16.81 24 14.943c0-3.024-2.81-5.746-6.062-6.085z"/>
-              </svg>
-              微信一键登录
-            </>
+        <div className="mb-6 w-full space-y-3">
+          {features.map(feature => (
+            <div key={feature.text} className="flex items-center gap-4 rounded-2xl border px-5 py-4 backdrop-blur-xl" style={getAdaptiveSurface(theme, 'raised')}>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold" style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}>
+                {feature.icon}
+              </div>
+              <span className="text-sm font-semibold" style={{ color: theme.textSecondary }}>{feature.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-2xl border p-4 space-y-3" style={getAdaptiveSurface(theme, 'raised')}>
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/5 p-1">
+            <button
+              onClick={() => setMode('login')}
+              className={`rounded-lg py-2 text-sm font-semibold ${mode === 'login' ? 'bg-white shadow-sm' : ''}`}
+              style={{ color: theme.textPrimary }}
+            >
+              登录
+            </button>
+            <button
+              onClick={() => setMode('register')}
+              className={`rounded-lg py-2 text-sm font-semibold ${mode === 'register' ? 'bg-white shadow-sm' : ''}`}
+              style={{ color: theme.textPrimary }}
+            >
+              注册
+            </button>
+          </div>
+
+          <label className="block">
+            <span className="mb-1 block text-xs" style={{ color: theme.textMuted }}>邮箱</span>
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: theme.border }}>
+              <Phone size={16} style={{ color: theme.textMuted }} />
+              <input
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                inputMode="email"
+                placeholder="your@email.com"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                style={{ color: theme.textPrimary }}
+              />
+            </div>
+          </label>
+
+          {mode === 'register' && (
+            <label className="block">
+              <span className="mb-1 block text-xs" style={{ color: theme.textMuted }}>邮箱验证码</span>
+              <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: theme.border }}>
+                <input
+                  value={code}
+                  onChange={e => setCode(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="6 位验证码"
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  style={{ color: theme.textPrimary }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendCode}
+                  disabled={sendingCode}
+                  className="text-xs font-semibold disabled:opacity-50"
+                  style={{ color: theme.primary }}
+                >
+                  {sendingCode ? '发送中' : '发送验证码'}
+                </button>
+              </div>
+            </label>
           )}
-        </button>
 
-        <button
-          onClick={handleWechatLogin}
-          className="w-full bg-white text-text-secondary font-medium py-4 rounded-2xl text-base border border-gray-200 shadow-lg active:scale-[0.98] transition-all"
-        >
-          游客体验
-        </button>
+          <label className="block">
+            <span className="mb-1 block text-xs" style={{ color: theme.textMuted }}>密码</span>
+            <div className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: theme.border }}>
+              <Lock size={16} style={{ color: theme.textMuted }} />
+              <input
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                type="password"
+                placeholder="至少 8 位"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                style={{ color: theme.textPrimary }}
+                onKeyDown={e => { if (e.key === 'Enter') void handleSubmit(); }}
+              />
+            </div>
+          </label>
+
+          {error && <div className="text-xs text-red-600">{error}</div>}
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full rounded-2xl py-3 text-base font-bold transition-all active:scale-[0.98] disabled:opacity-60"
+            style={getAdaptiveButton(theme, 'primary')}
+          >
+            {loading ? '处理中...' : mode === 'login' ? '登录' : '创建账号'}
+          </button>
+        </div>
       </div>
-
-      <p className="text-xs text-gray-400 mt-8 text-center px-4">
-        登录即表示同意《用户协议》和《隐私政策》
-      </p>
     </div>
   );
 }

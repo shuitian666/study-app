@@ -1,0 +1,18 @@
+[Unit]
+Description=Smart Study App
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/smart-study/current/server
+Environment=NODE_ENV=production
+Environment=PORT=3001
+EnvironmentFile=-/var/www/smart-study/shared/server.env
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

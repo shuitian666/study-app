@@ -2,6 +2,8 @@
  * 全局类型定义
  */
 
+import { applyBackgroundTheme, normalizeBackgroundId } from '@/data/backgroundCatalog';
+
 // Proficiency levels for knowledge points
 export type ProficiencyLevel = 'none' | 'rusty' | 'normal' | 'master';
 
@@ -29,6 +31,8 @@ export interface User {
   avatar: string;
   learningDays: number;
   totalPoints: number;
+  bonusExperience: number;
+  experienceLedger: ExperienceLedgerEntry[];
   createdAt: string;
   dailyGoal: number;  // 每日学习目标（题目数）
   dailyNewGoal: number;  // 每日新学目标（知识点数）
@@ -46,6 +50,41 @@ export interface User {
   customAvatarUrl?: string;  // 自定义头像 URL
   currentBackground?: string;  // 当前背景样式（gradient）
   activeTitle?: string;  // 当前使用的称号ID
+}
+
+export type ExperienceSource =
+  | 'flashcard'
+  | 'quiz'
+  | 'mastery'
+  | 'daily_goal_checkin'
+  | 'team'
+  | 'activity'
+  | 'mail';
+
+export interface ExperienceLedgerEntry {
+  id: string;
+  source: ExperienceSource;
+  sourceId: string;
+  amount: number;
+  requestedAmount: number;
+  dateKey: string;
+  capped: boolean;
+  createdAt: string;
+}
+
+export interface LevelBenefit {
+  id: string;
+  level: number;
+  type: 'title' | 'avatar_frame' | 'shop_discount' | 'draw_ticket' | 'feature' | 'custom';
+  label: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface LevelConfig {
+  level: number;
+  requiredTotalExp: number;
+  benefits: LevelBenefit[];
 }
 
 // Subject / Category
@@ -78,6 +117,9 @@ export interface KnowledgePoint {
   reviewCount: number;
   createdAt: string;
   source: KnowledgeSource; // 'ai' | 'manual' | 'import'
+  deletedAt?: string | null;
+  deleteExpiresAt?: string | null;
+  deleteGroupId?: string | null;
 }
 
 // Question types
@@ -98,6 +140,9 @@ export interface Question {
   options: QuestionOption[];
   correctAnswers: string[]; // option ids
   explanation: string;
+  deletedAt?: string | null;
+  deleteExpiresAt?: string | null;
+  deleteGroupId?: string | null;
   imageUrl?: string;  // 可选：题目图片URL
 }
 
@@ -161,7 +206,7 @@ export interface LearningStats {
 
 // ===== AI Chat =====
 
-export type AIProvider = 'ollama' | 'volcengine' | 'minimax' | 'douban' | 'openclaw';
+export type AIProvider = 'server' | 'offline' | 'ollama' | 'volcengine' | 'minimax' | 'douban' | 'openclaw';
 
 // AI预设配置
 export interface AIPreset {
@@ -174,6 +219,8 @@ export interface AIPreset {
 }
 
 export const AI_PRESETS: AIPreset[] = [
+  { id: 'server', name: '服务器 AI', provider: 'server', description: '服务端统一代理，密钥不进入前端' },
+  { id: 'offline', name: '离线模式', provider: 'offline', description: '使用本地预设兜底' },
   { id: 'ollama-local', name: 'Ollama (本地)', provider: 'ollama', description: '本地部署，无需API密钥' },
   { id: 'douban', name: '豆包 API', provider: 'douban', description: '火山引擎豆包大模型，需密钥' },
   { id: 'volcengine', name: '火山引擎', provider: 'volcengine', modelId: 'ep-xxxxx', description: '豆包大模型' },
@@ -220,13 +267,10 @@ export type PageName =
   | 'profile'
   | 'settings'
   | 'login'
-  | 'daily-question'
-  | 'subject-detail'
   | 'knowledge-detail'
   | 'quiz-session'
   | 'quiz-result'
   | 'wrong-book'
-  | 'review-session'
   | 'add-knowledge'
   | 'import-knowledge'
   | 'checkin'
@@ -431,7 +475,7 @@ export interface InventoryState {
 }
 
 // ===== Mail / 邮件系统 =====
-export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'background' | 'title' | 'coin' | 'vip';
+export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'background' | 'title' | 'coin' | 'experience' | 'vip';
 
 export interface MailAttachment {
   type: MailAttachmentType;
@@ -1041,38 +1085,8 @@ export const UILAYOUT_CONFIGS: Record<'playful' | 'scholar', UILayoutConfig> = {
 };
 
 export const getThemeByBackgroundId = (backgroundId?: string, themeStyle?: string): ThemeConfig => {
-  // 如果选择了 Fluid Scholar 主题风格，所有背景都使用同一个主题
-  if (themeStyle === 'fluidScholar') {
-    return themes.fluidScholar;
-  }
-
-  if (!backgroundId) return themes.default;
-  
-  if (backgroundId.includes('bg-r-1') || backgroundId.includes('bg-ssr-1')) {
-    return themes.dark;
-  }
-  
-  if (backgroundId.includes('bg-r-2') || backgroundId.includes('bg-sr-2')) {
-    return themes.forest;
-  }
-  
-  if (backgroundId.includes('bg-r-3') || backgroundId.includes('bg-r-4') || backgroundId.includes('bg-sr-4')) {
-    return themes.warm;
-  }
-  
-  if (backgroundId.includes('bg-sr-1')) {
-    return themes.pink;
-  }
-  
-  if (backgroundId.includes('bg-n-2') || backgroundId.includes('bg-sr-3')) {
-    return themes.blue;
-  }
-  
-  if (backgroundId.includes('bg-ssr-2') || backgroundId.includes('bg-ssr-3')) {
-    return themes.aurora;
-  }
-  
-  return themes.default;
+  const baseTheme = themeStyle === 'fluidScholar' ? themes.fluidScholar : themes.default;
+  return applyBackgroundTheme(baseTheme, normalizeBackgroundId(backgroundId));
 };
 
 // ===== Flashcard Learning Types =====
@@ -1114,4 +1128,5 @@ export interface KnowledgePointExtended extends KnowledgePoint {
   fsrsLapses?: number;
   // 复习次数
   fsrsReps?: number;
+  masteredAt?: string;
 }

@@ -1,103 +1,122 @@
-/**
- * AI 后端通信层 — HTTP 客户端 + SSE 流式读取 + 配置管理
- * 支持：Ollama、火山引擎、MiniMax、豆包API
- */
-import type { AIConfig, AIProvider, ProviderInfo, Question, StudyReportParams } from '@/types';
+import type { AIConfig, Question } from '@/types';
 
 export const API_BASE = '/api';
-export const DOUBAN_API_URL = 'https://ark.cn-beijing.volces.com/api/v3';
-const CONFIG_KEY = 'ai-config';
-
-// ===== 配置管理 (localStorage) =====
 
 export function getAIConfig(): AIConfig {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return { provider: 'ollama' };
+  return { provider: 'server' };
 }
 
-export function setAIConfig(config: AIConfig): void {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+export function setAIConfig(_config: unknown): void {
+  // AI credentials are server-managed now.
 }
 
-// ===== 后端健康检测 =====
-
-let cachedAvailable: boolean | null = null;
-let cacheTime = 0;
-const CACHE_DURATION = 10000;
-
-export async function checkBackendAvailable(): Promise<boolean> {
-  if (cachedAvailable !== null && Date.now() - cacheTime < CACHE_DURATION) {
-    return cachedAvailable;
-  }
-  
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${API_BASE}/models`, { signal: controller.signal });
-    clearTimeout(timer);
-    cachedAvailable = res.ok;
-  } catch {
-    cachedAvailable = false;
-  }
-  cacheTime = Date.now();
-  return cachedAvailable;
-}
-
-export function resetBackendCache(): void {
-  cachedAvailable = null;
-  cacheTime = 0;
-}
-
-// ===== API 调用 =====
-
-export async function fetchModels(): Promise<ProviderInfo[]> {
-  const res = await fetch(`${API_BASE}/models`);
+export async function fetchModels() {
+  const res = await fetch(`${API_BASE}/models`, { credentials: 'include' });
   const data = await res.json();
   return data.providers || [];
 }
 
-function getUserAIConfig() {
-  return getAIConfig();
+export interface ServerAIConfigStatus {
+  mode: 'platform' | 'custom';
+  customConfigured: boolean;
+  baseUrl: string;
+  model: string;
+  platformConfigured: boolean;
 }
 
-// ===== SSE 流式聊天 =====
+export interface AuthPayload {
+  user: any;
+  assets: { coins: number; experience: number; checkinStreak: number };
+  inventory: any[];
+  aiConfigStatus: ServerAIConfigStatus;
+}
+
+export async function sendEmailCode(email: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/email/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to send email code');
+}
+
+export async function registerWithPassword(email: string, password: string, code: string): Promise<AuthPayload> {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, password, code }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Register failed');
+  return res.json();
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<AuthPayload> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Login failed');
+  return res.json();
+}
+
+export async function fetchMe(): Promise<AuthPayload | null> {
+  const res = await fetch(`${API_BASE}/me`, { credentials: 'include' });
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error('Failed to load user');
+  return res.json();
+}
+
+export async function checkBackendAvailable(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export function resetBackendCache(): void {
+  // Kept for existing callers.
+}
+
+export async function fetchAIConfig(): Promise<ServerAIConfigStatus> {
+  const res = await fetch(`${API_BASE}/ai/config`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to load AI config');
+  return res.json();
+}
+
+export async function saveAIConfig(config: {
+  mode: 'platform' | 'custom';
+  baseUrl?: string;
+  model?: string;
+  apiKey?: string;
+}): Promise<ServerAIConfigStatus> {
+  const res = await fetch(`${API_BASE}/ai/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to save AI config');
+  return res.json();
+}
 
 export async function* streamChat(params: {
-  provider: AIProvider;
   messages: { role: string; content: string }[];
   knowledgeContext?: string[];
 }): AsyncGenerator<string> {
-  const config = getUserAIConfig();
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
-
-  const requestBody = {
-    ...params,
-    apiKey: config.apiKey,
-    modelId: config.modelId,
-    groupId: config.groupId,
-  };
-
   const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-    signal: controller.signal,
+    credentials: 'include',
+    body: JSON.stringify(params),
   });
 
-  clearTimeout(timeoutId);
-
-  if (!res.ok) {
-    throw new Error(`Chat request failed: ${res.status}`);
-  }
-
-  if (!res.body) {
-    throw new Error('Empty response body');
-  }
+  if (!res.ok || !res.body) throw new Error(`Chat request failed: ${res.status}`);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -106,319 +125,32 @@ export async function* streamChat(params: {
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split('\n');
     buffer = lines.pop() || '';
-
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || !trimmed.startsWith('data: ')) continue;
-      try {
-        const payload = JSON.parse(trimmed.slice(6));
-        if (payload.done) return;
-        if (payload.error) throw new Error(payload.error);
-        if (payload.content) yield payload.content;
-      } catch (e) {
-        if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
-          throw e;
-        }
-      }
+      if (!trimmed.startsWith('data: ')) continue;
+      const payload = JSON.parse(trimmed.slice(6));
+      if (payload.done) return;
+      if (payload.error) throw new Error(payload.error);
+      if (payload.content) yield payload.content;
     }
   }
 }
 
-// ===== 生成题目 =====
-
 export async function fetchQuiz(params: {
-  provider: AIProvider;
   knowledgePointNames: string[];
-  knowledgePoints?: Array<{id: string, name: string, masteryLevel: number, wrongCount: number, lastReviewedAt: string}>;
+  knowledgePoints?: Array<{ id: string; name: string; masteryLevel: number; wrongCount: number; lastReviewedAt: string }>;
   subjectName: string;
   mode?: 'random' | 'smart';
-}): Promise<{question: Question | null, selectedKnowledgePoint?: string, mode: 'random' | 'smart'}> {
-  const config = getUserAIConfig();
-  
+}): Promise<{ question: Question | null; selectedKnowledgePoint?: string; mode: 'random' | 'smart' }> {
   const res = await fetch(`${API_BASE}/quiz`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...params,
-      mode: params.mode || 'random',
-      apiKey: config.apiKey,
-      modelId: config.modelId,
-      groupId: config.groupId,
-    }),
+    credentials: 'include',
+    body: JSON.stringify(params),
   });
   const data = await res.json();
-  return {
-    question: data.question || null,
-    selectedKnowledgePoint: data.selectedKnowledgePoint,
-    mode: data.mode || params.mode || 'random',
-  };
-}
-
-// ===== 生成鼓励语 =====
-
-export async function fetchEncouragement(params: {
-  provider: AIProvider;
-  stats: Record<string, unknown>;
-  wrongCount: number;
-  streak: number;
-}): Promise<string> {
-  const config = getUserAIConfig();
-  
-  const res = await fetch(`${API_BASE}/encourage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...params,
-      apiKey: config.apiKey,
-      modelId: config.modelId,
-      groupId: config.groupId,
-    }),
-  });
-  const data = await res.json();
-  return data.text || '今天也要加油哦！';
-}
-
-// ===== 获取学习报告 =====
-
-export async function fetchStudyReport(params: StudyReportParams): Promise<any> {
-  const config = getUserAIConfig();
-  
-  const res = await fetch(`${API_BASE}/study-report`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...params,
-      provider: config.provider,
-      apiKey: config.apiKey,
-      modelId: config.modelId,
-      groupId: config.groupId,
-    }),
-  });
-  const data = await res.json();
-  return data.report || null;
-}
-
-// ===== 获取每日学习建议 =====
-
-export async function fetchDailySuggestion(params: StudyReportParams): Promise<any> {
-  const config = getUserAIConfig();
-  
-  const res = await fetch(`${API_BASE}/daily-suggestion`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...params,
-      provider: config.provider,
-      apiKey: config.apiKey,
-      modelId: config.modelId,
-      groupId: config.groupId,
-    }),
-  });
-  const data = await res.json();
-  return data || null;
-}
-
-// ===== 获取知识点关联讲解 =====
-
-export async function fetchKnowledgeExplain(params: {
-  knowledgePoint: string;
-  subjectName: string;
-  relatedTo?: string[];
-}): Promise<string> {
-  const config = getUserAIConfig();
-  
-  const res = await fetch(`${API_BASE}/knowledge-explain`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...params,
-      provider: config.provider,
-      apiKey: config.apiKey,
-      modelId: config.modelId,
-      groupId: config.groupId,
-    }),
-  });
-  const data = await res.json();
-  return data.explanation || '';
-}
-
-// ===== 豆包API直接调用 =====
-
-export async function* streamChatDouban(
-  apiKey: string,
-  messages: { role: string; content: string }[],
-  modelId: string = 'doubao-lite-32k'
-): AsyncGenerator<string> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
-
-  try {
-    const res = await fetch(`${DOUBAN_API_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages: messages.map(m => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
-          content: m.content,
-        })),
-        stream: true,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      throw new Error(`豆包API调用失败: ${res.status}`);
-    }
-
-    if (!res.body) {
-      throw new Error('Empty response body');
-    }
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data: ')) continue;
-        if (trimmed === 'data: [DONE]') return;
-
-        try {
-          const payload = JSON.parse(trimmed.slice(6));
-          const content = payload.choices?.[0]?.delta?.content;
-          if (content) yield content;
-        } catch { /* ignore */ }
-      }
-    }
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-export async function fetchDoubanQuiz(
-  apiKey: string,
-  knowledgePointNames: string[],
-  subjectName: string,
-  modelId: string = 'doubao-lite-32k'
-): Promise<Question | null> {
-  const messages = [
-    {
-      role: 'user',
-      content: `请为${subjectName}学科生成一道练习题，基于以下知识点：${knowledgePointNames.join('、')}。\n\n请按以下JSON格式返回（只需要JSON，不要其他内容）：\n{\n  "type": "single_choice",\n  "stem": "题目描述",\n  "options": [\n    {"id": "A", "text": "选项A内容"},\n    {"id": "B", "text": "选项B内容"},\n    {"id": "C", "text": "选项C内容"},\n    {"id": "D", "text": "选项D内容"}\n  ],\n  "correctAnswers": ["A"],\n  "explanation": "解析说明"\n}`,
-    },
-  ];
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-  try {
-    const res = await fetch(`${DOUBAN_API_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages,
-        stream: false,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (content) {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.options) {
-          parsed.options = parsed.options.map((opt: any) => ({
-            ...opt,
-            text: (opt.text || opt.label || '').replace(/^[A-G]\.\s*/, '').trim(),
-          }));
-        }
-        return parsed;
-      }
-    }
-  } catch { /* timeout or error */ }
-
-  return null;
-}
-
-export async function fetchDoubanExplanation(
-  apiKey: string,
-  question: { stem?: string; options?: Array<{ id: string; text: string }> },
-  selectedAnswer: string[],
-  correctAnswer: string[],
-  modelId: string = 'doubao-lite-32k'
-): Promise<string> {
-  const isCorrect = selectedAnswer.length === correctAnswer.length &&
-    selectedAnswer.every(a => correctAnswer.includes(a));
-
-  const messages = [
-    {
-      role: 'user',
-      content: `题目：${question.stem || ''}\n选项：${(question.options || []).map(o => `${o.id}. ${o.text}`).join(' | ')}\n用户答案：${selectedAnswer.join('、')}\n正确答案：${correctAnswer.join('、')}\n\n请生成详细的题目解析，说明解题思路和知识点。`,
-    },
-  ];
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-  try {
-    const res = await fetch(`${DOUBAN_API_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages,
-        stream: false,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      if (isCorrect) {
-        return '回答正确！这道题考查的知识点你已经掌握了，继续保持！';
-      }
-      return '这道题的正确答案是 ' + correctAnswer.join('、') + '。建议回顾相关知识点，加强理解后再做一遍。';
-    }
-
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
-  } catch {
-    if (isCorrect) {
-      return '回答正确！这道题考查的知识点你已经掌握了，继续保持！';
-    }
-    return '这道题的正确答案是 ' + correctAnswer.join('、') + '。建议回顾相关知识点，加强理解后再做一遍。';
-  }
+  return { question: data.question || null, selectedKnowledgePoint: data.selectedKnowledgePoint, mode: data.mode || 'smart' };
 }
