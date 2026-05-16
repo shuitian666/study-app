@@ -22,7 +22,9 @@ if ! node -e "require('node:sqlite')" >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ ! -d "$APP_DIR/.git" ]; then
+if [ "${SKIP_GIT_SYNC:-}" = "1" ]; then
+  echo "Using uploaded release bundle in $APP_DIR"
+elif [ ! -d "$APP_DIR/.git" ]; then
   sudo rm -rf "$APP_DIR"
   sudo git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
 else
