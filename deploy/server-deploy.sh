@@ -9,6 +9,14 @@ sudo mkdir -p /var/www/smart-study
 sudo mkdir -p /var/www/smart-study/shared
 sudo mkdir -p /var/www/smart-study/data
 
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git nginx
+
+if ! node -e "require('node:sqlite')" >/dev/null 2>&1; then
+  curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+fi
+
 if ! node -e "require('node:sqlite')" >/dev/null 2>&1; then
   echo "Node.js 24+ with node:sqlite support is required. Current version: $(node -v 2>/dev/null || echo missing)" >&2
   exit 1
