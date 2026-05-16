@@ -23,13 +23,14 @@ import {
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-app.use(cors({
+const corsMiddleware = cors({
   origin(origin, callback) {
     if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('CORS origin denied'));
   },
   credentials: true,
-}));
+});
+app.use('/api', corsMiddleware);
 app.use(express.json({ limit: '1mb' }));
 
 const __filename = fileURLToPath(import.meta.url);
