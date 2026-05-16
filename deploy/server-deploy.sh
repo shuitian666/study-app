@@ -7,6 +7,12 @@ BRANCH="${BRANCH:-main}"
 
 sudo mkdir -p /var/www/smart-study
 sudo mkdir -p /var/www/smart-study/shared
+sudo mkdir -p /var/www/smart-study/data
+
+if ! node -e "require('node:sqlite')" >/dev/null 2>&1; then
+  echo "Node.js 24+ with node:sqlite support is required. Current version: $(node -v 2>/dev/null || echo missing)" >&2
+  exit 1
+fi
 
 if [ ! -d "$APP_DIR/.git" ]; then
   sudo rm -rf "$APP_DIR"
@@ -39,5 +45,5 @@ sudo systemctl restart smart-study
 sudo nginx -t
 sudo systemctl reload nginx
 
-sudo chown -R www-data:www-data /var/www/smart-study
+sudo chown -R www-data:www-data /var/www/smart-study/data
 echo "Deployed smart-study from $BRANCH"

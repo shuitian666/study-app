@@ -7,6 +7,7 @@ Type=simple
 WorkingDirectory=/var/www/smart-study/current/server
 Environment=NODE_ENV=production
 Environment=PORT=3001
+Environment=DATA_DIR=/var/www/smart-study/data
 EnvironmentFile=-/var/www/smart-study/shared/server.env
 ExecStart=/usr/bin/node index.js
 Restart=always
