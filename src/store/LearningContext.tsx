@@ -68,6 +68,37 @@ interface ImportedStudySession {
   createdAt: string;
 }
 
+export interface ImportHistoryEntry {
+  id: string;
+  source: 'manual' | 'local' | 'cloud';
+  createdAt: string;
+  label: string;
+  knowledgePointIds: string[];
+  questionIds: string[];
+  knowledgeCount: number;
+  questionCount: number;
+  sourceId?: string;
+  deletedAt?: string | null;
+  deleteExpiresAt?: string | null;
+  deleteGroupId?: string | null;
+}
+
+interface ImportHistoryInput {
+  source: 'manual' | 'local' | 'cloud';
+  label: string;
+  createdAt?: string;
+  sourceId?: string;
+}
+
+const RECYCLE_RETENTION_DAYS = 7;
+const DAY_MS = 86400000;
+
+type SoftDeleteFields = {
+  deletedAt?: string | null;
+  deleteExpiresAt?: string | null;
+  deleteGroupId?: string | null;
+};
+
 // ---------- State ----------
 export interface LearningState {
   subjects: Subject[];
@@ -80,6 +111,7 @@ export interface LearningState {
   todayNewItems: ReviewItem[];
   questionExplanations: QuestionExplanation[];
   importedStudySession: ImportedStudySession | null;
+  importHistory: ImportHistoryEntry[];
   // Undo/Redo history (not persisted, in-memory only)
   _history: LearningState[];
   _historyIndex: number;
@@ -99,6 +131,7 @@ const initialLearningState: LearningState = {
   todayNewItems: [],
   questionExplanations: buildQuestionExplanationSeeds(MOCK_QUESTIONS),
   importedStudySession: null,
+  importHistory: [],
   // Undo/Redo (not persisted)
   _history: [],
   _historyIndex: -1,
@@ -111,10 +144,13 @@ const initialLearningState: LearningState = {
 type LearningAction =
   | { type: 'ADD_SUBJECT'; payload: Subject }
   | { type: 'ADD_CHAPTER'; payload: Chapter }
-  | { type: 'ADD_KNOWLEDGE_POINT'; payload: KnowledgePoint }
+  | { type: 'ADD_KNOWLEDGE_POINT'; payload: KnowledgePoint & { importHistory?: ImportHistoryInput } }
   | { type: 'UPDATE_KNOWLEDGE_POINT'; payload: Partial<KnowledgePoint> & { id: string } }
   | { type: 'DELETE_KNOWLEDGE_POINT'; payload: string }
-  | { type: 'DELETE_IMPORT_BATCH'; payload: { dateKey: string } }
+  | { type: 'DELETE_KNOWLEDGE_POINTS'; payload: { ids: string[] } }
+  | { type: 'DELETE_IMPORT_BATCH'; payload: { importId?: string; dateKey?: string } }
+  | { type: 'RESTORE_IMPORT_BATCH'; payload: { importId: string } }
+  | { type: 'PURGE_IMPORT_BATCH'; payload: { importId: string } }
   | { type: 'SET_IMPORTED_STUDY_SESSION'; payload: ImportedStudySession }
   | { type: 'CLEAR_IMPORTED_STUDY_SESSION' }
   | { type: 'UPDATE_PROFICIENCY'; payload: { id: string; proficiency: ProficiencyLevel } }
@@ -130,7 +166,7 @@ type LearningAction =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RECORD_HISTORY' }
-  | { type: 'SET_KNOWLEDGE_DATA'; payload: { subjects: Subject[]; chapters: Chapter[]; knowledgePoints: KnowledgePoint[]; questions: Question[] } }
+  | { type: 'SET_KNOWLEDGE_DATA'; payload: { subjects: Subject[]; chapters: Chapter[]; knowledgePoints: KnowledgePoint[]; questions: Question[]; importHistory?: ImportHistoryInput } }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'RECORD_FLASHCARD_STUDY'; payload: { knowledgePointId: string; score: number } }
   | { type: 'RECORD_QUIZ_ANSWER'; payload: { knowledgePointId: string; questionId: string; correct: boolean; score: number } }
@@ -167,32 +203,237 @@ function isLocalImportedKnowledgePoint(kp: KnowledgePointExtended, dateKey?: str
   return getImportDateKey(kp.createdAt) === dateKey;
 }
 
+function createDeleteMeta(now = new Date()) {
+  const deletedAt = now.toISOString();
+  return {
+    deletedAt,
+    deleteExpiresAt: new Date(now.getTime() + RECYCLE_RETENTION_DAYS * DAY_MS).toISOString(),
+    deleteGroupId: `delete-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+  };
+}
+
+function isDeleted(item: SoftDeleteFields): boolean {
+  return Boolean(item.deletedAt);
+}
+
+function isExpiredDeleted(item: SoftDeleteFields, now = Date.now()): boolean {
+  if (!item.deletedAt || !item.deleteExpiresAt) {
+    return false;
+  }
+
+  const expiresAt = new Date(item.deleteExpiresAt).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= now;
+}
+
+function clearDeleteMeta<T extends SoftDeleteFields>(item: T): T {
+  return {
+    ...item,
+    deletedAt: null,
+    deleteExpiresAt: null,
+    deleteGroupId: null,
+  };
+}
+
+function applyDeleteMeta<T extends SoftDeleteFields>(item: T, meta: Required<SoftDeleteFields>): T {
+  return {
+    ...item,
+    deletedAt: meta.deletedAt,
+    deleteExpiresAt: meta.deleteExpiresAt,
+    deleteGroupId: meta.deleteGroupId,
+  };
+}
+
+function removeExpiredDeletedState(state: LearningState, now = Date.now()): LearningState {
+  const expiredKpIds = new Set(
+    state.knowledgePoints
+      .filter(kp => isExpiredDeleted(kp, now))
+      .map(kp => kp.id)
+  );
+  const expiredQuestionIds = new Set(
+    state.questions
+      .filter(question => isExpiredDeleted(question as SoftDeleteFields, now))
+      .map(question => question.id)
+  );
+  state.questions.forEach(question => {
+    if (question.knowledgePointId && expiredKpIds.has(question.knowledgePointId)) {
+      expiredQuestionIds.add(question.id);
+    }
+  });
+
+  return {
+    ...state,
+    knowledgePoints: state.knowledgePoints.filter(kp => !expiredKpIds.has(kp.id)),
+    questions: state.questions.filter(question => !expiredQuestionIds.has(question.id)),
+    wrongRecords: state.wrongRecords.filter(record => !expiredQuestionIds.has(record.questionId)),
+    questionExplanations: state.questionExplanations.filter(explanation => !expiredQuestionIds.has(explanation.questionId)),
+    todayReviewItems: state.todayReviewItems.filter(item => !expiredKpIds.has(item.knowledgePointId)),
+    todayNewItems: state.todayNewItems.filter(item => !expiredKpIds.has(item.knowledgePointId)),
+    importHistory: state.importHistory.filter(entry => !isExpiredDeleted(entry, now)),
+  };
+}
+
+function getActiveLearningState(state: LearningState): LearningState {
+  const activeKpIds = new Set(
+    state.knowledgePoints
+      .filter(kp => !isDeleted(kp))
+      .map(kp => kp.id)
+  );
+  const activeQuestionIds = new Set(
+    state.questions
+      .filter(question => {
+        const deleted = isDeleted(question as SoftDeleteFields);
+        return !deleted && (!question.knowledgePointId || activeKpIds.has(question.knowledgePointId));
+      })
+      .map(question => question.id)
+  );
+
+  return {
+    ...state,
+    knowledgePoints: state.knowledgePoints.filter(kp => activeKpIds.has(kp.id)),
+    questions: state.questions.filter(question => activeQuestionIds.has(question.id)),
+    wrongRecords: state.wrongRecords.filter(record => activeQuestionIds.has(record.questionId)),
+    todayReviewItems: state.todayReviewItems.filter(item => activeKpIds.has(item.knowledgePointId)),
+    todayNewItems: state.todayNewItems.filter(item => activeKpIds.has(item.knowledgePointId)),
+  };
+}
+
+function buildLegacyImportHistory(
+  importedStudySession: ImportedStudySession | null | undefined,
+  knowledgePoints: KnowledgePointExtended[],
+  questions: Question[],
+): ImportHistoryEntry[] {
+  if (importedStudySession?.knowledgePointIds?.length) {
+    const kpIds = importedStudySession.knowledgePointIds.filter(id =>
+      knowledgePoints.some(kp => kp.id === id)
+    );
+    if (kpIds.length === 0) return [];
+
+    const kpIdSet = new Set(kpIds);
+    const questionIds = questions
+      .filter(question => question.knowledgePointId && kpIdSet.has(question.knowledgePointId))
+      .map(question => question.id);
+
+    return [{
+      id: `legacy-${importedStudySession.id}`,
+      source: 'local',
+      createdAt: importedStudySession.createdAt,
+      label: '历史导入',
+      knowledgePointIds: kpIds,
+      questionIds,
+      knowledgeCount: kpIds.length,
+      questionCount: questionIds.length,
+    }];
+  }
+
+  const grouped = new Map<string, string[]>();
+  knowledgePoints.forEach(kp => {
+    if (!isLocalImportedKnowledgePoint(kp)) return;
+    const dateKey = getImportDateKey(kp.createdAt);
+    if (!dateKey) return;
+    grouped.set(dateKey, [...(grouped.get(dateKey) ?? []), kp.id]);
+  });
+
+  return Array.from(grouped.entries()).map(([dateKey, kpIds]) => {
+    const kpIdSet = new Set(kpIds);
+    const questionIds = questions
+      .filter(question => question.knowledgePointId && kpIdSet.has(question.knowledgePointId))
+      .map(question => question.id);
+
+    return {
+      id: `legacy-import-${dateKey}`,
+      source: 'local',
+      createdAt: `${dateKey}T00:00:00.000Z`,
+      label: '历史本地导入',
+      knowledgePointIds: kpIds,
+      questionIds,
+      knowledgeCount: kpIds.length,
+      questionCount: questionIds.length,
+    };
+  });
+}
+
 function learningReducer(state: LearningState, action: LearningAction): LearningState {
   switch (action.type) {
     case 'ADD_SUBJECT':
       return { ...state, subjects: [...state.subjects, action.payload] };
     case 'ADD_CHAPTER':
       return { ...state, chapters: [...state.chapters, action.payload] };
-    case 'ADD_KNOWLEDGE_POINT':
-      return { ...state, knowledgePoints: [...state.knowledgePoints, action.payload as KnowledgePointExtended] };
+    case 'ADD_KNOWLEDGE_POINT': {
+      const { importHistory, ...knowledgePoint } = action.payload;
+      const nextKnowledgePoint = knowledgePoint as KnowledgePointExtended;
+      const nextImportHistory = importHistory
+        ? [
+            ...state.importHistory,
+            {
+              id: `import-history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              source: importHistory.source,
+              sourceId: importHistory.sourceId,
+              createdAt: importHistory.createdAt ?? nextKnowledgePoint.createdAt,
+              label: importHistory.label,
+              knowledgePointIds: [nextKnowledgePoint.id],
+              questionIds: [],
+              knowledgeCount: 1,
+              questionCount: 0,
+            },
+          ]
+        : state.importHistory;
+
+      return {
+        ...state,
+        knowledgePoints: [...state.knowledgePoints, nextKnowledgePoint],
+        importHistory: nextImportHistory,
+      };
+    }
     case 'DELETE_KNOWLEDGE_POINT':
-      return { ...state, knowledgePoints: state.knowledgePoints.filter(kp => kp.id !== action.payload) };
+      return learningReducer(state, { type: 'DELETE_KNOWLEDGE_POINTS', payload: { ids: [action.payload] } });
+    case 'DELETE_KNOWLEDGE_POINTS': {
+      const targetIds = new Set(action.payload.ids);
+      if (targetIds.size === 0) return state;
+      const deleteMeta = createDeleteMeta();
+      const affectedQuestionIds = new Set(
+        state.questions
+          .filter(question => question.knowledgePointId && targetIds.has(question.knowledgePointId))
+          .map(question => question.id)
+      );
+
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp =>
+          targetIds.has(kp.id) ? applyDeleteMeta(kp, deleteMeta) : kp
+        ),
+        questions: state.questions.map(question =>
+          affectedQuestionIds.has(question.id) ? applyDeleteMeta(question, deleteMeta) : question
+        ),
+        todayReviewItems: state.todayReviewItems.filter(item => !targetIds.has(item.knowledgePointId)),
+        todayNewItems: state.todayNewItems.filter(item => !targetIds.has(item.knowledgePointId)),
+        importHistory: state.importHistory.map(entry => {
+          const allDeleted = entry.knowledgePointIds.length > 0 && entry.knowledgePointIds.every(id => targetIds.has(id));
+          return allDeleted ? applyDeleteMeta(entry, deleteMeta) : entry;
+        }),
+      };
+    }
     case 'DELETE_IMPORT_BATCH': {
+      const historyEntry = action.payload.importId
+        ? state.importHistory.find(entry => entry.id === action.payload.importId)
+        : undefined;
       const importedBatchIds = new Set(
-        state.knowledgePoints
-          .filter(kp => isLocalImportedKnowledgePoint(kp, action.payload.dateKey))
-          .map(kp => kp.id)
+        historyEntry
+          ? historyEntry.knowledgePointIds
+          : state.knowledgePoints
+              .filter(kp => isLocalImportedKnowledgePoint(kp, action.payload.dateKey))
+              .map(kp => kp.id)
       );
 
       if (importedBatchIds.size === 0) {
         return state;
       }
 
-      const removedQuestionIds = new Set(
-        state.questions
+      const removedQuestionIds = new Set([
+        ...(historyEntry?.questionIds ?? []),
+        ...state.questions
           .filter(question => question.knowledgePointId && importedBatchIds.has(question.knowledgePointId))
-          .map(question => question.id)
-      );
+          .map(question => question.id),
+      ]);
 
       const nextImportedStudySession = state.importedStudySession
         ? {
@@ -201,19 +442,77 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
           }
         : null;
 
+      const deleteMeta = createDeleteMeta();
+
       return {
         ...state,
-        knowledgePoints: state.knowledgePoints.filter(kp => !importedBatchIds.has(kp.id)),
-        questions: state.questions.filter(question => !removedQuestionIds.has(question.id)),
-        wrongRecords: state.wrongRecords.filter(record => !removedQuestionIds.has(record.questionId)),
-        questionExplanations: state.questionExplanations.filter(
-          explanation => !removedQuestionIds.has(explanation.questionId)
+        knowledgePoints: state.knowledgePoints.map(kp =>
+          importedBatchIds.has(kp.id) ? applyDeleteMeta(kp, deleteMeta) : kp
+        ),
+        questions: state.questions.map(question =>
+          removedQuestionIds.has(question.id) ? applyDeleteMeta(question, deleteMeta) : question
         ),
         todayReviewItems: state.todayReviewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
         todayNewItems: state.todayNewItems.filter(item => !importedBatchIds.has(item.knowledgePointId)),
         importedStudySession: nextImportedStudySession && nextImportedStudySession.knowledgePointIds.length > 0
           ? nextImportedStudySession
           : null,
+        importHistory: state.importHistory.map(entry => {
+          if (historyEntry && entry.id === historyEntry.id) {
+            return applyDeleteMeta(entry, deleteMeta);
+          }
+          if (!action.payload.dateKey || entry.createdAt.slice(0, 10) !== action.payload.dateKey) {
+            return entry;
+          }
+          return applyDeleteMeta(entry, deleteMeta);
+        }),
+      };
+    }
+    case 'RESTORE_IMPORT_BATCH': {
+      const historyEntry = state.importHistory.find(entry => entry.id === action.payload.importId);
+      if (!historyEntry) return state;
+
+      const restoreKpIds = new Set(historyEntry.knowledgePointIds);
+      const restoreQuestionIds = new Set(historyEntry.questionIds);
+      state.questions.forEach(question => {
+        if (question.knowledgePointId && restoreKpIds.has(question.knowledgePointId)) {
+          restoreQuestionIds.add(question.id);
+        }
+      });
+
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.map(kp =>
+          restoreKpIds.has(kp.id) ? clearDeleteMeta(kp) : kp
+        ),
+        questions: state.questions.map(question =>
+          restoreQuestionIds.has(question.id) ? clearDeleteMeta(question) : question
+        ),
+        importHistory: state.importHistory.map(entry =>
+          entry.id === historyEntry.id ? clearDeleteMeta(entry) : entry
+        ),
+      };
+    }
+    case 'PURGE_IMPORT_BATCH': {
+      const historyEntry = state.importHistory.find(entry => entry.id === action.payload.importId);
+      if (!historyEntry) return state;
+      const purgeKpIds = new Set(historyEntry.knowledgePointIds);
+      const purgeQuestionIds = new Set(historyEntry.questionIds);
+      state.questions.forEach(question => {
+        if (question.knowledgePointId && purgeKpIds.has(question.knowledgePointId)) {
+          purgeQuestionIds.add(question.id);
+        }
+      });
+
+      return {
+        ...state,
+        knowledgePoints: state.knowledgePoints.filter(kp => !purgeKpIds.has(kp.id)),
+        questions: state.questions.filter(question => !purgeQuestionIds.has(question.id)),
+        wrongRecords: state.wrongRecords.filter(record => !purgeQuestionIds.has(record.questionId)),
+        questionExplanations: state.questionExplanations.filter(explanation => !purgeQuestionIds.has(explanation.questionId)),
+        todayReviewItems: state.todayReviewItems.filter(item => !purgeKpIds.has(item.knowledgePointId)),
+        todayNewItems: state.todayNewItems.filter(item => !purgeKpIds.has(item.knowledgePointId)),
+        importHistory: state.importHistory.filter(entry => entry.id !== historyEntry.id),
       };
     }
     case 'SET_IMPORTED_STUDY_SESSION':
@@ -241,7 +540,14 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ...state,
         knowledgePoints: state.knowledgePoints.map(kp =>
           kp.id === action.payload.id
-            ? { ...kp, proficiency: action.payload.proficiency, lastReviewedAt: now, nextReviewAt: nextReview, reviewCount: kp.reviewCount + 1 }
+            ? {
+                ...kp,
+                proficiency: action.payload.proficiency,
+                lastReviewedAt: now,
+                nextReviewAt: nextReview,
+                reviewCount: kp.reviewCount + 1,
+                masteredAt: action.payload.proficiency === 'master' ? (kp.masteredAt ?? now) : kp.masteredAt,
+              }
             : kp
         ),
       };
@@ -296,6 +602,12 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         chapters: state.chapters,
         knowledgePoints: state.knowledgePoints,
         questions: state.questions,
+        wrongRecords: state.wrongRecords,
+        todayReviewItems: state.todayReviewItems,
+        todayNewItems: state.todayNewItems,
+        questionExplanations: state.questionExplanations,
+        importedStudySession: state.importedStudySession,
+        importHistory: state.importHistory,
       } as LearningState);
       // Keep only last 50 history entries
       if (newHistory.length > 50) newHistory.shift();
@@ -335,17 +647,24 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
     }
     case 'SET_KNOWLEDGE_DATA': {
       // 合并知识库数据：下载的数据与现有数据合并（按ID去重）
-      const existingKPIds = new Set(state.knowledgePoints.map(kp => kp.id));
+      const existingKPIds = new Set(state.knowledgePoints.filter(kp => !isDeleted(kp)).map(kp => kp.id));
       const newKPIds = new Set(action.payload.knowledgePoints.map(kp => kp.id));
+      const importCreatedAt = action.payload.importHistory?.createdAt ?? new Date().toISOString();
 
       // 找出本地有但下载数据没有的（保留本地独有的）
       const localOnlyKP = state.knowledgePoints.filter(kp => !newKPIds.has(kp.id));
       // 找出下载有但本地没有的（新增的）
-      const newOnlyKP = action.payload.knowledgePoints.filter(kp => !existingKPIds.has(kp.id)) as KnowledgePointExtended[];
+      const newOnlyKP = action.payload.knowledgePoints
+        .filter(kp => !existingKPIds.has(kp.id))
+        .map(kp => ({
+          ...kp,
+          createdAt: kp.createdAt || importCreatedAt,
+          source: kp.source ?? 'import',
+        })) as KnowledgePointExtended[];
       // 合并：本地独有 + (本地和下载都有的，用下载的更新) + 下载独有的
       const mergedKP = [
         ...localOnlyKP,
-        ...state.knowledgePoints.filter(kp => newKPIds.has(kp.id)).map(existing => {
+        ...state.knowledgePoints.filter(kp => newKPIds.has(kp.id) && !isDeleted(kp)).map(existing => {
           const downloaded = action.payload.knowledgePoints.find(kp => kp.id === existing.id);
           return downloaded ? { ...existing, ...downloaded } as KnowledgePointExtended : existing;
         }),
@@ -366,16 +685,33 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
       ];
 
       // 合并 questions
-      const existingQuestionIds = new Set(state.questions.map(q => q.id));
+      const existingQuestionIds = new Set(state.questions.filter(q => !isDeleted(q as SoftDeleteFields)).map(q => q.id));
+      const newOnlyQuestions = action.payload.questions.filter(q => !existingQuestionIds.has(q.id));
       const mergedQuestions = [
         ...state.questions,
-        ...action.payload.questions.filter(q => !existingQuestionIds.has(q.id))
+        ...newOnlyQuestions
       ];
 
       const mergedQuestionExplanations = buildQuestionExplanationSeeds(
         mergedQuestions,
         state.questionExplanations
       );
+      const nextImportHistory = action.payload.importHistory && newOnlyKP.length > 0
+        ? [
+            ...state.importHistory,
+            {
+              id: `import-history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              source: action.payload.importHistory.source,
+              sourceId: action.payload.importHistory.sourceId,
+              createdAt: importCreatedAt,
+              label: action.payload.importHistory.label,
+              knowledgePointIds: newOnlyKP.map(kp => kp.id),
+              questionIds: newOnlyQuestions.map(question => question.id),
+              knowledgeCount: newOnlyKP.length,
+              questionCount: newOnlyQuestions.length,
+            },
+          ]
+        : state.importHistory;
 
       return {
         ...state,
@@ -384,6 +720,7 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         knowledgePoints: mergedKP,
         questions: mergedQuestions,
         questionExplanations: mergedQuestionExplanations,
+        importHistory: nextImportHistory,
       };
     }
     case 'SET_LOADING':
@@ -520,23 +857,28 @@ function getInitialLearningState(): LearningState {
     const todayNewItems = savedNewItems.filter(item => item.scheduledAt === today);
 
     const savedQuestions = saved.questions ?? initialLearningState.questions;
+    const savedKnowledgePoints = saved.knowledgePoints ?? initialLearningState.knowledgePoints;
     const savedQuestionExplanations = (saved.questionExplanations ?? initialLearningState.questionExplanations) as QuestionExplanation[];
+    const savedImportedStudySession = (saved.importedStudySession as ImportedStudySession | null | undefined) ?? null;
+    const savedImportHistory = (saved.importHistory as ImportHistoryEntry[] | undefined)
+      ?? buildLegacyImportHistory(savedImportedStudySession, savedKnowledgePoints, savedQuestions);
 
-    return {
+    return removeExpiredDeletedState({
       ...initialLearningState,
       subjects: saved.subjects ?? initialLearningState.subjects,
       chapters: saved.chapters ?? initialLearningState.chapters,
-      knowledgePoints: saved.knowledgePoints ?? initialLearningState.knowledgePoints,
+      knowledgePoints: savedKnowledgePoints,
       questions: savedQuestions,
       quizResults: saved.quizResults ?? initialLearningState.quizResults,
       wrongRecords: saved.wrongRecords ?? initialLearningState.wrongRecords,
       todayReviewItems,
       todayNewItems,
       questionExplanations: buildQuestionExplanationSeeds(savedQuestions, savedQuestionExplanations),
-      importedStudySession: (saved.importedStudySession as ImportedStudySession | null | undefined) ?? null,
-    };
+      importedStudySession: savedImportedStudySession,
+      importHistory: savedImportHistory,
+    });
   }
-  return initialLearningState;
+  return removeExpiredDeletedState(initialLearningState);
 }
 
 export function LearningProvider({ children }: { children: ReactNode }) {
@@ -604,6 +946,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       todayNewItems: learningState.todayNewItems,
       questionExplanations: learningState.questionExplanations,
       importedStudySession: learningState.importedStudySession,
+      importHistory: learningState.importHistory,
     });
     saveState(mergedState);
     console.log('[LearningContext] Saved to localStorage, kp count:', learningState.knowledgePoints.length);
@@ -675,7 +1018,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   }, [learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions]);
 
   const getLearningStats = useCallback((): LearningStats => {
-    const kps = learningState.knowledgePoints;
+    const activeState = getActiveLearningState(learningState);
+    const kps = activeState.knowledgePoints;
     const masteredCount = kps.filter(k => k.proficiency === 'master').length;
     const normalCount = kps.filter(k => k.proficiency === 'normal').length;
     const rustyCount = kps.filter(k => k.proficiency === 'rusty').length;
@@ -709,7 +1053,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       streakDays: 0, // 从UserContext获取
       weakSubjects,
     };
-  }, [learningState.knowledgePoints, learningState.quizResults, learningState.subjects]);
+  }, [learningState, learningState.quizResults, learningState.subjects]);
 
   const getTaskCompletionRate = useCallback(() => {
     const allTasks = [...learningState.todayReviewItems, ...learningState.todayNewItems];
@@ -735,8 +1079,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     learningDispatch({ type: 'RECORD_HISTORY' });
   }, [learningDispatch]);
 
+  const publicLearningState = useMemo(() => getActiveLearningState(learningState), [learningState]);
+
   const contextValue = useMemo(() => ({
-    learningState,
+    learningState: publicLearningState,
     learningDispatch,
     getLearningStats,
     getTaskCompletionRate,
@@ -745,7 +1091,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     recordHistory,
     _canUndo: learningState._canUndo,
     _canRedo: learningState._canRedo
-  }), [learningState, learningDispatch, getLearningStats, getTaskCompletionRate, undo, redo, recordHistory]);
+  }), [publicLearningState, learningDispatch, getLearningStats, getTaskCompletionRate, undo, redo, recordHistory]);
 
   return (
     <LearningContext.Provider value={contextValue}>

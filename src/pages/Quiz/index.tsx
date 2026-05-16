@@ -5,6 +5,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { PageHeader, EmptyState } from '@/components/ui/Common';
 import { Play, RotateCcw, AlertCircle, BookOpen, Sparkles, Compass, Brain, Target } from 'lucide-react';
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
+import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
 
 export type LearningIntention = 'mixed' | 'new' | 'review' | 'weak' | 'custom';
 
@@ -39,7 +40,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
     return (
-      <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
+      <div className="page-scroll" style={getAdaptivePageBackground(theme)}>
         <TopAppBar />
 
         <div className="px-6 pt-6 space-y-6 pb-32">
@@ -287,7 +288,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
 
   // ===== Playful 风格渲染 =====
   return (
-    <div className="page-scroll pb-20">
+    <div className="page-scroll pb-20" style={getAdaptivePageBackground(theme)}>
       <PageHeader title="刷题中心" />
 
       {/* Wrong Book Entry */}
@@ -297,7 +298,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
             onClick={() => navigate('wrong-book')}
             className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md transition-shadow flex items-center justify-between active:scale-[0.98]"
             style={{
-              backgroundColor: theme.bgCard,
+              ...getAdaptiveSurface(theme, 'base'),
               borderColor: theme.border,
             }}
           >
@@ -318,7 +319,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
       {/* 学习倾向选择 - 用户可以指定今天学习重点 */}
       <div className={`px-4 pt-5 ${getAnimationClass(2)}`}>
         <div className="rounded-2xl p-4 border mb-5" style={{
-          backgroundColor: theme.bgCard,
+          ...getAdaptiveSurface(theme, 'base'),
           borderColor: theme.border
         }}>
           <div className="flex items-center gap-2 mb-3">
@@ -337,7 +338,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
                 onClick={() => setSelectedIntention(key)}
                 className="p-2 rounded-xl border text-left transition-all"
                 style={{
-                  backgroundColor: selectedIntention === key ? theme.primary : theme.bgCard,
+                  backgroundColor: selectedIntention === key ? theme.primary : getAdaptiveSurface(theme, 'raised').backgroundColor,
                   borderColor: selectedIntention === key ? theme.primary : `${theme.primary}30`,
                   color: selectedIntention === key ? '#ffffff' : theme.textPrimary
                 }}
@@ -377,7 +378,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
                   <button
                     onClick={() => navigate('quiz-session', { subjectId: subject.id })}
                     className="w-full rounded-2xl p-5 border shadow-sm hover:shadow-md hover:border-primary/30 transition-all flex items-center justify-between active:scale-[0.98]"
-                    style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
+                    style={{ ...getAdaptiveSurface(theme, 'base'), borderColor: theme.border }}
                   >
                     <div className="flex items-center gap-4">
                       <div
@@ -393,7 +394,7 @@ export default function QuizPage({ isActive = true }: QuizPageProps) {
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 rounded-full" style={{ backgroundColor: `${theme.primary}10` }}>
+                    <div className="p-3 rounded-full" style={{ ...getAdaptiveButton(theme, 'ghost') }}>
                       <Play size={20} style={{ color: theme.primary }} fill="currentColor" />
                     </div>
                   </button>

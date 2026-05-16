@@ -8,6 +8,7 @@
     "dev:server": "cd server && node index.js",
     "dev:all": "npm run dev:server & npm run dev",
     "build": "tsc -b && vite build",
+    "prepare:cloud-storage": "node scripts/prepare-cloud-storage.mjs",
     "test": "jest --runInBand",
     "import:samples": "node generate-import-samples.mjs",
     "lint": "eslint .",

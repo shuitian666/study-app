@@ -1,27 +1,36 @@
-import { useUser } from '@/store/UserContext';
-import { useGame, isValidRedeemCode } from '@/store/GameContext';
-import { PageHeader } from '@/components/ui/Common';
-import { ShoppingBag, Star, Check, Gift, Copy, CheckCircle } from 'lucide-react';
-import type { ShopItemType } from '@/types';
 import { useState } from 'react';
+import { Check, CheckCircle, Copy, Gift, ShoppingBag, Star } from 'lucide-react';
+import { PageHeader } from '@/components/ui/Common';
+import { useGame, isValidRedeemCode, REDEMPTION_CODES } from '@/store/GameContext';
+import { useUser } from '@/store/UserContext';
+import type { ShopItem, ShopItemType, UpPoolItem } from '@/types';
+import { createInventoryItemFromReward, isInventoryRewardOwned } from '@/utils/rewardGranting';
 
 const TYPE_LABELS: Record<ShopItemType, string> = {
   makeup_card: '功能道具',
   avatar_frame: '头像框',
-  background: '背景板',
+  background: '背景',
   theme_skin: '主题皮肤',
-  ai_skin: 'AI助手皮肤',
+  ai_skin: 'AI皮肤',
   theme: '主题',
   vip_card: 'VIP会员',
-  coin_bag: '星币袋',
+  coin_bag: '星币包',
 };
 
-// 兑换码配置（与 GameContext 中的保持一致）
-const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
-  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
-  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
-  '创作者体验': { upDraws: 99, regularDraws: 99, coins: 9999 },
-};
+const STACKABLE_SHOP_TYPES = new Set<ShopItemType>(['makeup_card', 'coin_bag', 'vip_card']);
+
+function toRewardItem(item: ShopItem): UpPoolItem {
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    icon: item.icon,
+    type: item.type === 'theme_skin' || item.type === 'ai_skin' ? 'theme' : item.type as UpPoolItem['type'],
+    rarity: item.rarity || 'N',
+    probability: 1,
+    owned: false,
+  };
+}
 
 export default function ShopPage() {
   const { userState, userDispatch, navigate } = useUser();
@@ -33,73 +42,40 @@ export default function ShopPage() {
 
   const coins = userState.user?.totalPoints ?? 0;
 
-  // 检查物品是否已在背包中（用于非可堆叠物品）
-  const isOwned = (item: typeof gameState.shopItems[0]) => {
-    // 可堆叠物品（补签卡等）不显示"已拥有"
-    if (item.type === 'makeup_card' || item.type === 'coin_bag' || item.type === 'vip_card') {
-      return false;
-    }
-    // 检查背包中是否有该物品
-    return userState.inventory.items.some(i => i.name === item.name);
+  const isOwned = (item: ShopItem) => {
+    if (STACKABLE_SHOP_TYPES.has(item.type)) return false;
+    return isInventoryRewardOwned(userState.inventory, toRewardItem(item));
   };
 
   const filtered = tab === 'all'
     ? gameState.shopItems
     : tab === 'redeem'
       ? []
-      : gameState.shopItems.filter(i => i.type === tab);
+      : gameState.shopItems.filter(item => item.type === tab);
 
   const handleBuy = (itemId: string) => {
-    const item = gameState.shopItems.find(i => i.id === itemId);
-    if (!item) return;
-    // 可堆叠物品可以重复购买，非可堆叠物品检查是否已拥有
-    if (item.type !== 'makeup_card' && item.type !== 'coin_bag' && item.type !== 'vip_card') {
-      if (isOwned(item)) return;
-    }
-    if (coins < item.price) return;
+    const item = gameState.shopItems.find(entry => entry.id === itemId);
+    if (!item || coins < item.price) return;
+    if (!STACKABLE_SHOP_TYPES.has(item.type) && isOwned(item)) return;
 
-    // 消耗星币
-    userDispatch({
-      type: 'UPDATE_USER',
-      payload: { totalPoints: coins - item.price }
-    });
+    userDispatch({ type: 'ADD_STAR_COINS', payload: -item.price });
 
-    // 补签卡不添加到背包，直接增加补签卡数量
-    if (item.type === 'makeup_card') {
-      gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
-      return;
+    if (item.type !== 'makeup_card') {
+      userDispatch({
+        type: 'ADD_INVENTORY_ITEM',
+        payload: createInventoryItemFromReward(toRewardItem(item), 'shop', 'inv-shop'),
+      });
     }
 
-    // 将物品添加到背包
-    // 类型映射：商店类型 -> 背包类型
-    const typeMapping: Record<string, string> = {
-      'theme_skin': 'theme',
-      'ai_skin': 'theme',
-    };
-    const inventoryItem = {
-      id: `inv-${item.id}-${Date.now()}`,
-      type: (typeMapping[item.type] || item.type) as any,
-      name: item.name,
-      description: item.description || `购买获得: ${item.name}`,
-      icon: item.icon,
-      rarity: item.rarity || 'N',
-      quantity: 1,
-      obtainedAt: new Date().toISOString(),
-      source: 'shop' as const,
-      usable: item.type === 'vip_card',
-    };
-    userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: inventoryItem });
-
-    // 购买物品
     gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
   };
 
   const handleRedeem = () => {
-    if (!redeemInput.trim()) return;
     const code = redeemInput.trim();
+    if (!code) return;
 
     if (gameState.redeemedCodes.includes(code)) {
-      setRedeemMessage({ type: 'error', text: '该兑换码已使用过' });
+      setRedeemMessage({ type: 'error', text: '该兑换码已经使用过' });
       setTimeout(() => setRedeemMessage(null), 3000);
       return;
     }
@@ -110,23 +86,19 @@ export default function ShopPage() {
       return;
     }
 
-    // 使用 GameContext 的兑换码系统
-    gameDispatch({ type: 'REDEEM_CODE', payload: code });
-
     const reward = REDEMPTION_CODES[code];
-    let rewardText = '';
-    if (reward.upDraws > 0) rewardText += `UP抽签 +${reward.upDraws} `;
-    if (reward.regularDraws > 0) rewardText += `常规抽签 +${reward.regularDraws} `;
+    gameDispatch({ type: 'REDEEM_CODE', payload: code });
     if (reward.coins > 0) {
-      rewardText += `星币 +${reward.coins}`;
-      // 直接给星币
-      userDispatch({
-        type: 'UPDATE_USER',
-        payload: { totalPoints: (userState.user?.totalPoints ?? 0) + reward.coins }
-      });
+      userDispatch({ type: 'ADD_STAR_COINS', payload: reward.coins });
     }
 
-    setRedeemMessage({ type: 'success', text: `兑换成功！${rewardText.trim()}` });
+    const rewardText = [
+      reward.upDraws > 0 ? `UP抽签 +${reward.upDraws}` : '',
+      reward.regularDraws > 0 ? `常规抽签 +${reward.regularDraws}` : '',
+      reward.coins > 0 ? `星币 +${reward.coins}` : '',
+    ].filter(Boolean).join(' ');
+
+    setRedeemMessage({ type: 'success', text: `兑换成功：${rewardText}` });
     setRedeemInput('');
     setTimeout(() => setRedeemMessage(null), 3000);
   };
@@ -141,48 +113,40 @@ export default function ShopPage() {
     <div className="page-scroll pb-4">
       <PageHeader title="商城" onBack={() => navigate('profile')} />
 
-      {/* Coins bar */}
-      <div className="mx-4 mt-3 bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-2xl p-4 flex items-center justify-between">
+      <div className="mx-4 mt-3 flex items-center justify-between rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-400 p-4 text-white">
         <div className="flex items-center gap-2">
           <ShoppingBag size={20} />
           <span className="font-bold">星币商城</span>
         </div>
-
-        <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
+        <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1">
           <Star size={14} fill="currentColor" />
           <span className="font-bold">{coins}</span>
         </div>
-
       </div>
 
-
-      {/* Category tabs */}
       <div className="mx-4 mt-4 flex gap-2 overflow-x-auto pb-1">
         <button
           onClick={() => setTab('all')}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
             tab === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
-
           }`}
         >
           全部
         </button>
-
         {(Object.entries(TYPE_LABELS) as [ShopItemType, string][]).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               tab === key ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
             }`}
           >
             {label}
           </button>
         ))}
-
         <button
           onClick={() => setTab('redeem')}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+          className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
             tab === 'redeem' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600'
           }`}
         >
@@ -191,43 +155,33 @@ export default function ShopPage() {
         </button>
       </div>
 
-      {/* 兑换码区域 */}
-      {tab === 'redeem' && (
+      {tab === 'redeem' ? (
         <div className="mx-4 mt-4">
-          {/* 可用兑换码列表 */}
           <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2 text-text-secondary">可用兑换码</h4>
+            <h4 className="mb-2 text-sm font-medium text-text-secondary">可用兑换码</h4>
             <div className="space-y-2">
               {Object.entries(REDEMPTION_CODES).map(([code, reward]) => {
                 const isUsed = gameState.redeemedCodes.includes(code);
-                let rewardText = '';
-                if (reward.upDraws > 0) rewardText += `UP抽+${reward.upDraws} `;
-                if (reward.regularDraws > 0) rewardText += `常规+${reward.regularDraws} `;
-                if (reward.coins > 0) rewardText += `${reward.coins}星币`;
+                const rewardText = [
+                  reward.upDraws > 0 ? `UP抽签 ${reward.upDraws}` : '',
+                  reward.regularDraws > 0 ? `常规 +${reward.regularDraws}` : '',
+                  reward.coins > 0 ? `${reward.coins}星币` : '',
+                ].filter(Boolean).join(' ');
+
                 return (
-                  <div
-                    key={code}
-                    className={`bg-white rounded-xl p-3 border ${
-                      isUsed ? 'border-gray-200 opacity-60' : 'border-pink-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm">{code}</span>
-                          {isUsed ? (
-                            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">已使用</span>
-                          ) : (
-                            <button
-                              onClick={() => handleCopyCode(code)}
-                              className="p-1 bg-pink-50 rounded text-pink-600 hover:bg-pink-100"
-                            >
-                              {copied === code ? <CheckCircle size={14} /> : <Copy size={14} />}
-                            </button>
-                          )}
-                        </div>
+                  <div key={code} className={`rounded-xl border bg-white p-3 ${isUsed ? 'border-gray-200 opacity-60' : 'border-pink-200'}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-mono text-sm font-bold">{code}</span>
+                        {isUsed ? (
+                          <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">已使用</span>
+                        ) : (
+                          <button onClick={() => handleCopyCode(code)} className="rounded bg-pink-50 p-1 text-pink-600 hover:bg-pink-100">
+                            {copied === code ? <CheckCircle size={14} /> : <Copy size={14} />}
+                          </button>
+                        )}
                       </div>
-                      <span className="text-sm font-medium text-pink-600">{rewardText.trim()}</span>
+                      <span className="shrink-0 text-sm font-medium text-pink-600">{rewardText}</span>
                     </div>
                   </div>
                 );
@@ -235,92 +189,68 @@ export default function ShopPage() {
             </div>
           </div>
 
-          {/* 输入兑换 */}
-          <div className="bg-white rounded-2xl p-4 border border-border">
-            <h4 className="text-sm font-medium mb-3">输入兑换码</h4>
+          <div className="rounded-2xl border border-border bg-white p-4">
+            <h4 className="mb-3 text-sm font-medium">输入兑换码</h4>
             <input
               type="text"
               value={redeemInput}
-              onChange={(e) => { setRedeemInput(e.target.value); setRedeemMessage(null); }}
+              onChange={event => { setRedeemInput(event.target.value); setRedeemMessage(null); }}
+              onKeyDown={event => event.key === 'Enter' && handleRedeem()}
               placeholder="请输入兑换码"
-              className="w-full border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors mb-3"
+              className="mb-3 w-full rounded-xl border border-border px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
             />
-            
             {redeemMessage && (
-              <div className={`mb-3 p-3 rounded-xl text-sm ${
-                redeemMessage.type === 'success' 
-                  ? 'bg-green-50 text-green-700 border border-green-200' 
-                  : 'bg-red-50 text-red-700 border border-red-200'
+              <div className={`mb-3 rounded-xl border p-3 text-sm ${
+                redeemMessage.type === 'success'
+                  ? 'border-green-200 bg-green-50 text-green-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
               }`}>
                 {redeemMessage.text}
               </div>
             )}
-
             <button
               onClick={handleRedeem}
               disabled={!redeemInput.trim()}
-              className="w-full bg-primary text-white py-3 rounded-xl font-medium text-sm disabled:opacity-50"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-white disabled:opacity-50"
             >
               确认兑换
             </button>
           </div>
         </div>
-      )}
-
-      {/* Items grid */}
-      {tab !== 'redeem' && (
+      ) : (
         <div className="mx-4 mt-3 grid grid-cols-2 gap-3">
-          {filtered.map(item => (
-            <div key={item.id} className="bg-white rounded-2xl p-4 border border-border shadow-sm flex flex-col items-center">
-              <div className="text-4xl mb-2">{item.icon}</div>
+          {filtered.map(item => {
+            const owned = isOwned(item);
+            return (
+              <div key={item.id} className="flex flex-col items-center rounded-2xl border border-border bg-white p-4 shadow-sm">
+                <div className="mb-2 text-4xl">{item.icon}</div>
+                <h4 className="mb-0.5 text-sm font-medium">{item.name}</h4>
+                <p className="mb-3 text-center text-[10px] text-text-muted">{item.description}</p>
 
-              <h4 className="text-sm font-medium mb-0.5">{item.name}</h4>
-
-              <p className="text-[10px] text-text-muted mb-3 text-center">{item.description}</p>
-
-
-              {/* 可堆叠功能道具（补签卡）始终显示购买按钮，支持重复购买 */}
-              {item.type === 'makeup_card' ? (
-                <button
-                  onClick={() => handleBuy(item.id)}
-                  disabled={coins < item.price}
-                  className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                    coins >= item.price
-                      ? 'bg-primary text-white active:scale-[0.97]'
-                      : 'bg-gray-100 text-text-muted cursor-not-allowed'
-                  }`}
-                >
-                  <Star size={10} fill="currentColor" />
-                  {item.price}
-                </button>
-              ) : isOwned(item) ? (
-                <div className="flex items-center gap-1 text-accent text-xs font-medium">
-                  <Check size={12} />
-                  已拥有
-                </div>
-              ) : (
-                <button
-                  onClick={() => handleBuy(item.id)}
-                  disabled={coins < item.price}
-                  className={`w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-all ${
-                    coins >= item.price
-                      ? 'bg-primary text-white active:scale-[0.97]'
-                      : 'bg-gray-100 text-text-muted cursor-not-allowed'
-                  }`}
-                >
-                  <Star size={10} fill="currentColor" />
-                  {item.price}
-                </button>
-              )}
-
-            </div>
-
-          ))}
-
+                {owned ? (
+                  <div className="flex items-center gap-1 text-xs font-medium text-accent">
+                    <Check size={12} />
+                    已拥有
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleBuy(item.id)}
+                    disabled={coins < item.price}
+                    className={`flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium transition-all ${
+                      coins >= item.price
+                        ? 'bg-primary text-white active:scale-[0.97]'
+                        : 'cursor-not-allowed bg-gray-100 text-text-muted'
+                    }`}
+                  >
+                    <Star size={10} fill="currentColor" />
+                    {item.price}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
-
     </div>
-
   );
 }

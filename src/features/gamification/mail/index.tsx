@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
-import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle, Sparkles } from 'lucide-react';
 
 const attachmentIcons: Record<string, React.ReactNode> = {
   makeup_card: <Ticket size={14} className="text-blue-500" />,
   avatar_frame: <Crown size={14} className="text-purple-500" />,
   coin: <Coins size={14} className="text-amber-500" />,
+  experience: <Sparkles size={14} className="text-indigo-500" />,
   vip: <Crown size={14} className="text-yellow-500" />,
 };
 

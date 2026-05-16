@@ -19,11 +19,13 @@
 
 import React, { Suspense, useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useTheme } from '@/store/ThemeContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
 import { allBackgrounds } from '@/pages/AvatarEdit';
+import { isDarkTheme } from '@/utils/adaptiveTheme';
 
 // 懒加载所有页面组件，减少首屏加载体积
 const LoginPage = React.lazy(() => import('@/pages/Login'));
@@ -38,7 +40,6 @@ const QuizSessionPage = React.lazy(() => import('@/pages/Quiz/QuizSession'));
 const QuizResultPage = React.lazy(() => import('@/pages/Quiz/QuizResult'));
 const WrongBookPage = React.lazy(() => import('@/pages/Quiz/WrongBook'));
 const KnowledgeMapPage = React.lazy(() => import('@/pages/KnowledgeMap'));
-const ReviewSessionPage = React.lazy(() => import('@/pages/Review'));
 const CheckinPage = React.lazy(() => import('@/features/gamification/checkin'));
 const AchievementsPage = React.lazy(() => import('@/features/gamification/achievements'));
 const ShopPage = React.lazy(() => import('@/features/gamification/shop'));
@@ -69,6 +70,12 @@ const LoadingFallback = () => (
 
 function AppContent() {
   const { userState, navigate } = useUser();
+  const { theme } = useTheme();
+  const isDark = isDarkTheme(theme);
+  const pagePanelStyle = {
+    backgroundColor: isDark ? 'rgba(9, 15, 28, 0.58)' : 'rgba(255, 255, 255, 0.68)',
+    backdropFilter: 'blur(14px)',
+  };
 
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
@@ -152,6 +159,16 @@ function AppContent() {
       );
     }
 
+    if (pattern === 'aurora') {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-35">
+          <div className="absolute -left-20 top-8 h-56 w-56 rounded-full bg-cyan-300/35 blur-3xl" />
+          <div className="absolute left-1/3 top-1/4 h-64 w-64 rounded-full bg-indigo-300/30 blur-3xl" />
+          <div className="absolute -right-16 bottom-16 h-56 w-56 rounded-full bg-fuchsia-300/25 blur-3xl" />
+        </div>
+      );
+    }
+
     return null;
   }, []);
 
@@ -159,9 +176,6 @@ function AppContent() {
     switch (userState.currentPage) {
       case 'login': return <LoginPage />;
       case 'home': return <HomePage isActive />;
-      case 'daily-question':
-      case 'subject-detail':
-        return <HomePage isActive />;
       case 'profile': return <ProfilePage />;
       case 'knowledge': return <KnowledgePage isActive />;
       case 'knowledge-detail': return <KnowledgeDetailPage />;
@@ -172,7 +186,6 @@ function AppContent() {
       case 'quiz-result': return <QuizResultPage />;
       case 'wrong-book': return <WrongBookPage />;
       case 'knowledge-map': return <KnowledgeMapPage />;
-      case 'review-session': return <ReviewSessionPage />;
       case 'checkin': return <CheckinPage />;
       case 'achievements': return <AchievementsPage />;
       case 'shop': return <ShopPage />;
@@ -190,7 +203,7 @@ function AppContent() {
 
   const isFullScreen = userState.currentPage === 'login' || userState.currentPage === 'quiz-result' || userState.currentPage === 'ai-chat'
     || userState.currentPage === 'quiz-session' || userState.currentPage === 'knowledge-detail' || userState.currentPage === 'add-knowledge'
-    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'review-session' || userState.currentPage === 'wrong-book'
+    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'wrong-book'
     || userState.currentPage === 'flashcard-learning';
 
   // 五个主页面用于循环滑动切换
@@ -198,7 +211,7 @@ function AppContent() {
   type MainTab = typeof mainTabs[number];
   const currentIndex = mainTabs.indexOf(userState.currentPage as MainTab);
   const isMainTab = currentIndex >= 0;
-  const isHomeScreen = userState.currentPage === 'home' || userState.currentPage === 'daily-question' || userState.currentPage === 'subject-detail';
+  const isHomeScreen = userState.currentPage === 'home';
 
   // 检测是否为大屏幕（电脑）启用滑动切换，小屏幕（手机）保持原有方式
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth > 768);
@@ -395,7 +408,7 @@ function AppContent() {
               zIndex: 1
             }}
           >
-            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
+            <div className="w-full h-full overflow-y-auto pb-[70px]" style={pagePanelStyle}>
               <Suspense fallback={<LoadingFallback />}>
                 {renderMainTab(mainTabs[prevIndex], false)}
               </Suspense>
@@ -411,7 +424,7 @@ function AppContent() {
               zIndex: 2
             }}
           >
-            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
+            <div className="w-full h-full overflow-y-auto pb-[70px]" style={pagePanelStyle}>
               <Suspense fallback={<LoadingFallback />}>
                 {renderMainTab(mainTabs[currentIndex], true)}
               </Suspense>
@@ -427,7 +440,7 @@ function AppContent() {
               zIndex: 1
             }}
           >
-            <div className="w-full h-full bg-white/80 backdrop-blur-sm overflow-y-auto pb-[70px]">
+            <div className="w-full h-full overflow-y-auto pb-[70px]" style={pagePanelStyle}>
               <Suspense fallback={<LoadingFallback />}>
                 {renderMainTab(mainTabs[nextIndex], false)}
               </Suspense>
@@ -457,7 +470,7 @@ function AppContent() {
 
         {/* 底部导航保持居中 */}
         {userState.isLoggedIn && (
-          <div className="relative z-10 max-w-[520px] mx-auto bg-white">
+          <div className="relative z-10 max-w-[520px] mx-auto">
             <TabBar />
           </div>
         )}

@@ -24,6 +24,13 @@ import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
 import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
+import { normalizeInventoryTitles, normalizeMailTitles, normalizeTitleName, normalizeUpPoolTitles } from '@/utils/titleNames';
+import {
+  normalizeBackgroundInventory,
+  normalizeBackgroundShopItems,
+  normalizeBackgroundUpPool,
+  normalizeBackgroundUser,
+} from '@/data/backgroundCatalog';
 
 // ---------- Checkin reward info ----------
 export interface CheckinRewardInfo {
@@ -95,19 +102,19 @@ const initialState: AppState = {
   pageParams: {},
   subjects: MOCK_SUBJECTS,
   chapters: MOCK_CHAPTERS,
-  knowledgePoints: MOCK_KNOWLEDGE_POINTS,
+  knowledgePoints: MOCK_KNOWLEDGE_POINTS.map(normalizeDefaultKnowledgePoint),
   questions: MOCK_QUESTIONS,
   quizResults: [],
   wrongRecords: [],
   todayReviewItems: [],
   todayNewItems: [],
-  checkin: { records: [], streak: 0, makeupCards: 2, totalCheckins: 0, lotteryPity: { sinceLastSR: 0, sinceLastSSR: 0 } },
+  checkin: { records: [], streak: 0, makeupCards: 0, totalCheckins: 0, lotteryPity: { sinceLastSR: 0, sinceLastSSR: 0 } },
   achievements: MOCK_ACHIEVEMENTS,
-  shopItems: MOCK_SHOP_ITEMS,
+  shopItems: normalizeBackgroundShopItems(MOCK_SHOP_ITEMS),
   rankings: MOCK_RANKINGS,
   achievementPopup: null,
   drawBalance: { regular: 0, up: 0 },
-  upPool: MOCK_UP_POOL,
+  upPool: normalizeBackgroundUpPool(MOCK_UP_POOL),
   lastCheckinReward: null,
   team: null,
   lotteryPopup: null,
@@ -150,6 +157,16 @@ function calculateStreak(records: { date: string }[]): number {
     else break;
   }
   return streak;
+}
+
+function normalizeDefaultKnowledgePoint(knowledgePoint: KnowledgePoint): KnowledgePoint {
+  return {
+    ...knowledgePoint,
+    proficiency: 'none',
+    lastReviewedAt: null,
+    nextReviewAt: null,
+    reviewCount: 0,
+  };
 }
 
 // ---------- Actions ----------
@@ -545,7 +562,7 @@ function reducer(state: AppState, action: Action): AppState {
 
       // 将购买的物品添加到背包
       let newInventoryItems = [...state.inventory.items];
-      let rarity: 'N' | 'R' | 'SR' | 'SSR' = 'R';
+      let rarity: 'N' | 'R' | 'SR' | 'SSR' = item.rarity ?? 'R';
       // 根据 ID 判断稀有度
       if (item.id.startsWith('frame-n-') || item.id.startsWith('bg-n-')) rarity = 'N';
       if (item.id.startsWith('frame-r-') || item.id.startsWith('bg-r-')) rarity = 'R';
@@ -619,7 +636,7 @@ function reducer(state: AppState, action: Action): AppState {
         user: { ...state.user, totalPoints: state.user.totalPoints - item.price },
         shopItems: newShopItems,
         checkin: item.type === 'makeup_card' ? { ...state.checkin, makeupCards: state.checkin.makeupCards + 1 } : state.checkin,
-        inventory: { items: newInventoryItems },
+        inventory: normalizeBackgroundInventory({ items: newInventoryItems }),
       };
     }
     case 'ADD_COINS':
@@ -843,9 +860,10 @@ function reducer(state: AppState, action: Action): AppState {
                 usable: true,
               });
             }
-          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
+          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background' || attachment.type === 'title') {
             // 装饰物品 - 已有就补偿星币
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
+            const attachmentName = attachment.type === 'title' ? normalizeTitleName(attachment.name) : attachment.name;
+            const existing = newInventoryItems.find(i => i.name === attachmentName);
             if (existing) {
               // 根据稀有度补偿
               let compensation = 10;
@@ -865,7 +883,7 @@ function reducer(state: AppState, action: Action): AppState {
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,
                 type: attachment.type as any,
-                name: attachment.name,
+                name: attachmentName,
                 description: `来自邮件: ${mail.title}`,
                 icon: attachment.icon || '🎁',
                 rarity: (attachment as any).rarity || 'R',
@@ -1020,11 +1038,16 @@ function getInitialState(): AppState {
     return {
       ...initialState,
       ...saved,
+      user: saved.user ? normalizeBackgroundUser(saved.user as User) : initialState.user,
       todayReviewItems,
       todayNewItems,
       aiChat: initialState.aiChat,
       dailyEncouragement: initialState.dailyEncouragement,
       dailyEncouragementDate: initialState.dailyEncouragementDate,
+      inventory: normalizeBackgroundInventory(normalizeInventoryTitles(((saved.inventory as InventoryState | undefined) ?? initialState.inventory))),
+      mail: normalizeMailTitles(((saved.mail as MailState | undefined) ?? initialState.mail)),
+      shopItems: normalizeBackgroundShopItems(((saved.shopItems as ShopItem[] | undefined) ?? initialState.shopItems)),
+      upPool: normalizeBackgroundUpPool(normalizeUpPoolTitles(((saved.upPool as UpPoolConfig | undefined) ?? initialState.upPool))),
       currentPage: 'login',
       isLoggedIn: false,
     };
@@ -1048,21 +1071,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [dispatch]);
 
   // 持久化状态到 localStorage
-  // 注意：checkin 由 GameContext 管理，AppContext 保存时需要保留 GameContext 的 checkin 数据
+  // 注意：游戏化状态由 GameContext 管理，AppContext 保存时需要保留 GameContext 的最新数据
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    // 从 localStorage 读取 GameContext 保存的 checkin（最新的签到数据）
     const saved = loadState();
-    const currentCheckin = saved?.checkin;
 
-    // 构建保存状态，确保不覆盖 GameContext 的 checkin
+    // 构建保存状态，确保不覆盖 GameContext 的成就、签到、商店等游戏化数据
     const stateToSave = {
       ...(state as unknown as Record<string, unknown>),
-      // 保留 localStorage 中 GameContext 的 checkin，不使用 AppContext 的 stale checkin
-      checkin: currentCheckin ?? state.checkin,
+      checkin: saved?.checkin ?? state.checkin,
+      achievements: saved?.achievements ?? state.achievements,
+      shopItems: normalizeBackgroundShopItems((saved?.shopItems as ShopItem[] | undefined) ?? state.shopItems),
+      rankings: saved?.rankings ?? state.rankings,
+      upPool: normalizeBackgroundUpPool((saved?.upPool as UpPoolConfig | undefined) ?? state.upPool),
+      team: saved?.team ?? state.team,
+      redeemedCodes: saved?.redeemedCodes ?? state.redeemedCodes,
     };
 
     saveState(stateToSave);

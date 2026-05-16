@@ -27,10 +27,12 @@ import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { allFrames, allTitles } from '@/pages/AvatarEdit';
+import { allFrames, allTitles, rarityConfig } from '@/pages/AvatarEdit';
 import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
+import { calculateLevelProgress } from '@/utils/experience';
+import { getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
 
 export function getBorderRadius(size: 'small' | 'large') {
   return size === 'large' ? '16px' : '8px';
@@ -43,7 +45,8 @@ export default function ProfilePage() {
   const { theme } = useTheme();
   const stats = getLearningStats();
   const user = userState.user;
-  const learningExperience = calculateLearningExperience(learningState, gameState.checkin);
+  const learningExperience = calculateLearningExperience(learningState, gameState.checkin) + (user?.bonusExperience ?? 0);
+  const levelProgress = calculateLevelProgress(learningExperience);
   const isCustomAvatar = user ? (user.avatar?.startsWith('data:') || user.avatar?.startsWith('http')) ?? false : false;
 
   const uiStyle = theme.uiStyle || 'playful';
@@ -55,7 +58,10 @@ export default function ProfilePage() {
   };
 
   // 当前称号
-  const currentTitle = allTitles.find(t => t.id === user?.activeTitle);
+  const activeTitle = allTitles.find(t => t.id === user?.activeTitle);
+  const currentTitle = activeTitle && userState.inventory.items.some(item => item.type === 'title' && item.name === activeTitle.name)
+    ? activeTitle
+    : null;
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -67,7 +73,7 @@ export default function ProfilePage() {
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
     return (
-      <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
+      <div className="page-scroll" style={getAdaptivePageBackground(theme)}>
         <TopAppBar />
 
         {/* ── Hero Banner ── */}
@@ -95,7 +101,7 @@ export default function ProfilePage() {
                         clipPath: frameConfig.shapeTransform || 'circle(50%)',
                       }}
                     >
-                      <div className="bg-white/40 rounded-full flex items-center justify-center p-1 w-[calc(100%-8px)] h-[calc(100%-8px)]">
+                      <div className="rounded-full flex items-center justify-center p-1 w-[calc(100%-8px)] h-[calc(100%-8px)]" style={getAdaptiveSurface(theme, 'raised')}>
                         {isCustomAvatar ? (
                           <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
                         ) : (
@@ -141,22 +147,51 @@ export default function ProfilePage() {
               </h1>
               {currentTitle && (
                 <span
-                  className="inline-block text-xs px-2.5 py-0.5 rounded-full font-medium mt-1.5"
+                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium mt-1.5"
                   style={{
                     background: currentTitle.gradient,
                     color: currentTitle.textColor,
                   }}
                 >
-                  {currentTitle.name}
+                  <span>{currentTitle.icon}</span>
+                  <span>{currentTitle.name}</span>
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: rarityConfig[currentTitle.rarity].color }}
+                  >
+                    {currentTitle.rarity}
+                  </span>
                 </span>
               )}
+              <div className="mx-auto mt-3 w-56 max-w-full">
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                    style={{
+                      backgroundColor: theme.primaryFixed || '#dee0ff',
+                      color: theme.primary || '#24389c',
+                    }}
+                  >
+                    Level {levelProgress.level}
+                  </span>
+                  <span className="text-xs" style={{ color: theme.onSurfaceVariant || '#454652' }}>
+                    {levelProgress.currentLevelExp}/{levelProgress.nextLevelExp} EXP
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.surfaceContainerHigh || '#e7e8e9' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${levelProgress.progressPercent}%`, backgroundColor: theme.primary || '#24389c' }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Stats Row */}
             <div
               className="flex items-center w-full max-w-xs rounded-2xl overflow-hidden"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.65)',
+                backgroundColor: theme.surfaceContainerHigh || theme.bgCard,
                 border: `1px solid ${theme.outlineVariant || '#c5c5d4'}44`,
                 backdropFilter: 'blur(8px)',
               }}
@@ -329,7 +364,7 @@ export default function ProfilePage() {
 
   // ===== Playful 风格渲染（保持原有样式）=====
   return (
-    <div className="page-scroll pb-4">
+    <div className="page-scroll pb-4" style={getAdaptivePageBackground(theme)}>
       <div
         className="mx-4 mt-4 rounded-2xl border px-5 pt-5 pb-5 shadow-sm"
         style={{
@@ -357,7 +392,7 @@ export default function ProfilePage() {
                         backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
                       }}
                     >
-                      <div className="bg-white/40 rounded-full flex items-center justify-center p-1 w-[calc(100%-8px)] h-[calc(100%-8px)]">
+                      <div className="rounded-full flex items-center justify-center p-1 w-[calc(100%-8px)] h-[calc(100%-8px)]" style={getAdaptiveSurface(theme, 'raised')}>
                         {isCustomAvatar ? (
                           <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
                         ) : (
@@ -386,13 +421,39 @@ export default function ProfilePage() {
             <div className="flex flex-col">
               <h2 className="text-lg font-bold" style={{ color: theme.textPrimary }}>{user?.nickname ?? '未登录'}</h2>
               {currentTitle && (
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 self-start" style={{
+                <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 self-start" style={{
                   background: currentTitle.gradient,
                   color: currentTitle.textColor
                 }}>
-                  {currentTitle.icon} {currentTitle.name}
+                  <span>{currentTitle.icon}</span>
+                  <span>{currentTitle.name}</span>
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: rarityConfig[currentTitle.rarity].color }}
+                  >
+                    {currentTitle.rarity}
+                  </span>
                 </span>
               )}
+              <div className="mt-1.5 w-40 max-w-full">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ backgroundColor: `${theme.primary}14`, color: theme.primary }}
+                  >
+                    Lv. {levelProgress.level}
+                  </span>
+                  <span className="text-[10px]" style={{ color: theme.textMuted }}>
+                    {levelProgress.currentLevelExp}/{levelProgress.nextLevelExp} EXP
+                  </span>
+                </div>
+                <div className="h-1 overflow-hidden rounded-full" style={{ backgroundColor: theme.border }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${levelProgress.progressPercent}%`, backgroundColor: theme.secondary }}
+                  />
+                </div>
+              </div>
               <p className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>已学习 {stats.streakDays} 天</p>
             </div>
           </div>

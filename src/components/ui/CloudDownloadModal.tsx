@@ -3,16 +3,29 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Cloud, CloudDownload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { getAvailableKnowledgeBases, downloadKnowledgeFromOSS, getSubjectInfo, type KnowledgeSubject, type DownloadProgress } from '@/services/ossService';
 
 interface CloudDownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImport: (subjects: any[], chapters: any[], knowledgePoints: any[], questions: any[]) => void;
+  onImport: (
+    subjects: any[],
+    chapters: any[],
+    knowledgePoints: any[],
+    questions: any[],
+    meta?: { label: string; createdAt: string; sourceId?: string }
+  ) => void;
+  downloadedSourceIds?: string[];
 }
 
-export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudDownloadModalProps) {
+export default function CloudDownloadModal({
+  isOpen,
+  onClose,
+  onImport,
+  downloadedSourceIds = [],
+}: CloudDownloadModalProps) {
   const [subjects, setSubjects] = useState<KnowledgeSubject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>({
@@ -31,12 +44,14 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
     const list = await getAvailableKnowledgeBases();
     setSubjects(list);
     if (list.length > 0) {
-      setSelectedId(list[0].id);
+      const firstAvailable = list.find(subject => !downloadedSourceIds.includes(subject.id));
+      setSelectedId(firstAvailable?.id ?? list[0].id);
     }
   };
 
   const handleDownload = async () => {
     if (!selectedId) return;
+    if (downloadedSourceIds.includes(selectedId)) return;
 
     setDownloadProgress({
       status: 'downloading',
@@ -65,7 +80,11 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
 
       // 延迟关闭，让用户看到成功消息
       setTimeout(() => {
-        onImport(subjectsToImport, result.chapters || [], result.knowledgePoints, result.questions);
+        onImport(subjectsToImport, result.chapters || [], result.knowledgePoints, result.questions, {
+          label: subjectInfo?.name || selectedId,
+          createdAt: new Date().toISOString(),
+          sourceId: selectedId,
+        });
         onClose();
         setDownloadProgress({ status: 'idle', progress: 0, message: '' });
       }, 1500);
@@ -74,7 +93,9 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
 
   if (!isOpen) return null;
 
-  return (
+  const selectedDownloaded = Boolean(selectedId && downloadedSourceIds.includes(selectedId));
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
       <div
         className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
@@ -101,18 +122,26 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary, #6b7280)' }}>
               选择知识库
             </label>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {subjects.map(subject => (
+            <div className="space-y-2 max-h-80 overflow-y-auto px-1 py-1">
+              {subjects.map(subject => {
+                const isDownloaded = downloadedSourceIds.includes(subject.id);
+                return (
                 <button
                   key={subject.id}
-                  onClick={() => setSelectedId(subject.id)}
-                  className={`w-full p-3 rounded-xl text-left transition-all ${
-                    selectedId === subject.id ? 'ring-2' : ''
-                  }`}
+                  onClick={() => {
+                    if (!isDownloaded) {
+                      setSelectedId(subject.id);
+                    }
+                  }}
+                  className="w-full p-3 rounded-xl text-left transition-all"
+                  disabled={isDownloaded}
                   style={{
-                    backgroundColor: selectedId === subject.id ? 'var(--primary-light, #eff6ff)' : 'var(--card-bg, #f9fafb)',
+                    backgroundColor: isDownloaded ? 'var(--bg-secondary, #f3f4f6)' : selectedId === subject.id ? 'var(--primary-light, #eff6ff)' : 'var(--card-bg, #f9fafb)',
                     borderColor: selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'transparent',
-                    border: '1px solid'
+                    borderWidth: selectedId === subject.id ? '2px' : '1px',
+                    borderStyle: 'solid',
+                    boxSizing: 'border-box',
+                    opacity: isDownloaded ? 0.72 : 1,
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -126,6 +155,11 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
                       <div>
                         <div className="font-medium text-sm" style={{ color: 'var(--text-primary, #1f2937)' }}>
                           {subject.name}
+                          {isDownloaded && (
+                            <span className="ml-2 rounded-full px-2 py-0.5 text-[10px]" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+                              已下载
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary, #6b7280)' }}>
                           {subject.description}
@@ -148,20 +182,21 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
                     </div>
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedId === subject.id ? 'border-transparent' : ''
+                        selectedId === subject.id || isDownloaded ? 'border-transparent' : ''
                       }`}
                       style={{
-                        backgroundColor: selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'transparent',
-                        borderColor: selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'var(--border-color, #d1d5db)'
+                        backgroundColor: isDownloaded ? '#16a34a' : selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'transparent',
+                        borderColor: isDownloaded ? '#16a34a' : selectedId === subject.id ? (subject.color || 'var(--primary, #3b82f6)') : 'var(--border-color, #d1d5db)'
                       }}
                     >
-                      {selectedId === subject.id && (
+                      {(selectedId === subject.id || isDownloaded) && (
                         <CheckCircle size={12} className="text-white" />
                       )}
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -226,7 +261,7 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
           </button>
           <button
             onClick={handleDownload}
-            disabled={!selectedId || downloadProgress.status === 'downloading'}
+            disabled={!selectedId || selectedDownloaded || downloadProgress.status === 'downloading'}
             className="flex-1 py-2.5 rounded-xl font-medium text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             style={{
               backgroundColor: selectedId ? (subjects.find(s => s.id === selectedId)?.color || 'var(--primary, #3b82f6)') : 'var(--primary, #3b82f6)',
@@ -238,6 +273,11 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
                 <Loader2 size={16} className="animate-spin" />
                 下载中...
               </>
+            ) : selectedDownloaded ? (
+              <>
+                <CheckCircle size={16} />
+                已下载
+              </>
             ) : (
               <>
                 <CloudDownload size={16} />
@@ -247,6 +287,7 @@ export default function CloudDownloadModal({ isOpen, onClose, onImport }: CloudD
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

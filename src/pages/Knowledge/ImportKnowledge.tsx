@@ -1001,6 +1001,11 @@ export default function ImportKnowledgePage() {
           chapters: chapterPayload,
           knowledgePoints: importedKnowledgePoints,
           questions: importedQuestions,
+          importHistory: {
+            source: 'local',
+            label: previewData.fileName || '本地导入',
+            createdAt: now,
+          },
         },
       });
       learningDispatch({

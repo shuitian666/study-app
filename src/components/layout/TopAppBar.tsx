@@ -23,6 +23,7 @@
 import React from 'react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
+import { getAdaptiveNav } from '@/utils/adaptiveTheme';
 
 interface TopAppBarProps {
   // 标题
@@ -46,6 +47,7 @@ export default function TopAppBar({
 }: TopAppBarProps) {
   const { navigate } = useUser();
   const { theme } = useTheme();
+  const navStyle = getAdaptiveNav(theme);
 
   // 判断当前 UI 风格
   const uiStyle = theme.uiStyle || 'playful';
@@ -68,9 +70,7 @@ export default function TopAppBar({
     <header
       className={`sticky top-0 z-50 ${className}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        ...navStyle,
       }}
     >
       <div className="flex items-center justify-between w-full px-6 py-4">

@@ -1,10 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
-import { useGame, isValidRedeemCode } from '@/store/GameContext';
+import { useGame, isValidRedeemCode, REDEMPTION_CODES } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Sparkles, Clock, Star, Gift } from 'lucide-react';
 import { drawLottery, LOTTERY_TIERS, drawFromUpPool } from '@/utils/lottery';
 import type { LotteryResult, UpPoolResult } from '@/types';
+import {
+  createInventoryItemFromReward,
+  getCompensationCoins,
+  getOwnedRewardKeys,
+  normalizeOwnedKey,
+} from '@/utils/rewardGranting';
 
 type PoolTab = 'regular' | 'up';
 
@@ -15,7 +21,7 @@ const RARITY_COLORS: Record<string, { bg: string; text: string; border: string }
 };
 
 export default function LotteryPage() {
-  const { navigate } = useUser();
+  const { userState, userDispatch, navigate } = useUser();
   const { gameState, gameDispatch } = useGame();
   const { drawBalance, upPool, checkin, redeemedCodes } = gameState;
   const [activeTab, setActiveTab] = useState<PoolTab>('regular');
@@ -59,6 +65,9 @@ export default function LotteryPage() {
     if (drawBalance.regular <= 0) return;
     const { result } = drawLottery(checkin.lotteryPity);
     gameDispatch({ type: 'DRAW_REGULAR', payload: result });
+    if (result.reward.type === 'coins') {
+      userDispatch({ type: 'ADD_STAR_COINS', payload: result.reward.amount });
+    }
     gameDispatch({
       type: 'SHOW_LOTTERY_POPUP',
       payload: { show: true, result, pool: 'regular', phase: 'shaking' },
@@ -76,6 +85,9 @@ export default function LotteryPage() {
       const { result, newPity } = drawLottery(currentPity);
       results.push(result);
       gameDispatch({ type: 'DRAW_REGULAR', payload: result });
+      if (result.reward.type === 'coins') {
+        userDispatch({ type: 'ADD_STAR_COINS', payload: result.reward.amount });
+      }
       currentPity = newPity;
     }
 
@@ -90,8 +102,15 @@ export default function LotteryPage() {
   // ---- UP pool draw ----
   const handleUpDraw = () => {
     if (drawBalance.up <= 0) return;
-    const result = drawFromUpPool(upPool);
+    const drawn = drawFromUpPool(upPool);
+    const isNew = !getOwnedRewardKeys(userState.inventory).has(normalizeOwnedKey(drawn.item));
+    const result: UpPoolResult = { ...drawn, isNew };
     gameDispatch({ type: 'DRAW_UP', payload: result });
+    if (isNew) {
+      userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: createInventoryItemFromReward(result.item, 'lottery', 'inv-lottery') });
+    } else {
+      userDispatch({ type: 'ADD_STAR_COINS', payload: getCompensationCoins(result.item.rarity) });
+    }
     gameDispatch({
       type: 'SHOW_LOTTERY_POPUP',
       payload: { show: true, result, pool: 'up', phase: 'shaking' },
@@ -102,8 +121,19 @@ export default function LotteryPage() {
   const handleUpDrawTen = () => {
     if (drawBalance.up < 10) return;
     const results: UpPoolResult[] = [];
+    const ownedKeys = getOwnedRewardKeys(userState.inventory);
     for (let i = 0; i < 10; i++) {
-      results.push(drawFromUpPool(upPool));
+      const drawn = drawFromUpPool(upPool);
+      const key = normalizeOwnedKey(drawn.item);
+      const isNew = !ownedKeys.has(key);
+      const result: UpPoolResult = { ...drawn, isNew };
+      results.push(result);
+      if (isNew) {
+        ownedKeys.add(key);
+        userDispatch({ type: 'ADD_INVENTORY_ITEM', payload: createInventoryItemFromReward(result.item, 'lottery', 'inv-lottery') });
+      } else {
+        userDispatch({ type: 'ADD_STAR_COINS', payload: getCompensationCoins(result.item.rarity) });
+      }
     }
     // 依次派发：最后一个结果弹出展示
     for (let i = 0; i < 9; i++) {
@@ -133,6 +163,10 @@ export default function LotteryPage() {
       return;
     }
     gameDispatch({ type: 'REDEEM_CODE', payload: code });
+    const reward = REDEMPTION_CODES[code];
+    if (reward?.coins > 0) {
+      userDispatch({ type: 'ADD_STAR_COINS', payload: reward.coins });
+    }
     setRedeemInput('');
     setRedeemMsg({ text: '兑换成功!', ok: true });
     setTimeout(() => setRedeemMsg(null), 3000);

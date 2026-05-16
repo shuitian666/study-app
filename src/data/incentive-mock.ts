@@ -1,4 +1,5 @@
 import type { Achievement, ShopItem, RankEntry, UpPoolConfig } from '@/types';
+import { backgroundShopItems, backgroundUpPoolItems } from './backgroundCatalog';
 
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
   // Beginner
@@ -122,30 +123,8 @@ export const MOCK_SHOP_ITEMS: ShopItem[] = [
   { id: 'frame-ssr-3', name: '火焰图腾', description: 'SSR传说火焰特效头像框', icon: '🔥', type: 'avatar_frame', price: 500, owned: false },
   { id: 'frame-ssr-4', name: '双龙戏珠', description: 'SSR传说双龙特效头像框', icon: '🐲', type: 'avatar_frame', price: 600, owned: false },
   
-  // N级 - 普通背景
-  { id: 'bg-n-1', name: '纯净白', description: '纯净白色背景', icon: '⬜', type: 'background', price: 30, owned: false },
-  { id: 'bg-n-2', name: '静谧蓝', description: '安静蓝色背景', icon: '💙', type: 'background', price: 30, owned: false },
-  { id: 'bg-n-3', name: '薄荷绿', description: '清新薄荷绿色背景', icon: '🍃', type: 'background', price: 30, owned: false },
-  { id: 'bg-n-4', name: '暖米色', description: '温暖米色背景', icon: '🌾', type: 'background', price: 30, owned: false },
-  { id: 'bg-n-5', name: '浅烟灰', description: '简约烟灰背景', icon: '🩶', type: 'background', price: 30, owned: false },
-  { id: 'bg-n-6', name: '苹果风', description: 'iOS风格磨砂玻璃背景', icon: '🍎', type: 'background', price: 50, owned: false },
-  
-  // R级 - 稀有背景
-  { id: 'bg-r-1', name: '星空夜', description: '星空点点夜晚背景', icon: '🌌', type: 'background', price: 100, owned: false },
-  { id: 'bg-r-2', name: '森林极光', description: '森林极光绿色背景', icon: '🌲', type: 'background', price: 120, owned: false },
-  { id: 'bg-r-3', name: '橘光晚霞', description: '暖色调渐变晚霞背景', icon: '☁️', type: 'background', price: 120, owned: false },
-  { id: 'bg-r-4', name: '黄昏落日', description: '黄昏落日背景', icon: '🌇', type: 'background', price: 150, owned: false },
-  
-  // SR级 - 史诗背景
-  { id: 'bg-sr-1', name: '春日樱', description: '粉色樱花飘落动态背景', icon: '🌸', type: 'background', price: 220, owned: false },
-  { id: 'bg-sr-2', name: '竹林风', description: '清幽竹林动态背景', icon: '🎋', type: 'background', price: 250, owned: false },
-  { id: 'bg-sr-3', name: '深海蓝', description: '深海波浪动态背景', icon: '🌊', type: 'background', price: 250, owned: false },
-  { id: 'bg-sr-4', name: '沙漠日落', description: '沙漠落日风景背景', icon: '🏜️', type: 'background', price: 280, owned: false },
-  
-  // SSR级 - 传说背景
-  { id: 'bg-ssr-1', name: '璀璨银河', description: 'SSR星空闪烁动态背景', icon: '🌌', type: 'background', price: 550, owned: false },
-  { id: 'bg-ssr-2', name: '极光绚烂', description: 'SSR多彩极光动态背景', icon: '✨', type: 'background', price: 600, owned: false },
-  { id: 'bg-ssr-3', name: '幻彩云境', description: 'SSR彩虹渐变梦幻背景', icon: '🌈', type: 'background', price: 600, owned: false },
+  // 背景商品统一由 backgroundCatalog 派生，避免商店、抽签、头像页不一致。
+  ...backgroundShopItems,
   
   // AI皮肤
   { id: 'item-10', name: '暗夜主题', description: '深色护眼主题皮肤', icon: '🌙', type: 'theme', price: 200, owned: false },
@@ -186,13 +165,11 @@ export const MOCK_UP_POOL: UpPoolConfig = {
   active: true,
   items: [
     { id: 'up-1', name: '春日花环', description: '限定樱花头像框', icon: '🌸', type: 'avatar_frame', rarity: 'SSR', probability: 0.02, owned: false },
-    { id: 'up-2', name: '璀璨银河', description: '璀璨星空学习背景', icon: '🌌', type: 'background', rarity: 'SSR', probability: 0.02, owned: false },
-    { id: 'up-3', name: '竹林风', description: '清幽竹林学习背景', icon: '🎋', type: 'background', rarity: 'SR', probability: 0.10, owned: false },
+    ...backgroundUpPoolItems,
     { id: 'up-4', name: '海洋框', description: '蓝色波浪头像框', icon: '🌊', type: 'avatar_frame', rarity: 'SR', probability: 0.10, owned: false },
-    { id: 'up-5', name: '学习之星', description: '学习之星限定称号', icon: '⭐', type: 'title', rarity: 'SR', probability: 0.10, owned: false },
-    { id: 'up-6', name: '薄荷绿', description: '清新绿地学习背景', icon: '🍀', type: 'background', rarity: 'R', probability: 0.22, owned: false },
+    { id: 'up-5', name: '把书读薄了', description: '读着读着就轻了的称号', icon: '⭐', type: 'title', rarity: 'SR', probability: 0.10, owned: false },
     { id: 'up-7', name: '简约银框', description: '简洁线条头像框', icon: '⬜', type: 'avatar_frame', rarity: 'R', probability: 0.22, owned: false },
-    { id: 'up-8', name: '求知者', description: '积极探索知识的称号', icon: '🔍', type: 'title', rarity: 'N', probability: 0.22, owned: false },
+    { id: 'up-8', name: '今天也在学', description: '今天没有空手而归', icon: '🔍', type: 'title', rarity: 'N', probability: 0.22, owned: false },
   ],
 };
 

@@ -16,8 +16,11 @@
 
 import { useState, useRef, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
-import { Sparkles, Upload, X } from 'lucide-react';
+import { Minus, Pencil, Save, Sparkles, Upload, X } from 'lucide-react';
+import { backgroundCatalog, type BackgroundCatalogItem } from '@/data/backgroundCatalog';
+import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
 
 type TabType = 'avatar' | 'frame' | 'background' | 'title';
 
@@ -64,33 +67,8 @@ export const allFrames: FrameConfig[] = [
   { id: 'frame-ssr-4', name: '双龙戏珠', icon: '🐲', rarity: 'SSR', gradient: 'linear-gradient(135deg, #10b981, #059669, #047857)', decorations: ['🐉', '🔥', '💎'], shapeTransform: 'circle(50%)', animation: true },
 ];
 
-export interface BackgroundConfig {
-  id: string;
-  name: string;
-  rarity: RarityType;
-  gradient: string;
-  pattern?: string;
-}
-
-export const allBackgrounds: BackgroundConfig[] = [
-  { id: 'bg-n-1', name: '纯净白', rarity: 'N', gradient: 'linear-gradient(180deg, #ffffff, #f9fafb)' },
-  { id: 'bg-n-2', name: '静谧蓝', rarity: 'N', gradient: 'linear-gradient(180deg, #dbeafe, #93c5fd)' },
-  { id: 'bg-n-3', name: '薄荷绿', rarity: 'N', gradient: 'linear-gradient(180deg, #dcfce7, #86efac)' },
-  { id: 'bg-n-4', name: '暖米色', rarity: 'N', gradient: 'linear-gradient(180deg, #fffbeb, #fef3c7)' },
-  { id: 'bg-n-5', name: '浅烟灰', rarity: 'N', gradient: 'linear-gradient(180deg, #f3f4f6, #e5e7eb)' },
-  { id: 'bg-n-6', name: '苹果风', rarity: 'N', gradient: 'linear-gradient(180deg, #f2f2f7, #e5e5ea)', pattern: 'apple-blur' },
-  { id: 'bg-r-1', name: '星空夜', rarity: 'R', gradient: 'linear-gradient(180deg, #1e1b4b, #312e81)', pattern: 'stars' },
-  { id: 'bg-r-2', name: '森林极光', rarity: 'R', gradient: 'linear-gradient(180deg, #064e3b, #065f46, #047857)', pattern: 'aurora' },
-  { id: 'bg-r-3', name: '橘光晚霞', rarity: 'R', gradient: 'linear-gradient(180deg, #fef2f2, #fecaca, #fca5a5)', pattern: 'clouds' },
-  { id: 'bg-r-4', name: '黄昏落日', rarity: 'R', gradient: 'linear-gradient(180deg, #fbbf24, #f97316, #ea580c)', pattern: 'sunset' },
-  { id: 'bg-sr-1', name: '春日樱', rarity: 'SR', gradient: 'linear-gradient(180deg, #fce7f3, #fbcfe8, #f9a8d4)', pattern: 'cherry' },
-  { id: 'bg-sr-2', name: '竹林风', rarity: 'SR', gradient: 'linear-gradient(180deg, #f0fdf4, #dcfce7, #bbf7d0)', pattern: 'bamboo' },
-  { id: 'bg-sr-3', name: '深海蓝', rarity: 'SR', gradient: 'linear-gradient(180deg, #1e3a8a, #1e40af, #3b82f6)', pattern: 'waves' },
-  { id: 'bg-sr-4', name: '沙漠日落', rarity: 'SR', gradient: 'linear-gradient(180deg, #facc15, #fb923c, #ef4444)', pattern: 'sand' },
-  { id: 'bg-ssr-1', name: '璀璨银河', rarity: 'SSR', gradient: 'linear-gradient(180deg, #0c0a09, #1c1917, #292524)', pattern: 'galaxy' },
-  { id: 'bg-ssr-2', name: '极光绚烂', rarity: 'SSR', gradient: 'linear-gradient(135deg, #1e3a5f, #2563eb, #7c3aed, #db2777)', pattern: 'aurora-bright' },
-  { id: 'bg-ssr-3', name: '幻彩云境', rarity: 'SSR', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 25%, #4facfe 50%, #00f2fe 75%, #a78bfa 100%)', pattern: 'rainbow' },
-];
+export type BackgroundConfig = BackgroundCatalogItem;
+export const allBackgrounds: BackgroundConfig[] = backgroundCatalog;
 
 export interface TitleConfig {
   id: string;
@@ -102,34 +80,33 @@ export interface TitleConfig {
 }
 
 export const allTitles: TitleConfig[] = [
-  { id: 'title-n-1', name: '初学者', icon: '📚', rarity: 'N', gradient: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', textColor: '#475569' },
-  { id: 'title-n-2', name: '求知者', icon: '🔍', rarity: 'N', gradient: 'linear-gradient(135deg, #fef3c7, #fde68a)', textColor: '#92400e' },
-  { id: 'title-n-3', name: '奋进者', icon: '🚀', rarity: 'N', gradient: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', textColor: '#1e40af' },
-  { id: 'title-r-1', name: '学霸', icon: '🏆', rarity: 'R', gradient: 'linear-gradient(135deg, #fef3c7, #fbbf24)', textColor: '#92400e' },
-  { id: 'title-r-2', name: '探索者', icon: '🧭', rarity: 'R', gradient: 'linear-gradient(135deg, #d1fae5, #6ee7b7)', textColor: '#065f46' },
-  { id: 'title-r-3', name: '坚持者', icon: '💪', rarity: 'R', gradient: 'linear-gradient(135deg, #fecaca, #f87171)', textColor: '#991b1b' },
-  { id: 'title-r-4', name: '夜读人', icon: '🌙', rarity: 'R', gradient: 'linear-gradient(135deg, #e0e7ff, #818cf8)', textColor: '#3730a3' },
-  { id: 'title-sr-1', name: '知识达人', icon: '🌟', rarity: 'SR', gradient: 'linear-gradient(135deg, #fef3c7, #f59e0b)', textColor: '#78350f' },
-  { id: 'title-sr-2', name: '学习之星', icon: '⭐', rarity: 'SR', gradient: 'linear-gradient(135deg, #fce7f3, #f472b6)', textColor: '#9d174d' },
-  { id: 'title-sr-3', name: '智慧之星', icon: '💎', rarity: 'SR', gradient: 'linear-gradient(135deg, #c7d2fe, #818cf8)', textColor: '#3730a3' },
-  { id: 'title-sr-4', name: '全能学霸', icon: '🎓', rarity: 'SR', gradient: 'linear-gradient(135deg, #dcfce7, #34d399)', textColor: '#065f46' },
-  { id: 'title-ssr-1', name: '学神', icon: '👑', rarity: 'SSR', gradient: 'linear-gradient(135deg, #fef3c7, #fbbf24, #f59e0b)', textColor: '#78350f' },
-  { id: 'title-ssr-2', name: '学术巨匠', icon: '🎯', rarity: 'SSR', gradient: 'linear-gradient(135deg, #fecaca, #f87171, #ef4444)', textColor: '#991b1b' },
-  { id: 'title-ssr-3', name: '传奇学者', icon: '🏅', rarity: 'SSR', gradient: 'linear-gradient(135deg, #c7d2fe, #818cf8, #6366f1)', textColor: '#3730a3' },
-  { id: 'title-ssr-4', name: '终极学霸', icon: '🏆', rarity: 'SSR', gradient: 'linear-gradient(135deg, #dcfce7, #34d399, #10b981)', textColor: '#065f46' },
+  { id: 'title-n-1', name: '初来乍到', icon: '📚', rarity: 'N', gradient: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', textColor: '#475569' },
+  { id: 'title-n-2', name: '今天也在学', icon: '🔍', rarity: 'N', gradient: 'linear-gradient(135deg, #fef3c7, #fde68a)', textColor: '#92400e' },
+  { id: 'title-r-1', name: '低调会一点', icon: '📝', rarity: 'R', gradient: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', textColor: '#1e40af' },
+  { id: 'title-r-2', name: '半夜还在看', icon: '🌙', rarity: 'R', gradient: 'linear-gradient(135deg, #e0e7ff, #818cf8)', textColor: '#3730a3' },
+  { id: 'title-sr-1', name: '风里有笔记', icon: '🍃', rarity: 'SR', gradient: 'linear-gradient(135deg, #d1fae5, #6ee7b7)', textColor: '#065f46' },
+  { id: 'title-sr-2', name: '把书读薄了', icon: '⭐', rarity: 'SR', gradient: 'linear-gradient(135deg, #fce7f3, #f472b6)', textColor: '#9d174d' },
 ];
 
 const defaultAvatars = ['👤', '🦊', '🐰', '🐼', '🦁', '🐨', '🐯', '🐸', '🦄', '🐲', '🐱', '🐶', '🦋', '🌟', '💎', '🎭'];
 
 export default function AvatarEditPage() {
   const { userState, userDispatch, navigate } = useUser();
+  const { theme } = useTheme();
   const user = userState.user;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cropStartRef = useRef<{ pointerId: number; x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabType>('avatar');
   const [previewFrame, setPreviewFrame] = useState<FrameConfig | null>(null);
   const [previewBg, setPreviewBg] = useState<BackgroundConfig | null>(null);
   const [previewTitle, setPreviewTitle] = useState<TitleConfig | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(user?.nickname ?? '');
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [cropNaturalSize, setCropNaturalSize] = useState({ width: 1, height: 1 });
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [cropScale, setCropScale] = useState(1);
 
   const currentFrame = useMemo(() => 
     previewFrame || allFrames.find(f => f.icon === user?.avatarFrame)
@@ -143,12 +120,21 @@ export default function AvatarEditPage() {
     previewTitle || allTitles.find(t => t.id === user?.activeTitle)
   , [previewTitle, user?.activeTitle]);
 
+  const saveNickname = () => {
+    const nickname = nameDraft.trim().slice(0, 12);
+    if (!user || !nickname) return;
+    userDispatch({ type: 'UPDATE_USER', payload: { nickname } });
+    setNameDraft(nickname);
+    setIsEditingName(false);
+  };
+
   const handleSelectAvatar = (avatar: string) => {
     if (!user) return;
     userDispatch({
       type: 'UPDATE_USER',
       payload: { avatar, customAvatarUrl: undefined }
     });
+    setCropImage(null);
   };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,13 +143,80 @@ export default function AvatarEditPage() {
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      const customUrl = event.target?.result as string;
+      setCropImage(event.target?.result as string);
+      setCropOffset({ x: 0, y: 0 });
+      setCropScale(1);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const cancelAvatarCrop = () => {
+    setCropImage(null);
+    setCropOffset({ x: 0, y: 0 });
+    setCropScale(1);
+    cropStartRef.current = null;
+  };
+
+  const confirmAvatarCrop = () => {
+    if (!cropImage || !user) return;
+
+    const image = new Image();
+    image.onload = () => {
+      const viewport = 224;
+      const output = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = output;
+      canvas.height = output;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const scale = Math.max(viewport / image.naturalWidth, viewport / image.naturalHeight) * cropScale;
+      const displayWidth = image.naturalWidth * scale;
+      const displayHeight = image.naturalHeight * scale;
+      const renderScale = output / viewport;
+      const dx = ((viewport - displayWidth) / 2 + cropOffset.x) * renderScale;
+      const dy = ((viewport - displayHeight) / 2 + cropOffset.y) * renderScale;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, output, output);
+      ctx.drawImage(image, dx, dy, displayWidth * renderScale, displayHeight * renderScale);
+
+      const customUrl = canvas.toDataURL('image/png');
       userDispatch({
         type: 'UPDATE_USER',
         payload: { avatar: customUrl, customAvatarUrl: customUrl }
       });
+      cancelAvatarCrop();
     };
-    reader.readAsDataURL(file);
+    image.src = cropImage;
+  };
+
+  const handleCropPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!cropImage) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    cropStartRef.current = {
+      pointerId: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      offsetX: cropOffset.x,
+      offsetY: cropOffset.y,
+    };
+  };
+
+  const handleCropPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const start = cropStartRef.current;
+    if (!start || start.pointerId !== e.pointerId) return;
+    setCropOffset({
+      x: start.offsetX + e.clientX - start.x,
+      y: start.offsetY + e.clientY - start.y,
+    });
+  };
+
+  const handleCropPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (cropStartRef.current?.pointerId === e.pointerId) {
+      cropStartRef.current = null;
+    }
   };
 
   const handleSelectFrame = (frame: FrameConfig | null) => {
@@ -228,6 +281,10 @@ export default function AvatarEditPage() {
   };
 
   const isCustomAvatar = (user?.avatar?.startsWith('data:') || user?.avatar?.startsWith('http')) ?? false;
+  const cropPreviewSize = 224;
+  const cropPreviewScale = Math.max(cropPreviewSize / cropNaturalSize.width, cropPreviewSize / cropNaturalSize.height) * cropScale;
+  const cropDisplayWidth = cropNaturalSize.width * cropPreviewScale;
+  const cropDisplayHeight = cropNaturalSize.height * cropPreviewScale;
 
   const renderFrame = (frame: FrameConfig, size: 'small' | 'large' = 'small') => {
     const sizeClass = size === 'large' ? 'w-24 h-24 text-5xl' : 'w-12 h-12 text-2xl';
@@ -353,6 +410,16 @@ export default function AvatarEditPage() {
       );
     }
 
+    if (pattern === 'aurora') {
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-35">
+          <div className="absolute -left-10 top-4 h-28 w-28 rounded-full bg-cyan-300/35 blur-3xl" />
+          <div className="absolute left-1/4 top-12 h-32 w-32 rounded-full bg-indigo-300/30 blur-3xl" />
+          <div className="absolute -right-8 bottom-5 h-28 w-28 rounded-full bg-fuchsia-300/25 blur-3xl" />
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -364,7 +431,7 @@ export default function AvatarEditPage() {
   ];
 
   return (
-    <div className="page-scroll pb-4">
+    <div className="page-scroll pb-4" style={getAdaptivePageBackground(theme)}>
       <PageHeader title="形象编辑" onBack={() => navigate('profile')} />
 
       <div 
@@ -388,7 +455,7 @@ export default function AvatarEditPage() {
 
         <div className="mt-4 relative z-10">
           {currentFrame ? renderFrame(currentFrame, 'large') : (
-            <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl bg-white">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl shadow-lg" style={getAdaptiveSurface(theme, 'raised')}>
               {isCustomAvatar && user?.avatar ? (
                 <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
               ) : (
@@ -398,34 +465,94 @@ export default function AvatarEditPage() {
           )}
         </div>
         
-        <p className="mt-3 text-sm font-medium text-gray-700 bg-white/80 px-3 py-1 rounded-full">
-          {user?.nickname || '未登录'}
-        </p>
+        <div className="mt-3 relative z-10 w-full max-w-xs">
+          {isEditingName ? (
+            <div className="flex items-center gap-2 rounded-2xl p-2 shadow-sm" style={getAdaptiveSurface(theme, 'raised')}>
+              <input
+                value={nameDraft}
+                onChange={e => setNameDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') saveNickname();
+                  if (e.key === 'Escape') {
+                    setNameDraft(user?.nickname ?? '');
+                    setIsEditingName(false);
+                  }
+                }}
+                maxLength={12}
+                autoFocus
+                className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm outline-none focus:border-primary"
+                style={{ ...getAdaptiveSurface(theme, 'base'), borderColor: theme.border, color: theme.textPrimary }}
+                placeholder="输入昵称"
+              />
+              <button
+                onClick={saveNickname}
+                disabled={!nameDraft.trim()}
+                className="flex h-9 w-9 items-center justify-center rounded-xl disabled:opacity-40"
+                style={getAdaptiveButton(theme, 'primary')}
+                title="保存昵称"
+              >
+                <Save size={16} />
+              </button>
+              <button
+                onClick={() => {
+                  setNameDraft(user?.nickname ?? '');
+                  setIsEditingName(false);
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-xl"
+                style={getAdaptiveButton(theme, 'ghost')}
+                title="取消"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setNameDraft(user?.nickname ?? '');
+                setIsEditingName(true);
+              }}
+              className="mx-auto flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium shadow-sm border"
+              style={{ ...getAdaptiveButton(theme, 'ghost'), color: theme.textSecondary }}
+              title="编辑昵称"
+            >
+              <span className="truncate">{user?.nickname || '未登录'}</span>
+              <Pencil size={12} />
+            </button>
+          )}
+        </div>
         {currentFrame && (
           <span className="text-xs mt-1 px-2 py-0.5 rounded-full" style={{ color: rarityConfig[currentFrame.rarity].color, backgroundColor: 'rgba(255,255,255,0.8)' }}>
             {currentFrame.name}
           </span>
         )}
         {currentTitle && (
-          <span className="text-sm mt-2 px-3 py-1.5 rounded-full font-medium shadow-sm" style={{ 
+          <span className="text-sm mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-medium shadow-sm" style={{
             background: currentTitle.gradient,
             color: currentTitle.textColor
           }}>
-            {currentTitle.icon} {currentTitle.name}
+            <span>{currentTitle.icon}</span>
+            <span>{currentTitle.name}</span>
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+              style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: rarityConfig[currentTitle.rarity].color }}
+            >
+              {currentTitle.rarity}
+            </span>
           </span>
         )}
       </div>
 
-      <div className="mx-4 mt-4 bg-gray-100 rounded-xl p-1 flex">
+      <div className="mx-4 mt-4 rounded-xl p-1 flex border" style={getAdaptiveSurface(theme, 'raised')}>
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === tab.key
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-text-muted'
-            }`}
+            className="flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+            style={{
+              backgroundColor: activeTab === tab.key ? (theme.primaryFixed || `${theme.primary}22`) : 'transparent',
+              color: activeTab === tab.key ? (theme.primaryLight || theme.primary) : theme.textMuted,
+              boxShadow: activeTab === tab.key ? '0 10px 24px -18px rgba(0,0,0,0.45)' : 'none',
+            }}
           >
             <span>{tab.icon}</span>
             <span>{tab.label}</span>
@@ -440,7 +567,7 @@ export default function AvatarEditPage() {
           <div className="mb-4">
             <p className="text-xs text-text-muted mb-2">上传自定义头像</p>
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl overflow-hidden border-2 border-dashed border-gray-300">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl overflow-hidden border-2 border-dashed" style={{ ...getAdaptiveSurface(theme, 'base'), borderColor: theme.border }}>
                 {isCustomAvatar ? (
                   <img src={user?.avatar} alt="自定义头像" className="w-full h-full object-cover" />
                 ) : (
@@ -449,7 +576,8 @@ export default function AvatarEditPage() {
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 py-3 px-4 bg-primary text-white rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                style={getAdaptiveButton(theme, 'primary')}
               >
                 <Upload size={18} />
                 <span>{isCustomAvatar ? '更换头像' : '上传图片'}</span>
@@ -463,6 +591,87 @@ export default function AvatarEditPage() {
               />
             </div>
           </div>
+
+          {cropImage && (
+            <div className="mb-5 rounded-2xl border p-4 shadow-sm" style={{ ...getAdaptiveSurface(theme, 'base'), borderColor: theme.border }}>
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary">裁剪圆形头像</h4>
+                  <p className="text-xs text-text-muted">拖动图片选择显示区域，滑动调整缩放</p>
+                </div>
+                <button
+                  onClick={cancelAvatarCrop}
+                className="flex h-8 w-8 items-center justify-center rounded-full"
+                style={getAdaptiveButton(theme, 'ghost')}
+                  title="取消裁剪"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div
+                className="relative mx-auto overflow-hidden rounded-full bg-gray-100 touch-none cursor-grab active:cursor-grabbing"
+                style={{ width: cropPreviewSize, height: cropPreviewSize }}
+                onPointerDown={handleCropPointerDown}
+                onPointerMove={handleCropPointerMove}
+                onPointerUp={handleCropPointerUp}
+                onPointerCancel={handleCropPointerUp}
+              >
+                <img
+                  src={cropImage}
+                  alt="头像裁剪预览"
+                  draggable={false}
+                  onLoad={e => setCropNaturalSize({
+                    width: e.currentTarget.naturalWidth || 1,
+                    height: e.currentTarget.naturalHeight || 1,
+                  })}
+                  className="pointer-events-none absolute select-none"
+                  style={{
+                    width: cropNaturalSize.width,
+                    height: cropNaturalSize.height,
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                    left: (cropPreviewSize - cropDisplayWidth) / 2 + cropOffset.x,
+                    top: (cropPreviewSize - cropDisplayHeight) / 2 + cropOffset.y,
+                    transform: `scale(${cropPreviewScale})`,
+                    transformOrigin: 'top left',
+                  }}
+                />
+                <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/90 ring-inset" />
+              </div>
+
+              <div className="mt-4 flex items-center gap-3">
+                <Minus size={16} className="text-text-muted" />
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.01"
+                  value={cropScale}
+                  onChange={e => setCropScale(Number(e.target.value))}
+                  className="flex-1 accent-primary"
+                  aria-label="头像缩放"
+                />
+                <Sparkles size={16} className="text-text-muted" />
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button
+                  onClick={cancelAvatarCrop}
+                  className="rounded-xl border py-3 text-sm font-medium"
+                  style={{ ...getAdaptiveButton(theme, 'secondary'), borderColor: theme.border }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={confirmAvatarCrop}
+                  className="rounded-xl py-3 text-sm font-medium"
+                  style={getAdaptiveButton(theme, 'primary')}
+                >
+                  确认使用
+                </button>
+              </div>
+            </div>
+          )}
 
           <p className="text-xs text-text-muted mb-2">选择 Emoji 头像</p>
           <div className="grid grid-cols-8 gap-2">
@@ -653,6 +862,7 @@ export default function AvatarEditPage() {
 
           {(['N', 'R', 'SR', 'SSR'] as RarityType[]).map(rarity => {
             const titles = allTitles.filter(t => t.rarity === rarity);
+            if (titles.length === 0) return null;
             const config = rarityConfig[rarity];
             
             return (
@@ -670,8 +880,7 @@ export default function AvatarEditPage() {
                       <div key={title.id} className="flex flex-col items-center">
                         <button
                           onClick={() => unlocked ? handleSelectTitle(title) : setPreviewTitle(title)}
-                          disabled={!unlocked}
-                          className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${
+                          className={`relative w-full min-h-[72px] overflow-hidden rounded-xl px-3 py-3 transition-all ${
                             selected
                               ? 'ring-2 ring-primary'
                               : unlocked
@@ -680,19 +889,35 @@ export default function AvatarEditPage() {
                           }`}
                           style={{ background: title.gradient }}
                         >
-                          <span>{title.icon}</span>
-                          <span className="text-sm font-medium" style={{ color: title.textColor }}>
-                            {title.name}
-                          </span>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-lg">{title.icon}</span>
+                            <span className="text-sm font-semibold" style={{ color: title.textColor }}>
+                              {title.name}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-center gap-1.5">
+                            <span
+                              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.55)', color: config.color }}
+                            >
+                              {title.rarity}
+                            </span>
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[9px] font-medium"
+                              style={{
+                                backgroundColor: selected ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.45)',
+                                color: title.textColor,
+                              }}
+                            >
+                              {selected ? '已佩戴' : unlocked ? '佩戴' : '未获得'}
+                            </span>
+                          </div>
                           {!unlocked && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
                               <Sparkles size={16} className="text-white" />
                             </div>
                           )}
                         </button>
-                        {selected && (
-                          <span className="text-[8px] text-primary font-medium mt-1">使用中</span>
-                        )}
                       </div>
                     );
                   })}

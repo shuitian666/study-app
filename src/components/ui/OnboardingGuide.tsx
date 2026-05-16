@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { ArrowRight, BookOpen, CalendarCheck, CheckCircle2, ChevronLeft, Medal, ShoppingBag, Trophy } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarCheck, CheckCircle2, ChevronLeft, Medal, Trophy } from 'lucide-react';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
 
@@ -22,8 +22,7 @@ const STEP_ACCENTS = ['#4f46e5', '#4338ca', '#0891b2', '#7c3aed', '#059669'];
 // 角度从 180°~270° 之间，cos 为负（向左偏），sin 从 0 到 -1（向上偏），结果始终在容器内
 const FAB_MENU_ITEMS = [
   { id: 'checkin', Icon: CalendarCheck, color: '#10b981', label: '签到', angleDeg: 180 },
-  { id: 'achievement', Icon: Trophy, color: '#f59e0b', label: '成就', angleDeg: 210 },
-  { id: 'shop', Icon: ShoppingBag, color: '#8b5cf6', label: '商城', angleDeg: 240 },
+  { id: 'achievement', Icon: Trophy, color: '#f59e0b', label: '成就', angleDeg: 225 },
   { id: 'ranking', Icon: Medal, color: '#ef4444', label: '排行', angleDeg: 270 },
 ] as const;
 
@@ -159,7 +158,7 @@ export default function OnboardingGuide({ open, onClose }: OnboardingGuideProps)
                 {fabMode !== 'idle' && (
                   <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
                     {fabMode === 'tap' && '最快进入今天的学习主流程。'}
-                    {fabMode === 'hold' && '从菜单里去签到、成就、商城、排行。'}
+                    {fabMode === 'hold' && '从菜单里去签到、成就和排行。'}
                   </p>
                 )}
               </div>

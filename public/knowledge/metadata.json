@@ -1,0 +1,141 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-05-13T13:21:11.098Z",
+  "subjects": [
+    {
+      "id": "micro",
+      "name": "微生物与免疫学",
+      "description": "微生物与免疫学复习知识库",
+      "icon": "🧫",
+      "color": "#059669",
+      "kpCount": 94,
+      "qCount": 86,
+      "chapters": [
+        {
+          "subjectId": "micro",
+          "order": 1,
+          "id": "micro-ch1",
+          "name": "微生物学基础"
+        },
+        {
+          "subjectId": "micro",
+          "order": 2,
+          "id": "micro-ch2",
+          "name": "细菌学"
+        },
+        {
+          "subjectId": "micro",
+          "order": 3,
+          "id": "micro-ch3",
+          "name": "病毒学"
+        },
+        {
+          "subjectId": "micro",
+          "order": 4,
+          "id": "micro-ch4",
+          "name": "免疫学基础"
+        }
+      ]
+    },
+    {
+      "id": "immuno",
+      "name": "免疫学题目",
+      "description": "免疫学选择题与解析",
+      "icon": "🔬",
+      "color": "#8b5cf6",
+      "kpCount": 12,
+      "qCount": 12,
+      "chapters": [
+        {
+          "subjectId": "immuno",
+          "order": 1,
+          "id": "immunology-ch1",
+          "name": "免疫学题目"
+        }
+      ]
+    },
+    {
+      "id": "analytical",
+      "name": "分析化学",
+      "description": "分析化学知识库",
+      "icon": "⚗️",
+      "color": "#2563eb",
+      "kpCount": 27,
+      "qCount": 23,
+      "chapters": [
+        {
+          "subjectId": "analytical",
+          "order": 1,
+          "id": "ana-c1",
+          "name": "定量分析概论"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 2,
+          "id": "ana-c2",
+          "name": "误差与分析数据处理"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 3,
+          "id": "ana-c3",
+          "name": "酸碱滴定法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 4,
+          "id": "ana-c4",
+          "name": "配位滴定法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 5,
+          "id": "ana-c5",
+          "name": "氧化还原滴定法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 6,
+          "id": "ana-c6",
+          "name": "沉淀滴定法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 7,
+          "id": "ana-c7",
+          "name": "重量分析法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 8,
+          "id": "ana-c8",
+          "name": "紫外-可见分光光度法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 9,
+          "id": "ana-c9",
+          "name": "红外光谱分析法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 10,
+          "id": "ana-c10",
+          "name": "原子吸收光谱法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 11,
+          "id": "ana-c11",
+          "name": "气相色谱法"
+        },
+        {
+          "subjectId": "analytical",
+          "order": 12,
+          "id": "ana-c12",
+          "name": "电位分析法"
+        }
+      ]
+    }
+  ]
+}

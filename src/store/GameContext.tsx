@@ -15,6 +15,8 @@ import type {
 } from '@/types';
 import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK_REWARDS } from '@/data/incentive-mock';
 import { saveState, loadState } from './persistence';
+import { normalizeUpPoolTitles } from '@/utils/titleNames';
+import { normalizeBackgroundShopItems, normalizeBackgroundUpPool } from '@/data/backgroundCatalog';
 
 // ---------- Checkin reward info ----------
 export interface CheckinRewardInfo {
@@ -22,15 +24,17 @@ export interface CheckinRewardInfo {
   upTickets: number;
   streakCoins: number;
   streakLabel?: string;
+  source?: 'checkin' | 'makeup' | 'team_upgrade';
 }
 
 // ---------- Redemption codes ----------
-const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
+export const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
   '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
   '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
   '全部解锁': { upDraws: 99, regularDraws: 99, coins: 9999 },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function isValidRedeemCode(code: string): boolean {
   return code in REDEMPTION_CODES;
 }
@@ -69,13 +73,13 @@ export interface GameState {
 }
 
 const initialGameState: GameState = {
-  checkin: { records: [], streak: 0, makeupCards: 2, totalCheckins: 0, lotteryPity: { sinceLastSR: 0, sinceLastSSR: 0 } },
+  checkin: { records: [], streak: 0, makeupCards: 0, totalCheckins: 0, lotteryPity: { sinceLastSR: 0, sinceLastSSR: 0 } },
   achievements: MOCK_ACHIEVEMENTS,
-  shopItems: MOCK_SHOP_ITEMS,
+  shopItems: normalizeBackgroundShopItems(MOCK_SHOP_ITEMS),
   rankings: MOCK_RANKINGS,
   achievementPopup: null,
-  drawBalance: { regular: 1, up: 0 },
-  upPool: MOCK_UP_POOL,
+  drawBalance: { regular: 0, up: 0 },
+  upPool: normalizeBackgroundUpPool(MOCK_UP_POOL),
   lastCheckinReward: null,
   team: null,
   lotteryPopup: null,
@@ -83,8 +87,9 @@ const initialGameState: GameState = {
 };
 
 // ---------- Actions ----------
-type GameAction =
+export type GameAction =
   | { type: 'CHECKIN'; payload: { date: string; type: 'normal' | 'makeup' | 'team'; teamId?: string } }
+  | { type: 'UPGRADE_TODAY_CHECKIN_TO_TEAM'; payload: { date: string; teamId: string } }
   | { type: 'DISMISS_CHECKIN_REWARD' }
   | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
   | { type: 'DISMISS_ACHIEVEMENT_POPUP' }
@@ -99,7 +104,8 @@ type GameAction =
   | { type: 'REDEEM_CODE'; payload: string }
   | { type: 'RESET_ALL' };
 
-function gameReducer(state: GameState, action: GameAction): GameState {
+// eslint-disable-next-line react-refresh/only-export-components
+export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'CHECKIN': {
       const exists = state.checkin.records.some(r => r.date === action.payload.date);
@@ -119,6 +125,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         if (!allReady) return state;
       }
 
+      const previousStreak = state.checkin.streak;
       const newRecord = { date: action.payload.date, type: action.payload.type, teamId: action.payload.teamId };
       const newRecords = [...state.checkin.records, newRecord];
       const streak = calculateStreak(newRecords);
@@ -136,7 +143,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const streakReward = STREAK_REWARDS.find(r => r.days === streak);
-      if (streakReward && !isMakeup) {
+      const reachedNewMilestone = streak !== previousStreak;
+      if (streakReward && reachedNewMilestone) {
         streakCoins = streakReward.coins;
         upTickets = streakReward.upDraws;
         streakLabel = streakReward.label;
@@ -155,10 +163,49 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           regular: state.drawBalance.regular + regularTickets,
           up: state.drawBalance.up + upTickets,
         },
-        lastCheckinReward: { regularTickets, upTickets, streakCoins, streakLabel },
+        lastCheckinReward: {
+          regularTickets,
+          upTickets,
+          streakCoins,
+          streakLabel,
+          source: isMakeup ? 'makeup' : 'checkin',
+        },
         team: state.team && action.payload.type === 'team'
           ? { ...state.team, todayCheckedIn: true }
           : state.team,
+      };
+    }
+
+    case 'UPGRADE_TODAY_CHECKIN_TO_TEAM': {
+      if (!state.team || state.team.status !== 'active' || state.team.todayCheckedIn) return state;
+      if (state.team.id !== action.payload.teamId) return state;
+      const allReady = state.team.members.every(m => m.progress.isReady);
+      if (!allReady) return state;
+
+      const record = state.checkin.records.find(r => r.date === action.payload.date);
+      if (!record || record.type === 'team') return state;
+
+      return {
+        ...state,
+        checkin: {
+          ...state.checkin,
+          records: state.checkin.records.map(r =>
+            r.date === action.payload.date
+              ? { ...r, type: 'team', teamId: action.payload.teamId }
+              : r
+          ),
+        },
+        drawBalance: {
+          ...state.drawBalance,
+          regular: state.drawBalance.regular + 1,
+        },
+        lastCheckinReward: {
+          regularTickets: 1,
+          upTickets: 0,
+          streakCoins: 0,
+          source: 'team_upgrade',
+        },
+        team: { ...state.team, todayCheckedIn: true },
       };
     }
 
@@ -252,7 +299,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'DISMISS_ACHIEVEMENT_POPUP':
       return { ...state, achievementPopup: null };
     case 'BUY_SHOP_ITEM': {
-      let item = state.shopItems.find(i => i.id === action.payload);
+      const item = state.shopItems.find(i => i.id === action.payload);
       if (!item) return state;
 
       // 检查背包中是否已经拥有该物品（装饰类），已经拥有就不能购买
@@ -268,7 +315,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         let newShopItems = [...state.shopItems];
 
         // 计算下一次价格梯度：1->30, 2->50, 3->80, 4+->120
-        let nextPrice = 30;
+        const nextPrice = 30;
         // 更新商店中补签卡的价格
         newShopItems = newShopItems.map(i =>
           i.id === action.payload ? { ...i, price: nextPrice } : i
@@ -329,10 +376,10 @@ function getInitialGameState(): GameState {
       ...initialGameState,
       checkin: saved.checkin ?? initialGameState.checkin,
       achievements: saved.achievements ?? initialGameState.achievements,
-      shopItems: saved.shopItems ?? initialGameState.shopItems,
+      shopItems: normalizeBackgroundShopItems(saved.shopItems ?? initialGameState.shopItems),
       rankings: saved.rankings ?? initialGameState.rankings,
       drawBalance: saved.drawBalance ?? initialGameState.drawBalance,
-      upPool: saved.upPool ?? initialGameState.upPool,
+      upPool: normalizeBackgroundUpPool(normalizeUpPoolTitles(saved.upPool ?? initialGameState.upPool)),
       team: saved.team ?? initialGameState.team,
       redeemedCodes: saved.redeemedCodes ?? initialGameState.redeemedCodes,
     };
@@ -371,6 +418,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGame() {
   const ctx = useContext(GameContext);
   if (!ctx) throw new Error('useGame must be used within GameProvider');

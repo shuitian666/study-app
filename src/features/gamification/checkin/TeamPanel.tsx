@@ -1,64 +1,94 @@
-import { useState, useEffect, useRef } from 'react';
-import { useUser } from '@/store/UserContext';
-import { useLearning } from '@/store/LearningContext';
+import { useEffect, useRef, useState } from 'react';
+import { Check, Copy, Loader2, Sparkles, Trophy, UserPlus, Users, X } from 'lucide-react';
 import { useGame } from '@/store/GameContext';
-import { allFrames } from '@/pages/AvatarEdit';
-import { Users, Copy, Check, UserPlus, X, Loader2 } from 'lucide-react';
+import { useLearning } from '@/store/LearningContext';
+import { useUser } from '@/store/UserContext';
 import { createTeam } from '@/services/teamService';
 import { createSimulatedTeammate, startTeammateSimulation, type SimulationHandle } from '@/services/teamSimulator';
+import { getLocalDateKey } from '@/utils/experience';
 
-export default function TeamPanel() {
-  const { userState } = useUser();
+interface TeamPanelProps {
+  onClose?: () => void;
+}
+
+export default function TeamPanel({ onClose }: TeamPanelProps) {
+  const { userState, navigate } = useUser();
   const { getTaskCompletionRate } = useLearning();
   const { gameState, gameDispatch } = useGame();
   const team = gameState.team;
+  const today = getLocalDateKey();
+  const todayRecord = gameState.checkin.records.find(record => record.date === today);
   const [inviteInput, setInviteInput] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const simRef = useRef<SimulationHandle | null>(null);
+  const joinTimerRef = useRef<number | null>(null);
 
-  // Start simulation when team becomes active with a simulated member
-  useEffect(() => {
-    if (team?.status === 'active' && team.members.some(m => m.isSimulated)) {
-      simRef.current = startTeammateSimulation(
-        (progress) => {
-          gameDispatch({ type: 'UPDATE_TEAMMATE_PROGRESS', payload: progress });
-        },
-      );
-    }
-    return () => { simRef.current?.stop(); };
-  }, [team?.status, team?.id, gameDispatch]);
-
-  // Update self progress in team whenever task completion changes
   const { rate } = getTaskCompletionRate();
+  const bothReady = team?.status === 'active' && team.members.every(member => member.progress.isReady);
+  const hasSimulatedMember = team?.members.some(member => member.isSimulated) ?? false;
+  const canUpgrade =
+    !!team &&
+    team.status === 'active' &&
+    bothReady &&
+    !!todayRecord &&
+    todayRecord.type !== 'team' &&
+    !team.todayCheckedIn;
+
   useEffect(() => {
-    if (team?.status === 'active') {
-      gameDispatch({
-        type: 'SET_TEAM',
-        payload: {
-          ...team,
-          members: team.members.map(m =>
-            !m.isSimulated
-              ? { ...m, progress: { ...m.progress, taskCompletionRate: rate, isReady: rate >= 0.8, lastUpdated: new Date().toISOString() } }
-              : m
-          ),
-        },
-      });
-    }
-  // Only react to rate changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      simRef.current?.stop();
+      if (joinTimerRef.current) window.clearTimeout(joinTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (team?.status !== 'active' || !hasSimulatedMember) return;
+    simRef.current?.stop();
+    simRef.current = startTeammateSimulation(progress => {
+      gameDispatch({ type: 'UPDATE_TEAMMATE_PROGRESS', payload: progress });
+    });
+    return () => simRef.current?.stop();
+  }, [team?.id, team?.status, hasSimulatedMember, gameDispatch]);
+
+  useEffect(() => {
+    if (team?.status !== 'active') return;
+    const nextReady = rate >= 0.8;
+    const nextRate = Math.round(rate * 100) / 100;
+    const self = team.members.find(member => !member.isSimulated);
+    if (!self) return;
+    if (self.progress.taskCompletionRate === nextRate && self.progress.isReady === nextReady) return;
+
+    gameDispatch({
+      type: 'SET_TEAM',
+      payload: {
+        ...team,
+        members: team.members.map(member =>
+          member.isSimulated
+            ? member
+            : {
+                ...member,
+                progress: {
+                  ...member.progress,
+                  taskCompletionRate: nextRate,
+                  isReady: nextReady,
+                  lastUpdated: new Date().toISOString(),
+                },
+              }
+        ),
+      },
+    });
   }, [rate, team, gameDispatch]);
 
   const handleCreateTeam = async () => {
-    if (!userState.user) return;
+    if (!userState.user || loading) return;
     setLoading(true);
     const newTeam = await createTeam(userState.user.id, userState.user.nickname, userState.user.avatar);
     gameDispatch({ type: 'SET_TEAM', payload: newTeam });
     setLoading(false);
 
-    // Simulate teammate joining after delay
-    setTimeout(() => {
+    joinTimerRef.current = window.setTimeout(() => {
       const teammate = createSimulatedTeammate();
       gameDispatch({
         type: 'SET_TEAM',
@@ -68,273 +98,184 @@ export default function TeamPanel() {
           members: [...newTeam.members, teammate],
         },
       });
-    }, 3000 + Math.random() * 5000);
+    }, 1800);
   };
 
   const handleJoinTeam = () => {
-    if (!userState.user || !inviteInput.trim()) return;
-    // MVP: simulate joining - create team with self + simulated partner
+    if (!userState.user || inviteInput.trim().length < 6) return;
     const teammate = createSimulatedTeammate();
-    const selfMember = {
-      id: userState.user.id,
-      name: userState.user.nickname,
-      avatar: userState.user.avatar,
-      isSimulated: false,
-      progress: { taskCompletionRate: rate, studyMinutes: 0, isReady: rate >= 0.8, lastUpdated: new Date().toISOString() },
-    };
     gameDispatch({
       type: 'SET_TEAM',
       payload: {
         id: `team-${Date.now()}`,
         inviteCode: inviteInput.trim().toUpperCase(),
-        members: [selfMember, teammate],
         status: 'active',
         createdAt: new Date().toISOString(),
         todayCheckedIn: false,
+        members: [
+          {
+            id: userState.user.id,
+            name: userState.user.nickname,
+            avatar: userState.user.avatar,
+            isSimulated: false,
+            progress: {
+              taskCompletionRate: Math.round(rate * 100) / 100,
+              studyMinutes: 0,
+              isReady: rate >= 0.8,
+              lastUpdated: new Date().toISOString(),
+            },
+          },
+          teammate,
+        ],
       },
     });
-    setShowJoinInput(false);
     setInviteInput('');
+    setShowJoinInput(false);
   };
 
   const handleCopyCode = () => {
-    if (team?.inviteCode) {
-      navigator.clipboard.writeText(team.inviteCode).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (!team?.inviteCode) return;
+    navigator.clipboard.writeText(team.inviteCode).catch(() => {});
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
   };
 
   const handleDissolve = () => {
     simRef.current?.stop();
+    if (joinTimerRef.current) window.clearTimeout(joinTimerRef.current);
     gameDispatch({ type: 'DISSOLVE_TEAM' });
   };
 
-  // Render: no team
-  if (!team) {
-    return (
-      <div className="mx-4 mt-4">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-          <Users size={14} className="text-primary" />
-          组队学习
-        </h3>
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
-          <p className="text-xs text-text-muted mb-3 text-center">和好友一起完成学习任务，组队打卡奖励更丰富!</p>
-          {showJoinInput ? (
+  const handleUpgrade = () => {
+    if (!team || !canUpgrade) return;
+    gameDispatch({ type: 'UPGRADE_TODAY_CHECKIN_TO_TEAM', payload: { date: today, teamId: team.id } });
+  };
+
+  const renderProgress = (value: number) => `${Math.round(value * 100)}%`;
+
+  return (
+    <div className="bg-white w-full max-w-sm shadow-2xl border border-border p-5" style={{ borderRadius: 24 }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Users size={20} className="text-primary" />
+            <h2 className="text-lg font-bold text-text-primary">组队学习</h2>
+          </div>
+          <p className="mt-1 text-xs text-text-muted">和队友互相督促，双方达标后可升级今日签到奖励。</p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="p-2 rounded-full bg-gray-100 text-text-muted active:opacity-70" aria-label="关闭组队面板">
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
+      {!team && (
+        <div className="mt-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleCreateTeam}
+              disabled={loading}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <Users size={15} />}
+              创建小队
+            </button>
+            <button
+              onClick={() => setShowJoinInput(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-primary bg-white py-3 text-sm font-semibold text-primary"
+            >
+              <UserPlus size={15} />
+              加入小队
+            </button>
+          </div>
+
+          {showJoinInput && (
             <div className="flex gap-2">
               <input
                 value={inviteInput}
-                onChange={e => setInviteInput(e.target.value.toUpperCase())}
-                placeholder="输入6位邀请码"
+                onChange={event => setInviteInput(event.target.value.toUpperCase())}
                 maxLength={6}
-                className="flex-1 border border-border rounded-xl px-3 py-2 text-sm text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="输入邀请码"
+                className="min-w-0 flex-1 rounded-xl border border-border px-3 py-2 text-center text-sm font-mono tracking-widest outline-none focus:ring-2 focus:ring-primary/20"
               />
-              <button onClick={handleJoinTeam} disabled={inviteInput.length < 6} className="bg-primary text-white px-4 rounded-xl text-sm disabled:opacity-50">
+              <button onClick={handleJoinTeam} disabled={inviteInput.length < 6} className="rounded-xl bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">
                 加入
               </button>
-              <button onClick={() => { setShowJoinInput(false); setInviteInput(''); }} className="p-2 text-text-muted">
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleCreateTeam}
-                disabled={loading}
-                className="bg-primary text-white py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 active:opacity-80 disabled:opacity-50"
-              >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
-                创建队伍
-              </button>
-              <button
-                onClick={() => setShowJoinInput(true)}
-                className="bg-white text-primary border-2 border-primary py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 active:opacity-80"
-              >
-                <UserPlus size={14} />
-                加入队伍
-              </button>
             </div>
           )}
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Render: waiting for teammate
-  if (team.status === 'waiting') {
-    return (
-      <div className="mx-4 mt-4">
-        <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-          <Users size={14} className="text-primary" />
-          组队学习
-        </h3>
-        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm text-center">
-          <p className="text-xs text-text-muted mb-3">分享邀请码给好友</p>
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className="text-2xl font-mono font-bold tracking-[0.3em] text-primary">
-              {team.inviteCode}
-            </span>
-            <button onClick={handleCopyCode} className="p-1.5 rounded-lg bg-gray-100 active:bg-gray-200">
-              {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} className="text-text-muted" />}
+      {team?.status === 'waiting' && (
+        <div className="mt-5 rounded-2xl bg-gray-50 p-4 text-center">
+          <p className="text-xs text-text-muted">分享邀请码给好友</p>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <span className="font-mono text-2xl font-bold tracking-[0.28em] text-primary">{team.inviteCode}</span>
+            <button onClick={handleCopyCode} className="rounded-lg bg-white p-2 shadow-sm">
+              {copied ? <Check size={15} className="text-accent" /> : <Copy size={15} className="text-text-muted" />}
             </button>
           </div>
-          <div className="flex items-center justify-center gap-2 text-text-muted text-xs">
-            <Loader2 size={12} className="animate-spin" />
+          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-text-muted">
+            <Loader2 size={13} className="animate-spin" />
             等待队友加入...
           </div>
-          <button onClick={handleDissolve} className="mt-3 text-xs text-danger">解散队伍</button>
+          <button onClick={handleDissolve} className="mt-4 text-xs text-danger">解散小队</button>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // Render: active team with progress
-  const self = team.members.find(m => !m.isSimulated);
-  const partner = team.members.find(m => m.isSimulated);
-  const bothReady = team.members.every(m => m.progress.isReady);
-
-  return (
-    <div className="mx-4 mt-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold flex items-center gap-1.5">
-          <Users size={14} className="text-primary" />
-          组队学习
-        </h3>
-        <button onClick={handleDissolve} className="text-[10px] text-text-muted">解散</button>
-      </div>
-      <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
-        <div className="flex items-center justify-around gap-4">
-          {/* Self */}
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="relative">
-              {userState.user?.avatarFrame ? (
-                (() => {
-                  const frameConfig = allFrames.find(f => f.icon === userState.user!.avatarFrame);
-                  if (!frameConfig) return null;
-                  const isCustomAvatar = userState.user?.avatar?.startsWith('data:') || userState.user?.avatar?.startsWith('http');
-                  return (
-                    <div
-                      className={`w-16 h-16 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
-                      style={{
-                        background: frameConfig.gradient,
-                        clipPath: frameConfig.shapeTransform || 'circle(50%)',
-                        backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
-                      }}
-                    >
-                      <div className={`bg-white/20 rounded-full flex items-center justify-center p-1 w-[calc(100%-6px)] h-[calc(100%-6px)] border-3 ${
-                        self?.progress.isReady ? 'border-accent' : 'border-white/50'
-                      }`}>
-                        {isCustomAvatar ? (
-                          <img src={userState.user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
-                        ) : (
-                          <span className="text-2xl">{userState.user?.avatar || '👤'}</span>
-                        )}
-                      </div>
-                      {frameConfig.decorations && frameConfig.decorations.length > 0 && (
-                        <div className="absolute inset-0 pointer-events-none">
-                          {frameConfig.decorations.map((dec, i) => (
-                            <span
-                              key={i}
-                              className={`absolute text-sm ${frameConfig.animation ? 'animate-bounce' : ''}`}
-                              style={{
-                                top: i === 0 ? '-4px' : i === 1 ? '50%' : 'auto',
-                                bottom: i === 2 ? '-4px' : 'auto',
-                                right: i === 1 ? '-4px' : i === 2 ? '0' : 'auto',
-                                left: i === 0 ? '50%' : i === 1 ? 'auto' : '0',
-                                transform: i === 0 ? 'translateX(-50%)' : i === 1 ? 'translateY(-50%)' : 'none',
-                                animationDelay: `${i * 0.5}s`,
-                              }}
-                            >
-                              {dec}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()
-              ) : (
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
-                  self?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
-                }`}>
-                  {userState.user?.avatar || '👤'}
+      {team?.status === 'active' && (
+        <div className="mt-5 space-y-4">
+          <div className="rounded-2xl bg-gray-50 p-4">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+              {team.members.slice(0, 2).map((member, index) => (
+                <div key={member.id} className="flex flex-col items-center gap-2">
+                  <div className={`relative flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl ${member.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-white'}`}>
+                    {member.avatar || (index === 0 ? '我' : '友')}
+                    {member.progress.isReady && (
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] text-white">✓</span>
+                    )}
+                  </div>
+                  <div className="max-w-[84px] truncate text-xs font-semibold text-text-primary">{member.isSimulated ? member.name : '我'}</div>
+                  <div className="text-[11px] text-text-muted">{renderProgress(member.progress.taskCompletionRate)}</div>
                 </div>
-              )}
-              {self?.progress.isReady && (
-                <div className="absolute -bottom-0.5 -right-0.5 bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
-                  ✓
-                </div>
-              )}
+              ))}
+              <div className={`flex h-9 w-9 items-center justify-center rounded-full ${bothReady ? 'bg-accent/10 text-accent' : 'bg-white text-text-muted'}`}>
+                <Sparkles size={17} />
+              </div>
             </div>
-            <span className="text-xs font-medium truncate max-w-[60px]">{userState.user?.nickname || '我'}</span>
-            <span className="text-[10px] text-text-muted">{Math.round((self?.progress.taskCompletionRate ?? 0) * 100)}%</span>
           </div>
 
-          {/* Connection */}
-          <div className={`text-xl ${bothReady ? 'text-accent' : 'text-gray-300'}`}>🤝</div>
-
-          {/* Partner */}
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="relative">
-              {partner?.avatarFrame ? (
-                (() => {
-                  const frameConfig = allFrames.find(f => f.icon === partner.avatarFrame);
-                  if (!frameConfig) return null;
-                  const isCustomAvatar = partner.avatar?.startsWith('data:') || partner.avatar?.startsWith('http');
-                  return (
-                    <div
-                      className={`w-16 h-16 rounded-full flex items-center justify-center ${frameConfig.animation ? 'animate-gradient-shift' : ''}`}
-                      style={{
-                        background: frameConfig.gradient,
-                        clipPath: frameConfig.shapeTransform || 'circle(50%)',
-                        backgroundSize: frameConfig.animation ? '200% 200%' : '100% 100%',
-                      }}
-                    >
-                      <div className={`bg-white/20 rounded-full flex items-center justify-center p-1 w-[calc(100%-6px)] h-[calc(100%-6px)] border-3 ${
-                        partner?.progress.isReady ? 'border-accent' : 'border-white/50'
-                      }`}>
-                        {isCustomAvatar ? (
-                          <img src={partner.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
-                        ) : (
-                          <span className="text-2xl">{partner.avatar || '👤'}</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()
-              ) : (
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border-3 ${
-                  partner?.progress.isReady ? 'border-accent bg-accent/10' : 'border-gray-200 bg-gray-50'
-                }`}>
-                  {partner?.avatar || '👤'}
-                </div>
-              )}
-              {partner?.progress.isReady && (
-                <div className="absolute -bottom-0.5 -right-0.5 bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
-                  ✓
-                </div>
-              )}
+          <div className="rounded-2xl border border-border p-4">
+            <div className="flex items-center gap-2">
+              <Trophy size={16} className="text-primary" />
+              <span className="text-sm font-semibold text-text-primary">今日组队奖励</span>
             </div>
-            <span className="text-xs font-medium truncate max-w-[60px]">{partner?.name || '队友'}</span>
-            <span className="text-[10px] text-text-muted">{Math.round((partner?.progress.taskCompletionRate ?? 0) * 100)}%</span>
+            <p className="mt-1 text-xs text-text-muted">
+              {team.todayCheckedIn || todayRecord?.type === 'team'
+                ? '今日组队奖励已领取。'
+                : canUpgrade
+                  ? '双方已达标，可将今日普通签到升级为组队签到，补领 1 次常规抽签。'
+                  : todayRecord
+                    ? '等待双方学习进度达标后，可补领组队额外奖励。'
+                    : '先完成今日学习目标并签到，再回来升级组队奖励。'}
+            </p>
+            {canUpgrade ? (
+              <button onClick={handleUpgrade} className="mt-3 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white active:opacity-80">
+                升级为组队签到
+              </button>
+            ) : !todayRecord ? (
+              <button onClick={() => { onClose?.(); navigate('checkin'); }} className="mt-3 w-full rounded-xl bg-gray-100 py-3 text-sm font-semibold text-text-primary active:opacity-80">
+                去签到
+              </button>
+            ) : null}
           </div>
-        </div>
 
-        {/* Status message */}
-        <div className="mt-3 text-center">
-          {bothReady ? (
-            <span className="text-xs text-accent font-medium">双方均已完成，可以组队签到了!</span>
-          ) : (
-            <span className="text-xs text-text-muted">
-              {!self?.progress.isReady && !partner?.progress.isReady
-                ? '双方都还在学习中...'
-                : !self?.progress.isReady
-                  ? '你还需要继续完成任务'
-                  : '等待队友完成任务...'}
-            </span>
-          )}
+          <button onClick={handleDissolve} className="w-full rounded-xl py-2.5 text-xs font-medium text-text-muted active:bg-gray-50">
+            解散小队
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

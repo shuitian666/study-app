@@ -1,6 +1,7 @@
 import type { ProficiencyLevel } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { useTheme } from '@/store/ThemeContext';
+import { getAdaptiveNav } from '@/utils/adaptiveTheme';
 
 export function ProficiencyBadge({ level }: { level: ProficiencyLevel }) {
   const config = PROFICIENCY_MAP[level];
@@ -23,18 +24,14 @@ export function PageHeader({
   onBack?: () => void;
   rightAction?: React.ReactNode;
 }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
   // 计算半透明背景色
-  const bgOpacity = isDark ? 0.1 : 0.95;
-  const bgColor = isDark ? `rgba(255, 255, 255, ${bgOpacity})` : `rgba(255, 255, 255, ${bgOpacity})`;
-
   return (
     <div
       className="sticky top-0 z-40 backdrop-blur-sm border-b transition-all duration-300"
       style={{
-        backgroundColor: bgColor,
-        borderColor: theme.border
+        ...getAdaptiveNav(theme)
       }}
     >
       <div className="flex items-center justify-between h-12 px-4">

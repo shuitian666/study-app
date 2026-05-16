@@ -1,0 +1,571 @@
+{
+  "version": "1.0",
+  "exportTime": "2026-05-13T13:21:11.098Z",
+  "subjectId": "immuno",
+  "subjectName": "免疫学题目",
+  "total": 12,
+  "chapters": [
+    {
+      "subjectId": "immuno",
+      "order": 1,
+      "id": "immunology-ch1",
+      "name": "免疫学题目"
+    }
+  ],
+  "knowledgePoints": [
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596200",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596207",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0001",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "抗体再次应答特点描述错误",
+      "explanation": "抗体再次应答（回忆应答）特点：潜伏期短、抗体产量高、以高亲和力IgG为主、体内持续时间久；E选项描述错误，初次应答抗体才持续时间短。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596255",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596256",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0002",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "TCR的双识别是指",
+      "explanation": "TCR核心双识别机制：必须同时识别抗原肽 + 抗原提呈细胞表面的自身MHC分子；PAMP由固有免疫PRR识别，mIg是B细胞BCR组分，T细胞只识别线性T细胞表位，不识别B细胞构象表位。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596274",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596275",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0003",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "ABO血型抗原属于哪类抗原",
+      "explanation": "同种异型抗原指同一种属不同个体间存在的抗原差异，ABO血型、HLA、Rh抗原均为典型代表，不配型输血会引发溶血反应；自身抗原为自身致病成分，独特型是抗体/TCR特有决定簇，异嗜性是跨物种共有抗原，异种抗原来自其他物种。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596289",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596289",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0004",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "化学结构中免疫原性最强的物质是",
+      "explanation": "蛋白质结构复杂、分子量适配，含丰富T/B细胞表位，属于T细胞依赖抗原，可激发体液+细胞免疫且产生免疫记忆；多糖为TI抗原无记忆，核酸、脂质免疫原性极弱，氨基酸小分子仅为半抗原无免疫原性。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596302",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596303",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0005",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "接种牛痘疫苗可预防天花，该现象体现的免疫学原理是",
+      "explanation": "牛痘病毒与天花病毒拥有**共同抗原决定簇**，牛痘诱导产生的抗体可交叉识别结合天花抗原，属于抗原交叉反应原理；主动免疫是免疫获得方式，并非该现象核心机制解释。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596318",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596319",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0006",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "PAMP描述错误",
+      "explanation": "PAMP（病原相关分子模式）是**某一类病原共有、高度保守**的通用结构（如LPS、肽聚糖），并非单一病原体特有；其无个体特异性，被胚系编码无重排的PRR识别，启动固有免疫。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596331",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596332",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0007",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "对半抗原特性描述正确",
+      "explanation": "半抗原=不完全抗原，核心特质：单独只有抗原性（可结合对应抗体）、无免疫原性（无法单独诱导免疫产生抗体）；与大分子蛋白质载体偶联后，可成为完全抗原获得免疫原性。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596345",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596346",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0008",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "B细胞活化的关键第二信号是",
+      "explanation": "B细胞双活化信号：第一信号为BCR特异性识别抗原；第二信号核心共刺激信号是B细胞CD40结合Th细胞表面CD40L，决定B细胞完全活化增殖分化；CD80/CD86-CD28是T细胞活化第二信号。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596359",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596360",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0009",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "天然/固有免疫说法错误",
+      "explanation": "固有免疫PRR（模式识别受体）由胚系基因编码，**不发生体细胞基因重排**；基因重排是适应性免疫TCR、BCR产生多样性的专属特征。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596373",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596374",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0010",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "生理性免疫应答全过程",
+      "explanation": "免疫应答分识别、活化分化、效应三阶段，是针对外来抗原的应答过程；T细胞胸腺内成熟属于**免疫中枢器官的细胞发育过程**，并非抗原特异性免疫应答范畴。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596386",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596386",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0011",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "决定抗原特异性的核心结构是",
+      "explanation": "抗原表位是抗原分子中特殊化学基团，是TCR、BCR、抗体特异性结合识别的唯一结构基础，直接决定抗原特异性；分子量、结构复杂度仅影响免疫原性强弱。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-04-09T20:28:16.596399",
+      "reviewCount": 0,
+      "createdAt": "2026-04-09T20:28:16.596399",
+      "source": "import",
+      "id": "kp-imported-20260409202816-0012",
+      "subjectId": "immuno",
+      "chapterId": "immunology-ch1",
+      "name": "T细胞活化的第二共刺激信号来源是",
+      "explanation": "T细胞双信号活化：第一信号=TCR-CD3识别抗原肽-MHC复合物（CD4/CD8为辅受体）；第二关键共刺激信号=APC的CD80/CD86结合T细胞CD28，缺失则T细胞免疫耐受失能。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "imported-q-1",
+      "knowledgePointId": "kp-imported-20260409202816-0001",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "下列关于抗体再次应答特点描述错误的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "以IgG为主"
+        },
+        {
+          "id": "b",
+          "text": "抗体亲和力高"
+        },
+        {
+          "id": "c",
+          "text": "产生抗体量多"
+        },
+        {
+          "id": "d",
+          "text": "潜伏期短"
+        },
+        {
+          "id": "e",
+          "text": "在体内持续时间短"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "抗体再次应答（回忆应答）特点：潜伏期短、抗体产量高、以高亲和力IgG为主、体内持续时间久；E选项描述错误，初次应答抗体才持续时间短。"
+    },
+    {
+      "id": "imported-q-2",
+      "knowledgePointId": "kp-imported-20260409202816-0002",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "TCR的双识别是指",
+      "options": [
+        {
+          "id": "a",
+          "text": "识别PAMP"
+        },
+        {
+          "id": "b",
+          "text": "同时识别MHCⅠ类和MHCⅡ类分子"
+        },
+        {
+          "id": "c",
+          "text": "识别mIg分子"
+        },
+        {
+          "id": "d",
+          "text": "识别抗原肽和自身MHC分子"
+        },
+        {
+          "id": "e",
+          "text": "单独识别B细胞表位"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "TCR核心双识别机制：必须同时识别抗原肽 + 抗原提呈细胞表面的自身MHC分子；PAMP由固有免疫PRR识别，mIg是B细胞BCR组分，T细胞只识别线性T细胞表位，不识别B细胞构象表位。"
+    },
+    {
+      "id": "imported-q-3",
+      "knowledgePointId": "kp-imported-20260409202816-0003",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "ABO血型抗原属于哪类抗原",
+      "options": [
+        {
+          "id": "a",
+          "text": "自身抗原"
+        },
+        {
+          "id": "b",
+          "text": "同种异型抗原"
+        },
+        {
+          "id": "c",
+          "text": "独特型抗原"
+        },
+        {
+          "id": "d",
+          "text": "异嗜性抗原"
+        },
+        {
+          "id": "e",
+          "text": "异种抗原"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "同种异型抗原指同一种属不同个体间存在的抗原差异，ABO血型、HLA、Rh抗原均为典型代表，不配型输血会引发溶血反应；自身抗原为自身致病成分，独特型是抗体/TCR特有决定簇，异嗜性是跨物种共有抗原，异种抗原来自其他物种。"
+    },
+    {
+      "id": "imported-q-4",
+      "knowledgePointId": "kp-imported-20260409202816-0004",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "化学结构中免疫原性最强的物质是",
+      "options": [
+        {
+          "id": "a",
+          "text": "蛋白质"
+        },
+        {
+          "id": "b",
+          "text": "核酸"
+        },
+        {
+          "id": "c",
+          "text": "脂质"
+        },
+        {
+          "id": "d",
+          "text": "多糖"
+        },
+        {
+          "id": "e",
+          "text": "氨基酸"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "蛋白质结构复杂、分子量适配，含丰富T/B细胞表位，属于T细胞依赖抗原，可激发体液+细胞免疫且产生免疫记忆；多糖为TI抗原无记忆，核酸、脂质免疫原性极弱，氨基酸小分子仅为半抗原无免疫原性。"
+    },
+    {
+      "id": "imported-q-5",
+      "knowledgePointId": "kp-imported-20260409202816-0005",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "接种牛痘疫苗可预防天花，该现象体现的免疫学原理是",
+      "options": [
+        {
+          "id": "a",
+          "text": "获得性免疫"
+        },
+        {
+          "id": "b",
+          "text": "抗原的特异性"
+        },
+        {
+          "id": "c",
+          "text": "主动免疫"
+        },
+        {
+          "id": "d",
+          "text": "抗原交叉反应"
+        },
+        {
+          "id": "e",
+          "text": "先天免疫"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "牛痘病毒与天花病毒拥有**共同抗原决定簇**，牛痘诱导产生的抗体可交叉识别结合天花抗原，属于抗原交叉反应原理；主动免疫是免疫获得方式，并非该现象核心机制解释。"
+    },
+    {
+      "id": "imported-q-6",
+      "knowledgePointId": "kp-imported-20260409202816-0006",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "关于PAMP描述错误的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "是病原微生物上特有的结构"
+        },
+        {
+          "id": "b",
+          "text": "可被固有免疫PRR识别"
+        },
+        {
+          "id": "c",
+          "text": "进化上高度保守"
+        },
+        {
+          "id": "d",
+          "text": "可介导非特异性免疫识别"
+        },
+        {
+          "id": "e",
+          "text": "为微生物生存致病必需结构"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "PAMP（病原相关分子模式）是**某一类病原共有、高度保守**的通用结构（如LPS、肽聚糖），并非单一病原体特有；其无个体特异性，被胚系编码无重排的PRR识别，启动固有免疫。"
+    },
+    {
+      "id": "imported-q-7",
+      "knowledgePointId": "kp-imported-20260409202816-0007",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "对半抗原特性描述正确的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "既有免疫原性又有抗原性"
+        },
+        {
+          "id": "b",
+          "text": "能单独激发机体免疫应答"
+        },
+        {
+          "id": "c",
+          "text": "仅有抗原性（免疫反应性），无免疫原性，结合载体后获得免疫原性"
+        },
+        {
+          "id": "d",
+          "text": "必须游离存在才有结合活性"
+        },
+        {
+          "id": "e",
+          "text": "分子量极大结构复杂"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "半抗原=不完全抗原，核心特质：单独只有抗原性（可结合对应抗体）、无免疫原性（无法单独诱导免疫产生抗体）；与大分子蛋白质载体偶联后，可成为完全抗原获得免疫原性。"
+    },
+    {
+      "id": "imported-q-8",
+      "knowledgePointId": "kp-imported-20260409202816-0008",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "B细胞活化的关键第二信号是",
+      "options": [
+        {
+          "id": "a",
+          "text": "B细胞CD40 - 活化T细胞CD40L结合"
+        },
+        {
+          "id": "b",
+          "text": "CD86与CD28结合"
+        },
+        {
+          "id": "c",
+          "text": "MHCⅡ与CD4结合"
+        },
+        {
+          "id": "d",
+          "text": "MHCⅠ与CD8结合"
+        },
+        {
+          "id": "e",
+          "text": "抗原直接刺激BCR"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "B细胞双活化信号：第一信号为BCR特异性识别抗原；第二信号核心共刺激信号是B细胞CD40结合Th细胞表面CD40L，决定B细胞完全活化增殖分化；CD80/CD86-CD28是T细胞活化第二信号。"
+    },
+    {
+      "id": "imported-q-9",
+      "knowledgePointId": "kp-imported-20260409202816-0009",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "下列关于天然/固有免疫说法错误的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "生来即具备，无需后天诱导"
+        },
+        {
+          "id": "b",
+          "text": "识别受体基因发生体细胞重排"
+        },
+        {
+          "id": "c",
+          "text": "抗感染第一道防线，早期快速应答"
+        },
+        {
+          "id": "d",
+          "text": "依靠PRR识别PAMP发挥作用"
+        },
+        {
+          "id": "e",
+          "text": "无免疫记忆，再次应答无增强"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "固有免疫PRR（模式识别受体）由胚系基因编码，**不发生体细胞基因重排**；基因重排是适应性免疫TCR、BCR产生多样性的专属特征。"
+    },
+    {
+      "id": "imported-q-10",
+      "knowledgePointId": "kp-imported-20260409202816-0010",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "不属于生理性免疫应答全过程的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "B细胞特异性识别抗原"
+        },
+        {
+          "id": "b",
+          "text": "T细胞在胸腺内发育分化成熟"
+        },
+        {
+          "id": "c",
+          "text": "T/B细胞活化、增殖、分化"
+        },
+        {
+          "id": "d",
+          "text": "巨噬细胞对抗原加工提呈"
+        },
+        {
+          "id": "e",
+          "text": "效应细胞/效应分子发挥清除抗原作用"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "免疫应答分识别、活化分化、效应三阶段，是针对外来抗原的应答过程；T细胞胸腺内成熟属于**免疫中枢器官的细胞发育过程**，并非抗原特异性免疫应答范畴。"
+    },
+    {
+      "id": "imported-q-11",
+      "knowledgePointId": "kp-imported-20260409202816-0011",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "决定抗原特异性的核心结构是",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗原物理性状"
+        },
+        {
+          "id": "b",
+          "text": "抗原分子结构复杂度"
+        },
+        {
+          "id": "c",
+          "text": "抗原表位（抗原决定簇）"
+        },
+        {
+          "id": "d",
+          "text": "抗原大分子种类"
+        },
+        {
+          "id": "e",
+          "text": "抗原分子量大小"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "抗原表位是抗原分子中特殊化学基团，是TCR、BCR、抗体特异性结合识别的唯一结构基础，直接决定抗原特异性；分子量、结构复杂度仅影响免疫原性强弱。"
+    },
+    {
+      "id": "imported-q-12",
+      "knowledgePointId": "kp-imported-20260409202816-0012",
+      "subjectId": "immuno",
+      "type": "single_choice",
+      "stem": "T细胞活化的第二共刺激信号来源是",
+      "options": [
+        {
+          "id": "a",
+          "text": "TCR结合抗原肽-MHC复合物"
+        },
+        {
+          "id": "b",
+          "text": "APC表面CD80/CD86与T细胞CD28结合"
+        },
+        {
+          "id": "c",
+          "text": "CD4结合MHCⅡ分子"
+        },
+        {
+          "id": "d",
+          "text": "PRR结合PAMP"
+        },
+        {
+          "id": "e",
+          "text": "CD8结合MHCⅠ分子"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "T细胞双信号活化：第一信号=TCR-CD3识别抗原肽-MHC复合物（CD4/CD8为辅受体）；第二关键共刺激信号=APC的CD80/CD86结合T细胞CD28，缺失则T细胞免疫耐受失能。"
+    }
+  ]
+}

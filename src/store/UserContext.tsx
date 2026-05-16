@@ -12,6 +12,14 @@ import type {
   User, PageName, InventoryState, InventoryItem, MailState, MailItem,
 } from '@/types';
 import { saveState, loadState } from './persistence';
+import { addExperienceToLedger, type AddExperienceInput } from '@/utils/experience';
+import { normalizeInventoryTitles, normalizeMailTitles, normalizeTitleName } from '@/utils/titleNames';
+import {
+  getBackgroundByName,
+  normalizeBackgroundInventory,
+  normalizeBackgroundUser,
+} from '@/data/backgroundCatalog';
+import { mergeInventoryItem } from '@/utils/rewardGranting';
 
 const THEME_STYLE_KEY = 'study-app:theme-style';
 
@@ -23,10 +31,12 @@ function getStoredThemeStyle() {
 function normalizeUser(user: User): User {
   const dailyGoal = Number.isFinite(user.dailyGoal) && user.dailyGoal > 0 ? user.dailyGoal : 10;
   return {
-    ...user,
+    ...normalizeBackgroundUser(user),
     dailyGoal,
     dailyNewGoal: dailyGoal,
     totalPoints: Number.isFinite(user.totalPoints) ? user.totalPoints : 0,
+    bonusExperience: Number.isFinite(user.bonusExperience) ? user.bonusExperience : 0,
+    experienceLedger: Array.isArray(user.experienceLedger) ? user.experienceLedger : [],
   };
 }
 
@@ -66,6 +76,7 @@ type UserAction =
   | { type: 'NAVIGATE'; payload: { page: PageName; params?: Record<string, string> } }
   | { type: 'UPDATE_USER'; payload: Partial<User> }
   | { type: 'ADD_STAR_COINS'; payload: number }
+  | { type: 'ADD_EXPERIENCE'; payload: AddExperienceInput }
   | { type: 'SET_DAILY_ENCOURAGEMENT'; payload: { text: string; date: string } }
   | { type: 'SET_DAILY_GOAL'; payload: number }
   | { type: 'UPDATE_TODAY_GOAL_STATUS'; payload: { questionsCompleted: number; goalMet: boolean } }
@@ -81,12 +92,7 @@ type UserAction =
 
 function userReducer(state: UserState, action: UserAction): UserState {
   switch (action.type) {
-    case 'LOGIN':
-      // 登录后检查今日是否已答每日一题
-      const todayKey = `daily-question-${new Date().toISOString().slice(0, 10)}`;
-      const hasAnsweredToday = localStorage.getItem(todayKey) !== null;
-      // 今天没答就先进每日一题，答完再进首页
-      const targetPage = hasAnsweredToday ? 'home' : 'daily-question';
+    case 'LOGIN': {
       const preservedThemeStyle = getStoredThemeStyle() ?? state.user?.themeStyle ?? action.payload.themeStyle;
       return {
         ...state,
@@ -95,8 +101,9 @@ function userReducer(state: UserState, action: UserAction): UserState {
           themeStyle: preservedThemeStyle,
         }),
         isLoggedIn: true,
-        currentPage: targetPage,
+        currentPage: 'home',
       };
+    }
     case 'LOGOUT':
       return { ...state, user: null, isLoggedIn: false, currentPage: 'login' };
     case 'NAVIGATE':
@@ -107,7 +114,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
       }
       return {
         ...state,
-        user: state.user ? { ...state.user, ...action.payload } : null,
+        user: state.user ? normalizeUser({ ...state.user, ...action.payload }) : null,
       };
     case 'ADD_STAR_COINS':
       return {
@@ -116,6 +123,19 @@ function userReducer(state: UserState, action: UserAction): UserState {
           ? { ...state.user, totalPoints: Math.max(0, state.user.totalPoints + action.payload) }
           : null,
       };
+    case 'ADD_EXPERIENCE': {
+      if (!state.user) return state;
+      const result = addExperienceToLedger(state.user.experienceLedger, action.payload);
+      if (result.granted <= 0) return state;
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          bonusExperience: state.user.bonusExperience + result.granted,
+          experienceLedger: result.ledger,
+        },
+      };
+    }
     case 'SET_DAILY_ENCOURAGEMENT':
       return {
         ...state,
@@ -139,22 +159,9 @@ function userReducer(state: UserState, action: UserAction): UserState {
           : state.user,
       };
     case 'ADD_INVENTORY_ITEM': {
-      const existing = state.inventory.items.find(i => i.id === action.payload.id);
-      if (existing) {
-        return {
-          ...state,
-          inventory: {
-            items: state.inventory.items.map(i =>
-              i.id === action.payload.id ? { ...i, quantity: i.quantity + action.payload.quantity } : i
-            ),
-          },
-        };
-      }
       return {
         ...state,
-        inventory: {
-          items: [...state.inventory.items, action.payload],
-        },
+        inventory: mergeInventoryItem(state.inventory, action.payload),
       };
     }
     case 'USE_INVENTORY_ITEM': {
@@ -217,6 +224,20 @@ function userReducer(state: UserState, action: UserAction): UserState {
         if (attachment && !attachment.claimed) {
           if (attachment.type === 'coin') {
             newUser = { ...state.user, totalPoints: state.user.totalPoints + attachment.quantity };
+          } else if (attachment.type === 'experience') {
+            const result = addExperienceToLedger(state.user.experienceLedger, {
+              source: 'mail',
+              sourceId: `mail:${mail.id}:${attachmentIndex}`,
+              amount: attachment.quantity,
+              capped: false,
+            });
+            if (result.granted > 0) {
+              newUser = {
+                ...state.user,
+                bonusExperience: state.user.bonusExperience + result.granted,
+                experienceLedger: result.ledger,
+              };
+            }
           } else if (attachment.type === 'makeup_card') {
             const existing = newInventoryItems.find(i => i.type === 'makeup_card');
             if (existing) {
@@ -237,8 +258,10 @@ function userReducer(state: UserState, action: UserAction): UserState {
                 usable: true,
               });
             }
-          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background') {
-            const existing = newInventoryItems.find(i => i.name === attachment.name);
+          } else if (attachment.type === 'avatar_frame' || attachment.type === 'background' || attachment.type === 'title') {
+            const background = attachment.type === 'background' ? getBackgroundByName(attachment.name) : undefined;
+            const attachmentName = attachment.type === 'title' ? normalizeTitleName(attachment.name) : background?.name ?? attachment.name;
+            const existing = newInventoryItems.find(i => i.name === attachmentName);
             if (existing) {
               let compensation = 10;
               const rarity = (attachment as any).rarity;
@@ -256,7 +279,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,
                 type: attachment.type as any,
-                name: attachment.name,
+                name: attachmentName,
                 description: `来自邮件: ${mail.title}`,
                 icon: attachment.icon || '🎁',
                 rarity: (attachment as any).rarity || 'R',
@@ -302,7 +325,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
             return { ...m, attachments: newAttachments, claimed: newAttachments.every(a => a.claimed) };
           }),
         },
-        inventory: { items: newInventoryItems },
+        inventory: normalizeBackgroundInventory({ items: newInventoryItems }),
       };
     }
     case 'UPDATE_MAIL_VERSION':
@@ -341,8 +364,8 @@ function getInitialUserState(): UserState {
       pageParams: saved.pageParams ?? initialUserState.pageParams,
       dailyEncouragement: saved.dailyEncouragement ?? initialUserState.dailyEncouragement,
       dailyEncouragementDate: saved.dailyEncouragementDate ?? initialUserState.dailyEncouragementDate,
-      inventory: saved.inventory ?? initialUserState.inventory,
-      mail: saved.mail ?? initialUserState.mail,
+      inventory: normalizeBackgroundInventory(normalizeInventoryTitles(saved.inventory ?? initialUserState.inventory)),
+      mail: normalizeMailTitles(saved.mail ?? initialUserState.mail),
       currentBackgroundMap: saved.currentBackgroundMap ?? initialUserState.currentBackgroundMap,
       currentBackground: saved.currentBackground ?? initialUserState.currentBackground,
       currentPattern: saved.currentPattern ?? initialUserState.currentPattern,

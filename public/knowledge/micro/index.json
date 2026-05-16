@@ -1,0 +1,4183 @@
+{
+  "version": "2.0",
+  "exportTime": "2026-05-13T13:21:11.098Z",
+  "subjectId": "micro",
+  "subjectName": "微生物与免疫学",
+  "total": 94,
+  "chapters": [
+    {
+      "subjectId": "micro",
+      "order": 1,
+      "id": "micro-ch1",
+      "name": "微生物学基础"
+    },
+    {
+      "subjectId": "micro",
+      "order": 2,
+      "id": "micro-ch2",
+      "name": "细菌学"
+    },
+    {
+      "subjectId": "micro",
+      "order": 3,
+      "id": "micro-ch3",
+      "name": "病毒学"
+    },
+    {
+      "subjectId": "micro",
+      "order": 4,
+      "id": "micro-ch4",
+      "name": "免疫学基础"
+    }
+  ],
+  "knowledgePoints": [
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0100",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是正常微生物群？",
+      "explanation": "【题目】什么是正常微生物群？\n\n【答案】正常微生物群是指存在于机体体表以及与外界相通腔道黏膜上，正常情况下对机体无害的微生物。以细菌为主，故又称正常菌群。",
+      "memoryTip": "知识点：正常微生物群 | 💡 答名解时抓住三点：存在部位、正常情况下无害、以细菌为主。 | 标签：微生物学/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0101",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是机会性感染？",
+      "explanation": "【题目】什么是机会性感染？\n\n【答案】当正常微生物群或生活环境中的机会性致病菌在菌群比例失调、定居部位改变或宿主免疫力降低时引起的感染，称为机会性感染。",
+      "memoryTip": "知识点：机会性感染 | 💡 关键词：比例失调、部位改变、免疫力降低。 | 标签：微生态/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0102",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是微生态失调？",
+      "explanation": "【题目】什么是微生态失调？\n\n【答案】在一定因素影响下，微生物群之间、微生物群与宿主之间的平衡关系被打破，即为微生态失调。",
+      "memoryTip": "知识点：微生态失调 | 💡 常见原因包括菌群比例失调、定居部位改变、宿主免疫功能低下。 | 标签：微生态/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0103",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "消毒的定义是什么？",
+      "explanation": "【题目】消毒的定义是什么？\n\n【答案】消毒是指杀灭物体上的病原生物，但不一定能杀灭细菌芽胞和非病原生物的方法。",
+      "memoryTip": "知识点：消毒 | 💡 与灭菌的区别在于：消毒不一定杀灭芽胞。 | 标签：消毒灭菌/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0104",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "灭菌的定义是什么？",
+      "explanation": "【题目】灭菌的定义是什么？\n\n【答案】灭菌是指杀灭物体上包括细菌芽胞在内的所有病原生物和非病原生物的方法。",
+      "memoryTip": "知识点：灭菌 | 💡 答题关键词：所有微生物、包括芽胞。 | 标签：消毒灭菌/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0105",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "巴氏消毒法的常用条件是什么？",
+      "explanation": "【题目】巴氏消毒法的常用条件是什么？\n\n【答案】较低温度杀灭致病菌，常用条件为62℃ 30min，或72℃ 15～30s。",
+      "memoryTip": "知识点：巴氏消毒法 | 💡 老师或教材版本可能写72℃ 15s，你的资料中也有72℃ 30s，考试按老师PPT为准。 | 标签：消毒灭菌/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0106",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "高压蒸汽灭菌法的常用条件是什么？",
+      "explanation": "【题目】高压蒸汽灭菌法的常用条件是什么？\n\n【答案】121.3℃，103.4kPa，15～30min。",
+      "memoryTip": "知识点：高压蒸汽灭菌法 | 💡 常被称为最有效的灭菌方法。 | 标签：消毒灭菌/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0107",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "干烤灭菌的常用条件是什么？",
+      "explanation": "【题目】干烤灭菌的常用条件是什么？\n\n【答案】160～180℃，2h。",
+      "memoryTip": "知识点：干热灭菌 | 💡 注意和湿热灭菌参数区分。 | 标签：消毒灭菌/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0108",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "紫外线杀菌的有效波长和最强波长是什么？",
+      "explanation": "【题目】紫外线杀菌的有效波长和最强波长是什么？\n\n【答案】200～300nm的紫外线具有杀菌作用，265～266nm杀菌作用最强。",
+      "memoryTip": "知识点：紫外线杀菌 | 💡 因为与DNA吸收光谱范围一致。 | 标签：消毒灭菌/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0109",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "乙醇消毒的常用浓度是多少？",
+      "explanation": "【题目】乙醇消毒的常用浓度是多少？\n\n【答案】70%～75%。",
+      "memoryTip": "知识点：乙醇消毒 | 💡 不是浓度越高越好。 | 标签：消毒灭菌/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0110",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "为什么同一温度下湿热灭菌比干热灭菌效力更强？",
+      "explanation": "【题目】为什么同一温度下湿热灭菌比干热灭菌效力更强？\n\n【答案】①菌体蛋白在湿热中更易吸水凝固；②湿热穿透力强，可使物品深部达到灭菌温度；③蒸汽有潜热，水蒸气液化释放热能，可迅速提高被灭菌物品温度。",
+      "memoryTip": "知识点：湿热与干热比较 | 💡 这是典型简答题，按三点作答即可。 | 标签：消毒灭菌/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0111",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒的测量单位及一般大小范围是什么？",
+      "explanation": "【题目】病毒的测量单位及一般大小范围是什么？\n\n【答案】病毒的测量单位是纳米，大小一般介于20～300nm，多数病毒约100nm。",
+      "memoryTip": "知识点：病毒测量单位 | 标签：病毒学/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0112",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒的基本结构是什么？",
+      "explanation": "【题目】病毒的基本结构是什么？\n\n【答案】病毒基本结构为核衣壳，由核心和衣壳组成。有些病毒核衣壳外还有包膜。",
+      "memoryTip": "知识点：病毒基本结构 | 💡 有包膜者称包膜病毒，无包膜者称裸露病毒。 | 标签：病毒学/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0113",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒核心的主要成分和作用是什么？",
+      "explanation": "【题目】病毒核心的主要成分和作用是什么？\n\n【答案】病毒核心主要成分为核酸DNA或RNA，构成病毒基因组，是决定病毒遗传、变异、复制和感染的物质基础。",
+      "memoryTip": "知识点：病毒核心 | 💡 部分病毒核心还含少量复制所需酶类，如DNA多聚酶、逆转录酶。 | 标签：病毒学/简答 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0114",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒衣壳中壳粒的排列方式有哪些？",
+      "explanation": "【题目】病毒衣壳中壳粒的排列方式有哪些？\n\n【答案】螺旋对称型、20面体立体对称型、复合对称型。",
+      "memoryTip": "知识点：衣壳对称型 | 标签：病毒学/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0115",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒的增殖方式称为什么？",
+      "explanation": "【题目】病毒的增殖方式称为什么？\n\n【答案】病毒的增殖方式称为自我复制。",
+      "memoryTip": "知识点：病毒增殖方式 | 标签：病毒学/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0116",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒复制周期包括哪七个阶段？",
+      "explanation": "【题目】病毒复制周期包括哪七个阶段？\n\n【答案】吸附、穿入、脱壳、生物合成、装配、成熟和释放。",
+      "memoryTip": "知识点：病毒复制周期 | 💡 按顺序背，填空题有顺序时不能乱。 | 标签：病毒学/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0117",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "病毒人工培养的方法有哪些？哪种最常用？",
+      "explanation": "【题目】病毒人工培养的方法有哪些？哪种最常用？\n\n【答案】病毒人工培养包括动物接种、鸡胚培养、细胞培养。其中细胞培养是目前最常用的方式。",
+      "memoryTip": "知识点：病毒人工培养 | 标签：病毒学/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0118",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "什么是病毒的垂直传播？",
+      "explanation": "【题目】什么是病毒的垂直传播？\n\n【答案】垂直传播是指存在于母体的病毒通过胎盘或产道由亲代传播给子代的方式。",
+      "memoryTip": "知识点：垂直传播 | 💡 可引起死胎、流产、早产或先天畸形等。 | 标签：病毒感染/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0119",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "什么是病毒的水平传播？",
+      "explanation": "【题目】什么是病毒的水平传播？\n\n【答案】水平传播是指病毒在人群中不同个体之间传播，也包括从动物到动物再到人的传播。",
+      "memoryTip": "知识点：水平传播 | 💡 常经呼吸道、消化道、泌尿生殖道等皮肤黏膜途径传播，也可经输血、注射、损伤、昆虫叮咬等进入血循环。 | 标签：病毒感染/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0120",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "流感病毒甲、乙、丙型依据什么区分？甲型如何分亚型？",
+      "explanation": "【题目】流感病毒甲、乙、丙型依据什么区分？甲型如何分亚型？\n\n【答案】甲、乙、丙型依据基质蛋白MP、核蛋白NP的抗原性差异及生物学特性区分。甲型根据表面血凝素HA和神经氨酸酶NA抗原性组合成不同亚型。",
+      "memoryTip": "知识点：流感病毒分型 | 💡 HA：H1～H16；NA：N1～N9。 | 标签：流感病毒/填空 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0121",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "抗原漂移和抗原转换如何区别？",
+      "explanation": "【题目】抗原漂移和抗原转换如何区别？\n\n【答案】抗原漂移由基因点突变造成，属于小幅度变异、量变、亚型内变异，可引起小规模流行；抗原转换由基因重配造成，属于大幅度变异、质变，可形成新亚型，常导致大流行。",
+      "memoryTip": "知识点：抗原漂移与抗原转换 | 💡 对比记忆：漂移=点突变=量变=小流行；转换=基因重配=质变=大流行。 | 标签：流感病毒/比较 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0122",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌的典型形态和测量单位是什么？",
+      "explanation": "【题目】细菌的典型形态和测量单位是什么？\n\n【答案】典型形态包括球形、杆形、螺形；测量单位为微米μm。",
+      "memoryTip": "知识点：细菌形态与单位 | 💡 特殊形态包括放线菌、螺旋体等。 | 标签：细菌学/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0123",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是L型细菌？",
+      "explanation": "【题目】什么是L型细菌？\n\n【答案】L型细菌是指细胞壁合成受阻或细胞壁丧失后形成的细胞壁缺陷型细菌。",
+      "memoryTip": "知识点：L型细菌 | 💡 常在青霉素、溶菌酶、抗体和补体等作用下形成。你资料中该名解位置留空，建议补上。 | 标签：细菌结构/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0124",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是质粒？",
+      "explanation": "【题目】什么是质粒？\n\n【答案】质粒是细菌染色体以外、存在于细胞质中的闭合环状双链DNA，是染色体外遗传物质。",
+      "memoryTip": "知识点：质粒 | 💡 它可独立复制，并控制细菌某些特定遗传性状。 | 标签：细菌遗传/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0125",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "质粒的基本特征有哪些？",
+      "explanation": "【题目】质粒的基本特征有哪些？\n\n【答案】①具有自我复制能力；②编码产物可赋予细菌某些特定性状；③可自行丢失或消除；④可从一个细菌转移至另一个细菌；⑤有相容性和不相容性。",
+      "memoryTip": "知识点：质粒特点 | 💡 简答题按五点列出即可。 | 标签：细菌遗传/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0126",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌的特殊结构有哪些？",
+      "explanation": "【题目】细菌的特殊结构有哪些？\n\n【答案】荚膜、鞭毛、菌毛、芽胞。",
+      "memoryTip": "知识点：细菌特殊结构 | 💡 这组非常适合做填空题卡片。 | 标签：细菌结构/填空 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0127",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是荚膜？其主要功能有哪些？",
+      "explanation": "【题目】什么是荚膜？其主要功能有哪些？\n\n【答案】荚膜是某些细菌细胞壁外包绕的一层黏液样物质，厚度≥0.2μm。功能包括抗吞噬抗消化、黏附、抗免疫分子及药物损伤、抗干燥。",
+      "memoryTip": "知识点：荚膜 | 💡 失去荚膜的细菌致病力可减弱或消失。 | 标签：细菌结构/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0128",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "鞭毛的结构特点和功能是什么？",
+      "explanation": "【题目】鞭毛的结构特点和功能是什么？\n\n【答案】鞭毛是由细菌细胞质伸出的细长弯曲丝状物，是细菌的运动器官；化学组成为蛋白质，具有抗原性，称H抗原，可用于鉴别细菌和辅助诊断。",
+      "memoryTip": "知识点：鞭毛 | 💡 类型包括单毛菌、双毛菌、丛毛菌、周毛菌。 | 标签：细菌结构/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0129",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "普通菌毛和性菌毛有什么区别？",
+      "explanation": "【题目】普通菌毛和性菌毛有什么区别？\n\n【答案】普通菌毛数量多，具有黏附作用，与致病性有关；性菌毛较粗长，为中空管状，每菌仅1～4根，由F质粒编码，参与遗传物质转移。",
+      "memoryTip": "知识点：菌毛 | 💡 对比点：数量、形态、功能、编码来源。 | 标签：细菌结构/比较 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0130",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是芽胞？",
+      "explanation": "【题目】什么是芽胞？\n\n【答案】芽胞是某些细菌在不适合生长的条件下，细胞质脱水浓缩形成的圆形或卵圆形小体。",
+      "memoryTip": "知识点：芽胞 | 💡 芽胞耐受力强，灭菌概念常与其联系。 | 标签：细菌结构/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0131",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌生长繁殖的主要条件有哪些？",
+      "explanation": "【题目】细菌生长繁殖的主要条件有哪些？\n\n【答案】充足的营养物质、适宜的温度、合适的酸碱度、一定的气体环境。",
+      "memoryTip": "知识点：细菌生长条件 | 标签：细菌生长/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0132",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "多数细菌适宜生长的pH范围是多少？",
+      "explanation": "【题目】多数细菌适宜生长的pH范围是多少？\n\n【答案】多数细菌适宜在pH 7.2～7.6的中性环境中生长。",
+      "memoryTip": "知识点：细菌适宜pH | 标签：细菌生长/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0133",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "根据对氧气的需求，细菌可分为哪三类？",
+      "explanation": "【题目】根据对氧气的需求，细菌可分为哪三类？\n\n【答案】专性需氧菌、专性厌氧菌、兼性厌氧菌。",
+      "memoryTip": "知识点：细菌对氧气需求分类 | 标签：细菌生长/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0134",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌的增殖方式是什么？",
+      "explanation": "【题目】细菌的增殖方式是什么？\n\n【答案】二分裂。",
+      "memoryTip": "知识点：细菌繁殖方式 | 标签：细菌生长/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0135",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌生长曲线分为哪四个时期？",
+      "explanation": "【题目】细菌生长曲线分为哪四个时期？\n\n【答案】迟缓期、对数生长期、稳定期、衰亡期。",
+      "memoryTip": "知识点：细菌生长曲线 | 💡 按顺序记忆。 | 标签：细菌生长/填空 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0136",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "对数生长期的特点和用途是什么？",
+      "explanation": "【题目】对数生长期的特点和用途是什么？\n\n【答案】对数生长期是细菌分裂繁殖最快的时期，形态、染色性和生理特性较典型，对外界环境因素较敏感；是研究细菌和传代的最佳时期。",
+      "memoryTip": "知识点：对数生长期 | 💡 一般在培养后8～18小时。 | 标签：细菌生长/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0137",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "稳定期的特点和用途是什么？",
+      "explanation": "【题目】稳定期的特点和用途是什么？\n\n【答案】稳定期细菌繁殖速度减慢、死亡数增多，活菌数相对稳定，活菌总数最多；常作为细菌代谢产物收获期。",
+      "memoryTip": "知识点：稳定期 | 标签：细菌生长/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0138",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是细菌的生化反应？",
+      "explanation": "【题目】什么是细菌的生化反应？\n\n【答案】利用各种细菌酶系统不同、对营养物质分解能力不同、代谢产物有差异这一特点，通过生化方法鉴别微生物种类的手段，称为微生物的生化反应。",
+      "memoryTip": "知识点：细菌生化反应 | 💡 答题关键词：酶系统不同、代谢产物不同、用于鉴别。 | 标签：细菌代谢/名词解释 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0139",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌的合成代谢产物有哪些？",
+      "explanation": "【题目】细菌的合成代谢产物有哪些？\n\n【答案】毒素、侵袭性酶、抗生素、维生素、色素、细菌素。",
+      "memoryTip": "知识点：合成代谢产物 | 💡 资料提示写名称即可。 | 标签：细菌代谢/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0140",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "培养基按物理性状和用途分别如何分类？",
+      "explanation": "【题目】培养基按物理性状和用途分别如何分类？\n\n【答案】按物理性状：液体、固体、半固体培养基。按用途：基础、营养、选择、鉴别、厌氧培养基。",
+      "memoryTip": "知识点：培养基类型 | 标签：细菌培养/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0141",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "细菌变异主要表现在哪些方面？",
+      "explanation": "【题目】细菌变异主要表现在哪些方面？\n\n【答案】形态结构变异、毒力变异、耐药性变异、抗原性和酶的变异。",
+      "memoryTip": "知识点：细菌变异现象 | 💡 简答题可加例子：L型细菌、卡介苗、白喉毒素、多重耐药。 | 标签：细菌遗传/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0142",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是转化？",
+      "explanation": "【题目】什么是转化？\n\n【答案】转化是受体菌直接摄取供体菌裂解释放的DNA片段，从而获得新的遗传性状的过程。",
+      "memoryTip": "知识点：转化 | 标签：细菌遗传/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0143",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是接合？",
+      "explanation": "【题目】什么是接合？\n\n【答案】接合是供体菌和受体菌通过性菌毛相互连接，将遗传物质从供体菌转入受体菌，使后者获得供体菌部分遗传性状的过程。",
+      "memoryTip": "知识点：接合 | 标签：细菌遗传/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0144",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是转导？",
+      "explanation": "【题目】什么是转导？\n\n【答案】转导是以噬菌体为载体，将供体菌的一段DNA转移到受体菌内，使受体菌获得供体菌部分遗传性状的过程。",
+      "memoryTip": "知识点：转导 | 💡 分为普遍性转导和局限性转导。 | 标签：细菌遗传/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0145",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是溶原性转换？",
+      "explanation": "【题目】什么是溶原性转换？\n\n【答案】溶原性转换是温和噬菌体感染宿主菌时，以前噬菌体形式整合入宿主菌，使宿主菌获得噬菌体基因所编码的某些遗传性状。",
+      "memoryTip": "知识点：溶原性转换 | 标签：细菌遗传/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0146",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是原生质体融合？",
+      "explanation": "【题目】什么是原生质体融合？\n\n【答案】原生质体融合是分别将两种细菌经处理失去细胞壁成为原生质体后，再使其彼此融合的过程。聚乙二醇可促进融合。",
+      "memoryTip": "知识点：原生质体融合 | 标签：细菌遗传/名词解释 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0147",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "什么是侵袭力？其构成因素有哪些？",
+      "explanation": "【题目】什么是侵袭力？其构成因素有哪些？\n\n【答案】侵袭力是致病菌突破宿主皮肤、黏膜等生理屏障，侵入机体定居、繁殖和扩散的能力。构成因素包括黏附素、荚膜和侵袭性物质等。",
+      "memoryTip": "知识点：侵袭力 | 💡 侵袭性物质包括侵袭素和侵袭酶类。 | 标签：细菌致病性/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0148",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "外毒素的来源和主要特点是什么？",
+      "explanation": "【题目】外毒素的来源和主要特点是什么？\n\n【答案】外毒素主要由革兰阳性菌及少数革兰阴性菌合成，属蛋白质，多分泌至细胞外。特点：不耐热、毒性强、对组织器官有选择性毒性作用、抗原性强。",
+      "memoryTip": "知识点：外毒素 | 💡 外毒素可分为神经毒素、细胞毒素和肠毒素。 | 标签：细菌致病性/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0149",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "内毒素的来源和主要特点是什么？",
+      "explanation": "【题目】内毒素的来源和主要特点是什么？\n\n【答案】内毒素是革兰阴性菌细胞壁中的脂多糖LPS组分，细菌死亡裂解或人工破坏菌体后释放。特点：耐热、抗原性较弱、不能用甲醛脱毒制成类毒素。",
+      "memoryTip": "知识点：内毒素 | 💡 致病作用包括发热反应、白细胞反应、内毒素血症、内毒素休克、DIC等。 | 标签：细菌致病性/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0150",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "内毒素和外毒素如何比较？",
+      "explanation": "【题目】内毒素和外毒素如何比较？\n\n【答案】外毒素：多由革兰阳性菌及少数革兰阴性菌产生，化学性质为蛋白质，不耐热，抗原性强，可制成类毒素，毒性强且有组织选择性。内毒素：来自革兰阴性菌细胞壁LPS，耐热，抗原性弱，不能制成类毒素，毒性作用大致相同。",
+      "memoryTip": "知识点：内毒素与外毒素区别 | 💡 论述题按来源、化学性质、稳定性、抗原性、致病性、能否制疫苗六列比较。 | 标签：细菌致病性/论述 | 难度：高频"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0151",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是毒血症？",
+      "explanation": "【题目】什么是毒血症？\n\n【答案】毒血症是细菌外毒素经血液播散至特定靶组织、器官后出现的特征性中毒症状。",
+      "memoryTip": "知识点：毒血症 | 标签：临床感染类型/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0152",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是内毒素血症？",
+      "explanation": "【题目】什么是内毒素血症？\n\n【答案】内毒素血症是细菌内毒素入血所出现的相应症状。",
+      "memoryTip": "知识点：内毒素血症 | 标签：临床感染类型/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0153",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是菌血症？",
+      "explanation": "【题目】什么是菌血症？\n\n【答案】菌血症是致病菌由局部侵入，短暂通过血流至适宜部位繁殖而致病。",
+      "memoryTip": "知识点：菌血症 | 标签：临床感染类型/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0154",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是败血症？",
+      "explanation": "【题目】什么是败血症？\n\n【答案】败血症是致病菌在血液中大量繁殖并产生大量毒素所出现的全身中毒症状。",
+      "memoryTip": "知识点：败血症 | 标签：临床感染类型/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0155",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "什么是脓毒血症？",
+      "explanation": "【题目】什么是脓毒血症？\n\n【答案】脓毒血症是化脓性细菌侵入血流大量繁殖，并播散至其他组织或器官，产生新的化脓性病灶的症状。",
+      "memoryTip": "知识点：脓毒血症 | 标签：临床感染类型/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0156",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "化脓性链球菌的主要致病物质有哪些？",
+      "explanation": "【题目】化脓性链球菌的主要致病物质有哪些？\n\n【答案】①黏附素，如脂磷壁酸LTA和M蛋白；②链球菌溶血素，包括SLO和SLS；③致热外毒素，又称红疹毒素或猩红热毒素；④侵袭性酶，如透明质酸酶、链激酶、链道酶。",
+      "memoryTip": "知识点：A群链球菌致病物质 | 💡 答简答题时列名称即可，论述再展开。 | 标签：常见病原菌/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0157",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "化脓性链球菌可引起哪三类疾病？",
+      "explanation": "【题目】化脓性链球菌可引起哪三类疾病？\n\n【答案】化脓性感染、毒素性疾病、超敏反应性疾病。",
+      "memoryTip": "知识点：链球菌疾病 | 💡 例子：扁桃体炎/蜂窝织炎；猩红热；风湿热/急性肾小球肾炎。 | 标签：常见病原菌/填空 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0158",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "金黄色葡萄球菌可产生哪些毒力因子？",
+      "explanation": "【题目】金黄色葡萄球菌可产生哪些毒力因子？\n\n【答案】血浆凝固酶、葡萄球菌溶血素、肠毒素、杀白细胞素、表皮剥脱毒素、毒性休克综合征毒素-1。",
+      "memoryTip": "知识点：金黄色葡萄球菌致病因素 | 标签：常见病原菌/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0159",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "沙门菌主要可引起哪些疾病？",
+      "explanation": "【题目】沙门菌主要可引起哪些疾病？\n\n【答案】伤寒、副伤寒、急性胃肠炎/食物中毒、败血症及局部化脓感染。",
+      "memoryTip": "知识点：沙门菌 | 标签：常见病原菌/小题 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0160",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "志贺菌的典型致病是什么？",
+      "explanation": "【题目】志贺菌的典型致病是什么？\n\n【答案】细菌性痢疾，表现为腹痛、里急后重、黏液脓血便、发热等。",
+      "memoryTip": "知识点：志贺菌 | 标签：常见病原菌/小题 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0161",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "大肠埃希菌可引起哪些疾病？",
+      "explanation": "【题目】大肠埃希菌可引起哪些疾病？\n\n【答案】可引起急性腹泻、旅行者腹泻、出血性肠炎、溶血性尿毒综合征、尿路感染、败血症、新生儿脑膜炎、腹膜炎等。",
+      "memoryTip": "知识点：大肠埃希菌 | 标签：常见病原菌/小题 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0162",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "立克次体相关疾病有哪些？",
+      "explanation": "【题目】立克次体相关疾病有哪些？\n\n【答案】普氏立克次体引起流行性斑疹伤寒，莫氏立克次体引起地方性斑疹伤寒，恙虫病立克次体引起恙虫病，斑点热群引起斑点热。",
+      "memoryTip": "知识点：立克次体 | 💡 共性：发热、皮疹、剧烈头痛，多由节肢动物传播。 | 标签：常见病原体/小题 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0163",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "脑膜炎奈瑟菌和淋病奈瑟菌分别引起什么疾病？",
+      "explanation": "【题目】脑膜炎奈瑟菌和淋病奈瑟菌分别引起什么疾病？\n\n【答案】脑膜炎奈瑟菌引起流行性脑脊髓膜炎、败血症等；淋病奈瑟菌引起淋病。",
+      "memoryTip": "知识点：奈瑟菌 | 标签：常见病原菌/小题 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0164",
+      "subjectId": "micro",
+      "chapterId": "micro-ch2",
+      "name": "链球菌按溶血现象分为哪三型？",
+      "explanation": "【题目】链球菌按溶血现象分为哪三型？\n\n【答案】α型为不完全溶血，形成草绿色溶血环；β型为完全溶血，形成透明溶血环，致病力强；γ型不溶血，一般不致病。",
+      "memoryTip": "知识点：链球菌溶血分型 | 💡 A群链球菌多数呈β溶血。 | 标签：常见病原菌/比较 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0165",
+      "subjectId": "micro",
+      "chapterId": "micro-ch1",
+      "name": "多细胞真菌由什么组成？",
+      "explanation": "【题目】多细胞真菌由什么组成？\n\n【答案】多细胞真菌又称丝状真菌或霉菌，由菌丝和孢子组成。",
+      "memoryTip": "知识点：多细胞真菌结构 | 标签：真菌学/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0166",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "免疫的三大功能是什么？",
+      "explanation": "【题目】免疫的三大功能是什么？\n\n【答案】免疫防御、免疫自稳、免疫监视。",
+      "memoryTip": "知识点：免疫功能 | 💡 防御异常可出现免疫缺陷和超敏反应；自稳异常可出现自身免疫病；监视异常可出现肿瘤和病毒持续感染。 | 标签：免疫学/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0167",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "固有免疫和适应性免疫有什么区别？",
+      "explanation": "【题目】固有免疫和适应性免疫有什么区别？\n\n【答案】固有免疫：先天具备、非特异性、无免疫记忆。适应性免疫：后天获得、特异性、可形成免疫记忆和免疫耐受。",
+      "memoryTip": "知识点：固有免疫与适应性免疫 | 💡 小题高频，适合表格记忆。 | 标签：免疫学/比较 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0168",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是抗原？",
+      "explanation": "【题目】什么是抗原？\n\n【答案】抗原是能与T、B淋巴细胞抗原受体TCR、BCR特异性结合，使其活化、增殖和分化，产生免疫应答产物，并能与之特异性结合而发挥适应性免疫应答的物质。",
+      "memoryTip": "知识点：抗原 | 💡 名解可简化为：能诱导免疫应答并与应答产物特异性结合的物质。 | 标签：免疫学/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0169",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是抗原表位？",
+      "explanation": "【题目】什么是抗原表位？\n\n【答案】抗原表位是抗原分子中决定其特异性的特殊化学基团，又称抗原决定簇。",
+      "memoryTip": "知识点：抗原表位 | 💡 决定抗原特异性的物质基础。 | 标签：免疫学/名词解释 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0170",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是异嗜性抗原？",
+      "explanation": "【题目】什么是异嗜性抗原？\n\n【答案】异嗜性抗原是存在于不同种属动物组织间的共同抗原，无种属特异性。",
+      "memoryTip": "知识点：异嗜性抗原 | 标签：免疫学/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0171",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "异种抗原、同种异体抗原、自身抗原如何区分？",
+      "explanation": "【题目】异种抗原、同种异体抗原、自身抗原如何区分？\n\n【答案】异种抗原来自另一物种，如病原微生物、外毒素、类毒素、马血清抗毒素；同种异体抗原存在于同一种属不同个体之间，如ABO、Rh、HLA；自身抗原是可诱导机体对自身成分发生适应性免疫应答的自身成分。",
+      "memoryTip": "知识点：抗原分类 | 标签：免疫学/比较 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0172",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "外周免疫器官由哪些组成？主要功能是什么？",
+      "explanation": "【题目】外周免疫器官由哪些组成？主要功能是什么？\n\n【答案】外周免疫器官包括淋巴结、脾脏和黏膜相关淋巴组织MALT。功能：成熟T、B细胞定居，免疫细胞执行免疫应答；淋巴结过滤淋巴液，脾脏过滤血液，MALT执行局部黏膜免疫并分泌SIgA。",
+      "memoryTip": "知识点：外周免疫器官 | 标签：免疫器官/简答 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0173",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "专职抗原提呈细胞包括哪些？",
+      "explanation": "【题目】专职抗原提呈细胞包括哪些？\n\n【答案】树突状细胞、单核-吞噬细胞、B细胞。",
+      "memoryTip": "知识点：专职APC | 标签：免疫细胞/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0174",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "单核/巨噬细胞的主要功能有哪些？",
+      "explanation": "【题目】单核/巨噬细胞的主要功能有哪些？\n\n【答案】杀伤清除病原生物，杀伤靶细胞，促进炎症反应，加工提呈抗原启动适应性免疫，免疫调节。",
+      "memoryTip": "知识点：巨噬细胞功能 | 标签：免疫细胞/简答 | 难度：中等"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0175",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "NK细胞的主要生物学活性是什么？",
+      "explanation": "【题目】NK细胞的主要生物学活性是什么？\n\n【答案】抗肿瘤、抗感染作用，以及免疫调节作用。",
+      "memoryTip": "知识点：NK细胞功能 | 标签：免疫细胞/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0176",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "免疫球蛋白单体的基本结构是什么？",
+      "explanation": "【题目】免疫球蛋白单体的基本结构是什么？\n\n【答案】Ig单体由四条肽链组成，呈Y型，包括两条相同重链H链和两条相同轻链L链，各链之间由二硫键连接。",
+      "memoryTip": "知识点：免疫球蛋白结构 | 标签：免疫球蛋白/论述 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0177",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "免疫球蛋白有哪些功能区？",
+      "explanation": "【题目】免疫球蛋白有哪些功能区？\n\n【答案】可变区、恒定区和铰链区。可变区位于近N端，负责识别抗原；恒定区位于近C端，序列相对稳定；铰链区位于CH1和CH2之间，有利于V区与抗原表位结合。",
+      "memoryTip": "知识点：Ig功能区 | 标签：免疫球蛋白/论述 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0178",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "免疫球蛋白的主要功能有哪些？",
+      "explanation": "【题目】免疫球蛋白的主要功能有哪些？\n\n【答案】识别抗原、激活补体、结合Fc受体。结合Fc受体可产生调理作用、ADCC作用、介导Ⅰ型超敏反应、穿过胎盘和黏膜、免疫调节等效应。",
+      "memoryTip": "知识点：Ig功能 | 标签：免疫球蛋白/论述 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0179",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是调理作用？",
+      "explanation": "【题目】什么是调理作用？\n\n【答案】抗体通过Fab段与细菌等颗粒性抗原结合后，再通过Fc段与吞噬细胞表面FcR结合，从而促进吞噬细胞对抗原的吞噬能力，这种效应称为调理作用。",
+      "memoryTip": "知识点：调理作用 | 标签：免疫球蛋白/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0180",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是ADCC作用？",
+      "explanation": "【题目】什么是ADCC作用？\n\n【答案】ADCC即抗体依赖的细胞介导的细胞毒作用，是抗体Fab段与靶细胞抗原结合后，其Fc段与具有FcR的细胞毒性细胞如NK细胞结合，激活这些细胞杀伤靶细胞的作用。",
+      "memoryTip": "知识点：ADCC | 标签：免疫球蛋白/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0181",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是抗体？",
+      "explanation": "【题目】什么是抗体？\n\n【答案】抗体是B细胞受抗原刺激后增殖分化为浆细胞所产生的，能与相应抗原发生特异性结合的免疫球蛋白，主要分布于血清等体液中，可介导体液免疫反应。",
+      "memoryTip": "知识点：抗体 | 标签：免疫球蛋白/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0182",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "固有免疫屏障包括哪些？",
+      "explanation": "【题目】固有免疫屏障包括哪些？\n\n【答案】皮肤黏膜屏障、血脑屏障、胎盘屏障。皮肤黏膜屏障又包括物理屏障、化学屏障和微生物屏障。",
+      "memoryTip": "知识点：固有免疫屏障 | 标签：免疫应答/填空 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0183",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "T细胞活化的双信号是什么？",
+      "explanation": "【题目】T细胞活化的双信号是什么？\n\n【答案】第一信号是TCR在CD4或CD8辅助下识别APC提呈的p-MHC，并由CD3传导信号；第二信号是共刺激信号，代表为T细胞CD28与APC表面B7（CD80/CD86）结合。",
+      "memoryTip": "知识点：T细胞活化双信号 | 💡 无第二信号时，T细胞可进入无能状态或凋亡。 | 标签：免疫应答/简答 | 难度：高频"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0184",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "B细胞活化的双信号是什么？",
+      "explanation": "【题目】B细胞活化的双信号是什么？\n\n【答案】第一信号是BCR与抗原表位特异性结合，由BCR-CD79a/b和BCR共受体传递；第二信号主要是活化Th细胞表面CD40L与B细胞表面CD40结合。",
+      "memoryTip": "知识点：B细胞活化双信号 | 💡 B细胞接受双信号后，在细胞因子作用下增殖分化为浆细胞和记忆B细胞。 | 标签：免疫应答/简答 | 难度：高频"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0185",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是人工主动免疫？",
+      "explanation": "【题目】什么是人工主动免疫？\n\n【答案】人工主动免疫是通过给机体接种疫苗等抗原性物质，诱导机体发生适应性免疫应答，产生特异性抗体或效应淋巴细胞，从而达到预防疾病目的。",
+      "memoryTip": "知识点：人工主动免疫 | 💡 特点：起效较慢、维持较久，常用于长远预防和计划免疫。 | 标签：免疫预防/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0186",
+      "subjectId": "micro",
+      "chapterId": "micro-ch4",
+      "name": "什么是人工被动免疫？",
+      "explanation": "【题目】什么是人工被动免疫？\n\n【答案】人工被动免疫是给机体注射含有特异性抗体的免疫血清如抗毒素或细胞因子等制剂，使机体迅速获得适应性免疫。",
+      "memoryTip": "知识点：人工被动免疫 | 💡 特点：起效快、维持短，常用于紧急预防或治疗。 | 标签：免疫预防/名词解释 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0187",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "乙型肝炎病毒的传染源是什么？",
+      "explanation": "【题目】乙型肝炎病毒的传染源是什么？\n\n【答案】乙型肝炎患者或无症状HBsAg携带者。",
+      "memoryTip": "知识点：乙肝病毒传染源 | 标签：病毒感染/乙肝 | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0188",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "乙型肝炎病毒的传播途径有哪些？",
+      "explanation": "【题目】乙型肝炎病毒的传播途径有哪些？\n\n【答案】血液及血制品传播、垂直传播、接触传播。",
+      "memoryTip": "知识点：乙肝传播途径 | 标签：病毒感染/乙肝 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0189",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "乙型肝炎的防治原则是什么？",
+      "explanation": "【题目】乙型肝炎的防治原则是什么？\n\n【答案】预防：严格筛选供血员，接种乙型肝炎疫苗进行人工主动免疫，HBIg用于紧急预防。治疗：可采用抗病毒药和免疫调节剂。",
+      "memoryTip": "知识点：乙肝防治原则 | 标签：病毒感染/乙肝 | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0190",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "HIV感染的传染源是什么？",
+      "explanation": "【题目】HIV感染的传染源是什么？\n\n【答案】HIV携带者和AIDS患者。",
+      "memoryTip": "知识点：HIV传染源 | 标签：病毒感染/HIV | 难度：基础"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0191",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "HIV的传播途径有哪些？",
+      "explanation": "【题目】HIV的传播途径有哪些？\n\n【答案】性传播、血液传播、垂直传播。",
+      "memoryTip": "知识点：HIV传播途径 | 标签：病毒感染/HIV | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0192",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "HIV主要感染哪些靶细胞？",
+      "explanation": "【题目】HIV主要感染哪些靶细胞？\n\n【答案】HIV主要感染CD4+T淋巴细胞，以及表达CD4分子的单核/巨噬细胞、树突状细胞和神经胶质细胞等，导致免疫系统进行性损伤。",
+      "memoryTip": "知识点：HIV致病机制 | 标签：病毒感染/HIV | 难度：重点"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "kp-micro-0193",
+      "subjectId": "micro",
+      "chapterId": "micro-ch3",
+      "name": "单纯疱疹病毒和水痘-带状疱疹病毒的潜伏部位及表现是什么？",
+      "explanation": "【题目】单纯疱疹病毒和水痘-带状疱疹病毒的潜伏部位及表现是什么？\n\n【答案】单纯疱疹病毒主要潜伏于三叉神经节，HSV-2可潜伏于骶神经节；水痘-带状疱疹病毒可潜伏于外周神经，幼年感染表现为水痘，成年或老年再激活可表现为带状疱疹及神经痛。",
+      "memoryTip": "知识点：疱疹病毒 | 标签：病毒感染/疱疹病毒 | 难度：中等"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q-micro-0200",
+      "knowledgePointId": "kp-micro-0185",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "类毒素",
+      "options": [
+        {
+          "id": "a",
+          "text": "有毒性有免疫原性"
+        },
+        {
+          "id": "b",
+          "text": "有毒性无免疫原性"
+        },
+        {
+          "id": "c",
+          "text": "无毒性有免疫原性"
+        },
+        {
+          "id": "d",
+          "text": "无毒性无免疫原性"
+        },
+        {
+          "id": "e",
+          "text": "毒性有改变"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "毒素是细菌外毒素经甲醛处理后制成的生物制品，其毒性被破坏去除，但免疫原性（抗原性）被完整保留，可作为疫苗，刺激机体产生特异性抗体，用于人工主动免疫（如破伤风类毒素、白喉类毒素）。"
+    },
+    {
+      "id": "q-micro-0201",
+      "knowledgePointId": "kp-micro-0147",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "与细菌侵袭力无关的物质是",
+      "options": [
+        {
+          "id": "a",
+          "text": "菌毛"
+        },
+        {
+          "id": "b",
+          "text": "透明质酸酶"
+        },
+        {
+          "id": "c",
+          "text": "芽胞"
+        },
+        {
+          "id": "d",
+          "text": "荚膜"
+        },
+        {
+          "id": "e",
+          "text": "磷壁酸"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "菌侵袭力是指细菌突破机体防御屏障，在体内定植、繁殖和扩散的能力。\n- A菌毛：介导细菌黏附宿主细胞，是定植的关键结构，与侵袭力相关。\n- B透明质酸酶：可分解结缔组织中的透明质酸，帮助细菌在组织中扩散，与侵袭力相关。\n- C芽胞：是细菌的休眠形式，主要作用是抵抗高温、干燥等不良环境，与细菌侵袭机体的能力无直接关联。\n- D荚膜：具有抗吞噬作用，能帮助细菌逃避宿主免疫细胞的清除，与侵袭力相关。\n- E磷壁酸：革兰氏阳性菌细胞壁成分，可介导细菌黏附宿主细胞，与侵袭力相关。"
+    },
+    {
+      "id": "q-micro-0202",
+      "knowledgePointId": "kp-micro-0185",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "属于外毒素的特点的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "多为革兰氏阴性菌产生"
+        },
+        {
+          "id": "b",
+          "text": "多为细菌裂解后释放"
+        },
+        {
+          "id": "c",
+          "text": "化学成分是脂多糖"
+        },
+        {
+          "id": "d",
+          "text": "可制成类毒素"
+        },
+        {
+          "id": "e",
+          "text": "稳定性强"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "毒素是细菌在生长繁殖过程中合成并分泌到菌体外的毒性蛋白质，核心特点如下：\n- A错误：外毒素多由革兰氏阳性菌产生，少数革兰氏阴性菌也可产生，并非以革兰氏阴性菌为主。\n- B错误：外毒素多为活菌主动分泌释放；内毒素才是细菌裂解后才释放的物质。\n- C错误：外毒素的化学成分是蛋白质；脂多糖是内毒素的主要成分。\n- D正确：外毒素经甲醛处理后，毒性被破坏，但免疫原性保留，可制成类毒素，用于人工主动免疫。\n- E错误：外毒素稳定性差，对热、酸、蛋白酶敏感，60-80℃即可被破坏；内毒素稳定性强，160℃高温2-4小时才会被破坏。"
+    },
+    {
+      "id": "q-micro-0203",
+      "knowledgePointId": "kp-micro-0185",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "类毒素是经甲醛处理后的",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗毒素"
+        },
+        {
+          "id": "b",
+          "text": "化学毒素"
+        },
+        {
+          "id": "c",
+          "text": "细菌素"
+        },
+        {
+          "id": "d",
+          "text": "外毒素"
+        },
+        {
+          "id": "e",
+          "text": "内毒素"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "毒素的制备原理是：将细菌产生的外毒素用0.3%~0.4%甲醛处理，使毒性减弱或消失，但保留免疫原性，可用于人工主动免疫（如破伤风、白喉类毒素）。内毒素无法被甲醛脱毒制成类毒素；抗毒素是外毒素免疫动物后产生的抗体，并非类毒素的原料。"
+    },
+    {
+      "id": "q-micro-0204",
+      "knowledgePointId": "kp-micro-0148",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "构成细菌致病力的主要是",
+      "options": [
+        {
+          "id": "a",
+          "text": "细菌的特殊结构"
+        },
+        {
+          "id": "b",
+          "text": "侵袭力和毒素"
+        },
+        {
+          "id": "c",
+          "text": "分解代谢产物"
+        },
+        {
+          "id": "d",
+          "text": "细菌的基本结构"
+        },
+        {
+          "id": "e",
+          "text": "细菌的繁殖方式"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "菌致病力（毒力）由两大核心部分构成：①侵袭力：指细菌突破宿主防御屏障、定植繁殖和扩散的能力，依赖黏附素、荚膜、侵袭性酶等；②毒素：包括外毒素（毒性强、特异性高）和内毒素（脂多糖，引发全身炎症反应）。其他选项仅为致病力的部分物质基础，无法单独构成完整致病力。"
+    },
+    {
+      "id": "q-micro-0205",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "革兰阳性菌与革兰阴性菌细胞壁化学组成的共同成分是",
+      "options": [
+        {
+          "id": "a",
+          "text": "脂多糖"
+        },
+        {
+          "id": "b",
+          "text": "脂蛋白"
+        },
+        {
+          "id": "c",
+          "text": "磷壁酸"
+        },
+        {
+          "id": "d",
+          "text": "肽聚糖"
+        },
+        {
+          "id": "e",
+          "text": "脂质双层"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "聚糖（又称粘肽）是革兰阳性菌（G⁺）和革兰阴性菌（G⁻）细胞壁共有的核心结构，是维持细菌形态、抵抗渗透压的基础。其中，G⁺菌肽聚糖含量高（50%~80%），含特有磷壁酸；G⁻菌肽聚糖含量低（5%~20%），外膜含特有脂多糖、脂蛋白、脂质双层。"
+    },
+    {
+      "id": "q-micro-0206",
+      "knowledgePointId": "kp-micro-0162",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "不属于原核生物界的微生物是",
+      "options": [
+        {
+          "id": "a",
+          "text": "支原体"
+        },
+        {
+          "id": "b",
+          "text": "细菌"
+        },
+        {
+          "id": "c",
+          "text": "衣原体"
+        },
+        {
+          "id": "d",
+          "text": "螺旋体"
+        },
+        {
+          "id": "e",
+          "text": "病毒"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "核生物界微生物包括细菌、支原体、衣原体、立克次体、螺旋体、放线菌，均无核膜、核仁，仅有拟核。病毒属于非细胞型微生物，无细胞结构，仅由核酸和蛋白质外壳组成，必须寄生在活细胞内才能增殖，不属于原核生物界。"
+    },
+    {
+      "id": "q-micro-0207",
+      "knowledgePointId": "kp-micro-0106",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "高压蒸汽灭菌法常用",
+      "options": [
+        {
+          "id": "a",
+          "text": "121.3℃ 30~60分钟"
+        },
+        {
+          "id": "b",
+          "text": "100℃ 30分钟"
+        },
+        {
+          "id": "c",
+          "text": "125.3℃ 10分钟"
+        },
+        {
+          "id": "d",
+          "text": "121.3℃ 15~30分钟"
+        },
+        {
+          "id": "e",
+          "text": "150.3℃ 5分钟"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "压蒸汽灭菌法是目前最可靠的灭菌方法，标准参数为121.3℃、103.4kPa，维持15~30分钟，可杀灭包括芽孢在内的所有微生物，是临床和实验室的首选灭菌方法。其他选项中，100℃ 30分钟为煮沸消毒参数，其余选项参数不符合标准要求。"
+    },
+    {
+      "id": "q-micro-0208",
+      "knowledgePointId": "kp-micro-0139",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列物质中不是细菌合成代谢产物的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗毒素"
+        },
+        {
+          "id": "b",
+          "text": "色素"
+        },
+        {
+          "id": "c",
+          "text": "细菌素"
+        },
+        {
+          "id": "d",
+          "text": "抗生素"
+        },
+        {
+          "id": "e",
+          "text": "侵袭性酶"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "菌的合成代谢产物包括毒素（外毒素、内毒素）、侵袭性酶、色素、抗生素、细菌素、维生素等。抗毒素是用类毒素免疫动物后，从动物血清中提取的抗体，属于人工制备的免疫制品，并非细菌自身合成的代谢产物。"
+    },
+    {
+      "id": "q-micro-0209",
+      "knowledgePointId": "kp-micro-0149",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "与内毒素有关的细菌结构是",
+      "options": [
+        {
+          "id": "a",
+          "text": "中介体"
+        },
+        {
+          "id": "b",
+          "text": "鞭毛"
+        },
+        {
+          "id": "c",
+          "text": "细胞壁"
+        },
+        {
+          "id": "d",
+          "text": "荚膜"
+        },
+        {
+          "id": "e",
+          "text": "细胞膜"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "毒素是革兰阴性菌细胞壁外膜中的脂多糖（LPS）成分，只有当细菌死亡裂解后才会释放，因此与内毒素直接相关的细菌结构是细胞壁。其他选项中，中介体参与细菌呼吸分裂，鞭毛负责运动，荚膜介导抗吞噬，细胞膜负责物质交换，均与内毒素无关。"
+    },
+    {
+      "id": "q-micro-0210",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于青霉素抗菌作用机制，下列描述正确的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "抑制转肽酶活性，阻断肽聚糖五肽交联桥的形成"
+        },
+        {
+          "id": "b",
+          "text": "抑制DNA回旋酶，阻断细菌核酸复制"
+        },
+        {
+          "id": "c",
+          "text": "抑制细菌蛋白质合成，导致菌体代谢障碍"
+        },
+        {
+          "id": "d",
+          "text": "水解细菌细胞壁肽聚糖中的β-1,4糖苷键"
+        },
+        {
+          "id": "e",
+          "text": "插入细菌细胞膜，破坏膜结构完整性"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "霉素的核心抗菌机制是特异性结合并抑制细菌细胞壁肽聚糖合成的关键酶——转肽酶（青霉素结合蛋白PBP），阻断肽聚糖链之间五肽交联桥的形成，使细菌细胞壁缺损，菌体因渗透压破裂死亡。其他选项中，B为喹诺酮类药物机制，C为氨基糖苷类机制，D为溶菌酶机制，E为多粘菌素类机制。"
+    },
+    {
+      "id": "q-micro-0211",
+      "knowledgePointId": "kp-micro-0185",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列描述外毒素特点正确的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "耐热，不易变性"
+        },
+        {
+          "id": "b",
+          "text": "多由革兰阴性菌产生"
+        },
+        {
+          "id": "c",
+          "text": "不同细菌的外毒素毒性作用相似"
+        },
+        {
+          "id": "d",
+          "text": "多为细菌裂解后释放"
+        },
+        {
+          "id": "e",
+          "text": "可制备成类毒素"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "毒素是革兰阳性菌（部分革兰阴性菌）活菌分泌的蛋白质，核心特点之一是免疫原性强，经甲醛处理后可脱毒但保留免疫原性，制成类毒素，用于人工主动免疫。其他选项错误：外毒素不耐热、60℃以上可失活；多由革兰阳性菌产生；具有高度组织特异性，不同细菌的外毒素作用差异显著；为活菌分泌，内毒素才是细菌裂解后释放。"
+    },
+    {
+      "id": "q-micro-0212",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "消毒是指",
+      "options": [
+        {
+          "id": "a",
+          "text": "杀死物体上所有微生物包括芽胞在内的方法"
+        },
+        {
+          "id": "b",
+          "text": "使物体上不存在活的微生物"
+        },
+        {
+          "id": "c",
+          "text": "杀死物体上病原微生物的方法"
+        },
+        {
+          "id": "d",
+          "text": "抑制微生物在体外生长繁殖的方法"
+        },
+        {
+          "id": "e",
+          "text": "抑制微生物在体内生长繁殖的方法"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "毒的定义是杀灭物体上或环境中的病原微生物，但不包括细菌芽孢、真菌孢子等非病原微生物或休眠体，使其数量达到无害化水平。其他选项中，A为灭菌的定义，B为无菌的定义，D为防腐的定义，E为抑菌的定义。"
+    },
+    {
+      "id": "q-micro-0213",
+      "knowledgePointId": "kp-micro-0147",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于细菌菌毛，下列哪种提法是错误的",
+      "options": [
+        {
+          "id": "a",
+          "text": "用特殊染色法在光学显微镜下可见"
+        },
+        {
+          "id": "b",
+          "text": "性菌毛与细菌的遗传变异有关"
+        },
+        {
+          "id": "c",
+          "text": "普通菌毛与细菌运动无关"
+        },
+        {
+          "id": "d",
+          "text": "普通菌毛与细菌侵袭力有关"
+        },
+        {
+          "id": "e",
+          "text": "菌毛具备黏附功能"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "毛是细菌表面直径仅3~10nm的丝状物，光学显微镜分辨率不足，即使特殊染色也无法观察到，必须使用电子显微镜，因此A的描述错误。其他选项均正确：性菌毛可通过接合作用传递质粒，导致细菌遗传变异；普通菌毛无运动功能，是细菌的黏附结构，帮助细菌定植于宿主黏膜，属于侵袭力的重要组成部分。"
+    },
+    {
+      "id": "q-micro-0214",
+      "knowledgePointId": "kp-micro-0137",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "研究细菌性状应选用的细菌群体生长繁殖期是",
+      "options": [
+        {
+          "id": "a",
+          "text": "稳定期"
+        },
+        {
+          "id": "b",
+          "text": "对数期"
+        },
+        {
+          "id": "c",
+          "text": "各时期均可"
+        },
+        {
+          "id": "d",
+          "text": "迟缓期"
+        },
+        {
+          "id": "e",
+          "text": "衰亡期"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "数期（指数期）的细菌以恒定速度分裂繁殖，形态、染色性、生理生化特性等生物学性状最典型、最一致，因此是研究细菌性状（如形态观察、药敏试验、生化鉴定）的最佳时期。其他选项中，迟缓期细菌适应环境，性状未稳定；稳定期细菌产生代谢产物，性状发生改变；衰亡期细菌大量死亡，菌体变形自溶，均不适合研究。"
+    },
+    {
+      "id": "q-micro-0215",
+      "knowledgePointId": "kp-micro-0152",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "化脓性菌侵入血流，大量繁殖产生毒素，并随血流到达全身其他脏器引起多发性脓肿称为",
+      "options": [
+        {
+          "id": "a",
+          "text": "内毒素血症"
+        },
+        {
+          "id": "b",
+          "text": "脓毒血症"
+        },
+        {
+          "id": "c",
+          "text": "菌血症"
+        },
+        {
+          "id": "d",
+          "text": "败血症"
+        },
+        {
+          "id": "e",
+          "text": "毒血症"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "毒血症的定义为：化脓性细菌侵入血流后，在其中大量繁殖并产生毒素，同时随血流扩散至全身其他组织器官，引起多发性化脓性脓肿，完全符合题干描述。其他选项中，菌血症为细菌短暂入血未繁殖；毒血症为细菌在局部繁殖，仅毒素入血；败血症为细菌入血繁殖并产生毒素，引起全身中毒症状但无多发脓肿；内毒素血症为革兰阴性菌内毒素入血所致。"
+    },
+    {
+      "id": "q-micro-0216",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "溶菌酶的作用机理是",
+      "options": [
+        {
+          "id": "a",
+          "text": "改变细胞膜的通透性"
+        },
+        {
+          "id": "b",
+          "text": "抑制四肽侧链与五肽交联桥的连接"
+        },
+        {
+          "id": "c",
+          "text": "水解肽聚糖的β-1,4糖苷键"
+        },
+        {
+          "id": "d",
+          "text": "破坏革兰阴性菌的外膜结构"
+        },
+        {
+          "id": "e",
+          "text": "溶解菌细胞膜"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "菌酶的核心作用机制是特异性水解细菌细胞壁肽聚糖骨架中的β-1,4糖苷键，破坏肽聚糖结构，使细菌细胞壁缺损，菌体因渗透压失衡而裂解死亡，对革兰阳性菌作用尤为显著。其他选项中，A、E为多粘菌素等抗菌物质的机制，B为青霉素的机制，D不是溶菌酶的主要作用。"
+    },
+    {
+      "id": "q-micro-0217",
+      "knowledgePointId": "kp-micro-0145",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "转导与溶原性转换的共同点是",
+      "options": [
+        {
+          "id": "a",
+          "text": "可由雌性菌变为雄性菌"
+        },
+        {
+          "id": "b",
+          "text": "以噬菌体为载体的基因重组方式"
+        },
+        {
+          "id": "c",
+          "text": "均有菌毛参与"
+        },
+        {
+          "id": "d",
+          "text": "有关的噬菌体均为毒性噬菌体"
+        },
+        {
+          "id": "e",
+          "text": "转移的遗传物质为供体菌的DNA"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "导与溶原性转换均属于细菌的基因转移与重组方式，且都以噬菌体为载体：①转导：由温和噬菌体介导，将供体菌的DNA片段转移到受体菌中；②溶原性转换：温和噬菌体将自身的前噬菌体基因整合到宿主菌染色体中，使宿主菌获得新性状。其他选项中，A、C为接合的特点；二者均由温和噬菌体介导，而非毒性噬菌体；溶原性转换转移的是噬菌体自身DNA，并非供体菌DNA。"
+    },
+    {
+      "id": "q-micro-0218",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "有关质粒的特点，错误的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "为细菌染色体以外的遗传物质"
+        },
+        {
+          "id": "b",
+          "text": "可丢失"
+        },
+        {
+          "id": "c",
+          "text": "也可从一个细菌转移至另一细菌"
+        },
+        {
+          "id": "d",
+          "text": "是细菌生命活动中不可缺少的"
+        },
+        {
+          "id": "e",
+          "text": "可自我复制并传代"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "粒是细菌染色体外的闭合环状双链DNA，并非细菌生命活动所必需，细菌失去质粒仍可正常生长繁殖，仅会丢失质粒编码的特殊性状（如耐药性、毒力），因此D的描述错误。其他选项均正确：质粒是染色体外的遗传物质，可自行丢失或经人工处理消除，可通过接合、转导等方式在细菌间转移，也可自我复制并随细菌分裂传代。"
+    },
+    {
+      "id": "q-micro-0219",
+      "knowledgePointId": "kp-micro-0185",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "BCG菌株的变异属于",
+      "options": [
+        {
+          "id": "a",
+          "text": "结构变异"
+        },
+        {
+          "id": "b",
+          "text": "宿主范围变异"
+        },
+        {
+          "id": "c",
+          "text": "毒力变异"
+        },
+        {
+          "id": "d",
+          "text": "菌落变异"
+        },
+        {
+          "id": "e",
+          "text": "耐药性变异"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "CG（卡介苗）是将有毒力的牛型结核分枝杆菌，在含胆汁、甘油、马铃薯的培养基上连续传代培养13年、230代后获得的变异株，其核心变异是毒力显著减弱，但保留完整免疫原性，属于人工诱导的毒力变异，用于预防结核病的人工主动免疫。其他选项均不符合BCG的变异类型。"
+    },
+    {
+      "id": "q-micro-0220",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "细菌生长繁殖所需条件不包括",
+      "options": [
+        {
+          "id": "a",
+          "text": "水"
+        },
+        {
+          "id": "b",
+          "text": "光线"
+        },
+        {
+          "id": "c",
+          "text": "温度"
+        },
+        {
+          "id": "d",
+          "text": "气体"
+        },
+        {
+          "id": "e",
+          "text": "营养物质"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "菌生长繁殖的必需条件包括：①营养物质（水、碳源、氮源、无机盐、生长因子）；②适宜的温度（病原菌多为37℃）；③合适的pH（多数细菌为7.2~7.6）；④必要的气体（氧气、二氧化碳）；⑤渗透压。光线（尤其是紫外线）是抑制/杀灭细菌的因素，并非细菌生长繁殖所需的条件。"
+    },
+    {
+      "id": "q-micro-0221",
+      "knowledgePointId": "kp-micro-0163",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列哪项是衣原体引起的疾病？",
+      "options": [
+        {
+          "id": "a",
+          "text": "沙眼"
+        },
+        {
+          "id": "b",
+          "text": "淋病"
+        },
+        {
+          "id": "c",
+          "text": "风湿热"
+        },
+        {
+          "id": "d",
+          "text": "猩红热"
+        },
+        {
+          "id": "e",
+          "text": "森林脑炎"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "眼由沙眼衣原体感染引起，是衣原体感染的典型疾病；淋病由淋病奈瑟菌引起，风湿热由A组溶血性链球菌感染引起，猩红热由A组溶血性链球菌引起，森林脑炎由森林脑炎病毒引起，均与衣原体无关。"
+    },
+    {
+      "id": "q-micro-0222",
+      "knowledgePointId": "kp-micro-0159",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "某人在参加一次聚餐3天后,突然出现发热、腹痛和腹泻,开始为水样便,1天后转为粘液脓血便,并有里急后重感。根据以上症状应考虑的疾病和检查方法是()。",
+      "options": [
+        {
+          "id": "a",
+          "text": "葡萄球菌食物中毒;取剩余食物分离致病菌"
+        },
+        {
+          "id": "b",
+          "text": "伤寒;取脓血便进行免疫荧光检"
+        },
+        {
+          "id": "c",
+          "text": "大肠杆菌感染;取肛拭子分离肠道致病菌"
+        },
+        {
+          "id": "d",
+          "text": "沙门菌食物中毒;取剩余食物分离致病菌"
+        },
+        {
+          "id": "e",
+          "text": "细菌性痢疾;取脓血便分离肠道致病菌"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "餐后出现发热、腹痛、腹泻，由水样便转为粘液脓血便伴里急后重，是细菌性痢疾（志贺菌感染）的典型表现，取脓血便分离致病菌可确诊。葡萄球菌食物中毒潜伏期短（数小时），以呕吐为主；伤寒起病慢，无典型粘液脓血便与里急后重；沙门菌食物中毒多为水样便，较少出现粘液脓血便。"
+    },
+    {
+      "id": "q-micro-0223",
+      "knowledgePointId": "kp-micro-0162",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列病原菌能引起斑疹伤寒的是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "白色念珠菌"
+        },
+        {
+          "id": "b",
+          "text": "肺炎支原体"
+        },
+        {
+          "id": "c",
+          "text": "普氏立克次体"
+        },
+        {
+          "id": "d",
+          "text": "伤寒沙门氏菌"
+        },
+        {
+          "id": "e",
+          "text": "螺旋体"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "氏立克次体是流行性斑疹伤寒的病原体，通过体虱传播；白色念珠菌为真菌，可引起鹅口疮等感染；肺炎支原体主要引起支原体肺炎；伤寒沙门氏菌引起伤寒；螺旋体可引起梅毒、钩端螺旋体病等，均与斑疹伤寒无关。"
+    },
+    {
+      "id": "q-micro-0224",
+      "knowledgePointId": "kp-micro-0161",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列哪种肠杆菌科细菌是肠道正常菌群的一部分?()",
+      "options": [
+        {
+          "id": "a",
+          "text": "大肠杆菌"
+        },
+        {
+          "id": "b",
+          "text": "沙门氏菌"
+        },
+        {
+          "id": "c",
+          "text": "副伤寒沙门氏菌"
+        },
+        {
+          "id": "d",
+          "text": "鼠疫杆菌"
+        },
+        {
+          "id": "e",
+          "text": "志贺氏菌"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "肠杆菌（大肠埃希菌）是肠道正常菌群的重要组成部分，在肠道内一般不致病，还能合成维生素K等有益物质；沙门氏菌、副伤寒沙门氏菌、鼠疫杆菌、志贺氏菌均为致病菌，不属于肠道正常菌群。"
+    },
+    {
+      "id": "q-micro-0225",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "引起人类原发性非典型肺炎的病原体是",
+      "options": [
+        {
+          "id": "a",
+          "text": "肺炎球菌"
+        },
+        {
+          "id": "b",
+          "text": "肺炎支原体"
+        },
+        {
+          "id": "c",
+          "text": "流感病毒"
+        },
+        {
+          "id": "d",
+          "text": "新冠病毒"
+        },
+        {
+          "id": "e",
+          "text": "嗜肺军团菌"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "发性非典型肺炎（支原体肺炎）的病原体为肺炎支原体，常表现为刺激性干咳、低热；肺炎球菌引起大叶性肺炎，流感病毒、新冠病毒引起病毒性肺炎，嗜肺军团菌引起军团菌病，均不是原发性非典型肺炎的主要病原体。"
+    },
+    {
+      "id": "q-micro-0226",
+      "knowledgePointId": "kp-micro-0161",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "肠杆菌科细菌的代谢产物中,哪种物质是其鉴定的重要指标?()",
+      "options": [
+        {
+          "id": "a",
+          "text": "硫化氢"
+        },
+        {
+          "id": "b",
+          "text": "葡萄糖"
+        },
+        {
+          "id": "c",
+          "text": "乙酸"
+        },
+        {
+          "id": "d",
+          "text": "吲哚"
+        },
+        {
+          "id": "e",
+          "text": "乳酸"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "杆菌科细菌分解含硫氨基酸时可产生硫化氢，该试验是肠杆菌科细菌鉴定的重要生化指标，可用于区分不同属/种的细菌（如沙门菌多为阳性，大肠埃希菌多为阴性）；葡萄糖、乙酸、乳酸并非肠杆菌科鉴定的核心特异性指标，吲哚主要用于鉴别大肠埃希菌与变形杆菌等，应用范围不如硫化氢广泛。"
+    },
+    {
+      "id": "q-micro-0227",
+      "knowledgePointId": "kp-micro-0149",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "志贺菌引起中毒性菌痢的主要致病物质是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "侵袭性酶"
+        },
+        {
+          "id": "b",
+          "text": "内毒素"
+        },
+        {
+          "id": "c",
+          "text": "免疫损伤"
+        },
+        {
+          "id": "d",
+          "text": "肠毒素"
+        },
+        {
+          "id": "e",
+          "text": "溶血毒素"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "毒性菌痢的核心致病物质是志贺菌产生的内毒素，内毒素入血后可引起全身中毒症状，如高热、休克、DIC、中枢神经系统病变；侵袭性酶主要参与细菌对肠黏膜的侵袭，肠毒素主要引起分泌性腹泻，免疫损伤不是直接致病物质，溶血毒素不是志贺菌的主要致病物质。"
+    },
+    {
+      "id": "q-micro-0228",
+      "knowledgePointId": "kp-micro-0162",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "普氏立克次体的主要传播媒介是",
+      "options": [
+        {
+          "id": "a",
+          "text": "恙螨"
+        },
+        {
+          "id": "b",
+          "text": "蜱"
+        },
+        {
+          "id": "c",
+          "text": "鼠虱"
+        },
+        {
+          "id": "d",
+          "text": "人虱"
+        },
+        {
+          "id": "e",
+          "text": "鼠蚤"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "氏立克次体是流行性斑疹伤寒的病原体，主要传播媒介为人虱（体虱），立克次体在虱肠上皮细胞内繁殖，随虱粪排出，通过搔抓伤口侵入人体；恙螨传播恙虫病东方体，蜱传播斑点热立克次体，鼠蚤传播莫氏立克次体（地方性斑疹伤寒）。"
+    },
+    {
+      "id": "q-micro-0229",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "螺旋体与螺旋菌的主要区别是",
+      "options": [
+        {
+          "id": "a",
+          "text": "有细胞壁"
+        },
+        {
+          "id": "b",
+          "text": "二分裂方式繁殖"
+        },
+        {
+          "id": "c",
+          "text": "对抗生素敏感"
+        },
+        {
+          "id": "d",
+          "text": "利用轴丝进行运动"
+        },
+        {
+          "id": "e",
+          "text": "有原核细胞结构"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "旋体与螺旋菌均为原核生物，具有细胞壁、二分裂繁殖、对抗生素敏感等共性，核心区别在于运动方式：螺旋体依靠轴丝（内鞭毛）收缩旋转进行运动，螺旋菌依靠细胞壁外的鞭毛（外鞭毛）进行运动。"
+    },
+    {
+      "id": "q-micro-0230",
+      "knowledgePointId": "kp-micro-0159",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列哪种抗原不是肠杆菌科细菌的主要抗原?()",
+      "options": [
+        {
+          "id": "a",
+          "text": "H抗原"
+        },
+        {
+          "id": "b",
+          "text": "O抗原"
+        },
+        {
+          "id": "c",
+          "text": "A抗原"
+        },
+        {
+          "id": "d",
+          "text": "Vi抗原"
+        },
+        {
+          "id": "e",
+          "text": "K抗原"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "杆菌科细菌的主要抗原包括O抗原（菌体抗原）、H抗原（鞭毛抗原）、K抗原（荚膜抗原），伤寒沙门菌还具有Vi抗原；A抗原不属于肠杆菌科细菌的主要抗原类型，不用于其血清学分型与鉴定。"
+    },
+    {
+      "id": "q-micro-0231",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "一期梅毒主要临床表现为()",
+      "options": [
+        {
+          "id": "a",
+          "text": "神经系统损伤"
+        },
+        {
+          "id": "b",
+          "text": "梅毒瘤"
+        },
+        {
+          "id": "c",
+          "text": "硬下疳"
+        },
+        {
+          "id": "d",
+          "text": "淋巴结肿大"
+        },
+        {
+          "id": "e",
+          "text": "梅毒疹"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "期梅毒的典型表现是硬下疳，即感染部位出现的无痛性、边界清晰的溃疡，触之有软骨样硬度；神经系统损伤、梅毒瘤是三期梅毒的表现，梅毒疹是二期梅毒的表现，淋巴结肿大可伴随硬下疳出现，但不是一期梅毒的特征性临床表现。"
+    },
+    {
+      "id": "q-micro-0232",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "衣原体的哪种形式具有感染性()",
+      "options": [
+        {
+          "id": "a",
+          "text": "网状体"
+        },
+        {
+          "id": "b",
+          "text": "原体"
+        },
+        {
+          "id": "c",
+          "text": "包涵体"
+        },
+        {
+          "id": "d",
+          "text": "始体"
+        },
+        {
+          "id": "e",
+          "text": "中介体"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "原体存在两种发育形式：原体结构致密、细胞壁坚韧，具有感染性，可通过吸附、内吞进入宿主细胞；网状体（始体）是衣原体在宿主细胞内的繁殖形式，代谢活跃但无感染性；包涵体是衣原体在宿主细胞内形成的繁殖结构，中介体并非衣原体的标准发育形式。"
+    },
+    {
+      "id": "q-micro-0233",
+      "knowledgePointId": "kp-micro-0159",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列关于伤寒沙门菌的描述,哪项是错误的?()",
+      "options": [
+        {
+          "id": "a",
+          "text": "易形成菌血症"
+        },
+        {
+          "id": "b",
+          "text": "有O、H、Vi抗原"
+        },
+        {
+          "id": "c",
+          "text": "主要引起胃肠道症状"
+        },
+        {
+          "id": "d",
+          "text": "可用免疫血清鉴定菌型"
+        },
+        {
+          "id": "e",
+          "text": "有鞭毛,可运动"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "寒沙门菌主要引起肠热症（伤寒/副伤寒），表现为持续高热、相对缓脉、玫瑰疹、肝脾肿大等全身中毒症状，胃肠道症状多不明显或仅轻微腹泻，因此“主要引起胃肠道症状”的描述错误；伤寒沙门菌易形成菌血症，具有O、H、Vi三种抗原，可用免疫血清（肥达试验）鉴定菌型，且有周鞭毛，可运动，其余选项描述均正确。"
+    },
+    {
+      "id": "q-micro-0234",
+      "knowledgePointId": "kp-micro-0162",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "肠杆菌科细菌的染色结性性质是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗酸染色阳性"
+        },
+        {
+          "id": "b",
+          "text": "革兰氏阳性"
+        },
+        {
+          "id": "c",
+          "text": "不染色"
+        },
+        {
+          "id": "d",
+          "text": "革兰氏阴性"
+        },
+        {
+          "id": "e",
+          "text": "吉姆萨染色阳性"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "杆菌科细菌（如大肠杆菌、伤寒沙门菌）的细胞壁结构特征为革兰氏阴性杆菌（G⁻）；抗酸染色阳性为结核分枝杆菌等分枝杆菌属细菌，革兰氏阳性菌细胞壁肽聚糖层厚，与肠杆菌科特征不符，吉姆萨染色多用于螺旋体、立克次体等，肠杆菌科不染色或吉姆萨染色阳性的描述均错误。"
+    },
+    {
+      "id": "q-micro-0235",
+      "knowledgePointId": "kp-micro-0118",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于梅毒螺旋体的叙述，错误的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "属于密螺旋体属"
+        },
+        {
+          "id": "b",
+          "text": "体外极易存活，抵抗力强"
+        },
+        {
+          "id": "c",
+          "text": "不能在无细胞培养基上生长"
+        },
+        {
+          "id": "d",
+          "text": "对青霉素敏感"
+        },
+        {
+          "id": "e",
+          "text": "主要经性接触和垂直传播"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "毒螺旋体（苍白密螺旋体）属于密螺旋体属，不能在无细胞培养基上生长，对青霉素高度敏感，主要通过性接触和母婴垂直传播；其体外抵抗力极弱，对干燥、温度变化、化学消毒剂都非常敏感，离开人体后很快失去活性，因此“体外极易存活，抵抗力强”的描述错误。"
+    },
+    {
+      "id": "q-micro-0236",
+      "knowledgePointId": "kp-micro-0148",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "抗体对病毒的中和作用主要是",
+      "options": [
+        {
+          "id": "a",
+          "text": "中和病毒毒素"
+        },
+        {
+          "id": "b",
+          "text": "阻止病毒与靶细胞相互作用"
+        },
+        {
+          "id": "c",
+          "text": "杀灭病毒"
+        },
+        {
+          "id": "d",
+          "text": "诱导干扰素产生"
+        },
+        {
+          "id": "e",
+          "text": "抑制病毒生物合成"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "体的中和作用核心机制是：抗体与病毒表面的抗原（如吸附蛋白）结合，通过空间位阻阻断病毒与宿主靶细胞表面受体的结合，从而阻止病毒入侵细胞。\n- A：中和病毒毒素是针对细菌外毒素的作用，不是抗体抗病毒的主要机制。\n- C：抗体本身无直接杀灭病毒的能力，杀灭病毒需依赖补体、吞噬细胞等。\n- D：诱导干扰素产生的是病毒本身或免疫细胞，不是抗体。\n- E：抑制病毒生物合成是干扰素、抗病毒药物的作用，不是抗体的中和作用。"
+    },
+    {
+      "id": "q-micro-0237",
+      "knowledgePointId": "kp-micro-0113",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "病毒粒子中的一种结构是来自寄主细胞膜的,它是",
+      "options": [
+        {
+          "id": "a",
+          "text": "刺突"
+        },
+        {
+          "id": "b",
+          "text": "衣壳"
+        },
+        {
+          "id": "c",
+          "text": "核心"
+        },
+        {
+          "id": "d",
+          "text": "病毒酶系统"
+        },
+        {
+          "id": "e",
+          "text": "包膜"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "膜是有包膜病毒在成熟过程中，通过出芽方式穿过宿主细胞膜（细胞膜、核膜或内质网膜）时获得的脂质双层结构，其主要成分来自宿主细胞膜。\n- A：刺突是包膜表面由病毒编码的糖蛋白突起，并非直接来自宿主膜。\n- B：衣壳是病毒核心外的蛋白质外壳，由病毒基因编码合成。\n- C：核心由病毒核酸（DNA/RNA）及相关蛋白组成，完全由病毒自身编码。\n- D：病毒酶系统（如逆转录酶）是病毒自身编码的功能性蛋白。"
+    },
+    {
+      "id": "q-micro-0238",
+      "knowledgePointId": "kp-micro-0193",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "多数病毒粒子的直径在",
+      "options": [
+        {
+          "id": "a",
+          "text": "1nm左右"
+        },
+        {
+          "id": "b",
+          "text": "100nm左右"
+        },
+        {
+          "id": "c",
+          "text": "10nm左右"
+        },
+        {
+          "id": "d",
+          "text": "10um左右"
+        },
+        {
+          "id": "e",
+          "text": "1000nm左右"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "毒的大小以纳米（nm）为单位，绝大多数常见病毒（如流感病毒、冠状病毒、疱疹病毒）的直径在50~200nm之间，100nm左右是其典型范围。\n- A：1nm左右仅为大分子蛋白质的尺度，远小于病毒。\n- C：10nm左右属于微小病毒（如细小病毒）的尺寸，并非多数病毒的特征。\n- D：10μm（微米）是细菌（如大肠杆菌）或真核细胞的尺度，病毒远小于此。\n- E：1000nm（1μm）是痘病毒等大型病毒的尺寸，不属于“多数”病毒的范围。"
+    },
+    {
+      "id": "q-micro-0239",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "病毒的致病作用不包括",
+      "options": [
+        {
+          "id": "a",
+          "text": "免疫病理作用"
+        },
+        {
+          "id": "b",
+          "text": "杀细胞效应"
+        },
+        {
+          "id": "c",
+          "text": "毒力作用"
+        },
+        {
+          "id": "d",
+          "text": "细胞凋亡"
+        },
+        {
+          "id": "e",
+          "text": "稳定状态感染"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "毒的致病作用是指病毒感染宿主后，造成宿主细胞和组织损伤的具体机制，包括：\n- A：免疫病理作用：病毒诱发的免疫反应（如抗体、效应T细胞）在清除病毒的同时，造成宿主组织损伤（如免疫复合物沉积、自身免疫反应）。\n- B：杀细胞效应：病毒在宿主细胞内大量增殖，直接导致细胞溶解、死亡（如脊髓灰质炎病毒）。\n- D：细胞凋亡：病毒感染可诱导宿主细胞发生程序性死亡，造成组织损伤。\n- E：稳定状态感染：病毒在细胞内持续复制但不立即杀死细胞，细胞长期释放病毒，导致慢性感染和组织损伤（如乙肝病毒）。\n“毒力作用”是描述病毒致病性强弱的属性指标，而非一种具体的致病机制，因此不属于病毒的致病作用。"
+    },
+    {
+      "id": "q-micro-0240",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "抗病毒感染中，B淋巴细胞活化后，不会经历以下哪个过程？",
+      "options": [
+        {
+          "id": "a",
+          "text": "增殖"
+        },
+        {
+          "id": "b",
+          "text": "分泌抗体"
+        },
+        {
+          "id": "c",
+          "text": "亲和力成熟"
+        },
+        {
+          "id": "d",
+          "text": "分化"
+        },
+        {
+          "id": "e",
+          "text": "直接杀伤病毒"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "淋巴细胞活化后，会经历以下过程：\n- A：增殖：活化的B细胞快速分裂，形成克隆扩增。\n- D：分化：分化为浆细胞（效应B细胞）和记忆B细胞。\n- B：分泌抗体：浆细胞合成并分泌特异性抗体，发挥体液免疫作用。\n- C：亲和力成熟：在生发中心，B细胞通过体细胞高频突变，产生对病毒抗原亲和力更高的抗体。\nB细胞的核心功能是通过分泌抗体发挥体液免疫作用，不能直接杀伤病毒。直接杀伤病毒感染细胞的是细胞毒性T细胞（CTL）、NK细胞等效应细胞。"
+    },
+    {
+      "id": "q-micro-0241",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "病毒分离的培养方法不包括",
+      "options": [
+        {
+          "id": "a",
+          "text": "鸡胚接种"
+        },
+        {
+          "id": "b",
+          "text": "细胞培养"
+        },
+        {
+          "id": "c",
+          "text": "动物接种"
+        },
+        {
+          "id": "d",
+          "text": "牛肉膏蛋白胨培养基培养"
+        },
+        {
+          "id": "e",
+          "text": "组织培养"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "毒是专性活细胞内寄生的微生物，必须在活的宿主细胞内才能增殖，无法在无生命的人工培养基中独立生长。\n- A：鸡胚接种：是经典的病毒培养方法，常用于流感病毒、痘病毒等的分离。\n- B：细胞培养：最常用的病毒培养方法，包括原代细胞、传代细胞、二倍体细胞培养。\n- C：动物接种：使用敏感动物（如乳鼠、家兔）接种病毒，用于一些难以在细胞或鸡胚中生长的病毒。\n- E：组织培养：早期病毒学常用技术，属于广义的细胞培养范畴。\n牛肉膏蛋白胨培养基是用于培养细菌的基础培养基，不含活细胞，病毒无法在其中增殖，因此不属于病毒分离培养方法。"
+    },
+    {
+      "id": "q-micro-0242",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "结核菌素试验(PPD试验)阳性反应的主要机制是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "巨噬细胞直接吞噬杀灭结核菌"
+        },
+        {
+          "id": "b",
+          "text": "抗体介导的速发型超敏反应"
+        },
+        {
+          "id": "c",
+          "text": "免疫复合物介导的炎症反应"
+        },
+        {
+          "id": "d",
+          "text": "T细胞介导的迟发型超敏反应"
+        },
+        {
+          "id": "e",
+          "text": "补体依赖的细胞毒性作用"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "核菌素试验阳性的核心机制是T细胞介导的迟发型超敏反应（Ⅳ型超敏反应）。人体感染结核分枝杆菌后会产生致敏T淋巴细胞，当再次接触结核菌素（PPD）时，致敏T细胞释放细胞因子，吸引炎症细胞聚集，在局部形成以单核细胞浸润为主的炎症反应，表现为红肿硬结。\n- A错误：巨噬细胞吞噬杀灭结核菌是固有免疫作用，与PPD试验阳性无关；\n- B错误：速发型超敏反应（Ⅰ型）是抗体介导的过敏反应，与结核无关；\n- C错误：免疫复合物介导的是Ⅲ型超敏反应，如血清病，与PPD试验无关；\n- E错误：补体依赖的细胞毒性作用是Ⅱ型超敏反应，如溶血反应，与结核无关。"
+    },
+    {
+      "id": "q-micro-0243",
+      "knowledgePointId": "kp-micro-0159",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "肉毒梭菌引起食物中毒的主要特点是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "剧烈呕吐和腹泻"
+        },
+        {
+          "id": "b",
+          "text": "血便和里急后重"
+        },
+        {
+          "id": "c",
+          "text": "高热和肝脾肿大"
+        },
+        {
+          "id": "d",
+          "text": "弛缓性麻痹"
+        },
+        {
+          "id": "e",
+          "text": "阵发性腹部绞痛后便秘"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "毒梭菌食物中毒的致病物质是肉毒毒素，它会阻断神经肌肉接头处乙酰胆碱的释放，导致肌肉无法收缩，出现弛缓性麻痹，典型表现为眼肌麻痹、吞咽困难，严重时可因呼吸肌麻痹致死。\n- A错误：剧烈呕吐腹泻是葡萄球菌、沙门菌食物中毒的特点；\n- B错误：血便和里急后重是志贺菌（痢疾杆菌）感染的典型表现；\n- C错误：高热和肝脾肿大常见于伤寒等全身性感染；\n- E错误：阵发性腹痛后便秘不是肉毒中毒的核心特点。"
+    },
+    {
+      "id": "q-micro-0244",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "肉毒毒素的作用靶点是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "脊髓前角运动神经元"
+        },
+        {
+          "id": "b",
+          "text": "神经-肌肉接头处的突触后膜"
+        },
+        {
+          "id": "c",
+          "text": "中枢神经系统的抑制性中间神经元"
+        },
+        {
+          "id": "d",
+          "text": "自主神经节的突触后膜"
+        },
+        {
+          "id": "e",
+          "text": "神经-肌肉接头处的突触前膜"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "毒毒素的作用靶点是神经-肌肉接头处的突触前膜，通过抑制乙酰胆碱释放，阻断神经冲动向肌肉的传递，导致肌肉弛缓性麻痹。\n- A错误：脊髓前角运动神经元是脊髓灰质炎病毒的靶点；\n- B错误：突触后膜是乙酰胆碱的结合位点，不是肉毒毒素的作用靶点；\n- C错误：中枢抑制性中间神经元是破伤风痉挛毒素的作用靶点；\n- D错误：自主神经节突触后膜不是肉毒毒素的主要作用部位。"
+    },
+    {
+      "id": "q-micro-0245",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于厌氧芽孢梭菌的叙述,下列哪项是正确的?()",
+      "options": [
+        {
+          "id": "a",
+          "text": "只能通过伤口感染致病"
+        },
+        {
+          "id": "b",
+          "text": "繁殖体对热抵抗力强,芽孢则敏感"
+        },
+        {
+          "id": "c",
+          "text": "芽孢在菌体中央,使菌体呈梭形"
+        },
+        {
+          "id": "d",
+          "text": "所有菌属成员均能形成芽孢,且均为严格厌氧菌"
+        },
+        {
+          "id": "e",
+          "text": "可经呼吸道传播引起疾病"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "氧芽孢梭菌属的核心特征是所有成员均能形成芽孢，且均为严格厌氧菌。\n- A错误：厌氧芽孢梭菌感染途径多样，如肉毒梭菌可通过消化道（食物中毒）感染；\n- B错误：这类细菌繁殖体对热敏感，芽孢的抵抗力极强；\n- C错误：不同菌种芽孢位置不同，如破伤风梭菌芽孢位于菌体一端，呈“鼓槌状”；\n- E错误：这类细菌主要通过伤口、消化道感染，一般不通过呼吸道传播。"
+    },
+    {
+      "id": "q-micro-0246",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "结核分枝杆菌细胞壁中与其致病性密切相关的成分是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "磷壁酸"
+        },
+        {
+          "id": "b",
+          "text": "外膜蛋白"
+        },
+        {
+          "id": "c",
+          "text": "肽聚糖"
+        },
+        {
+          "id": "d",
+          "text": "脂质"
+        },
+        {
+          "id": "e",
+          "text": "脂多糖"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "核分枝杆菌细胞壁含有大量脂质（占干重的60%以上），包括索状因子、磷脂、蜡质D等，这些成分与其致病性密切相关：\n- 脂质能抵抗巨噬细胞的杀伤，帮助细菌在巨噬细胞内长期存活；\n- 蜡质D可诱发迟发型超敏反应，导致组织坏死和全身中毒症状；\n- 索状因子可破坏细胞线粒体，影响细胞呼吸。\n其他选项均不是结核分枝杆菌致病性的核心关联物质。"
+    },
+    {
+      "id": "q-micro-0247",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于卡介苗()的叙述,正确的是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "接种后可完全预防肺结核"
+        },
+        {
+          "id": "b",
+          "text": "接种后PPD试验始终为阴性"
+        },
+        {
+          "id": "c",
+          "text": "主要用于成人结核病的预防"
+        },
+        {
+          "id": "d",
+          "text": "由灭活的结核分枝杆菌制备而成"
+        },
+        {
+          "id": "e",
+          "text": "由牛分枝杆菌经长期传代减毒制备的活疫苗"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "介苗（BCG）是由牛分枝杆菌经长期人工传代减毒后获得的活疫苗，核心用途是预防儿童重症结核（如结核性脑膜炎、粟粒性结核）。\n- A错误：卡介苗不能100%预防肺结核，对成人肺结核的保护力有限；\n- B错误：接种卡介苗后，PPD试验会转为阳性，表示接种成功；\n- C错误：卡介苗主要用于新生儿和儿童的结核病预防；\n- D错误：卡介苗是减毒活疫苗，不是灭活疫苗。"
+    },
+    {
+      "id": "q-micro-0248",
+      "knowledgePointId": "kp-micro-0148",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "预防破伤风最有效的主动免疫制剂是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "破伤风类毒素"
+        },
+        {
+          "id": "b",
+          "text": "破伤风梭菌灭活疫苗"
+        },
+        {
+          "id": "c",
+          "text": "破伤风免疫球蛋白"
+        },
+        {
+          "id": "d",
+          "text": "青霉素"
+        },
+        {
+          "id": "e",
+          "text": "破伤风抗毒素"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "动免疫的核心是让机体自身产生抗体和记忆细胞。破伤风类毒素是破伤风外毒素经甲醛脱毒后制成的无毒制剂，保留了免疫原性，接种后可诱导机体产生抗毒素抗体，是预防破伤风最有效的主动免疫制剂。\n- B错误：破伤风梭菌灭活疫苗免疫效果差，临床不用于常规主动免疫；\n- C、E错误：破伤风免疫球蛋白、破伤风抗毒素属于被动免疫制剂，用于紧急预防或治疗；\n- D错误：青霉素是抗生素，仅用于抗感染治疗，无免疫预防作用。"
+    },
+    {
+      "id": "q-micro-0249",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "结核分枝杆菌在罗氏培养基上培养后的典型菌落特征是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "光滑、湿润、乳白色"
+        },
+        {
+          "id": "b",
+          "text": "黑色、隆起、有金属光泽"
+        },
+        {
+          "id": "c",
+          "text": "绒毛状、灰白色、粘液样"
+        },
+        {
+          "id": "d",
+          "text": "粗糙、干燥、菜花样、米黄色"
+        },
+        {
+          "id": "e",
+          "text": "扁平、透明、溶血环"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "核分枝杆菌在罗氏培养基上生长缓慢，2-4周才会形成典型菌落，核心特征为：粗糙、干燥、不透明，呈颗粒状、菜花样或结节状，颜色为乳白色或米黄色，质地坚硬，不易乳化。\n- A错误：光滑湿润是葡萄球菌等常见细菌的菌落特征；\n- B错误：黑色、有金属光泽是变形杆菌等的特征；\n- C错误：绒毛状、粘液样多为真菌或部分肠杆菌科细菌的菌落特征；\n- E错误：扁平透明、有溶血环是链球菌的典型特征。"
+    },
+    {
+      "id": "q-micro-0250",
+      "knowledgePointId": "kp-micro-0148",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "破伤风的致病机制主要依赖于()",
+      "options": [
+        {
+          "id": "a",
+          "text": "内毒素引起全身炎症反应"
+        },
+        {
+          "id": "b",
+          "text": "外毒素破坏红细胞引起溶血"
+        },
+        {
+          "id": "c",
+          "text": "细菌大量繁殖导致败血症"
+        },
+        {
+          "id": "d",
+          "text": "产生外毒素侵犯中枢神经系统"
+        },
+        {
+          "id": "e",
+          "text": "芽孢在血液中播散形成脓肿"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "伤风梭菌本身不侵入血流，也不引起败血症，其致病的核心是产生破伤风痉挛毒素（外毒素）。毒素沿神经轴突逆行至中枢神经系统，抑制抑制性神经递质释放，导致肌肉强直性痉挛。\n- A错误：破伤风梭菌不产生内毒素；\n- B错误：引起溶血的是产气荚膜梭菌的毒素；\n- C错误：破伤风梭菌仅在局部伤口繁殖，不引起败血症；\n- E错误：破伤风梭菌的芽孢不会在血液中播散，而是在局部厌氧环境下萌发繁殖。"
+    },
+    {
+      "id": "q-micro-0251",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "破伤风痉挛毒素的作用机制是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "激活补体系统,导致神经细胞溶解"
+        },
+        {
+          "id": "b",
+          "text": "激活腺苷酸环化酶,增加细胞内cAMP"
+        },
+        {
+          "id": "c",
+          "text": "阻止抑制性神经递质释放,引起强直性痉挛"
+        },
+        {
+          "id": "d",
+          "text": "促进乙酰胆碱在神经肌肉接头处的释放"
+        },
+        {
+          "id": "e",
+          "text": "抑制运动神经末梢释放乙酰胆碱"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "伤风痉挛毒素进入中枢神经系统后，会阻断脊髓前角抑制性中间神经元释放抑制性神经递质（如甘氨酸、γ-氨基丁酸），导致运动神经元持续兴奋，肌肉无法松弛，引发典型的强直性痉挛（如角弓反张、牙关紧闭）。\n- A错误：与补体系统激活无关；\n- B错误：激活腺苷酸环化酶、升高cAMP是霍乱弧菌肠毒素的作用；\n- D、E错误：促进/抑制乙酰胆碱释放是肉毒毒素或其他毒素的机制，与破伤风痉挛毒素无关。"
+    },
+    {
+      "id": "q-micro-0252",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "结核分枝杆菌在人体内被吞噬细胞吞噬后,常出现的结果是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "被完全杀灭并清除"
+        },
+        {
+          "id": "b",
+          "text": "抑制吞噬体与溶酶体融合,在细胞内存活繁殖"
+        },
+        {
+          "id": "c",
+          "text": "在吞噬溶酶体内快速死亡"
+        },
+        {
+          "id": "d",
+          "text": "诱导中性粒细胞大量聚集并吞噬消灭"
+        },
+        {
+          "id": "e",
+          "text": "激活补体导致细菌裂解"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "核分枝杆菌被巨噬细胞吞噬后，能通过多种机制抵抗巨噬细胞的杀伤：核心机制是抑制吞噬体与溶酶体的融合，避免被溶酶体内的水解酶降解；同时其细胞壁的脂质成分能抵抗酸性环境和杀菌物质，因此可在巨噬细胞内长期存活并繁殖，形成潜伏感染。\n- A、C错误：结核分枝杆菌不会被巨噬细胞立刻杀灭；\n- D错误：中性粒细胞无法有效杀灭结核分枝杆菌；\n- E错误：结核分枝杆菌难以通过补体途径被裂解。"
+    },
+    {
+      "id": "q-micro-0253",
+      "knowledgePointId": "kp-micro-0169",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "抗原的免疫原性是指",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗原损伤宿主细胞的能力"
+        },
+        {
+          "id": "b",
+          "text": "抗原与载体蛋白结合后诱导免疫应答的特性"
+        },
+        {
+          "id": "c",
+          "text": "指抗原与其所诱导产生的免疫应答效应物质特异性结合的能力"
+        },
+        {
+          "id": "d",
+          "text": "指抗原被T、B细胞表面特异性抗原受体识别及结合，诱导机体产生适应性免疫应答的能力"
+        },
+        {
+          "id": "e",
+          "text": "指抗原的特异性"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "疫原性的定义是抗原被T、B细胞表面的特异性抗原受体识别及结合，进而诱导机体产生适应性免疫应答（产生抗体或致敏淋巴细胞）的能力。\n- A：与免疫原性无关，描述的是抗原的毒性作用。\n- B：描述的是半抗原结合载体后获得免疫原性的特点，不是免疫原性本身的定义。\n- C：描述的是抗原的抗原性（免疫反应性），而非免疫原性。\n- E：抗原的特异性由抗原表位决定，与免疫原性定义无关。"
+    },
+    {
+      "id": "q-micro-0254",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "免疫应答过程不包括（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "T细胞在胸腺内的分化成熟"
+        },
+        {
+          "id": "b",
+          "text": "效应细胞和效应分子的产生和作用"
+        },
+        {
+          "id": "c",
+          "text": "T、B细胞的活化、增殖、分化"
+        },
+        {
+          "id": "d",
+          "text": "B细胞对抗原的特异性识别"
+        },
+        {
+          "id": "e",
+          "text": "Mφ对抗原的处理和提呈"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "疫应答是机体免疫系统识别并清除抗原的过程，分为抗原识别、活化增殖分化、效应三个阶段。\n- A：T细胞在胸腺内的分化成熟属于中枢免疫器官的发育过程，是免疫细胞成熟的阶段，不属于免疫应答过程。\n- B/C/D/E：分别对应免疫应答的效应阶段、活化增殖分化阶段、抗原识别阶段，均属于免疫应答过程。"
+    },
+    {
+      "id": "q-micro-0255",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "辅助性T细胞的功能不包括",
+      "options": [
+        {
+          "id": "a",
+          "text": "增强巨噬细胞的吞噬能力"
+        },
+        {
+          "id": "b",
+          "text": "参与B细胞的活化"
+        },
+        {
+          "id": "c",
+          "text": "TD-Ag的应答"
+        },
+        {
+          "id": "d",
+          "text": "吞噬病原体"
+        },
+        {
+          "id": "e",
+          "text": "免疫调节"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "助性T细胞（Th细胞）通过分泌细胞因子调节免疫应答，不具备吞噬病原体的能力。\n- A：Th1细胞可分泌IFN-γ增强巨噬细胞吞噬能力，属于其功能。\n- B：Th细胞通过CD40L与B细胞CD40结合，并分泌细胞因子，参与B细胞活化，属于其功能。\n- C：TD-Ag诱导B细胞产生抗体时必须依赖Th细胞辅助，属于其功能。\n- D：吞噬病原体是巨噬细胞、中性粒细胞等吞噬细胞的功能，不是Th细胞的功能。\n- E：Th细胞通过分泌不同细胞因子调控免疫应答方向，参与免疫调节，属于其功能。"
+    },
+    {
+      "id": "q-micro-0256",
+      "knowledgePointId": "kp-micro-0180",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "抗体特异性结合病原体，增强吞噬细胞对该病原体的吞噬作用，被称为抗体的（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "凝集作用"
+        },
+        {
+          "id": "b",
+          "text": "调理作用"
+        },
+        {
+          "id": "c",
+          "text": "载体功能"
+        },
+        {
+          "id": "d",
+          "text": "ADCC作用"
+        },
+        {
+          "id": "e",
+          "text": "中和作用"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "调理作用：抗体（或补体）与病原体结合后，通过Fc段与吞噬细胞表面的Fc受体结合，增强吞噬细胞对病原体的吞噬效率，与题干描述一致。\n- A：凝集作用是抗体使颗粒性抗原相互聚集的作用，不直接增强吞噬。\n- C：载体功能不是抗体的免疫功能术语。\n- D：ADCC作用是抗体介导的细胞毒作用，由NK细胞杀伤靶细胞，与增强吞噬无关。\n- E：中和作用是抗体阻断病原体入侵宿主细胞的作用，与增强吞噬无关。"
+    },
+    {
+      "id": "q-micro-0257",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "固有免疫细胞所不具备的应答特点是",
+      "options": [
+        {
+          "id": "a",
+          "text": "识别结合相应配体后，立即产生免疫应答"
+        },
+        {
+          "id": "b",
+          "text": "经克隆扩增和分化后，迅速产生免疫效应"
+        },
+        {
+          "id": "c",
+          "text": "直接识别病原体某些共有高度保守的配体分子"
+        },
+        {
+          "id": "d",
+          "text": "应答较快"
+        },
+        {
+          "id": "e",
+          "text": "免疫应答维持时间较短"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "有免疫细胞（巨噬细胞、中性粒细胞、NK细胞等）的特点是应答快、维持时间短、无需克隆扩增即可发挥作用。\n- B：经克隆扩增和分化后产生效应是适应性免疫细胞（T/B细胞）的特点，不是固有免疫细胞的特点。\n- A/C/D/E均为固有免疫细胞的特点。"
+    },
+    {
+      "id": "q-micro-0258",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于抗体产生的再次应答，错误的有（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗体量显著增加"
+        },
+        {
+          "id": "b",
+          "text": "持续时间短"
+        },
+        {
+          "id": "c",
+          "text": "抗体亲和力高"
+        },
+        {
+          "id": "d",
+          "text": "潜伏期短"
+        },
+        {
+          "id": "e",
+          "text": "以IgG为主"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "体再次应答（二次应答）的特点是：潜伏期短、抗体量显著增加、抗体亲和力高、以IgG为主、持续时间长。\n- B：持续时间短是初次应答的特点，不是再次应答的特点，因此错误。"
+    },
+    {
+      "id": "q-micro-0259",
+      "knowledgePointId": "kp-micro-0170",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "引起移植排斥反应的抗原是",
+      "options": [
+        {
+          "id": "a",
+          "text": "异种抗原"
+        },
+        {
+          "id": "b",
+          "text": "主要组织相容性抗原"
+        },
+        {
+          "id": "c",
+          "text": "独特性抗原"
+        },
+        {
+          "id": "d",
+          "text": "自身抗原"
+        },
+        {
+          "id": "e",
+          "text": "异嗜性抗原"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "起移植排斥反应的核心抗原是主要组织相容性抗原（MHC/HLA），它是个体间免疫识别差异的关键，也是同种异体移植排斥的主要诱因。\n- A：异种抗原是不同物种间的抗原差异，不是同种异体移植排斥的主要原因。\n- C：独特型抗原是抗体或TCR的可变区抗原，与移植排斥无关。\n- D：自身抗原不会引起自身排斥（正常情况下）。\n- E：异嗜性抗原是不同物种间的共同抗原，与移植排斥无关。"
+    },
+    {
+      "id": "q-micro-0260",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于半抗原的特性，准确的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "免疫原性和抗原性均有一定程度的下降"
+        },
+        {
+          "id": "b",
+          "text": "与载体结合后才具有抗原性"
+        },
+        {
+          "id": "c",
+          "text": "有免疫原性和抗原性"
+        },
+        {
+          "id": "d",
+          "text": "有免疫原性无抗原性"
+        },
+        {
+          "id": "e",
+          "text": "有抗原性无免疫原性"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "抗原的核心特性是只有抗原性（免疫反应性），无免疫原性：\n- 抗原性：能与相应抗体或致敏淋巴细胞特异性结合。\n- 免疫原性：无法单独诱导机体产生免疫应答，只有与载体蛋白结合后，才能成为完全抗原，获得免疫原性。\n- A：半抗原免疫原性完全缺失，不是“下降”。\n- B：半抗原本身就有抗原性，与载体结合后获得的是免疫原性，而非抗原性。\n- C/D：半抗原不具备免疫原性。"
+    },
+    {
+      "id": "q-micro-0261",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "关于浆细胞，以下哪项描述是错误的？",
+      "options": [
+        {
+          "id": "a",
+          "text": "是B淋巴细胞分化而来的终末分化细胞"
+        },
+        {
+          "id": "b",
+          "text": "能够识别抗原并与之结合"
+        },
+        {
+          "id": "c",
+          "text": "在体液免疫中起关键作用"
+        },
+        {
+          "id": "d",
+          "text": "具有分泌抗体的能力"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "细胞是B细胞分化而来的终末分化细胞，主要功能是分泌抗体，在体液免疫中起关键作用。\n- B：浆细胞表面不再表达B细胞受体（BCR），因此不能识别抗原并与之结合，描述错误。"
+    },
+    {
+      "id": "q-micro-0262",
+      "knowledgePointId": "kp-micro-0173",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列不属于专职性APC的是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "单核细胞"
+        },
+        {
+          "id": "b",
+          "text": "树突状细胞"
+        },
+        {
+          "id": "c",
+          "text": "中性粒细胞"
+        },
+        {
+          "id": "d",
+          "text": "巨噬细胞"
+        },
+        {
+          "id": "e",
+          "text": "B细胞"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "职性抗原提呈细胞（APC）的核心特征是能组成性表达MHCⅡ类分子和共刺激分子，可有效激活初始T细胞。\n- 专职APC包括：树突状细胞、单核/巨噬细胞、B细胞。\n- C：中性粒细胞是吞噬细胞，主要参与固有免疫的吞噬杀伤，不属于专职APC。"
+    },
+    {
+      "id": "q-micro-0263",
+      "knowledgePointId": "kp-micro-0179",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "母乳中含有的主要抗体是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "IgD"
+        },
+        {
+          "id": "b",
+          "text": "IgE"
+        },
+        {
+          "id": "c",
+          "text": "IgA"
+        },
+        {
+          "id": "d",
+          "text": "IgM"
+        },
+        {
+          "id": "e",
+          "text": "IgG"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "乳中含有的主要抗体是分泌型IgA（sIgA），它能在婴儿肠道黏膜表面发挥中和、调理作用，保护婴儿免受病原体感染。\n- IgD、IgE、IgM、IgG均不是母乳中的主要抗体类型。"
+    },
+    {
+      "id": "q-micro-0264",
+      "knowledgePointId": "kp-micro-0183",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "T细胞识别的抗原是",
+      "options": [
+        {
+          "id": "a",
+          "text": "与MHC分子结合并表达于细胞表面的抗原肽片段"
+        },
+        {
+          "id": "b",
+          "text": "多糖类抗原"
+        },
+        {
+          "id": "c",
+          "text": "游离的蛋白质抗原"
+        },
+        {
+          "id": "d",
+          "text": "天然抗原"
+        },
+        {
+          "id": "e",
+          "text": "可溶性的蛋白质抗原"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "细胞识别抗原有严格的MHC限制性，只能识别由抗原提呈细胞加工处理后、与MHC分子结合并表达在细胞表面的抗原肽片段，无法直接识别多糖类、游离/天然/可溶性的完整蛋白质抗原。"
+    },
+    {
+      "id": "q-micro-0265",
+      "knowledgePointId": "kp-micro-0171",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列关于病原相关分子模式的叙述不正确的是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "高度保守"
+        },
+        {
+          "id": "b",
+          "text": "属同种异性抗原"
+        },
+        {
+          "id": "c",
+          "text": "是病原微生物上特有的结构"
+        },
+        {
+          "id": "d",
+          "text": "可被免疫细胞表面的PRR识别"
+        },
+        {
+          "id": "e",
+          "text": "微生物生存和致病所必须的成分"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "原相关分子模式（PAMPs）是病原微生物表面共有的、高度保守的分子结构，是固有免疫细胞模式识别受体（PRR）识别的配体。\n- B：PAMPs是病原微生物特有的结构，并非同种异性抗原（同种异性抗原是同物种不同个体间的抗原差异，如HLA），描述错误。\n- A/C/D/E均为PAMPs的正确描述。"
+    },
+    {
+      "id": "q-micro-0266",
+      "knowledgePointId": "kp-micro-0183",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列哪种组合是B细胞活化的第二信号()",
+      "options": [
+        {
+          "id": "a",
+          "text": "CD86(B细胞)——CD28(T细胞)"
+        },
+        {
+          "id": "b",
+          "text": "CD40(B细胞)——CD40L(活化的T细胞)"
+        },
+        {
+          "id": "c",
+          "text": "CD86(B细胞)——MHC分子(T细胞)"
+        },
+        {
+          "id": "d",
+          "text": "MHC分子(B细胞)——CD4(活化的T细胞)"
+        },
+        {
+          "id": "e",
+          "text": "CD80(B细胞)——CD28(T细胞)"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "细胞活化需要双信号：\n- 第一信号：BCR识别抗原，通过Igα/Igβ向胞内传递信号。\n- 第二信号：B细胞表面的CD40分子，与活化T细胞表面的CD40L（CD154）结合，提供关键的共刺激信号，是B细胞完全活化的必要条件。\n- A/E选项是T细胞活化的第二信号（CD28与B7/CD80/CD86结合），不是B细胞的第二信号。"
+    },
+    {
+      "id": "q-micro-0267",
+      "knowledgePointId": "kp-micro-0172",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列属于外周免疫器官的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "肝脏"
+        },
+        {
+          "id": "b",
+          "text": "皮肤"
+        },
+        {
+          "id": "c",
+          "text": "胸腺"
+        },
+        {
+          "id": "d",
+          "text": "骨髓"
+        },
+        {
+          "id": "e",
+          "text": "淋巴结"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "周免疫器官是免疫细胞定居、发生免疫应答的场所，包括淋巴结、脾脏、黏膜相关淋巴组织（MALT）。\n- A/B：不属于免疫器官。\n- C/D：胸腺、骨髓属于中枢免疫器官，是免疫细胞发育、分化、成熟的场所。"
+    },
+    {
+      "id": "q-micro-0268",
+      "knowledgePointId": "kp-micro-0169",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "决定抗原特异性的是",
+      "options": [
+        {
+          "id": "a",
+          "text": "抗原分子结构的复杂性"
+        },
+        {
+          "id": "b",
+          "text": "抗原分子的特殊化学基团"
+        },
+        {
+          "id": "c",
+          "text": "抗原相对分子质量的大小"
+        },
+        {
+          "id": "d",
+          "text": "抗原的物理状态"
+        },
+        {
+          "id": "e",
+          "text": "抗原的种类"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "定抗原特异性的是抗原表位（抗原决定簇），即抗原分子中能被TCR/BCR或抗体特异性识别的特殊化学基团。\n- A/C/D/E：主要影响抗原的免疫原性强弱，而非特异性。"
+    },
+    {
+      "id": "q-micro-0269",
+      "knowledgePointId": "kp-micro-0173",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "下列APC中，抗原提呈能力最强的细胞是",
+      "options": [
+        {
+          "id": "a",
+          "text": "Mφ"
+        },
+        {
+          "id": "b",
+          "text": "T细胞"
+        },
+        {
+          "id": "c",
+          "text": "DC"
+        },
+        {
+          "id": "d",
+          "text": "B细胞"
+        },
+        {
+          "id": "e",
+          "text": "中性粒细胞"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "职抗原提呈细胞（APC）包括树突状细胞（DC）、巨噬细胞（Mφ）和B细胞，其中DC的抗原提呈能力最强，它是唯一能有效激活初始T细胞、启动适应性免疫应答的APC。\n- A/D：提呈能力弱于DC。\n- B/E：不属于专职APC。"
+    },
+    {
+      "id": "q-micro-0270",
+      "knowledgePointId": "kp-micro-0172",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "哺乳动物T细胞发育成熟的场所为()",
+      "options": [
+        {
+          "id": "a",
+          "text": "脾"
+        },
+        {
+          "id": "b",
+          "text": "肝"
+        },
+        {
+          "id": "c",
+          "text": "淋巴结"
+        },
+        {
+          "id": "d",
+          "text": "胸腺"
+        },
+        {
+          "id": "e",
+          "text": "骨髓"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "乳动物T细胞发育成熟的场所是胸腺，T细胞在胸腺中经历阳性选择和阴性选择，最终发育为成熟的功能性T细胞。\n- A/C：脾、淋巴结是外周免疫器官，是免疫细胞定居和发生免疫应答的场所。\n- E：骨髓是B细胞发育成熟的场所。"
+    },
+    {
+      "id": "q-micro-0271",
+      "knowledgePointId": "kp-micro-0169",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "固有免疫细胞识别抗原与T、B细胞不同之处在于____",
+      "options": [
+        {
+          "id": "a",
+          "text": "固有免疫细胞识别抗原的“共性”，而T、B细胞识别抗原的“个性”"
+        },
+        {
+          "id": "b",
+          "text": "固有免疫细胞识别构象表位，T、B细胞识别顺序表位"
+        },
+        {
+          "id": "c",
+          "text": "固有免疫细胞无需识别抗原"
+        },
+        {
+          "id": "d",
+          "text": "固有免疫细胞识别抗原无需抗原提呈，T、B细胞识别抗原需要抗原提呈"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "固有免疫细胞通过模式识别受体（PRR）识别病原体共有的、高度保守的病原相关分子模式（PAMPs），识别的是抗原的“共性”。\n- T、B细胞通过特异性抗原受体（TCR/BCR）识别抗原表位，具有高度特异性，识别的是抗原的“个性”。\n- B：固有免疫细胞不区分构象表位和顺序表位，这是B细胞的特点。\n- C：固有免疫细胞需要识别抗原。\n- D：部分固有免疫细胞（如巨噬细胞）也能进行抗原提呈，且不是所有T细胞识别抗原都需要提呈（如γδT细胞）。"
+    },
+    {
+      "id": "q-micro-0272",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "免疫球蛋白的Fab片段的功能()",
+      "options": [
+        {
+          "id": "a",
+          "text": "激活补体"
+        },
+        {
+          "id": "b",
+          "text": "透过胎盘"
+        },
+        {
+          "id": "c",
+          "text": "结合细胞"
+        },
+        {
+          "id": "d",
+          "text": "诱导超敏反应"
+        },
+        {
+          "id": "e",
+          "text": "结合抗原"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "疫球蛋白经木瓜蛋白酶水解后，可得到两个Fab片段和一个Fc片段：\n- Fab片段：含有完整的轻链和重链可变区，核心功能是特异性结合抗原，发挥中和、阻断等作用。\n- Fc片段：负责激活补体、结合细胞（如巨噬细胞、NK细胞）、介导穿过胎盘、诱导超敏反应等功能，因此A、B、C、D选项均为Fc片段的功能。"
+    },
+    {
+      "id": "q-micro-0273",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "以下病原体最易发生变异而在人群中造成大流行的病原微生物是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "肺炎支原体"
+        },
+        {
+          "id": "b",
+          "text": "伤寒杆菌"
+        },
+        {
+          "id": "c",
+          "text": "乙型肝炎病毒"
+        },
+        {
+          "id": "d",
+          "text": "流感病毒"
+        },
+        {
+          "id": "e",
+          "text": "钩端螺旋体"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "型流感病毒的表面抗原（HA、NA）极易发生抗原漂移或抗原转换，产生新的变异株。当人群对新变异株缺乏免疫力时，易引发大规模甚至世界性流行。其他选项病原体变异率低，通常不会造成世界性大流行。"
+    },
+    {
+      "id": "q-micro-0274",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "引起人类梅毒的病原体是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "螺旋菌"
+        },
+        {
+          "id": "b",
+          "text": "伯氏疏螺旋体"
+        },
+        {
+          "id": "c",
+          "text": "苍白密螺旋体"
+        },
+        {
+          "id": "d",
+          "text": "雅司螺旋体"
+        },
+        {
+          "id": "e",
+          "text": "钩端螺旋体"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "毒的病原体是苍白密螺旋体苍白亚种（梅毒螺旋体）。伯氏疏螺旋体引起莱姆病，钩端螺旋体引起钩端螺旋体病，雅司螺旋体引起雅司病，均与梅毒无关。"
+    },
+    {
+      "id": "q-micro-0275",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "流感发生世界性流行的原因一般是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "甲型流感病毒发生了抗原转换"
+        },
+        {
+          "id": "b",
+          "text": "甲型流感病毒发生了抗原漂移"
+        },
+        {
+          "id": "c",
+          "text": "丙型流感病毒产生了新亚型"
+        },
+        {
+          "id": "d",
+          "text": "甲型流感病毒的毒性增强"
+        },
+        {
+          "id": "e",
+          "text": "乙型流感病毒产生了新亚型"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "型流感病毒发生抗原转换时，会产生新的病毒亚型，人群对新亚型普遍缺乏免疫力，易引发世界性大流行。抗原漂移仅引起局部小流行，乙型、丙型流感病毒极少发生大变异，不会引发世界性流行。"
+    },
+    {
+      "id": "q-micro-0276",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "脊髓灰质炎病毒的感染方式是经()",
+      "options": [
+        {
+          "id": "a",
+          "text": "输入污染血液"
+        },
+        {
+          "id": "b",
+          "text": "媒介昆虫叮咬"
+        },
+        {
+          "id": "c",
+          "text": "直接接触"
+        },
+        {
+          "id": "d",
+          "text": "呼吸道"
+        },
+        {
+          "id": "e",
+          "text": "消化道"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "髓灰质炎病毒属于肠道病毒，主要通过粪-口途径（消化道）传播，病毒随患者粪便排出，污染食物、水源后经口进入人体，在肠道内复制并侵入中枢神经系统。"
+    },
+    {
+      "id": "q-micro-0277",
+      "knowledgePointId": "kp-micro-0165",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "多细胞真菌结构包括（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "孢子+菌丝"
+        },
+        {
+          "id": "b",
+          "text": "包膜+刺突"
+        },
+        {
+          "id": "c",
+          "text": "假菌丝+孢子"
+        },
+        {
+          "id": "d",
+          "text": "外膜+原生质体"
+        },
+        {
+          "id": "e",
+          "text": "纤毛+孢子"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "细胞真菌的基本结构包括菌丝（营养体，负责吸收营养）和孢子（繁殖体，分为无性/有性孢子）。包膜+刺突是病毒结构，假菌丝+孢子是单细胞酵母菌的特征，外膜+原生质体是革兰阴性菌的结构。"
+    },
+    {
+      "id": "q-micro-0278",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "和女性宫颈癌的发生密切相关的是()",
+      "options": [
+        {
+          "id": "a",
+          "text": "HPV"
+        },
+        {
+          "id": "b",
+          "text": "HAV"
+        },
+        {
+          "id": "c",
+          "text": "HCV"
+        },
+        {
+          "id": "d",
+          "text": "汉坦病毒"
+        },
+        {
+          "id": "e",
+          "text": "HIV"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "PV（人乳头瘤病毒），尤其是高危型（如HPV16、18型），是女性宫颈癌的主要致病因素。HAV引起甲肝，HCV引起丙肝，汉坦病毒引起肾综合征出血热，HIV引起艾滋病。"
+    },
+    {
+      "id": "q-micro-0279",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "以下不属于病毒结构的是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "刺突"
+        },
+        {
+          "id": "b",
+          "text": "包膜"
+        },
+        {
+          "id": "c",
+          "text": "衣壳"
+        },
+        {
+          "id": "d",
+          "text": "孢子"
+        },
+        {
+          "id": "e",
+          "text": "核心"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "毒的基本结构为核心（核酸）+衣壳，部分病毒有包膜和刺突。孢子是真菌的繁殖结构，不属于病毒的组成部分。"
+    },
+    {
+      "id": "q-micro-0280",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "通常情况下繁殖最慢的细菌是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "葡萄球菌"
+        },
+        {
+          "id": "b",
+          "text": "痢疾杆菌"
+        },
+        {
+          "id": "c",
+          "text": "结核杆菌"
+        },
+        {
+          "id": "d",
+          "text": "链球菌"
+        },
+        {
+          "id": "e",
+          "text": "伤寒杆菌"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "核杆菌的代时（繁殖一代所需时间）长达18~24小时，是常见致病菌中繁殖速度最慢的。其他细菌代时仅为20~30分钟，繁殖速度远快于结核杆菌。"
+    },
+    {
+      "id": "q-micro-0281",
+      "knowledgePointId": "kp-micro-0163",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "男性尿道脓性分泌物，于白细胞中检出成对存在的蚕豆形球菌，该种病原体很可能是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "HIV"
+        },
+        {
+          "id": "b",
+          "text": "梅毒螺旋体"
+        },
+        {
+          "id": "c",
+          "text": "葡萄球菌"
+        },
+        {
+          "id": "d",
+          "text": "大肠杆菌"
+        },
+        {
+          "id": "e",
+          "text": "淋球菌"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "病奈瑟菌（淋球菌）为革兰阴性双球菌，常成对排列形似蚕豆，可引起男性尿道炎，表现为尿道脓性分泌物。HIV是病毒，梅毒螺旋体为螺旋状，葡萄球菌呈葡萄串状排列，大肠杆菌为杆菌。"
+    },
+    {
+      "id": "q-micro-0282",
+      "knowledgePointId": "kp-micro-0183",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "HIV与感染细胞膜上CD4分子结合的病毒刺突是",
+      "options": [
+        {
+          "id": "a",
+          "text": "gp120"
+        },
+        {
+          "id": "b",
+          "text": "gp41"
+        },
+        {
+          "id": "c",
+          "text": "p24"
+        },
+        {
+          "id": "d",
+          "text": "p17"
+        },
+        {
+          "id": "e",
+          "text": "MHC-II"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "IV的包膜上有两种关键糖蛋白：gp120（表面刺突）负责识别并结合宿主细胞表面的CD4分子；gp41（跨膜蛋白）介导病毒包膜与细胞膜融合。p24是衣壳蛋白，p17是基质蛋白，MHC-II是宿主细胞表面分子。"
+    },
+    {
+      "id": "q-micro-0283",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "细菌性痢疾的病原体是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "伤寒杆菌"
+        },
+        {
+          "id": "b",
+          "text": "大肠杆菌"
+        },
+        {
+          "id": "c",
+          "text": "葡萄球菌"
+        },
+        {
+          "id": "d",
+          "text": "沙门氏菌"
+        },
+        {
+          "id": "e",
+          "text": "志贺氏菌"
+        }
+      ],
+      "correctAnswers": [
+        "e"
+      ],
+      "explanation": "菌性痢疾的病原体是志贺氏菌（痢疾杆菌），可引起结肠黏膜炎症、溃疡，导致腹痛、腹泻、黏液脓血便。伤寒杆菌引起伤寒，沙门氏菌多引起食物中毒，大肠杆菌多为肠道正常菌群，葡萄球菌引起化脓性感染。"
+    },
+    {
+      "id": "q-micro-0284",
+      "knowledgePointId": "kp-micro-0148",
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "以下不属于结核分枝杆菌致病物质的是（）",
+      "options": [
+        {
+          "id": "a",
+          "text": "磷脂"
+        },
+        {
+          "id": "b",
+          "text": "腊质D"
+        },
+        {
+          "id": "c",
+          "text": "溶血毒素"
+        },
+        {
+          "id": "d",
+          "text": "蛋白质"
+        },
+        {
+          "id": "e",
+          "text": "硫酸脑苷脂"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "核分枝杆菌不产生外毒素、内毒素或溶血毒素，其致病性主要与菌体细胞壁成分相关：磷脂促进结核结节形成，腊质D增强免疫原性，硫酸脑苷脂抗吞噬，蛋白质诱发迟发型超敏反应。溶血毒素是葡萄球菌、链球菌等的产物。"
+    },
+    {
+      "id": "q-micro-0285",
+      "knowledgePointId": null,
+      "subjectId": "micro",
+      "type": "single_choice",
+      "stem": "HIV依靠（）与易感细胞表面的CD4分子结合，完成病毒的吸附",
+      "options": [
+        {
+          "id": "a",
+          "text": "gp120"
+        },
+        {
+          "id": "b",
+          "text": "p17"
+        },
+        {
+          "id": "c",
+          "text": "CCR5"
+        },
+        {
+          "id": "d",
+          "text": "gp24"
+        },
+        {
+          "id": "e",
+          "text": "gp41"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "IV依靠包膜表面的gp120与CD4分子结合完成吸附，随后gp41介导膜融合。p17是基质蛋白，CCR5是宿主细胞的辅助受体，gp24不是HIV的结构蛋白。"
+    }
+  ]
+}

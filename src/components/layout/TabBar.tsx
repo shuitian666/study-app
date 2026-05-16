@@ -20,6 +20,7 @@ import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { UILAYOUT_CONFIGS } from '@/types';
 import type { PageName } from '@/types';
+import { getAdaptiveNav, isDarkTheme } from '@/utils/adaptiveTheme';
 
 interface TabItem {
   key: PageName;
@@ -35,7 +36,7 @@ const tabs: TabItem[] = [
   { key: 'profile', label: '我的', icon: User },
 ];
 
-const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'review-session', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
+const hiddenPages: PageName[] = ['login', 'quiz-session', 'quiz-result', 'add-knowledge', 'ai-chat', 'inventory', 'mail', 'import-knowledge'];
 
 interface TabBarProps {
   placement?: 'viewport' | 'contained';
@@ -47,6 +48,8 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
 
   const uiStyle = theme.uiStyle || 'playful';
   const layoutConfig = UILAYOUT_CONFIGS[uiStyle];
+  const navStyle = getAdaptiveNav(theme);
+  const dark = isDarkTheme(theme);
 
   if (hiddenPages.includes(userState.currentPage)) {
     return null;
@@ -59,7 +62,7 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
     // Playful contained: match viewport TabBar style (flat, same height)
     if (uiStyle !== 'scholar') {
       return (
-        <nav className="h-[56px] w-full border-t bg-white/95 backdrop-blur-xl" style={{ borderColor: theme.border }}>
+        <nav className="h-[56px] w-full border-t backdrop-blur-xl" style={navStyle}>
           <div className="flex h-full items-center justify-around">
             {tabs.map(tab => {
               const isActive = userState.currentPage === tab.key;
@@ -92,9 +95,7 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
         className="h-[78px] w-full border-t backdrop-blur-xl"
         style={{
           borderRadius: '1.75rem 1.75rem 0 0',
-          backgroundColor: 'rgba(255,255,255,0.85)',
-          borderColor: 'rgba(0,0,0,0.06)',
-          boxShadow: '0 -8px 24px -4px rgba(15,23,42,0.06)',
+          ...navStyle,
         }}
       >
         <div className="flex h-full items-center justify-around px-4 pb-3 pt-2">
@@ -114,14 +115,14 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
                 ) : (
                   <Icon
                     size={22}
-                    style={{ color: isActive ? activeColor : '#64748b' }}
+                    style={{ color: isActive ? activeColor : theme.textMuted }}
                     strokeWidth={isActive ? 2.5 : 1.9}
                   />
                 )}
                 <span
                   className="text-[11px] leading-tight"
                   style={{
-                    color: isActive ? activeColor : '#64748b',
+                    color: isActive ? activeColor : theme.textMuted,
                     fontWeight: isActive ? 700 : 500,
                   }}
                 >
@@ -142,9 +143,7 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
         className="fixed bottom-0 left-1/2 z-50 w-[min(100vw,430px)] -translate-x-1/2 h-[78px] border-t backdrop-blur-xl"
         style={{
           borderRadius: '1.75rem 1.75rem 0 0',
-          backgroundColor: 'rgba(255,255,255,0.85)',
-          borderColor: 'rgba(0,0,0,0.06)',
-          boxShadow: '0 -8px 24px -4px rgba(15,23,42,0.06)',
+          ...navStyle,
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
@@ -161,9 +160,9 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
                 {isActive ? (
                   <div
                     className="px-3 py-1.5 rounded-full"
-                    style={{ backgroundColor: layoutConfig.tabBarActiveBg || '#dee0ff' }}
+                    style={{ backgroundColor: dark ? theme.primaryFixed || 'rgba(37,74,116,0.72)' : layoutConfig.tabBarActiveBg || '#dee0ff' }}
                   >
-                    <Icon size={20} style={{ color: layoutConfig.tabBarActiveColor || '#24389c' }} strokeWidth={2.5} />
+                    <Icon size={20} style={{ color: dark ? theme.primaryLight || theme.primary : layoutConfig.tabBarActiveColor || '#24389c' }} strokeWidth={2.5} />
                   </div>
                 ) : (
                   <Icon size={22} style={{ color: theme.onSurfaceVariant || '#454652' }} strokeWidth={1.8} />
@@ -171,7 +170,7 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
                 <span
                   className="text-[11px] leading-tight"
                   style={{
-                    color: isActive ? layoutConfig.tabBarActiveColor || '#24389c' : theme.onSurfaceVariant || '#454652',
+                    color: isActive ? (dark ? theme.primaryLight || theme.primary : layoutConfig.tabBarActiveColor || '#24389c') : theme.textMuted,
                     fontWeight: isActive ? 700 : 500,
                   }}
                 >
@@ -188,7 +187,7 @@ export default function TabBar({ placement = 'viewport' }: TabBarProps) {
   // ===== Playful 风格（默认）=====
   return (
     <div className="fixed bottom-0 left-1/2 z-50 w-[min(100vw,430px)] -translate-x-1/2 safe-bottom">
-      <div className="border-t bg-white/95 backdrop-blur-xl" style={{ borderColor: theme.border }}>
+      <div className="border-t backdrop-blur-xl" style={navStyle}>
         <div className="flex items-center justify-around h-[56px]">
           {tabs.map(tab => {
             const isActive = userState.currentPage === tab.key;

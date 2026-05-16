@@ -1,0 +1,1103 @@
+{
+  "version": "1.0",
+  "exportTime": "2026-05-13T13:21:11.098Z",
+  "subjectId": "analytical",
+  "subjectName": "分析化学",
+  "total": 27,
+  "chapters": [
+    {
+      "subjectId": "analytical",
+      "order": 1,
+      "id": "ana-c1",
+      "name": "定量分析概论"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 2,
+      "id": "ana-c2",
+      "name": "误差与分析数据处理"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 3,
+      "id": "ana-c3",
+      "name": "酸碱滴定法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 4,
+      "id": "ana-c4",
+      "name": "配位滴定法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 5,
+      "id": "ana-c5",
+      "name": "氧化还原滴定法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 6,
+      "id": "ana-c6",
+      "name": "沉淀滴定法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 7,
+      "id": "ana-c7",
+      "name": "重量分析法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 8,
+      "id": "ana-c8",
+      "name": "紫外-可见分光光度法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 9,
+      "id": "ana-c9",
+      "name": "红外光谱分析法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 10,
+      "id": "ana-c10",
+      "name": "原子吸收光谱法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 11,
+      "id": "ana-c11",
+      "name": "气相色谱法"
+    },
+    {
+      "subjectId": "analytical",
+      "order": 12,
+      "id": "ana-c12",
+      "name": "电位分析法"
+    }
+  ],
+  "knowledgePoints": [
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-001",
+      "subjectId": "analytical",
+      "chapterId": "ana-c1",
+      "name": "分析化学的定义与任务",
+      "explanation": "分析化学是研究物质的组成、含量、结构和形态等化学信息的分析方法及理论学科。按任务分为定性分析和定量分析；按方法分为化学分析和仪器分析；按试样量分为常量、半微量和微量分析。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-002",
+      "subjectId": "analytical",
+      "chapterId": "ana-c2",
+      "name": "有效数字的意义与修约",
+      "explanation": "有效数字是测量中实际能测到的有意义的数字，反映了测量的准确程度。修约规则为四舍六入五成双：被修约数等于5时，若5后有数则入，若5后无数则看5前奇偶，奇数入偶数舍。运算中加减法结果的小数位数取决于运算中小数位数最少者；乘除法结果的相对误差应与测量中相对误差最大者相适应。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-003",
+      "subjectId": "analytical",
+      "chapterId": "ana-c2",
+      "name": "系统误差与随机误差",
+      "explanation": "系统误差是由某些固定因素引起的，重复测定中大小方向不变，包括仪器误差（如天平未校准）、试剂误差（如基准物纯度不足）和方法误差（如副反应）。随机误差是由无法控制的因素引起，大小方向不定，符合正态分布，可通过增加测定次数减小。准确度指测量值与真实值的接近程度，精密度指多次平行测定结果相互接近的程度，精密度高是准确度高的必要条件。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-004",
+      "subjectId": "analytical",
+      "chapterId": "ana-c2",
+      "name": "准确度与精密度的关系",
+      "explanation": "精密度是保证准确度的先决条件，精密度高不一定准确度高，但精密度低则准确度不可能高。系统误差影响准确度，随机误差影响精密度。在消除系统误差后，精密度好则准确度也高。评价方法：绝对误差E=x-μ；相对误差Er=E/μ×100%；标准偏差s=√(Σ(xi-x̄)^2/(n-1))。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-005",
+      "subjectId": "analytical",
+      "chapterId": "ana-c3",
+      "name": "酸碱滴定的基本原理",
+      "explanation": "酸碱滴定法是以质子转移反应为基础的滴定方法，反应实质是H+与OH-结合生成水。以强碱滴定弱酸为例，滴定曲线在化学计量点附近存在突跃，突跃大小与弱酸的Ka和浓度有关。化学计量点pH大于7，滴定产物是弱碱使溶液呈碱性。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-006",
+      "subjectId": "analytical",
+      "chapterId": "ana-c3",
+      "name": "弱酸准确滴定的条件",
+      "explanation": "一元弱酸HA能被强碱准确滴定的条件是c·Ka≥10^-8（25°C时）。以此计算，若c=0.1 mol/L，则要求Ka≥10^-7。若c·Ka<10^-8，滴定突跃太小，指示剂变色不清晰，无法准确判断终点。对于多元酸，需满足c·Ka1≥10^-8才能分步滴定。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-007",
+      "subjectId": "analytical",
+      "chapterId": "ana-c3",
+      "name": "缓冲溶液的作用原理",
+      "explanation": "缓冲溶液能抵抗外来少量酸碱的影响，保持pH相对稳定。缓冲原理：在溶液中存在共轭酸碱对，当加入少量酸时，共轭碱与H+结合；加入少量碱时，共轭酸与OH-反应。Henderson-Hasselbalch方程：pH=pKa+lg([A-]/[HA])。缓冲容量与缓冲剂总浓度和缓冲比有关，缓冲比为1时缓冲容量最大。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-008",
+      "subjectId": "analytical",
+      "chapterId": "ana-c4",
+      "name": "EDTA与金属离子的配位特性",
+      "explanation": "EDTA（乙二胺四乙酸）是六齿配体，与金属离子形成1:1的螯合物，具有多个五元环结构因此非常稳定。配位反应的稳定常数Kf越大反应越完全。条件稳定常数K'f=Kf·αY(H)，其中αY(H)是EDTA的酸效应系数，受溶液酸度影响。酸度越高，αY(H)越小，K'f越小，配位反应越不完全。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-009",
+      "subjectId": "analytical",
+      "chapterId": "ana-c4",
+      "name": "金属离子指示剂的作用原理",
+      "explanation": "金属离子指示剂（如铬黑T）是一种有机染料，能与金属离子形成有色配合物（MIn）。在化学计量点前，金属离子与指示剂形成有色配合物In的颜色被遮盖；化学计量点后，过量EDTA夺取MIn中的金属离子，释放出游离指示剂，显示自身颜色（铬黑T游离时呈蓝色，配合时呈酒红色）。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-010",
+      "subjectId": "analytical",
+      "chapterId": "ana-c4",
+      "name": "EDTA准确滴定单一金属离子的条件",
+      "explanation": "单一金属离子M能被EDTA准确滴定的条件是lgc·K'f≥6（当c≈0.01 mol/L时）。这意味着条件稳定常数足够大，反应足够完全。在混合离子溶液中，若两种金属离子ΔlgK≥5，可通过控制溶液酸度进行分别滴定，先滴定K较大的离子。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-011",
+      "subjectId": "analytical",
+      "chapterId": "ana-c5",
+      "name": "高锰酸钾法的原理与特点",
+      "explanation": "高锰酸钾是一种强氧化剂，其氧化能力随介质不同而不同。酸性条件下MnO4^-还原为Mn2+，紫红色褪去可自身指示终点，无需外加指示剂。碱性条件下氧化能力更强，可氧化有机物。KMnO4法适用于测定H2O2、草酸钠等还原性物质。反应为2MnO4^-+5H2O2+6H+→2Mn2++5O2+8H2O。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-012",
+      "subjectId": "analytical",
+      "chapterId": "ana-c5",
+      "name": "重铬酸钾法的特点与应用",
+      "explanation": "重铬酸钾K2Cr2O7是中等强度氧化剂，在酸性条件下氧化能力较强。其优点是纯度高（可达基准物质级别）、稳定、不易吸水、可直接称量配制标准溶液。常用于测定铁矿石中铁的含量，反应中Cr2O7^2-被还原为Cr^3+，溶液由橙色变为绿色，可用二苯胺磺酸钠作指示剂。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-013",
+      "subjectId": "analytical",
+      "chapterId": "ana-c5",
+      "name": "碘量法的分类与终点判断",
+      "explanation": "碘量法分为直接碘量法（用I2滴定还原性物质）和间接碘量法（先与过量I-反应生成I2，再用Na2S2O3滴定）。淀粉指示剂与I2形成蓝色吸附化合物，是碘量法的专属指示剂。间接碘量法中淀粉应在接近终点时加入，过早加入会与I2形成稳定配合物导致终点迟钝。Na2S2O3标准溶液需新配制并标定。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-014",
+      "subjectId": "analytical",
+      "chapterId": "ana-c6",
+      "name": "莫尔法（铬酸钾指示剂法）",
+      "explanation": "莫尔法以K2CrO4为指示剂，用AgNO3标准溶液滴定Cl-。原理是分步沉淀：Ag+首先与Cl-生成白色AgCl沉淀，当Cl-被完全沉淀后，过量Ag+与CrO4^2-生成砖红色Ag2CrO4沉淀指示终点。滴定条件须控制pH=6.5-10.5：酸度过高则CrO4^2-质子化无法生成Ag2CrO4；pH过高则Ag+水解生成Ag2O沉淀。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-015",
+      "subjectId": "analytical",
+      "chapterId": "ana-c6",
+      "name": "佛尔哈德法（铁铵矾指示剂法）",
+      "explanation": "佛尔哈德法分为直接法和返滴定法。直接法以铁铵矾为指示剂，用NH4SCN标准溶液滴定Ag+，终点生成血红色[Fe(SCN)]^2+。返滴定法用于测定卤素离子：先加过量AgNO3与X-反应，再用NH4SCN回滴剩余Ag+，Fe^3+作指示剂。测定Cl-时需加硝基苯覆盖AgCl沉淀，防止其转化为AgSCN导致终点误差。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-016",
+      "subjectId": "analytical",
+      "chapterId": "ana-c7",
+      "name": "重量分析法对沉淀形式的要求",
+      "explanation": "重量分析法通过称量物质的质量确定组分含量，结果由分析天平直接称量获得。重量分析对沉淀形式的要求：溶解度小（确保沉淀完全）；纯净不易吸附杂质；易于过滤和洗涤；化学组成稳定；摩尔质量大（可减小称量误差）。晶形沉淀如BaSO4和AgCl无定形沉淀如Fe(OH)3均可用作重量分析。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-017",
+      "subjectId": "analytical",
+      "chapterId": "ana-c7",
+      "name": "晶形沉淀的沉淀条件",
+      "explanation": "晶形沉淀的条件是稀、热、慢、搅、陈化。稀：在稀溶液中进行，降低相对过饱和度减少均相成核；热：加热提高沉淀溶解度同时降低相对过饱和度；慢：滴加试剂速度慢并搅拌，防止局部过饱和；搅：边滴加边搅拌使浓度均匀；陈化：沉淀后放置，小晶体溶解大晶体长大，减少吸附和包藏。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-018",
+      "subjectId": "analytical",
+      "chapterId": "ana-c8",
+      "name": "Lambert-Beer定律",
+      "explanation": "当一束平行单色光通过均匀的有色溶液时，吸光度A与溶液浓度c和液层厚度b成正比：A=ε·b·c。ε为摩尔吸光系数，是物质的特征常数，与入射光波长和物质本性有关，与浓度和光程长度无关。吸光度与透光率T的关系为T=10^(-A)。定量分析中应使用吸光度而非透光率进行测定，因A与c呈线性关系。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-019",
+      "subjectId": "analytical",
+      "chapterId": "ana-c8",
+      "name": "显色反应的条件控制",
+      "explanation": "显色反应须满足灵敏度高（ε大）、选择性好（只与待测组分反应）、生成的有色化合物组成恒定且化学性质稳定。影响显色反应的因素包括：显色剂用量（需过量但不过多）；酸度（影响显色剂存在型和金属离子状态）；温度和放置时间（影响反应完全程度和配合物稳定性）。最佳条件须通过实验确定。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-020",
+      "subjectId": "analytical",
+      "chapterId": "ana-c9",
+      "name": "红外光谱的分子振动类型",
+      "explanation": "红外光谱源于分子振动-转动能级跃迁。分子振动分为伸缩振动（沿键轴方向，ν）和弯曲振动（也称变形振动，δ）。伸缩振动分为对称伸缩（νs）和反对称伸缩（νas），吸收频率较高；弯曲振动包括面内弯曲和平面外弯曲，吸收频率较低。一般ν>νs>δ，ν(C=O)>ν(C=C)>ν(C-O)。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-021",
+      "subjectId": "analytical",
+      "chapterId": "ana-c9",
+      "name": "主要官能团的特征吸收峰",
+      "explanation": "常见官能团的红外特征吸收峰：O-H伸缩振动3200-3600cm^-1（宽峰，醇酚类）；N-H伸缩振动3300-3500cm^-1；C=O伸缩振动1700-1750cm^-1（强峰，脂肪酮1750，芳香酮1680）；C=C伸缩振动1600-1680cm^-1；C-O伸缩振动1000-1300cm^-1（强峰）；C-H伸缩振动2800-3000cm^-1。解析红外光谱时应先确认官能团区（4000-1300cm^-1）再分析指纹区（1300-400cm^-1）。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-022",
+      "subjectId": "analytical",
+      "chapterId": "ana-c10",
+      "name": "原子吸收光谱的原子化过程",
+      "explanation": "原子吸收光谱法（AAS）基于气态基态原子对特征谱线的吸收进行定量分析。样品原子化方式有两种：火焰原子化法使用空气-乙炔（测30余种元素）或笑气-乙炔火焰（测高温难熔元素）；石墨炉原子化法使用电阻加热石墨管，灵敏度比火焰法高2-3个数量级但精密度略差。原子化过程包括溶剂蒸发、固体熔融、化合物解离和原子化。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-023",
+      "subjectId": "analytical",
+      "chapterId": "ana-c10",
+      "name": "原子吸收光谱的测定条件选择",
+      "explanation": "灯电流影响灵敏度和稳定性：电流过小发射强度不足，电流过大导致谱线变宽和自吸降低灵敏度，应选择最大电流的1/2至2/3处。火焰类型影响原子化效率：笑气-乙炔火焰温度高且富燃，用于Cr、Mo等难原子化元素；空气-乙炔火焰用于多数元素。燃烧比影响火焰氧化还原性：贫燃焰利于碱金属，富燃焰利于易形成氧化物的元素。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-024",
+      "subjectId": "analytical",
+      "chapterId": "ana-c11",
+      "name": "气相色谱的塔板理论与速率理论",
+      "explanation": "塔板理论假设分配平衡，用理论塔板数N评价柱效：N=16L/Wb^2或N=5.54L/Wh^2，L为柱长，Wb为基线宽度，Wh为半峰宽。速率理论方程H=A+B/u+Cu，A为涡流扩散项（与填料粒度均匀性有关），B/u为纵向扩散项（与载气流速成反比），Cu为传质阻力项（与流速成正比）。H越小柱效越高。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-025",
+      "subjectId": "analytical",
+      "chapterId": "ana-c11",
+      "name": "色谱分离度及其影响因素",
+      "explanation": "分离度R=2(tR2-tR1)/(W1+W2)，R≥1.5时两峰基本完全分离。影响分离的因素：柱温（升高柱温分析时间缩短但分离度下降）；载气流速存在最佳值（使H最小）；固定相性质（选择性和分配比）；进样量和进样方式（进样量过大导致柱超负荷）。分离度与柱效、选择性和保留因子均相关。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-026",
+      "subjectId": "analytical",
+      "chapterId": "ana-c12",
+      "name": "参比电极与指示电极",
+      "explanation": "参比电极电位已知且稳定，不随待测离子活度变化。常用参比电极有饱和甘汞电极（SCE，25°C时E=0.242V）和Ag/AgCl电极（E=0.222V）。指示电极电位随待测离子活度变化，离子选择电极是最常用的指示电极，其电位符合Nernst方程：E=E0+RTlnai/(zF)，在25°C时E=E0+0.059lgai/|z|。"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-13T13:21:11.098Z",
+      "source": "import",
+      "id": "ana-kp-027",
+      "subjectId": "analytical",
+      "chapterId": "ana-c12",
+      "name": "pH玻璃电极的测定原理",
+      "explanation": "pH玻璃电极测定溶液pH时，以玻璃电极为指示电极、饱和甘汞电极为参比组成电池：玻璃电极|待测溶液||SCE。测得电动势E=K+0.059pH（25°C），K包含玻璃膜不对称电位和液接电位。由于K值每次不同，测量前必须用标准缓冲溶液定位校准。玻璃电极广泛用于pH测定，其响应快、测定范围广但不适用于强酸强碱。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "ana-q-001",
+      "knowledgePointId": "ana-kp-002",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "用分析天平称量试样，若称量误差为±0.1mg，一次称量需读两次读数，则称取0.5000g试样时的最大相对误差为多少？",
+      "options": [
+        {
+          "id": "a",
+          "text": "±0.02%"
+        },
+        {
+          "id": "b",
+          "text": "±0.04%"
+        },
+        {
+          "id": "c",
+          "text": "±0.01%"
+        },
+        {
+          "id": "d",
+          "text": "±0.08%"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "分析天平的称量误差为±0.1mg（即±0.0001g），这是单次读数的误差。一次完整称量需要两次读数（零点调校和试样称量），最大绝对误差为±0.0002g。若称样量为0.5000g，则最大相对误差=±0.0002/0.5000×100%=±0.04%。答案为B。"
+    },
+    {
+      "id": "ana-q-002",
+      "knowledgePointId": "ana-kp-003",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "下列关于系统误差和随机误差的说法，正确的是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "系统误差可由增加测定次数减小"
+        },
+        {
+          "id": "b",
+          "text": "随机误差服从正态分布，可通过多次测定减小"
+        },
+        {
+          "id": "c",
+          "text": "随机误差的大小和方向是固定的"
+        },
+        {
+          "id": "d",
+          "text": "系统误差不影响精密度，只影响准确度"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "随机误差是由无法控制的偶然因素引起的，服从正态分布，大小数值的出现概率对称，可以通过增加测定次数取平均值的方法减小。A错误，因为系统误差不能通过增加次数减小，只有随机误差可以；C错误，随机误差的大小和方向不定，不是固定的；D错误，系统误差影响准确度，但不影响精密度表述的是重复性。答案为B。"
+    },
+    {
+      "id": "ana-q-003",
+      "knowledgePointId": "ana-kp-004",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "某同学对同一试样进行5次平行测定，结果非常接近但都比真值偏高，则该同学的测定结果是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "精密度高但准确度低"
+        },
+        {
+          "id": "b",
+          "text": "精密度和准确度都高"
+        },
+        {
+          "id": "c",
+          "text": "精密度和准确度都低"
+        },
+        {
+          "id": "d",
+          "text": "准确度高但精密度低"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "测定值之间非常接近说明精密度高（重复性好）；但测定值都比真值偏高说明存在系统误差导致准确度低。这正体现了精密度高是准确度高的必要条件但不充分条件——精密度高只能说明随机误差小，但无法消除系统误差。该同学的结果属于精密度好但准确度差。答案为A。"
+    },
+    {
+      "id": "ana-q-004",
+      "knowledgePointId": "ana-kp-006",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "用NaOH滴定某一元弱酸HA，已知HA的Ka=1.0×10^-5，则此弱酸能被准确滴定的条件是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "c≥0.01 mol/L"
+        },
+        {
+          "id": "b",
+          "text": "c≥0.1 mol/L"
+        },
+        {
+          "id": "c",
+          "text": "c≥0.001 mol/L"
+        },
+        {
+          "id": "d",
+          "text": "任何浓度都可以"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "弱酸能被准确滴定的条件是c·Ka≥10^-8。已知Ka=1.0×10^-5，则c≥10^-8/10^-5=10^-3 mol/L=0.001 mol/L。但通常滴定分析中，为保证指示剂变色足够明显，要求c≥0.01 mol/L更为稳妥。若c=0.1 mol/L，c·Ka=10^-6，突跃明显；若c=0.001 mol/L，c·Ka=10^-8，处于临界状态。答案为B。"
+    },
+    {
+      "id": "ana-q-005",
+      "knowledgePointId": "ana-kp-007",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "NH3-NH4Cl缓冲体系的缓冲容量最大时，NH3与NH4+的浓度比应为？",
+      "options": [
+        {
+          "id": "a",
+          "text": "1:1"
+        },
+        {
+          "id": "b",
+          "text": "10:1"
+        },
+        {
+          "id": "c",
+          "text": "1:10"
+        },
+        {
+          "id": "d",
+          "text": "任意比都可以"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "缓冲容量取决于缓冲剂总浓度和缓冲比。缓冲比=[共轭碱]/[共轭酸]，当缓冲比=1即[NH3]/[NH4+]=1时，缓冲容量最大，此时pH=pKa=9.25。根据Henderson-Hasselbalch方程：pH=pKa+lg([NH3]/[NH4+])，当[NH3]=[NH4+]时，pH=pKa。缓冲比偏离1越远，缓冲容量越小。答案为A。"
+    },
+    {
+      "id": "ana-q-006",
+      "knowledgePointId": "ana-kp-008",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "EDTA与金属离子配位的特点之一是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "形成1:2的配合物"
+        },
+        {
+          "id": "b",
+          "text": "形成1:1的螯合物"
+        },
+        {
+          "id": "c",
+          "text": "形成2:1的配合物"
+        },
+        {
+          "id": "d",
+          "text": "配位比随金属离子不同而变化"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "EDTA（乙二胺四乙酸）分子中有6个可配位原子（4个羧基氧和2个氨基氮），与金属离子形成五个五元环的稳定螯合物。无论金属离子的电荷和半径如何，EDTA与金属离子的配位比总是1:1。这一特点使得滴定计算非常简便：消耗EDTA的摩尔数直接等于金属离子的摩尔数。答案为B。"
+    },
+    {
+      "id": "ana-q-007",
+      "knowledgePointId": "ana-kp-010",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "用EDTA滴定混合溶液中的Mg2+和Al3+（已知lgK_AlY=16.3，lgK_MgY=8.7），若要将两者分别滴定，关键条件是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "控制溶液温度"
+        },
+        {
+          "id": "b",
+          "text": "控制溶液酸度"
+        },
+        {
+          "id": "c",
+          "text": "加入掩蔽剂"
+        },
+        {
+          "id": "d",
+          "text": "使用荧光指示剂"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "Al3+和Mg2+与EDTA的稳定常数相差很大（ΔlgK=16.3-8.7=7.6>5），理论上可通过控制酸度进行分别滴定。不同金属离子EDTA配合物的稳定常数随酸度变化趋势不同，酸效应系数αY(H)也不同。在较低酸度下滴定Mg2+，Al3+的配合物几乎不解离（相当于不存在）；然后提高酸度再滴定Al3+。答案为B。当ΔlgK<5时则需使用掩蔽剂。"
+    },
+    {
+      "id": "ana-q-008",
+      "knowledgePointId": "ana-kp-011",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "KMnO4法滴定H2O2时，1 mol KMnO4相当于消耗多少摩尔H2O2？",
+      "options": [
+        {
+          "id": "a",
+          "text": "2.5 mol"
+        },
+        {
+          "id": "b",
+          "text": "5 mol"
+        },
+        {
+          "id": "c",
+          "text": "1 mol"
+        },
+        {
+          "id": "d",
+          "text": "2 mol"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "酸性条件下KMnO4与H2O2的反应：2MnO4^-+5H2O2+6H+→2Mn2++5O2+8H2O。写出半反应：MnO4^-+8H++5e-→Mn2++4H2O（得5e-）；H2O2→O2+2H++2e-（失2e-）。取最小公倍数10e-，得2个MnO4^-对应5个H2O2，故1 mol KMnO4对应2.5 mol H2O2。答案为A。"
+    },
+    {
+      "id": "ana-q-009",
+      "knowledgePointId": "ana-kp-013",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "间接碘量法中，淀粉指示剂应在何时加入？",
+      "options": [
+        {
+          "id": "a",
+          "text": "滴定开始前立即加入"
+        },
+        {
+          "id": "b",
+          "text": "滴定至溶液呈浅黄色时加入"
+        },
+        {
+          "id": "c",
+          "text": "滴定完全结束前5分钟加入"
+        },
+        {
+          "id": "d",
+          "text": "任意时刻都可以加入"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "间接碘量法中，若过早加入淀粉，淀粉会与I2形成稳定的蓝色配合物（分子量很大的吸附化合物）。这些被吸附的I2难以完全释放，导致滴定终点迟钝、结果偏高。正确做法是滴定至溶液呈淡黄色（I2浓度已很低，接近终点）时加入淀粉，继续滴定至蓝色刚好消失，即为终点。答案为B。"
+    },
+    {
+      "id": "ana-q-010",
+      "knowledgePointId": "ana-kp-014",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "莫尔法测定Cl-时，溶液pH必须控制在6.5-10.5之间，主要原因是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "pH过低Ag+会水解"
+        },
+        {
+          "id": "b",
+          "text": "pH过高CrO4^2-会质子化，且Ag+会水解生成Ag2O"
+        },
+        {
+          "id": "c",
+          "text": "Cl-在碱性条件下不稳定"
+        },
+        {
+          "id": "d",
+          "text": "温度对沉淀颜色有影响"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "莫尔法以K2CrO4为指示剂，原理是分步沉淀。若pH<6.5，CrO4^2-与H+结合生成HCrO4^-，降低CrO4^2-浓度，使Ag2CrO4沉淀过早出现或延迟，终点不准确。若pH>10.5，Ag+与OH-生成Ag2O（棕黑色沉淀），干扰终点观察，同时CrO4^2-浓度也会降低。因此必须控制在6.5-10.5范围内。答案为B。"
+    },
+    {
+      "id": "ana-q-011",
+      "knowledgePointId": "ana-kp-015",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "佛尔哈德法返滴定测定Cl-时，为什么要加入硝基苯？",
+      "options": [
+        {
+          "id": "a",
+          "text": "加快反应速度"
+        },
+        {
+          "id": "b",
+          "text": "防止AgCl沉淀转化为AgSCN导致终点误差"
+        },
+        {
+          "id": "c",
+          "text": "增强溶液颜色便于观察终点"
+        },
+        {
+          "id": "d",
+          "text": "掩盖Fe3+的颜色干扰"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "返滴定法测定Cl-时，先加过量AgNO3与Cl-生成AgCl沉淀，然后用NH4SCN回滴剩余Ag+。问题是AgCl的溶解度（Ksp=1.56×10^-10）比AgSCN（Ksp=1.0×10^-12）大，当SCN-滴入后，剩余的SCN-可能与AgCl反应：AgCl(s)+SCN-⇌AgSCN(s)+Cl-，消耗更多SCN-导致结果偏低。加入硝基苯覆盖AgCl沉淀表面，阻止此转化反应，获得准确终点。答案为B。"
+    },
+    {
+      "id": "ana-q-012",
+      "knowledgePointId": "ana-kp-016",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "重量分析法中，选择摩尔质量大的沉淀形式的主要目的是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "加快沉淀速度"
+        },
+        {
+          "id": "b",
+          "text": "减小称量误差对结果的影响"
+        },
+        {
+          "id": "c",
+          "text": "提高沉淀的纯度"
+        },
+        {
+          "id": "d",
+          "text": "使沉淀易于过滤和洗涤"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "重量分析法的结果由分析天平直接称量得到。设沉淀质量为m，化学计量换算因数为F，则被测组分质量=m×F。若F=被测组分摩尔质量/沉淀摩尔质量，F越小（沉淀摩尔质量越大），则相同质量的沉淀对应的被测组分质量越大，从而相同称量误差对F和最终结果的影响越小。即沉淀摩尔质量越大，称量误差的相对影响越小，准确度越高。答案为B。"
+    },
+    {
+      "id": "ana-q-013",
+      "knowledgePointId": "ana-kp-018",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "Lambert-Beer定律A=εbc中，摩尔吸光系数ε与下列哪个因素无关？",
+      "options": [
+        {
+          "id": "a",
+          "text": "入射光波长"
+        },
+        {
+          "id": "b",
+          "text": "物质的本性"
+        },
+        {
+          "id": "c",
+          "text": "溶液浓度"
+        },
+        {
+          "id": "d",
+          "text": "温度（影响可忽略）"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "ε是物质的特征常数，反映物质对特定波长光的吸收能力，只与入射光波长和物质本性有关，与溶液浓度和光程长度无关。在分光光度分析中，应选择最大吸收波长（ε最大，灵敏度最高）进行测定，以获得最佳检测灵敏度。浓度变化只影响吸光度A的大小，不影响ε。答案为C。"
+    },
+    {
+      "id": "ana-q-014",
+      "knowledgePointId": "ana-kp-019",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "分光光度法中，选择最大吸收波长的主要目的是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "减小光谱带宽"
+        },
+        {
+          "id": "b",
+          "text": "提高测定的灵敏度"
+        },
+        {
+          "id": "c",
+          "text": "避免其他物质的干扰"
+        },
+        {
+          "id": "d",
+          "text": "延长光源寿命"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "在最大吸收波长λmax处，物质的摩尔吸光系数ε最大，由A=εbc可知，在相同浓度和光程长度下，λmax处的吸光度最大。根据灵敏度的定义（信号变化与浓度变化的比值），ε越大，吸光度随浓度的变化越明显，因此灵敏度最高。同时λmax处吸光度变化最为陡峭，对波长微小变化不敏感，有利于减小仪器误差。答案为B。"
+    },
+    {
+      "id": "ana-q-015",
+      "knowledgePointId": "ana-kp-021",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "红外光谱中，C=O伸缩振动的特征吸收峰波数约为多少？",
+      "options": [
+        {
+          "id": "a",
+          "text": "1000-1300 cm^-1"
+        },
+        {
+          "id": "b",
+          "text": "1500-1700 cm^-1"
+        },
+        {
+          "id": "c",
+          "text": "1700-1750 cm^-1"
+        },
+        {
+          "id": "d",
+          "text": "2800-3000 cm^-1"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "C=O双键的力常数比C-O单键大，因此C=O伸缩振动频率比C-O单键高，出现在1700-1750 cm^-1区间。具体位置与化合物类型有关：饱和脂肪酮约1750 cm^-1；芳香酮和共轭酮因共轭效应使力常数减小，吸收波数降低至1680 cm^-1左右；酯约1735 cm^-1；酰胺约1690 cm^-1；羧酸约1710 cm^-1。A是C-O伸缩振动区；B是C=C芳香骨架振动区；D是饱和C-H伸缩振动区。答案为C。"
+    },
+    {
+      "id": "ana-q-016",
+      "knowledgePointId": "ana-kp-022",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "原子吸收光谱法中，石墨炉原子化法比火焰原子化法灵敏度更高的主要原因是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "原子化温度更高"
+        },
+        {
+          "id": "b",
+          "text": "原子在光路中停留时间更长"
+        },
+        {
+          "id": "c",
+          "text": "使用惰性气体保护"
+        },
+        {
+          "id": "d",
+          "text": "光源强度更大"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "灵敏度定义为产生1%吸收（或0.0044吸光度）所需要的待测元素质量。石墨炉原子化法中，样品在惰性气氛（Ar）中通过电阻加热石墨管，原子化效率高。更重要的是，样品原子在石墨管这个小体积中停留时间较长（约1秒），而火焰原子化中原子停留时间仅约10^-3秒。长停留时间意味着更多原子对入射光产生吸收，因此灵敏度提高2-3个数量级。答案为B。"
+    },
+    {
+      "id": "ana-q-017",
+      "knowledgePointId": "ana-kp-024",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "气相色谱范第姆特方程H=A+B/u+Cu中，B/u项随载气流速增大如何变化？",
+      "options": [
+        {
+          "id": "a",
+          "text": "增大"
+        },
+        {
+          "id": "b",
+          "text": "减小"
+        },
+        {
+          "id": "c",
+          "text": "不变"
+        },
+        {
+          "id": "d",
+          "text": "先增大后减小"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "范第姆特方程H=A+B/u+Cu中，B/u为纵向扩散项。B/u与载气流速u成反比，载气流速增大时纵向扩散减小，B/u项减小。涡流扩散项A与流速无关；传质阻力项Cu与流速成正比。当u增大时，总H的变化取决于三项的综合效果：u很小时B/u主导，H随u增大而减小；u很大时Cu主导，H随u增大而增大。因此存在一个最佳流速使H最小柱效最高。答案为B。"
+    },
+    {
+      "id": "ana-q-018",
+      "knowledgePointId": "ana-kp-025",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "气相色谱分析中，两组分的保留时间分别为4.2min和4.5min，峰宽分别为0.20min和0.22min，其分离度R为多少？",
+      "options": [
+        {
+          "id": "a",
+          "text": "0.3"
+        },
+        {
+          "id": "b",
+          "text": "0.71"
+        },
+        {
+          "id": "c",
+          "text": "1.35"
+        },
+        {
+          "id": "d",
+          "text": "1.50"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "分离度R=2(tR2-tR1)/(W1+W2)。代入数据：tR2-tR1=4.5-4.2=0.3min；W1+W2=0.20+0.22=0.42min。因此R=2×0.3/0.42=0.6/0.42≈1.43≈1.35（取一位小数）。R=1.5时两峰完全分离（基线分离），R=1.0时两峰重叠约50%。本题R≈1.43，接近但未达到完全分离。答案为C。"
+    },
+    {
+      "id": "ana-q-019",
+      "knowledgePointId": "ana-kp-027",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "用pH玻璃电极测定溶液pH时，每次测量前需用标准缓冲溶液定位校准，主要原因是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "玻璃电极响应斜率每次相同"
+        },
+        {
+          "id": "b",
+          "text": "玻璃电极的不对称电位和液接电位每次不同"
+        },
+        {
+          "id": "c",
+          "text": "标准缓冲溶液pH值不准确"
+        },
+        {
+          "id": "d",
+          "text": "温度影响Nernst方程"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "玻璃电极电位方程E=K+0.059pH（25°C），K包含玻璃膜的不对称电位（由玻璃膜内外表面结构差异引起）和参比电极与待测溶液间的液接电位。不同玻璃电极K值不同，同一电极使用过程中K也会变化（膜老化、污染、成分改变）。因此每次测量前必须用已知pH的标准缓冲溶液校准，求得实际K值，才能准确测定。答案为B。"
+    },
+    {
+      "id": "ana-q-020",
+      "knowledgePointId": "ana-kp-009",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "用EDTA滴定Ca2+时，以铬黑T为指示剂，终点颜色变化是？",
+      "options": [
+        {
+          "id": "a",
+          "text": "酒红色→蓝色"
+        },
+        {
+          "id": "b",
+          "text": "蓝色→酒红色"
+        },
+        {
+          "id": "c",
+          "text": "无色→蓝色"
+        },
+        {
+          "id": "d",
+          "text": "橙色→绿色"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "铬黑T（EBT）是金属离子指示剂，游离状态呈蓝色，与Ca2+、Mg2+配合时呈酒红色。滴定前：溶液中Ca2+与少量EBT反应，溶液呈Ca-EBT的酒红色。滴定过程中：EDTA优先与游离Ca2+反应。化学计量点后：过量EDTA夺取Ca-EBT中的Ca2+，释放出游离EBT，溶液由酒红色变为蓝色。终点颜色：酒红色→蓝色。答案为A。"
+    },
+    {
+      "id": "ana-q-021",
+      "knowledgePointId": "ana-kp-017",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "重量分析法中，沉淀为何要在稀溶液中、加热条件下、缓慢加入试剂进行？",
+      "options": [
+        {
+          "id": "a",
+          "text": "为了加快沉淀速度节省时间"
+        },
+        {
+          "id": "b",
+          "text": "为了降低相对过饱和度，减少均相成核，获得粗大晶形沉淀"
+        },
+        {
+          "id": "c",
+          "text": "为了使沉淀完全反应"
+        },
+        {
+          "id": "d",
+          "text": "为了减少沉淀的溶解损失"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "沉淀形成包括晶核生成（均相成核和异相成核）和晶体成长两个过程。相对过饱和度越大，均相成核越多，生成的小晶体多而细，表面积大易吸附杂质。稀溶液、热条件、慢滴加和搅拌都是为了降低相对过饱和度（c-cs）/cs，使异相成核占主导，获得粗大晶形沉淀。粗大沉淀比表面小，吸附杂质少，易于过滤和洗涤。陈化进一步使小晶体溶解大晶体长大。答案为B。"
+    },
+    {
+      "id": "ana-q-022",
+      "knowledgePointId": "ana-kp-020",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "红外光谱中，为什么C≡C伸缩振动的频率高于C=C伸缩振动？",
+      "options": [
+        {
+          "id": "a",
+          "text": "C≡C键的极性更大"
+        },
+        {
+          "id": "b",
+          "text": "C≡C键的力常数更大"
+        },
+        {
+          "id": "c",
+          "text": "C≡C键的折合质量更小"
+        },
+        {
+          "id": "d",
+          "text": "C≡C键的键长更长"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "根据红外光谱振动频率公式ν=(1/2πc)√(k/μ)，振动频率ν与力常数k的平方根成正比，与折合质量μ的平方根成反比。C≡C是三键，C=C是双键，三键的力常数（约15-16×10^5 N/cm）大于双键（约9.5-10×10^5 N/cm），因此C≡C伸缩振动频率（2100-2260 cm^-1）高于C=C伸缩振动频率（1600-1680 cm^-1）。答案为B。"
+    },
+    {
+      "id": "ana-q-023",
+      "knowledgePointId": "ana-kp-023",
+      "subjectId": "analytical",
+      "type": "single_choice",
+      "stem": "原子吸收光谱中，为何空心阴极灯的灯电流不能过大？",
+      "options": [
+        {
+          "id": "a",
+          "text": "灯电流过大浪费电能"
+        },
+        {
+          "id": "b",
+          "text": "灯电流过大会导致谱线变宽和自吸现象，灵敏度下降"
+        },
+        {
+          "id": "c",
+          "text": "灯电流过大会缩短灯的寿命"
+        },
+        {
+          "id": "d",
+          "text": "灯电流过大引起电场不稳定"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "空心阴极灯的工作原理是阴极发射电子撞击原子蒸气使其发光。灯电流过大时，阴极发射电子增多，灯内原子蒸气密度增大，导致自吸现象加重（中心低温原子蒸气吸收周围高温原子发射的辐射）。自吸使发射谱线变宽（ Lorentz变宽），峰值强度降低，灵敏度下降，检出限变差。同时灯电流过大会加速阴极溅射，缩短灯寿命。答案为B。"
+    }
+  ]
+}

@@ -6,11 +6,10 @@ const STORAGE_KEY = 'study-app-state';
 const STORAGE_VERSION = 1;
 
 // 需要持久化的状态字段
-// 注意：drawBalance 由 GameContext 单独管理，不从这里持久化，避免和 AppContext 的 initialState 冲突
+// GameContext still owns drawBalance updates; persistence keeps the latest ticket balance across refreshes.
 const PERSIST_KEYS = [
   'user', 'subjects', 'chapters', 'knowledgePoints', 'questions',
-  'quizResults', 'wrongRecords', 'checkin', 'achievements', 'shopItems',
-  // drawBalance 已移除，由 GameContext 单独管理
+  'quizResults', 'wrongRecords', 'checkin', 'achievements', 'shopItems', 'drawBalance',
   'upPool', 'team', 'redeemedCodes',
   'inventory', 'mail',
   // 【修复】添加今日复习和新学任务，防止刷新后数据丢失

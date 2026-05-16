@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Home Page
  *
  * The default theme uses the cozy notebook direction from the Figma draft.
@@ -25,9 +25,11 @@ import {
   Target,
   TrendingUp,
   Trophy,
+  Users,
 } from 'lucide-react';
 import { FloatingAIPanel, TabBar } from '@/components/layout';
 import OnboardingGuide from '@/components/ui/OnboardingGuide';
+import TeamPanel from '@/features/gamification/checkin/TeamPanel';
 import { useApp } from '@/store/AppContext';
 import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
@@ -36,6 +38,7 @@ import { useUser } from '@/store/UserContext';
 import { getSmartEncouragement } from '@/services/aiService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan, getEncouragement, getGreeting } from '@/utils/review';
+import { getAdaptiveButton, getAdaptivePageBackground, isDarkTheme } from '@/utils/adaptiveTheme';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 
@@ -77,6 +80,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const stats = getLearningStats();
   const [fallbackEncouragement] = useState(() => getEncouragement());
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isTeamSheetOpen, setIsTeamSheetOpen] = useState(false);
 
   useEffect(() => {
     const { review, newItems } = generateTodayReviewPlan(
@@ -152,6 +156,22 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const hasCheckedInToday = gameState.checkin.records.some(record => record.date === todayKey);
   const encouragementText = appState.dailyEncouragement ?? fallbackEncouragement;
   const isScholar = theme.uiStyle === 'scholar' || theme.isFluidScholar;
+  const isDark = isDarkTheme(theme);
+  const classicPalette = isDark
+    ? {
+        ...paperPalette,
+        bg: theme.bg,
+        ink: theme.textPrimary,
+        muted: theme.textSecondary,
+        faint: theme.textMuted,
+        card: theme.bgCard,
+        line: theme.border,
+        greenSoft: theme.surfaceContainerHigh || theme.bgCard,
+        amberSoft: theme.secondaryFixed || theme.surfaceContainerHigh || theme.bgCard,
+        roseSoft: theme.surfaceContainerHigh || theme.bgCard,
+        blueSoft: theme.primaryFixed || theme.surfaceContainerHigh || theme.bgCard,
+      }
+    : paperPalette;
   const masteryCount = stats.masteredCount + stats.normalCount;
 
   const headline = useMemo(() => {
@@ -180,7 +200,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       value: reviewPending,
       hint: totalReviewTasks > 0 ? `已完成 ${completedReview}/${totalReviewTasks}` : '暂无到期卡片',
       color: paperPalette.amber,
-      bg: paperPalette.amberSoft,
+      bg: classicPalette.amberSoft,
       onClick: openPrimaryLearning,
     },
     {
@@ -189,7 +209,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       value: Math.min(todayLearningCount, dailyGoal),
       hint: `今日目标 ${dailyGoal}`,
       color: paperPalette.green,
-      bg: paperPalette.greenSoft,
+      bg: classicPalette.greenSoft,
       onClick: openPrimaryLearning,
     },
     {
@@ -198,7 +218,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       value: hasCheckedInToday ? '✓' : gameState.checkin.streak,
       hint: hasCheckedInToday ? '节奏保持中' : `连学 ${gameState.checkin.streak} 天`,
       color: paperPalette.rose,
-      bg: paperPalette.roseSoft,
+      bg: classicPalette.roseSoft,
       onClick: () => navigate('checkin'),
     },
   ];
@@ -234,6 +254,14 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       icon: CalendarCheck,
       onSelect: () => navigate('checkin'),
       accentColor: '#7fb069',
+      backgroundColor: theme.bgCard,
+    },
+    {
+      id: 'team',
+      label: '小队',
+      icon: Users,
+      onSelect: () => setIsTeamSheetOpen(true),
+      accentColor: '#4f46e5',
       backgroundColor: theme.bgCard,
     },
     {
@@ -281,6 +309,13 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       onPrimaryAction={openPrimaryLearning}
     />
   );
+  const teamSheet = isActive && isTeamSheetOpen ? (
+    <div className="absolute inset-0 z-[120] flex items-end justify-center bg-black/40 p-4" onClick={() => setIsTeamSheetOpen(false)}>
+      <div onClick={event => event.stopPropagation()}>
+        <TeamPanel onClose={() => setIsTeamSheetOpen(false)} />
+      </div>
+    </div>
+  ) : null;
 
   if (isScholar) {
     const accentPrimary = theme.primary || '#24389c';
@@ -359,7 +394,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     return (
       <div
         className="relative flex h-full max-w-[430px] flex-col overflow-hidden"
-        style={{ background: `linear-gradient(175deg, ${theme.primaryFixed || '#dee0ff'}44 0%, ${theme.bg || '#F8FAFF'} 35%)` }}
+        style={getAdaptivePageBackground(theme)}
       >
         <main className="h-full overflow-y-auto px-6 pb-[132px] pt-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <header className="mb-7 flex h-12 w-full items-center justify-between">
@@ -558,6 +593,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           </div>
         )}
         <OnboardingGuide open={isGuideOpen} onClose={handleCloseGuide} />
+        {teamSheet}
       </div>
     );
   }
@@ -566,31 +602,32 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     <div
       className="relative h-full overflow-hidden"
       style={{
+        ...getAdaptivePageBackground(theme),
         background: isScholar
           ? `linear-gradient(180deg, ${theme.bg} 0%, ${theme.surfaceContainerLow || theme.bg} 100%)`
-          : paperPalette.bg,
-        color: isScholar ? theme.textPrimary : paperPalette.ink,
+          : classicPalette.bg,
+        color: isScholar ? theme.textPrimary : classicPalette.ink,
       }}
     >
-      {!isScholar && <PaperTexture />}
+      {!isScholar && !isDark && <PaperTexture />}
 
       <main className="absolute inset-x-0 top-0 bottom-[56px] overflow-y-auto px-[18px] pb-32 pt-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+            <p className="text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
               {getGreeting()}，{userName}
             </p>
-            <h1 className="mt-1 text-[25px] font-extrabold leading-[1.2]" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+            <h1 className="mt-1 text-[25px] font-extrabold leading-[1.2]" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
               {headline}
             </h1>
-            <p className="mt-2 max-w-[260px] text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+            <p className="mt-2 max-w-[260px] text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
               先完成一件小事，也算前进。今天不用急，把节奏接住就好。
             </p>
           </div>
           <button
             onClick={() => navigate('settings')}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border bg-white/80 shadow-sm transition-transform active:scale-[0.97]"
-            style={{ borderColor: isScholar ? theme.border : paperPalette.line, color: isScholar ? theme.textSecondary : paperPalette.muted }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border shadow-sm transition-transform active:scale-[0.97]"
+            style={{ ...getAdaptiveButton(theme, 'ghost'), borderColor: isScholar ? theme.border : classicPalette.line, color: isScholar ? theme.textSecondary : classicPalette.muted }}
             aria-label="设置"
           >
             <Settings size={18} />
@@ -600,8 +637,8 @@ export default function HomePage({ isActive = true }: HomePageProps) {
         <section
           className="relative mt-5 overflow-hidden rounded-lg border p-5 shadow-[0_14px_34px_-28px_rgba(97,71,38,0.7)]"
           style={{
-            backgroundColor: isScholar ? theme.bgCard : paperPalette.card,
-            borderColor: isScholar ? theme.border : paperPalette.line,
+            backgroundColor: isScholar ? theme.bgCard : classicPalette.card,
+            borderColor: isScholar ? theme.border : classicPalette.line,
           }}
         >
           {!isScholar && (
@@ -617,7 +654,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
             <div
               className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold"
               style={{
-                backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : paperPalette.greenSoft,
+                backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : classicPalette.greenSoft,
                 borderColor: isScholar ? theme.border : '#c8dfac',
                 color: isScholar ? theme.textSecondary : '#4e7a3f',
               }}
@@ -626,15 +663,15 @@ export default function HomePage({ isActive = true }: HomePageProps) {
               今日重点
             </div>
 
-            <h2 className="mt-4 text-[24px] font-extrabold leading-[1.2]" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+            <h2 className="mt-4 text-[24px] font-extrabold leading-[1.2]" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
               继续复习物理化学
             </h2>
-            <p className="mt-2 text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+            <p className="mt-2 text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
               从上次停下的章节接着来，完成后给自己一点休息。
             </p>
 
             <div className="mt-5 max-w-[210px]">
-              <div className="flex items-center justify-between text-[12px] font-semibold" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+              <div className="flex items-center justify-between text-[12px] font-semibold" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
                 <span>今日目标</span>
                 <span>{Math.min(todayLearningCount, dailyGoal)}/{dailyGoal}</span>
               </div>
@@ -667,20 +704,20 @@ export default function HomePage({ isActive = true }: HomePageProps) {
               onClick={card.onClick}
               className="min-h-[88px] rounded-lg border p-3 text-left shadow-[0_10px_26px_-22px_rgba(97,71,38,0.65)] transition-transform active:scale-[0.98]"
               style={{
-                backgroundColor: isScholar ? theme.bgCard : paperPalette.card,
-                borderColor: isScholar ? theme.border : paperPalette.line,
+                backgroundColor: isScholar ? theme.bgCard : classicPalette.card,
+                borderColor: isScholar ? theme.border : classicPalette.line,
               }}
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: card.bg, color: card.color }}>
                 <Circle size={10} fill="currentColor" />
               </span>
-              <div className="mt-2 text-[22px] font-extrabold leading-none" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+              <div className="mt-2 text-[22px] font-extrabold leading-none" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
                 {card.value}
               </div>
-              <div className="mt-1 text-[12px] font-bold" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+              <div className="mt-1 text-[12px] font-bold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
                 {card.label}
               </div>
-              <div className="mt-0.5 text-[10px] leading-4" style={{ color: isScholar ? theme.textMuted : paperPalette.faint }}>
+              <div className="mt-0.5 text-[10px] leading-4" style={{ color: isScholar ? theme.textMuted : classicPalette.faint }}>
                 {card.hint}
               </div>
             </button>
@@ -689,21 +726,21 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
         <section
           className="mt-5 rounded-lg border p-5 shadow-[0_12px_30px_-24px_rgba(97,71,38,0.65)]"
-          style={{ backgroundColor: isScholar ? theme.bgCard : paperPalette.card, borderColor: isScholar ? theme.border : paperPalette.line }}
+          style={{ backgroundColor: isScholar ? theme.bgCard : classicPalette.card, borderColor: isScholar ? theme.border : classicPalette.line }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-[18px] font-extrabold" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+              <h3 className="text-[18px] font-extrabold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
                 学习路线
               </h3>
-              <p className="mt-1 text-[12px]" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+              <p className="mt-1 text-[12px]" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
                 先复习，再推进今天的目标
               </p>
             </div>
             <span
               className="rounded-full px-3 py-1 text-[12px] font-semibold"
               style={{
-                backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : paperPalette.amberSoft,
+                backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : classicPalette.amberSoft,
                 color: isScholar ? theme.textSecondary : '#8a6128',
               }}
             >
@@ -719,15 +756,15 @@ export default function HomePage({ isActive = true }: HomePageProps) {
                 <button key={item.key} onClick={openPrimaryLearning} className="flex w-full items-center gap-3 text-left">
                   <span
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : paperPalette.greenSoft, color: isScholar ? theme.primary : paperPalette.green }}
+                    style={{ backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : classicPalette.greenSoft, color: isScholar ? theme.primary : paperPalette.green }}
                   >
                     <Icon size={17} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] font-bold" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+                    <span className="block text-[14px] font-bold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
                       {item.title}
                     </span>
-                    <span className="mt-0.5 block text-[12px]" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+                    <span className="mt-0.5 block text-[12px]" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
                       {item.desc}
                     </span>
                   </span>
@@ -745,21 +782,21 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
         <section
           className="mt-5 rounded-lg border p-5 shadow-[0_12px_30px_-24px_rgba(97,71,38,0.65)]"
-          style={{ backgroundColor: isScholar ? theme.bgCard : paperPalette.card, borderColor: isScholar ? theme.border : paperPalette.line }}
+          style={{ backgroundColor: isScholar ? theme.bgCard : classicPalette.card, borderColor: isScholar ? theme.border : classicPalette.line }}
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-[18px] font-extrabold" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+              <h3 className="text-[18px] font-extrabold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
                 掌握花园
               </h3>
-              <p className="mt-1 text-[12px] leading-5" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+              <p className="mt-1 text-[12px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
                 这些知识点已经慢慢长起来了。
               </p>
             </div>
             <button
               onClick={() => navigate('knowledge-map')}
               className="inline-flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold"
-              style={{ borderColor: isScholar ? theme.border : paperPalette.line, color: isScholar ? theme.primary : paperPalette.green }}
+              style={{ borderColor: isScholar ? theme.border : classicPalette.line, color: isScholar ? theme.primary : paperPalette.green }}
             >
               查看
               <ChevronRight size={13} />
@@ -786,7 +823,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
                 <div className="text-[16px] font-extrabold" style={{ color: PROFICIENCY_MAP[item.level].color }}>
                   {item.count}
                 </div>
-                <div className="mt-1 text-[10px]" style={{ color: isScholar ? theme.textMuted : paperPalette.faint }}>
+                <div className="mt-1 text-[10px]" style={{ color: isScholar ? theme.textMuted : classicPalette.faint }}>
                   {PROFICIENCY_MAP[item.level].label}
                 </div>
               </div>
@@ -797,22 +834,22 @@ export default function HomePage({ isActive = true }: HomePageProps) {
         <section
           className="mt-5 rounded-lg border p-4"
           style={{
-            backgroundColor: isScholar ? theme.bgCard : '#ffffff',
-            borderColor: isScholar ? theme.border : paperPalette.line,
+            backgroundColor: isScholar ? theme.bgCard : classicPalette.card,
+            borderColor: isScholar ? theme.border : classicPalette.line,
           }}
         >
           <div className="flex items-start gap-3">
             <span
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-              style={{ backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : paperPalette.blueSoft, color: isScholar ? theme.primary : paperPalette.blue }}
+              style={{ backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : classicPalette.blueSoft, color: isScholar ? theme.primary : paperPalette.blue }}
             >
               <Bot size={18} />
             </span>
             <div className="min-w-0 flex-1">
-              <h3 className="text-[14px] font-bold" style={{ color: isScholar ? theme.textPrimary : paperPalette.ink }}>
+              <h3 className="text-[14px] font-bold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
                 AI 学习助手
               </h3>
-              <p className="mt-1 line-clamp-2 text-[12px] leading-5" style={{ color: isScholar ? theme.textSecondary : paperPalette.muted }}>
+              <p className="mt-1 line-clamp-2 text-[12px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
                 {encouragementText}
               </p>
             </div>
@@ -830,7 +867,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           <section
             className="mt-5 rounded-lg border p-4"
             style={{
-              backgroundColor: isScholar ? theme.bgCard : '#ffffff',
+              backgroundColor: isScholar ? theme.bgCard : classicPalette.card,
               borderColor: isScholar ? theme.border : '#edd2c7',
             }}
           >
@@ -860,6 +897,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
         </div>
       )}
       <OnboardingGuide open={isGuideOpen} onClose={handleCloseGuide} />
+      {teamSheet}
     </div>
   );
 }

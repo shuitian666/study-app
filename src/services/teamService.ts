@@ -4,7 +4,7 @@ import { createSimulatedTeammate, generateInviteCode } from './teamSimulator';
 const API_BASE = '';
 
 // 切换模式：true = 使用真实API, false = 使用模拟
-const USE_REAL_API = true;
+const USE_REAL_API = false;
 
 /**
  * Team service abstraction layer.

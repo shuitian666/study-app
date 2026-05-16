@@ -1,23 +1,85 @@
 import type { Achievement, CheckinState } from '@/types';
 import type { LearningState } from '@/store/LearningContext';
+import {
+  DAILY_LIMITED_EXPERIENCE_CAP,
+  FLASHCARD_EXPERIENCE,
+  MASTERY_EXPERIENCE,
+  QUIZ_QUESTION_EXPERIENCE,
+  getLocalDateKey,
+} from '@/utils/experience';
+
+type KnowledgePointForAchievement = Pick<LearningState['knowledgePoints'][number], 'id' | 'source'>;
+
+export function isUserAddedKnowledgePoint(knowledgePoint: KnowledgePointForAchievement): boolean {
+  if (knowledgePoint.source === 'manual' || knowledgePoint.source === 'ai') {
+    return true;
+  }
+
+  return knowledgePoint.source === 'import' && knowledgePoint.id.startsWith('kp-import-');
+}
 
 export function calculateLearningExperience(
   learningState: Pick<LearningState, 'knowledgePoints' | 'quizResults'>,
   checkinState: Pick<CheckinState, 'totalCheckins'>,
 ): number {
-  const flashcardAttempts = learningState.knowledgePoints.reduce(
-    (sum, knowledgePoint) => sum + (knowledgePoint.studyRecords?.length ?? 0),
-    0,
-  );
-  const quizQuestions = learningState.quizResults.reduce(
-    (sum, result) => sum + result.totalQuestions,
-    0,
-  );
-  const masteredCount = learningState.knowledgePoints.filter(
-    knowledgePoint => knowledgePoint.proficiency === 'master',
-  ).length;
+  void checkinState;
+  const dailyExperience = new Map<string, number>();
 
-  return flashcardAttempts * 10 + quizQuestions * 3 + masteredCount * 10 + checkinState.totalCheckins * 20;
+  const addDailyExperience = (dateValue: string | null | undefined, amount: number) => {
+    if (!dateValue || amount <= 0) return;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return;
+    const dateKey = getLocalDateKey(date);
+    const used = dailyExperience.get(dateKey) ?? 0;
+    dailyExperience.set(dateKey, Math.min(DAILY_LIMITED_EXPERIENCE_CAP, used + amount));
+  };
+
+  learningState.knowledgePoints.forEach(knowledgePoint => {
+    knowledgePoint.studyRecords?.forEach(record => {
+      addDailyExperience(record.date, FLASHCARD_EXPERIENCE);
+    });
+
+    knowledgePoint.quizRecords?.forEach(record => {
+      addDailyExperience(record.date, QUIZ_QUESTION_EXPERIENCE);
+    });
+
+    if (knowledgePoint.masteredAt || knowledgePoint.proficiency === 'master') {
+      addDailyExperience(knowledgePoint.masteredAt ?? knowledgePoint.lastReviewedAt ?? knowledgePoint.createdAt, MASTERY_EXPERIENCE);
+    }
+  });
+
+  learningState.quizResults.forEach(result => {
+    addDailyExperience(result.completedAt, result.totalQuestions * QUIZ_QUESTION_EXPERIENCE);
+  });
+
+  return Array.from(dailyExperience.values()).reduce((sum, amount) => sum + amount, 0);
+}
+
+export function calculateLearningExperienceForDate(
+  learningState: Pick<LearningState, 'knowledgePoints' | 'quizResults'>,
+  dateKey: string,
+): number {
+  let total = 0;
+  const add = (dateValue: string | null | undefined, amount: number) => {
+    if (!dateValue || total >= DAILY_LIMITED_EXPERIENCE_CAP) return;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime()) || getLocalDateKey(date) !== dateKey) return;
+    total = Math.min(DAILY_LIMITED_EXPERIENCE_CAP, total + amount);
+  };
+
+  learningState.knowledgePoints.forEach(knowledgePoint => {
+    knowledgePoint.studyRecords?.forEach(record => add(record.date, FLASHCARD_EXPERIENCE));
+    knowledgePoint.quizRecords?.forEach(record => add(record.date, QUIZ_QUESTION_EXPERIENCE));
+    if (knowledgePoint.masteredAt || knowledgePoint.proficiency === 'master') {
+      add(knowledgePoint.masteredAt ?? knowledgePoint.lastReviewedAt ?? knowledgePoint.createdAt, MASTERY_EXPERIENCE);
+    }
+  });
+
+  learningState.quizResults.forEach(result => {
+    add(result.completedAt, result.totalQuestions * QUIZ_QUESTION_EXPERIENCE);
+  });
+
+  return total;
 }
 
 export function isAchievementConditionMet(
@@ -39,6 +101,7 @@ export function isAchievementConditionMet(
   const makeupUsedCount = checkinState.records.filter(record => record.type === 'makeup').length;
   const hasRecoveredFromMistakes = learningState.quizResults.some(result => result.score < 100)
     && learningState.wrongRecords.length === 0;
+  const userAddedKnowledgeCount = learningState.knowledgePoints.filter(isUserAddedKnowledgePoint).length;
 
   switch (condition.type) {
     case 'first_learn':
@@ -54,7 +117,7 @@ export function isAchievementConditionMet(
     case 'clear_wrong':
       return hasRecoveredFromMistakes && condition.value <= 1;
     case 'total_knowledge':
-      return learningState.knowledgePoints.length >= condition.value;
+      return userAddedKnowledgeCount >= condition.value;
     case 'total_checkins':
       return checkinState.totalCheckins >= condition.value;
     case 'total_quizzes':

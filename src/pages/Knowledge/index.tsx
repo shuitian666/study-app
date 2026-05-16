@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
-import { Undo2, Redo2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
@@ -10,6 +9,7 @@ import type { ProficiencyLevel } from '@/types';
 import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, Cloud, History, X } from 'lucide-react';
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 import CloudDownloadModal from '@/components/ui/CloudDownloadModal';
+import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
 
 const sourceConfig: Record<string, { label: string; color: string; bgColor: string; icon: LucideIcon }> = {
   manual: {
@@ -32,33 +32,35 @@ const sourceConfig: Record<string, { label: string; color: string; bgColor: stri
   },
 };
 
-function getImportDateKey(createdAt?: string) {
-  if (!createdAt) {
-    return '';
-  }
-
-  const createdDate = new Date(createdAt);
-  if (Number.isNaN(createdDate.getTime())) {
-    return createdAt.slice(0, 10);
-  }
-
-  const year = createdDate.getFullYear();
-  const month = String(createdDate.getMonth() + 1).padStart(2, '0');
-  const day = String(createdDate.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatImportDateLabel(dateKey: string) {
-  const [year, month, day] = dateKey.split('-');
-  if (!year || !month || !day) {
-    return dateKey;
-  }
-
-  return `${Number(month)} 月 ${Number(day)} 日`;
-}
-
 interface KnowledgePageProps {
   isActive?: boolean;
+}
+
+function formatImportTimestamp(createdAt: string) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return createdAt;
+  }
+
+  return date.toLocaleString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getSortableTime(createdAt?: string) {
+  if (!createdAt) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const time = new Date(createdAt).getTime();
+  return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
+}
+
+function isDeletedRecord(entry: { deletedAt?: string | null }) {
+  return Boolean(entry.deletedAt);
 }
 
 export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
@@ -77,6 +79,10 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
   const [showCloudModal, setShowCloudModal] = useState(false);
   const [showImportHistory, setShowImportHistory] = useState(false);
   const [recentExpanded, setRecentExpanded] = useState(false);
+  const [historyView, setHistoryView] = useState<'active' | 'deleted'>('active');
+  const longPressTimer = useRef<number | null>(null);
+  const longPressStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressNextClick = useRef(false);
 
   const uiStyle = theme.uiStyle || 'playful';
 
@@ -85,9 +91,59 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
     return `scroll-slide-up reveal-delay-${delay}`;
   };
 
-  const toggleSelectMode = () => {
-    setIsSelectMode(!isSelectMode);
+  const exitSelectMode = () => {
+    setIsSelectMode(false);
     setSelectedIds(new Set());
+  };
+
+  const enterSelectMode = (id: string) => {
+    setIsSelectMode(true);
+    setSelectedIds(new Set([id]));
+    suppressNextClick.current = true;
+  };
+
+  const clearLongPress = () => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const startKnowledgePress = (id: string, clientX: number, clientY: number) => {
+    clearLongPress();
+    longPressStart.current = { x: clientX, y: clientY };
+    longPressTimer.current = window.setTimeout(() => {
+      enterSelectMode(id);
+      clearLongPress();
+    }, 450);
+  };
+
+  const moveKnowledgePress = (clientX: number, clientY: number) => {
+    if (!longPressStart.current) return;
+    const dx = clientX - longPressStart.current.x;
+    const dy = clientY - longPressStart.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 12) {
+      clearLongPress();
+    }
+  };
+
+  const endKnowledgePress = () => {
+    longPressStart.current = null;
+    clearLongPress();
+  };
+
+  const handleKnowledgeClick = (id: string) => {
+    if (suppressNextClick.current) {
+      suppressNextClick.current = false;
+      return;
+    }
+
+    if (isSelectMode) {
+      toggleSelect(id);
+      return;
+    }
+
+    navigate('knowledge-detail', { id });
   };
 
   const toggleSelect = (id: string) => {
@@ -107,11 +163,9 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
   const deleteSelected = () => {
     if (selectedIds.size === 0) return;
     if (confirm(`确定删除选中的 ${selectedIds.size} 个知识点吗？`)) {
-      selectedIds.forEach(id => {
-        learningDispatch({ type: 'DELETE_KNOWLEDGE_POINT', payload: id });
-      });
-      setSelectedIds(new Set());
-      setIsSelectMode(false);
+      recordHistory();
+      learningDispatch({ type: 'DELETE_KNOWLEDGE_POINTS', payload: { ids: Array.from(selectedIds) } });
+      exitSelectMode();
     }
   };
 
@@ -122,7 +176,13 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
   };
 
   // 处理从云端弹窗导入的数据
-  const handleCloudImportData = (newSubjects: any[], chapters: any[], knowledgePoints: any[], questions: any[]) => {
+  const handleCloudImportData = (
+    newSubjects: any[],
+    chapters: any[],
+    knowledgePoints: any[],
+    questions: any[],
+    meta?: { label: string; createdAt: string; sourceId?: string }
+  ) => {
     // 构建导入数据 - 合并新subject和现有subject
     const existingSubjectIds = new Set(learningState.subjects.map(s => s.id));
     const mergedSubjects = [
@@ -134,7 +194,13 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
       subjects: mergedSubjects,
       chapters,
       knowledgePoints,
-      questions
+      questions,
+      importHistory: {
+        source: 'cloud' as const,
+        label: meta?.label || '云端导入',
+        createdAt: meta?.createdAt || new Date().toISOString(),
+        sourceId: meta?.sourceId,
+      },
     };
 
     // 更新状态
@@ -144,43 +210,43 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
   const subjects = learningState.subjects;
   const allKPs = learningState.knowledgePoints;
   const importBatches = useMemo(() => {
-    const batchMap = new Map<string, { knowledgeCount: number; kpIds: Set<string> }>();
-
-    allKPs.forEach(kp => {
-      if (kp.source !== 'import' || !kp.id.startsWith('kp-import-')) {
-        return;
-      }
-
-      const dateKey = getImportDateKey(kp.createdAt);
-      if (!dateKey) {
-        return;
-      }
-
-      const existing = batchMap.get(dateKey) ?? { knowledgeCount: 0, kpIds: new Set<string>() };
-      existing.knowledgeCount += 1;
-      existing.kpIds.add(kp.id);
-      batchMap.set(dateKey, existing);
-    });
-
-    return Array.from(batchMap.entries())
-      .map(([dateKey, batch]) => ({
-        dateKey,
-        displayDate: formatImportDateLabel(dateKey),
-        knowledgeCount: batch.knowledgeCount,
-        questionCount: learningState.questions.filter(
-          question => question.knowledgePointId && batch.kpIds.has(question.knowledgePointId)
-        ).length,
+    return learningState.importHistory
+      .filter(entry => isDeletedRecord(entry) === (historyView === 'deleted'))
+      .map(entry => ({
+        ...entry,
+        displayDate: formatImportTimestamp(entry.createdAt),
       }))
-      .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
-  }, [allKPs, learningState.questions]);
+      .sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
+  }, [historyView, learningState.importHistory]);
 
-  const handleDeleteImportBatch = (dateKey: string, knowledgeCount: number, displayDate: string) => {
+  const downloadedCloudIds = useMemo(
+    () => learningState.importHistory
+      .filter(entry => entry.source === 'cloud' && entry.sourceId && !isDeletedRecord(entry))
+      .map(entry => entry.sourceId as string),
+    [learningState.importHistory],
+  );
+
+  const handleDeleteImportBatch = (importId: string, knowledgeCount: number, displayDate: string) => {
     if (!confirm(`确定删除 ${displayDate} 导入的 ${knowledgeCount} 个知识点，以及它们关联的题目吗？`)) {
       return;
     }
 
     recordHistory();
-    learningDispatch({ type: 'DELETE_IMPORT_BATCH', payload: { dateKey } });
+    learningDispatch({ type: 'DELETE_IMPORT_BATCH', payload: { importId } });
+  };
+
+  const handleRestoreImportBatch = (importId: string) => {
+    recordHistory();
+    learningDispatch({ type: 'RESTORE_IMPORT_BATCH', payload: { importId } });
+  };
+
+  const handlePurgeImportBatch = (importId: string, displayDate: string) => {
+    if (!confirm(`确定彻底删除 ${displayDate} 的记录吗？此操作无法恢复。`)) {
+      return;
+    }
+
+    recordHistory();
+    learningDispatch({ type: 'PURGE_IMPORT_BATCH', payload: { importId } });
   };
 
   const openImportHistory = () => {
@@ -281,7 +347,30 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
           </div>
         </div>
 
-        <div className="mt-4 overflow-y-auto max-h-[52vh] pr-1">
+        <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl p-1" style={{ backgroundColor: theme.bg }}>
+          <button
+            onClick={() => setHistoryView('active')}
+            className="rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: historyView === 'active' ? theme.bgCard : 'transparent',
+              color: historyView === 'active' ? theme.primary : theme.textMuted,
+            }}
+          >
+            当前记录
+          </button>
+          <button
+            onClick={() => setHistoryView('deleted')}
+            className="rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: historyView === 'deleted' ? theme.bgCard : 'transparent',
+              color: historyView === 'deleted' ? theme.primary : theme.textMuted,
+            }}
+          >
+            回收站
+          </button>
+        </div>
+
+        <div className="mt-4 overflow-y-auto max-h-[48vh] pr-1">
           {importBatches.length === 0 ? (
             <div
               className="rounded-2xl px-5 py-10 text-center border"
@@ -293,7 +382,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
             <div className="space-y-3">
               {importBatches.map(batch => (
                 <div
-                  key={batch.dateKey}
+                  key={batch.id}
                   className="rounded-2xl px-4 py-4 border"
                   style={{ backgroundColor: theme.bg, borderColor: theme.border }}
                 >
@@ -303,20 +392,43 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                         {batch.displayDate}
                       </div>
                       <div className="text-xs mt-1" style={{ color: theme.textMuted }}>
-                        {batch.dateKey}
+                        {batch.label} · {batch.source === 'cloud' ? '云端导入' : '本地导入'}
                       </div>
                       <div className="text-sm mt-2" style={{ color: theme.textSecondary }}>
                         {batch.knowledgeCount} 个知识点{batch.questionCount > 0 ? ` · ${batch.questionCount} 道题目` : ''}
                       </div>
                     </div>
+                    {historyView === 'deleted' && (
+                      <div className="shrink-0 text-xs rounded-xl px-2 py-1" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
+                        剩余 {Math.max(0, Math.ceil((new Date(batch.deleteExpiresAt ?? '').getTime() - Date.now()) / 86400000)) || 0} 天
+                      </div>
+                    )}
                     <button
-                      onClick={() => handleDeleteImportBatch(batch.dateKey, batch.knowledgeCount, batch.displayDate)}
+                      onClick={() => handleDeleteImportBatch(batch.id, batch.knowledgeCount, batch.displayDate)}
                       className="shrink-0 px-3 py-2 rounded-xl text-sm font-medium transition-colors"
-                      style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                      style={{ backgroundColor: '#fef2f2', color: '#dc2626', display: historyView === 'active' ? undefined : 'none' }}
                       title="删除这次导入"
                     >
                       删除
                     </button>
+                    {historyView === 'deleted' && (
+                      <div className="shrink-0 flex flex-col gap-2">
+                        <button
+                          onClick={() => handleRestoreImportBatch(batch.id)}
+                          className="px-3 py-2 rounded-xl text-sm font-medium transition-colors"
+                          style={{ backgroundColor: `${theme.primary}16`, color: theme.primary }}
+                        >
+                          恢复
+                        </button>
+                        <button
+                          onClick={() => handlePurgeImportBatch(batch.id, batch.displayDate)}
+                          className="px-3 py-2 rounded-xl text-sm font-medium transition-colors"
+                          style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                        >
+                          彻底删除
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -340,7 +452,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
         if (sortBy === 'name') {
           cmp = a.name.localeCompare(b.name);
         } else if (sortBy === 'createdAt') {
-          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          cmp = getSortableTime(a.createdAt) - getSortableTime(b.createdAt);
         } else if (sortBy === 'proficiency') {
           const profOrder = { none: 0, rusty: 1, normal: 2, master: 3 };
           cmp = profOrder[a.proficiency] - profOrder[b.proficiency];
@@ -386,8 +498,35 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
     const tileTexts = [theme.primary || '#24389c', '#795900', '#1a56db', theme.tertiary || '#73008e', '#0369a1', '#166534'];
 
     return (
-      <div className="page-scroll" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
+      <div className="page-scroll" style={getAdaptivePageBackground(theme)}>
         <TopAppBar />
+
+        {isSelectMode && (
+          <div className="sticky top-0 z-30 mx-4 mt-3 rounded-2xl border px-4 py-3 backdrop-blur-xl"
+            style={{ backgroundColor: `${theme.bgCard}ee`, borderColor: theme.border }}>
+            <div className="flex items-center justify-between gap-3">
+              <button onClick={exitSelectMode} className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
+                取消
+              </button>
+              <div className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                已选择 {selectedIds.size} 项
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={selectAll} className="text-sm font-semibold" style={{ color: theme.primary }}>
+                  全选
+                </button>
+                <button
+                  onClick={deleteSelected}
+                  disabled={selectedIds.size === 0}
+                  className="rounded-xl px-3 py-1.5 text-sm font-semibold disabled:opacity-40"
+                  style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="pt-5 pb-28 space-y-6">
           {/* Search Bar */}
@@ -395,7 +534,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
             <div
               className="flex items-center gap-3 px-4 py-3"
               style={{
-                backgroundColor: '#ffffff',
+                backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
                 borderRadius: '999px',
                 border: '1.5px solid rgba(0,0,0,0.14)',
                 boxShadow: '0 2px 12px rgba(15,23,42,0.10)',
@@ -526,6 +665,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                   const badge = profBadgeConfig[kp.proficiency] || profBadgeConfig.none;
                   const subIdx = learningState.subjects.findIndex(s => s.id === kp.subjectId);
                   const iconBg = tileBgs[subIdx >= 0 ? subIdx % tileBgs.length : 0];
+                  const isSelected = selectedIds.has(kp.id);
                   const timeAgo = (() => {
                     const ts = (kp as any).updatedAt || (kp as any).createdAt;
                     if (!ts) return '';
@@ -537,10 +677,29 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                   return (
                     <button
                       key={kp.id}
-                      onClick={() => navigate('knowledge-detail', { id: kp.id })}
+                      onPointerDown={event => startKnowledgePress(kp.id, event.clientX, event.clientY)}
+                      onPointerMove={event => moveKnowledgePress(event.clientX, event.clientY)}
+                      onPointerUp={endKnowledgePress}
+                      onPointerCancel={endKnowledgePress}
+                      onClick={() => handleKnowledgeClick(kp.id)}
                       className="flex w-full items-start gap-4 rounded-[28px] border border-white/70 bg-white/82 p-4 text-left shadow-[0_18px_42px_-30px_rgba(15,23,42,0.18)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_26px_52px_-28px_rgba(15,23,42,0.22)] active:scale-[0.98]"
-                      style={{ backgroundColor: theme.surfaceContainerLowest || '#ffffff' }}
+                      style={{
+                        backgroundColor: theme.surfaceContainerLowest || '#ffffff',
+                        borderColor: isSelected ? theme.primary : undefined,
+                        touchAction: 'pan-y',
+                      }}
                     >
+                      {isSelectMode && (
+                        <div
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 mt-3"
+                          style={{
+                            borderColor: isSelected ? theme.primary : (theme.outlineVariant || '#c5c5d4'),
+                            backgroundColor: isSelected ? theme.primary : 'transparent',
+                          }}
+                        >
+                          {isSelected && <Check size={14} color="#ffffff" />}
+                        </div>
+                      )}
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl" style={{ backgroundColor: iconBg }}>
                         {subject?.icon || '📚'}
                       </div>
@@ -595,6 +754,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
           isOpen={showCloudModal}
           onClose={() => setShowCloudModal(false)}
           onImport={handleCloudImportData}
+          downloadedSourceIds={downloadedCloudIds}
         />
 
         {importHistoryModal}
@@ -604,16 +764,17 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
 
   // ===== Playful 风格渲染 =====
   return (
-    <div className="page-scroll pb-4">
+    <div className="page-scroll pb-4" style={getAdaptivePageBackground(theme)}>
       <PageHeader
         title={isSelectMode ? `已选择 ${selectedIds.size} 项` : "知识库"}
-        onBack={isSelectMode ? toggleSelectMode : undefined}
+        onBack={isSelectMode ? exitSelectMode : undefined}
         rightAction={
           isSelectMode ? (
             <div className="flex items-center gap-1">
               <button
                 onClick={selectAll}
-                className="px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-200"
+                className="px-2 py-1 rounded-lg text-xs font-medium hover:opacity-85"
+                style={getAdaptiveButton(theme, 'secondary')}
               >
                 全选
               </button>
@@ -625,33 +786,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                 <Trash2 size={18} className="text-red-600" />
               </button>
             </div>
-          ) : (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={toggleSelectMode}
-                className="p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                title="批量选择"
-              >
-                <Check size={18} className="text-gray-600" />
-              </button>
-              <button
-                onClick={undo}
-                disabled={!_canUndo}
-                className="p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="撤销"
-              >
-                <Undo2 size={18} className="text-gray-600" />
-              </button>
-              <button
-                onClick={redo}
-                disabled={!_canRedo}
-                className="p-1.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="恢复"
-              >
-                <Redo2 size={18} className="text-gray-600" />
-              </button>
-            </div>
-          )
+          ) : null
         }
       />
 
@@ -666,20 +801,20 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索知识点..."
               className="w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
-              style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textPrimary }}
+              style={{ ...getAdaptiveSurface(theme, 'base'), borderColor: theme.border, color: theme.textPrimary }}
             />
           </div>
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
               className="h-full px-3 border rounded-xl flex items-center gap-1 text-sm hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}
+              style={{ ...getAdaptiveButton(theme, 'secondary'), borderColor: theme.border, color: theme.textSecondary }}
             >
               <Filter size={14} />
               <span className="hidden sm:inline">排序</span>
             </button>
             {showSortMenu && (
-              <div className="absolute right-0 top-full mt-1 rounded-xl shadow-lg py-1 z-10 min-w-[140px]"
+              <div className="fixed inset-x-4 bottom-24 z-50 rounded-2xl shadow-2xl py-2 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:bottom-auto sm:mt-1 sm:min-w-[160px] sm:rounded-xl sm:shadow-lg"
                 style={{ backgroundColor: theme.bgCard, borderColor: theme.border, border: `1px solid ${theme.border}` }}>
                 <div className="px-3 py-1.5 text-xs" style={{ color: theme.textMuted }}>排序方式</div>
                 <button
@@ -706,14 +841,14 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                 <div className="border-t my-1" style={{ borderColor: theme.border }} />
                 <div className="px-3 py-1.5 text-xs" style={{ color: theme.textMuted }}>排序顺序</div>
                 <button
-                  onClick={() => setSortOrder('asc')}
+                  onClick={() => { setSortOrder('asc'); setShowSortMenu(false); }}
                   className={`w-full text-left px-3 py-1.5 text-sm hover:opacity-80 transition-opacity ${sortOrder === 'asc' ? 'font-medium' : ''}`}
                   style={{ color: sortOrder === 'asc' ? theme.primary : theme.textPrimary }}
                 >
                   升序 ↑
                 </button>
                 <button
-                  onClick={() => setSortOrder('desc')}
+                  onClick={() => { setSortOrder('desc'); setShowSortMenu(false); }}
                   className={`w-full text-left px-3 py-1.5 text-sm hover:opacity-80 transition-opacity ${sortOrder === 'desc' ? 'font-medium' : ''}`}
                   style={{ color: sortOrder === 'desc' ? theme.primary : theme.textPrimary }}
                 >
@@ -829,9 +964,14 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                         }`}
                       style={{
                         backgroundColor: theme.bgCard,
-                        borderColor: isSelected ? theme.primary : theme.border
+                        borderColor: isSelected ? theme.primary : theme.border,
+                        touchAction: 'pan-y',
                       }}
-                      onClick={() => isSelectMode ? toggleSelect(kp.id) : undefined}
+                      onPointerDown={event => startKnowledgePress(kp.id, event.clientX, event.clientY)}
+                      onPointerMove={event => moveKnowledgePress(event.clientX, event.clientY)}
+                      onPointerUp={endKnowledgePress}
+                      onPointerCancel={endKnowledgePress}
+                      onClick={() => handleKnowledgeClick(kp.id)}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {isSelectMode && (
@@ -840,7 +980,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                             {isSelected && <Check size={12} className="text-white" />}
                           </div>
                         )}
-                        <div className="flex-1 min-w-0" onClick={!isSelectMode ? () => navigate('knowledge-detail', { id: kp.id }) : undefined}>
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-sm font-medium truncate min-w-0 flex-1" style={{ color: theme.textPrimary }}>{kp.name}</span>
                             <span className="shrink-0"><ProficiencyBadge level={kp.proficiency} /></span>
@@ -875,11 +1015,16 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
               return (
                 <div
                   key={kp.id}
-                  onClick={() => isSelectMode ? toggleSelect(kp.id) : navigate('knowledge-detail', { id: kp.id })}
+                  onPointerDown={event => startKnowledgePress(kp.id, event.clientX, event.clientY)}
+                  onPointerMove={event => moveKnowledgePress(event.clientX, event.clientY)}
+                  onPointerUp={endKnowledgePress}
+                  onPointerCancel={endKnowledgePress}
+                  onClick={() => handleKnowledgeClick(kp.id)}
                   className={`rounded-xl p-4 border shadow-sm text-left relative`}
                   style={{
                     backgroundColor: theme.bgCard,
-                    borderColor: isSelected ? theme.primary : theme.border
+                    borderColor: isSelected ? theme.primary : theme.border,
+                    touchAction: 'pan-y',
                   }}
                 >
                   {isSelectMode && (
@@ -906,6 +1051,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
         isOpen={showCloudModal}
         onClose={() => setShowCloudModal(false)}
         onImport={handleCloudImportData}
+        downloadedSourceIds={downloadedCloudIds}
       />
 
       {knowledgeFloatingPanel}

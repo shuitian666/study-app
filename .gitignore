@@ -44,3 +44,8 @@ knowledge-pipeline/source/*.txt
 # Temp files
 get-ip.js
 get-ip.cjs
+.claude/
+.tmp-visual-audit/
+.sakura-trae-frpc.ini
+deploy/*.zip
+knowledge-pipeline/test_output.txt

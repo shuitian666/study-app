@@ -44,12 +44,14 @@ interface FloatingAIPanelProps {
 
 const MENU_SIZE = 232;
 const CENTER = 200;
+const MENU_OVERFLOW_PAD = 24;
 const OUTER_RADIUS = 102;
 const INNER_RADIUS = 54;
 const ICON_RADIUS = 78;
+const MENU_ITEM_HIT_SIZE = 68;
 const START_ANGLE = 182;
 const END_ANGLE = 272;
-const MAGNET_DISTANCE = 34;
+const MAGNET_DISTANCE = 52;
 const FAB_BOTTOM_OFFSET = 86;
 const APP_SHELL_MAX_WIDTH = 430;
 
@@ -102,6 +104,7 @@ export default function FloatingAIPanel({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const pulseResumeTimer = useRef<number | null>(null);
+  const triggeredItemRef = useRef(false);
 
   const resolvedItems = useMemo(() => menuItems.slice(0, 5), [menuItems]);
   const hasMenuItems = resolvedItems.length > 0;
@@ -230,6 +233,19 @@ export default function FloatingAIPanel({
     }, 180);
   };
 
+  const triggerMenuItem = (item: FloatingMenuItem) => {
+    if (triggeredItemRef.current) return;
+    triggeredItemRef.current = true;
+    setIsPressed(false);
+    closeMenu();
+    window.requestAnimationFrame(() => {
+      item.onSelect();
+      window.setTimeout(() => {
+        triggeredItemRef.current = false;
+      }, 120);
+    });
+  };
+
   const handlePrimaryAction = () => {
     if (onPrimaryAction) {
       onPrimaryAction();
@@ -246,6 +262,7 @@ export default function FloatingAIPanel({
     }
     setIsPressed(true);
     longPressTriggered.current = false;
+    triggeredItemRef.current = false;
     pointerStart.current = { x: clientX, y: clientY };
 
     if (longPressTimer.current) {
@@ -289,12 +306,13 @@ export default function FloatingAIPanel({
 
     const hoveredId = updateHoveredItem(clientX, clientY);
     const targetItem = resolvedItems.find(item => item.id === hoveredId);
-    closeMenu();
     if (targetItem) {
-      window.requestAnimationFrame(() => {
-        targetItem.onSelect();
-      });
+      triggerMenuItem(targetItem);
+      return;
     }
+
+    setActiveItemId(null);
+    longPressTriggered.current = false;
   };
 
   const cancelPress = () => {
@@ -398,8 +416,21 @@ export default function FloatingAIPanel({
         )}
 
         {menuOpen && (
-          <div className="pointer-events-none absolute inset-0 z-10">
-            <svg width={MENU_SIZE} height={MENU_SIZE} viewBox={`0 0 ${MENU_SIZE} ${MENU_SIZE}`} className="overflow-visible">
+          <div
+            className="pointer-events-none absolute z-10 overflow-visible"
+            style={{
+              left: `-${MENU_OVERFLOW_PAD}px`,
+              top: `-${MENU_OVERFLOW_PAD}px`,
+              width: `${MENU_SIZE + MENU_OVERFLOW_PAD * 2}px`,
+              height: `${MENU_SIZE + MENU_OVERFLOW_PAD * 2}px`,
+            }}
+          >
+            <svg
+              width={MENU_SIZE + MENU_OVERFLOW_PAD * 2}
+              height={MENU_SIZE + MENU_OVERFLOW_PAD * 2}
+              viewBox={`${-MENU_OVERFLOW_PAD} ${-MENU_OVERFLOW_PAD} ${MENU_SIZE + MENU_OVERFLOW_PAD * 2} ${MENU_SIZE + MENU_OVERFLOW_PAD * 2}`}
+              className="overflow-visible"
+            >
               <defs>
                 <filter id="learn-ring-shadow" x="-20%" y="-20%" width="140%" height="140%">
                   <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="rgba(15,23,42,0.16)" />
@@ -435,22 +466,48 @@ export default function FloatingAIPanel({
               const isActive = activeItemId === item.id;
 
               return (
-                <div
+                <button
                   key={item.id}
-                  className="absolute flex h-11 w-11 items-center justify-center transition-all duration-150"
+                  type="button"
+                  className="pointer-events-auto absolute flex items-center justify-center rounded-full transition-all duration-150"
+                  aria-label={item.label}
+                  title={item.label}
+                  onMouseEnter={() => setActiveItemId(item.id)}
+                  onMouseDown={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setActiveItemId(item.id);
+                  }}
+                  onClick={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    triggerMenuItem(item);
+                  }}
+                  onTouchStart={event => {
+                    event.stopPropagation();
+                    setActiveItemId(item.id);
+                  }}
+                  onTouchEnd={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    triggerMenuItem(item);
+                  }}
                   style={{
-                    left: `${point.x - 22}px`,
-                    top: `${point.y - 22}px`,
+                    left: `${point.x - MENU_ITEM_HIT_SIZE / 2 + MENU_OVERFLOW_PAD}px`,
+                    top: `${point.y - MENU_ITEM_HIT_SIZE / 2 + MENU_OVERFLOW_PAD}px`,
+                    width: `${MENU_ITEM_HIT_SIZE}px`,
+                    height: `${MENU_ITEM_HIT_SIZE}px`,
                     color: isActive
                       ? item.accentColor || theme.primary || '#24389c'
                       : (theme.onSurfaceVariant || '#4b5563'),
                     filter: isActive ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.22))' : 'none',
                     transform: isActive ? 'scale(1.16)' : 'scale(1)',
                     opacity: isActive ? 1 : 0.9,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <Icon size={20} strokeWidth={isActive ? 2.6 : 2.2} />
-                </div>
+                </button>
               );
             })}
           </div>
