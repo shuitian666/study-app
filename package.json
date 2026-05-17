@@ -9,7 +9,8 @@
     "dev:all": "npm run dev:server & npm run dev",
     "build": "tsc -b && vite build",
     "prepare:cloud-storage": "node scripts/prepare-cloud-storage.mjs",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand && node --test server/*.test.mjs",
+    "test:server": "node --test server/*.test.mjs",
     "import:samples": "node generate-import-samples.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

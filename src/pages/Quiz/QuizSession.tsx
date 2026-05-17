@@ -11,7 +11,7 @@
  * @depends src/hooks/usePreGenerate.ts | src/services/aiService.ts | src/store/LearningContext.tsx | src/store/UserContext.tsx
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useId, useState, useMemo, useEffect } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -21,23 +21,28 @@ import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Loader2, Messag
 import type { Question, QuizAnswer } from '@/types';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
 
+const stableHash = (value: string): number => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
 export default function QuizSessionPage() {
 
   const { userState, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
   const { theme } = useTheme();
+  const shuffleSeed = useId();
 
   // 动画效果 - 使用次级界面动画设置
-  const [animationEffect, setAnimationEffect] = useState<string>('fade-in');
+  const [animationEffect, setAnimationEffect] = useState<string>(() => localStorage.getItem('sub-animation-effect') || 'fade-in');
   const subjectId = userState.pageParams.subjectId;
   const knowledgePointId = userState.pageParams.knowledgePointId;
 
   useEffect(() => {
-    const savedEffect = localStorage.getItem('sub-animation-effect');
-    if (savedEffect) {
-      setAnimationEffect(savedEffect);
-    }
-
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sub-animation-effect' && e.newValue) {
         setAnimationEffect(e.newValue);
@@ -73,7 +78,7 @@ export default function QuizSessionPage() {
     let qs = learningState.questions.filter(q => q.subjectId === subjectId);
     if (knowledgePointId) {
       // 先找知识点直接关联的题目
-      let directQs = qs.filter(q => q.knowledgePointId === knowledgePointId);
+      const directQs = qs.filter(q => q.knowledgePointId === knowledgePointId);
       if (directQs.length > 0) {
         qs = directQs;
       } else {
@@ -84,9 +89,11 @@ export default function QuizSessionPage() {
         }
       }
     }
-    // Shuffle
-    return [...qs].sort(() => Math.random() - 0.5).slice(0, 10);
-  }, [learningState.questions, learningState.knowledgePoints, subjectId, knowledgePointId]);
+    // Shuffle with a stable per-component seed so render stays pure.
+    return [...qs]
+      .sort((a, b) => stableHash(`${shuffleSeed}:${a.id}:${a.stem}`) - stableHash(`${shuffleSeed}:${b.id}:${b.stem}`))
+      .slice(0, 10);
+  }, [learningState.questions, learningState.knowledgePoints, shuffleSeed, subjectId, knowledgePointId]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);

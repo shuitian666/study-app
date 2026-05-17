@@ -158,7 +158,7 @@ export default function FlashcardLearningPage() {
     }
 
     return new Set(importedStudySession.knowledgePointIds);
-  }, [importSessionIdsKey, importedStudySession]);
+  }, [importedStudySession]);
   const importResultSummary = useMemo(() => {
     if (!importedStudySession) {
       return null;

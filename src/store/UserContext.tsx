@@ -20,6 +20,7 @@ import {
   normalizeBackgroundUser,
 } from '@/data/backgroundCatalog';
 import { mergeInventoryItem } from '@/utils/rewardGranting';
+import type { AuthPayload } from '@/services/aiClient';
 
 const THEME_STYLE_KEY = 'study-app:theme-style';
 
@@ -70,8 +71,9 @@ const initialUserState: UserState = {
 };
 
 // ---------- Actions ----------
-type UserAction =
+export type UserAction =
   | { type: 'LOGIN'; payload: User }
+  | { type: 'APPLY_SERVER_ACCOUNT_STATE'; payload: AuthPayload }
   | { type: 'LOGOUT' }
   | { type: 'NAVIGATE'; payload: { page: PageName; params?: Record<string, string> } }
   | { type: 'UPDATE_USER'; payload: Partial<User> }
@@ -102,6 +104,21 @@ function userReducer(state: UserState, action: UserAction): UserState {
         }),
         isLoggedIn: true,
         currentPage: 'home',
+      };
+    }
+    case 'APPLY_SERVER_ACCOUNT_STATE': {
+      const preservedThemeStyle = getStoredThemeStyle() ?? state.user?.themeStyle ?? action.payload.user.themeStyle;
+      return {
+        ...state,
+        user: normalizeUser({
+          ...action.payload.user,
+          totalPoints: action.payload.assets.coins,
+          bonusExperience: action.payload.assets.experience,
+          themeStyle: preservedThemeStyle,
+        }),
+        inventory: normalizeBackgroundInventory({ items: action.payload.inventory }),
+        isLoggedIn: true,
+        currentPage: state.currentPage === 'login' ? 'home' : state.currentPage,
       };
     }
     case 'LOGOUT':
@@ -247,7 +264,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
             } else {
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
+                type: attachment.type,
                 name: attachment.name,
                 description: `来自邮件: ${mail.title}`,
                 icon: '🎁',
@@ -264,7 +281,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
             const existing = newInventoryItems.find(i => i.name === attachmentName);
             if (existing) {
               let compensation = 10;
-              const rarity = (attachment as any).rarity;
+              const rarity = attachment.rarity;
               if (rarity) {
                 switch (rarity) {
                   case 'N': compensation = 10; break;
@@ -278,11 +295,11 @@ function userReducer(state: UserState, action: UserAction): UserState {
             } else {
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
+                type: attachment.type,
                 name: attachmentName,
                 description: `来自邮件: ${mail.title}`,
                 icon: attachment.icon || '🎁',
-                rarity: (attachment as any).rarity || 'R',
+                rarity: attachment.rarity || 'R',
                 quantity: 1,
                 obtainedAt: new Date().toISOString(),
                 source: 'mail',
@@ -292,7 +309,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
           } else {
             const invItem: InventoryItem = {
               id: `inv-${Date.now()}-${attachmentIndex}`,
-              type: attachment.type as any,
+              type: 'vip_card',
               name: attachment.name,
               description: `来自邮件: ${mail.title}`,
               icon: '🎁',

@@ -1,4 +1,4 @@
-import type { AIConfig, Question } from '@/types';
+import type { AIConfig, CheckinState, DrawBalance, InventoryItem, LotteryResult, Question, UpPoolResult, User } from '@/types';
 
 export const API_BASE = '/api';
 
@@ -6,7 +6,7 @@ export function getAIConfig(): AIConfig {
   return { provider: 'server' };
 }
 
-export function setAIConfig(_config: unknown): void {
+export function setAIConfig(): void {
   // AI credentials are server-managed now.
 }
 
@@ -25,9 +25,37 @@ export interface ServerAIConfigStatus {
 }
 
 export interface AuthPayload {
-  user: any;
-  assets: { coins: number; experience: number; checkinStreak: number };
-  inventory: any[];
+  user: User;
+  assets: {
+    coins: number;
+    experience: number;
+    checkinStreak: number;
+    regularTickets: number;
+    upTickets: number;
+    makeupCards: number;
+    lotteryPity: { sinceLastSR: number; sinceLastSSR: number };
+  };
+  checkin: CheckinState;
+  drawBalance: DrawBalance;
+  inventory: InventoryItem[];
+  game: {
+    redeemedCodes: string[];
+    shopOwnedIds: string[];
+    upPoolOwnedIds: string[];
+  };
+  lastCheckinReward?: {
+    regularTickets: number;
+    upTickets: number;
+    streakCoins: number;
+    streakLabel?: string;
+    source?: 'checkin' | 'makeup' | 'team_upgrade';
+  };
+  lottery?: {
+    pool: 'regular' | 'up';
+    result: LotteryResult | UpPoolResult;
+    allResults: Array<LotteryResult | UpPoolResult>;
+    isTenDraw: boolean;
+  };
   aiConfigStatus: ServerAIConfigStatus;
 }
 
@@ -68,6 +96,50 @@ export async function fetchMe(): Promise<AuthPayload | null> {
   if (res.status === 401) return null;
   if (!res.ok) throw new Error('Failed to load user');
   return res.json();
+}
+
+async function accountRequest(path: string, body?: unknown): Promise<AuthPayload> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) {
+    const err = new Error('Session expired');
+    (err as Error & { status?: number }).status = 401;
+    throw err;
+  }
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Account request failed');
+  return res.json();
+}
+
+export function fetchAccountState(): Promise<AuthPayload> {
+  return accountRequest('/account/state');
+}
+
+export function accountCheckin(date: string): Promise<AuthPayload> {
+  return accountRequest('/account/checkin', { date });
+}
+
+export function accountMakeupCheckin(date: string): Promise<AuthPayload> {
+  return accountRequest('/account/makeup-checkin', { date });
+}
+
+export function accountBuyShopItem(itemId: string): Promise<AuthPayload> {
+  return accountRequest('/account/shop/buy', { itemId });
+}
+
+export function accountRedeem(code: string): Promise<AuthPayload> {
+  return accountRequest('/account/redeem', { code });
+}
+
+export function accountDrawLottery(pool: 'regular' | 'up', count: 1 | 10): Promise<AuthPayload> {
+  return accountRequest('/account/lottery/draw', { pool, count });
+}
+
+export function accountUseInventoryItem(itemId: string): Promise<AuthPayload> {
+  return accountRequest('/account/inventory/use', { itemId });
 }
 
 export async function checkBackendAvailable(): Promise<boolean> {

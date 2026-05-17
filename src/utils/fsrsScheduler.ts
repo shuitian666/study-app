@@ -158,7 +158,8 @@ export function reviewCard(
 /**
  * 生成下次复习时间的描述文本
  */
-function getNextReviewText(card: Card, _rating: Grade): string {
+function getNextReviewText(card: Card, rating: Grade): string {
+  void rating;
   // 计算从现在到到期日的时间差
   const now = Date.now();
   const dueTime = card.due.getTime();

@@ -2,19 +2,20 @@
  * 云端下载弹窗组件
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Cloud, CloudDownload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { getAvailableKnowledgeBases, downloadKnowledgeFromOSS, getSubjectInfo, type KnowledgeSubject, type DownloadProgress } from '@/services/ossService';
+import type { Chapter, KnowledgePoint, Question, Subject } from '@/types';
 
 interface CloudDownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (
-    subjects: any[],
-    chapters: any[],
-    knowledgePoints: any[],
-    questions: any[],
+    subjects: Subject[],
+    chapters: Chapter[],
+    knowledgePoints: KnowledgePoint[],
+    questions: Question[],
     meta?: { label: string; createdAt: string; sourceId?: string }
   ) => void;
   downloadedSourceIds?: string[];
@@ -35,19 +36,28 @@ export default function CloudDownloadModal({
   });
 
   useEffect(() => {
-    if (isOpen) {
-      loadSubjects();
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen]);
 
-  const loadSubjects = async () => {
-    const list = await getAvailableKnowledgeBases();
-    setSubjects(list);
-    if (list.length > 0) {
-      const firstAvailable = list.find(subject => !downloadedSourceIds.includes(subject.id));
-      setSelectedId(firstAvailable?.id ?? list[0].id);
-    }
-  };
+    let cancelled = false;
+    getAvailableKnowledgeBases()
+      .then(list => {
+        if (cancelled) return;
+        setSubjects(list);
+        if (list.length > 0) {
+          const firstAvailable = list.find(subject => !downloadedSourceIds.includes(subject.id));
+          setSelectedId(firstAvailable?.id ?? list[0].id);
+        }
+      })
+      .catch(error => {
+        console.error('[CloudDownloadModal] Failed to load subjects:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [downloadedSourceIds, isOpen]);
 
   const handleDownload = async () => {
     if (!selectedId) return;
@@ -67,13 +77,13 @@ export default function CloudDownloadModal({
 
     if (result && result.knowledgePoints.length > 0) {
       // 构建subject数组
-      const subjectsToImport: any[] = [];
+      const subjectsToImport: Subject[] = [];
       if (subjectInfo) {
         subjectsToImport.push({
           id: subjectInfo.id,
           name: subjectInfo.name,
-          icon: subjectInfo.icon,
-          color: subjectInfo.color,
+          icon: subjectInfo.icon ?? '📚',
+          color: subjectInfo.color ?? '#6b7280',
           knowledgePointCount: subjectInfo.kpCount || 0
         });
       }

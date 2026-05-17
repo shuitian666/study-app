@@ -1,7 +1,7 @@
 import { useGame } from '@/store/GameContext';
 import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
-import { allFrames } from '@/pages/AvatarEdit';
+import { allFrames } from '@/data/avatarCatalog';
 import { useState } from 'react';
 import { Clock, Brain, Trophy } from 'lucide-react';
 

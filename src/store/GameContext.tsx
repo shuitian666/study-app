@@ -17,6 +17,7 @@ import { MOCK_ACHIEVEMENTS, MOCK_SHOP_ITEMS, MOCK_RANKINGS, MOCK_UP_POOL, STREAK
 import { saveState, loadState } from './persistence';
 import { normalizeUpPoolTitles } from '@/utils/titleNames';
 import { normalizeBackgroundShopItems, normalizeBackgroundUpPool } from '@/data/backgroundCatalog';
+import type { AuthPayload } from '@/services/aiClient';
 
 // ---------- Checkin reward info ----------
 export interface CheckinRewardInfo {
@@ -34,7 +35,6 @@ export const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: n
   '全部解锁': { upDraws: 99, regularDraws: 99, coins: 9999 },
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function isValidRedeemCode(code: string): boolean {
   return code in REDEMPTION_CODES;
 }
@@ -89,6 +89,7 @@ const initialGameState: GameState = {
 // ---------- Actions ----------
 export type GameAction =
   | { type: 'CHECKIN'; payload: { date: string; type: 'normal' | 'makeup' | 'team'; teamId?: string } }
+  | { type: 'APPLY_SERVER_ACCOUNT_STATE'; payload: AuthPayload }
   | { type: 'UPGRADE_TODAY_CHECKIN_TO_TEAM'; payload: { date: string; teamId: string } }
   | { type: 'DISMISS_CHECKIN_REWARD' }
   | { type: 'UNLOCK_ACHIEVEMENT'; payload: string }
@@ -104,9 +105,40 @@ export type GameAction =
   | { type: 'REDEEM_CODE'; payload: string }
   | { type: 'RESET_ALL' };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+    case 'APPLY_SERVER_ACCOUNT_STATE': {
+      const shopOwnedIds = new Set(action.payload.game.shopOwnedIds);
+      const upPoolOwnedIds = new Set(action.payload.game.upPoolOwnedIds);
+      return {
+        ...state,
+        checkin: action.payload.checkin,
+        drawBalance: action.payload.drawBalance,
+        redeemedCodes: action.payload.game.redeemedCodes,
+        shopItems: normalizeBackgroundShopItems(state.shopItems).map(item => ({
+          ...item,
+          owned: shopOwnedIds.has(item.id) || item.owned,
+        })),
+        upPool: {
+          ...state.upPool,
+          items: state.upPool.items.map(item => ({
+            ...item,
+            owned: upPoolOwnedIds.has(`${item.type}:${item.name}`) || item.owned,
+          })),
+        },
+        lastCheckinReward: action.payload.lastCheckinReward ?? state.lastCheckinReward,
+        lotteryPopup: action.payload.lottery
+          ? {
+              show: true,
+              result: action.payload.lottery.result,
+              pool: action.payload.lottery.pool,
+              phase: 'shaking',
+              isTenDraw: action.payload.lottery.isTenDraw,
+              allResults: action.payload.lottery.allResults,
+            }
+          : state.lotteryPopup,
+      };
+    }
     case 'CHECKIN': {
       const exists = state.checkin.records.some(r => r.date === action.payload.date);
       if (exists) {
@@ -400,14 +432,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const currentState = loadState();
     saveState({
       ...currentState,
-      checkin: gameState.checkin,
       achievements: gameState.achievements,
-      shopItems: gameState.shopItems,
       rankings: gameState.rankings,
-      drawBalance: gameState.drawBalance,
-      upPool: gameState.upPool,
       team: gameState.team,
-      redeemedCodes: gameState.redeemedCodes,
     });
   }, [gameState]);
 
@@ -418,7 +445,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useGame() {
   const ctx = useContext(GameContext);
   if (!ctx) throw new Error('useGame must be used within GameProvider');

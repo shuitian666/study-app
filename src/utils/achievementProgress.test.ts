@@ -1,6 +1,9 @@
 import { calculateLearningExperience, isAchievementConditionMet, isUserAddedKnowledgePoint } from './achievementProgress';
 import type { Achievement, KnowledgeSource } from '@/types';
 
+type LearningExperienceState = Parameters<typeof calculateLearningExperience>[0];
+type AchievementLearningState = Parameters<typeof isAchievementConditionMet>[1];
+
 function achievement(type: Achievement['condition']['type'], value: number): Achievement {
   return {
     id: `ach-${type}`,
@@ -32,7 +35,7 @@ function learningStateWithKnowledgePoints(knowledgePoints: ReturnType<typeof kno
     wrongRecords: [],
     todayReviewItems: [],
     todayNewItems: [],
-  } as any;
+  } as unknown as AchievementLearningState;
 }
 
 describe('achievement progress', () => {
@@ -45,8 +48,8 @@ describe('achievement progress', () => {
             proficiency: 'master',
             studyRecords: [{ date: new Date().toISOString(), type: 'flashcard', score: 80, knowledgePointId: 'kp-1' }],
           },
-        ] as any,
-        quizResults: [{ totalQuestions: 5, completedAt: new Date().toISOString() }] as any,
+        ] as unknown as LearningExperienceState['knowledgePoints'],
+        quizResults: [{ totalQuestions: 5, completedAt: new Date().toISOString() }] as unknown as LearningExperienceState['quizResults'],
       },
       { totalCheckins: 2 },
     );
@@ -70,8 +73,8 @@ describe('achievement progress', () => {
             })),
             quizRecords: [],
           },
-        ] as any,
-        quizResults: [{ totalQuestions: 100, completedAt: today }] as any,
+        ] as unknown as LearningExperienceState['knowledgePoints'],
+        quizResults: [{ totalQuestions: 100, completedAt: today }] as unknown as LearningExperienceState['quizResults'],
       },
       { totalCheckins: 0 },
     );
@@ -86,7 +89,7 @@ describe('achievement progress', () => {
       wrongRecords: [],
       todayReviewItems: [],
       todayNewItems: [],
-    } as any;
+    } as unknown as AchievementLearningState;
 
     expect(isAchievementConditionMet(achievement('clear_wrong', 1), state, { records: [], streak: 0, totalCheckins: 0 })).toBe(true);
     expect(isAchievementConditionMet(

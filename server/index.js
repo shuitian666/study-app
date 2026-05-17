@@ -4,7 +4,15 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { db, createUser, getAssets, getInventory, getUserByPhone, getUserById, nowIso, toPublicUser } from './db.js';
+import { db, createUser, getUserByPhone, getUserById, nowIso } from './db.js';
+import {
+  buyShopItem,
+  drawLotteryForUser,
+  getAccountState,
+  performCheckin,
+  redeemCode,
+  useInventoryItem,
+} from './account.js';
 import { sendVerificationEmail } from './mailer.js';
 import { CHAT_SYSTEM_PROMPT, QUIZ_SYSTEM_PROMPT, buildChatMessages } from './prompts.js';
 import { chatCompletion, extractContent, getAiConfigStatus } from './providers.js';
@@ -40,6 +48,7 @@ const distDir = path.resolve(__dirname, '../dist');
 function makeSession(userId) {
   const sessionId = `ses_${crypto.randomUUID()}`;
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
   db.prepare('INSERT INTO sessions (id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)')
     .run(sessionId, userId, expiresAt, nowIso());
   return sessionId;
@@ -63,23 +72,7 @@ function requireAuth(req, res, next) {
 }
 
 function publicUserPayload(user) {
-  const assets = getAssets(user.id);
-  return {
-    user: toPublicUser(user, assets),
-    assets: {
-      coins: assets?.coins ?? 0,
-      experience: assets?.experience ?? 0,
-      checkinStreak: assets?.checkin_streak ?? 0,
-    },
-    inventory: getInventory(user.id).map(item => ({
-      id: item.id,
-      type: item.item_type,
-      name: item.name,
-      quantity: item.quantity,
-      payload: JSON.parse(item.payload || '{}'),
-    })),
-    aiConfigStatus: getAiConfigStatus(user.id),
-  };
+  return getAccountState(user.id);
 }
 
 const authLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'auth' });
@@ -163,6 +156,60 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
 
 app.get('/api/me', requireAuth, (req, res) => {
   res.json(publicUserPayload(req.user));
+});
+
+app.get('/api/account/state', requireAuth, (req, res) => {
+  res.json(getAccountState(req.user.id));
+});
+
+app.post('/api/account/checkin', requireAuth, (req, res) => {
+  try {
+    res.json(performCheckin(req.user.id, { date: String(req.body.date || ''), type: 'normal' }));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/makeup-checkin', requireAuth, (req, res) => {
+  try {
+    res.json(performCheckin(req.user.id, { date: String(req.body.date || ''), type: 'makeup' }));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/shop/buy', requireAuth, (req, res) => {
+  try {
+    res.json(buyShopItem(req.user.id, String(req.body.itemId || '')));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/redeem', requireAuth, (req, res) => {
+  try {
+    res.json(redeemCode(req.user.id, String(req.body.code || '').trim()));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/lottery/draw', requireAuth, (req, res) => {
+  try {
+    const pool = req.body.pool === 'up' ? 'up' : 'regular';
+    const count = Number(req.body.count) === 10 ? 10 : 1;
+    res.json(drawLotteryForUser(req.user.id, pool, count));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/inventory/use', requireAuth, (req, res) => {
+  try {
+    res.json(useInventoryItem(req.user.id, String(req.body.itemId || '')));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
 });
 
 app.get('/api/ai/config', requireAuth, (req, res) => {

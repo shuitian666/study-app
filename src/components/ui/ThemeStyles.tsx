@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { useTheme } from '@/store/ThemeContext';
+import type { ThemeConfig } from '@/types';
 
 // 将主题配置转换为CSS变量对象
-export const themeToCSSVariables = (theme: any) => {
+const themeToCSSVariables = (theme: ThemeConfig) => {
   const variables: Record<string, string> = {};
 
   // ========== 颜色 ==========

@@ -4,16 +4,18 @@ import { PageHeader } from '@/components/ui/Common';
 import { useGame, isValidRedeemCode, REDEMPTION_CODES } from '@/store/GameContext';
 import { useUser } from '@/store/UserContext';
 import type { ShopItem, ShopItemType, UpPoolItem } from '@/types';
-import { createInventoryItemFromReward, isInventoryRewardOwned } from '@/utils/rewardGranting';
+import { isInventoryRewardOwned } from '@/utils/rewardGranting';
+import { accountBuyShopItem, accountRedeem } from '@/services/aiClient';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 
 const TYPE_LABELS: Record<ShopItemType, string> = {
   makeup_card: '功能道具',
   avatar_frame: '头像框',
   background: '背景',
   theme_skin: '主题皮肤',
-  ai_skin: 'AI皮肤',
+  ai_skin: 'AI 皮肤',
   theme: '主题',
-  vip_card: 'VIP会员',
+  vip_card: 'VIP 会员',
   coin_bag: '星币包',
 };
 
@@ -39,6 +41,8 @@ export default function ShopPage() {
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
 
   const coins = userState.user?.totalPoints ?? 0;
 
@@ -53,26 +57,24 @@ export default function ShopPage() {
       ? []
       : gameState.shopItems.filter(item => item.type === tab);
 
-  const handleBuy = (itemId: string) => {
+  const handleBuy = async (itemId: string) => {
     const item = gameState.shopItems.find(entry => entry.id === itemId);
-    if (!item || coins < item.price) return;
+    if (!item || coins < item.price || buyingItemId) return;
     if (!STACKABLE_SHOP_TYPES.has(item.type) && isOwned(item)) return;
 
-    userDispatch({ type: 'ADD_STAR_COINS', payload: -item.price });
-
-    if (item.type !== 'makeup_card') {
-      userDispatch({
-        type: 'ADD_INVENTORY_ITEM',
-        payload: createInventoryItemFromReward(toRewardItem(item), 'shop', 'inv-shop'),
-      });
+    setBuyingItemId(itemId);
+    try {
+      applyServerAccountPayload(await accountBuyShopItem(itemId), userDispatch, gameDispatch);
+    } catch (err) {
+      logoutOnUnauthorized(err, userDispatch);
+    } finally {
+      setBuyingItemId(null);
     }
-
-    gameDispatch({ type: 'BUY_SHOP_ITEM', payload: itemId });
   };
 
-  const handleRedeem = () => {
+  const handleRedeem = async () => {
     const code = redeemInput.trim();
-    if (!code) return;
+    if (!code || redeeming) return;
 
     if (gameState.redeemedCodes.includes(code)) {
       setRedeemMessage({ type: 'error', text: '该兑换码已经使用过' });
@@ -86,21 +88,25 @@ export default function ShopPage() {
       return;
     }
 
-    const reward = REDEMPTION_CODES[code];
-    gameDispatch({ type: 'REDEEM_CODE', payload: code });
-    if (reward.coins > 0) {
-      userDispatch({ type: 'ADD_STAR_COINS', payload: reward.coins });
+    setRedeeming(true);
+    try {
+      const reward = REDEMPTION_CODES[code];
+      applyServerAccountPayload(await accountRedeem(code), userDispatch, gameDispatch);
+      const rewardText = [
+        reward.upDraws > 0 ? `UP抽签 +${reward.upDraws}` : '',
+        reward.regularDraws > 0 ? `常规抽签 +${reward.regularDraws}` : '',
+        reward.coins > 0 ? `星币 +${reward.coins}` : '',
+      ].filter(Boolean).join(' ');
+
+      setRedeemMessage({ type: 'success', text: `兑换成功：${rewardText}` });
+      setRedeemInput('');
+    } catch (err) {
+      logoutOnUnauthorized(err, userDispatch);
+      setRedeemMessage({ type: 'error', text: err instanceof Error ? err.message : '兑换失败' });
+    } finally {
+      setRedeeming(false);
+      setTimeout(() => setRedeemMessage(null), 3000);
     }
-
-    const rewardText = [
-      reward.upDraws > 0 ? `UP抽签 +${reward.upDraws}` : '',
-      reward.regularDraws > 0 ? `常规抽签 +${reward.regularDraws}` : '',
-      reward.coins > 0 ? `星币 +${reward.coins}` : '',
-    ].filter(Boolean).join(' ');
-
-    setRedeemMessage({ type: 'success', text: `兑换成功：${rewardText}` });
-    setRedeemInput('');
-    setTimeout(() => setRedeemMessage(null), 3000);
   };
 
   const handleCopyCode = (code: string) => {
@@ -127,9 +133,7 @@ export default function ShopPage() {
       <div className="mx-4 mt-4 flex gap-2 overflow-x-auto pb-1">
         <button
           onClick={() => setTab('all')}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            tab === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
-          }`}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'}`}
         >
           全部
         </button>
@@ -137,18 +141,14 @@ export default function ShopPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              tab === key ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
-            }`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${tab === key ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'}`}
           >
             {label}
           </button>
         ))}
         <button
           onClick={() => setTab('redeem')}
-          className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            tab === 'redeem' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600'
-          }`}
+          className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${tab === 'redeem' ? 'bg-pink-500 text-white' : 'bg-pink-50 text-pink-600'}`}
         >
           <Gift size={12} />
           兑换码
@@ -195,22 +195,20 @@ export default function ShopPage() {
               type="text"
               value={redeemInput}
               onChange={event => { setRedeemInput(event.target.value); setRedeemMessage(null); }}
-              onKeyDown={event => event.key === 'Enter' && handleRedeem()}
+              onKeyDown={event => { if (event.key === 'Enter') void handleRedeem(); }}
               placeholder="请输入兑换码"
               className="mb-3 w-full rounded-xl border border-border px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
             />
             {redeemMessage && (
               <div className={`mb-3 rounded-xl border p-3 text-sm ${
-                redeemMessage.type === 'success'
-                  ? 'border-green-200 bg-green-50 text-green-700'
-                  : 'border-red-200 bg-red-50 text-red-700'
+                redeemMessage.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
               }`}>
                 {redeemMessage.text}
               </div>
             )}
             <button
-              onClick={handleRedeem}
-              disabled={!redeemInput.trim()}
+              onClick={() => void handleRedeem()}
+              disabled={redeeming || !redeemInput.trim()}
               className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-white disabled:opacity-50"
             >
               确认兑换
@@ -234,12 +232,10 @@ export default function ShopPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => handleBuy(item.id)}
-                    disabled={coins < item.price}
+                    onClick={() => void handleBuy(item.id)}
+                    disabled={buyingItemId !== null || coins < item.price}
                     className={`flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium transition-all ${
-                      coins >= item.price
-                        ? 'bg-primary text-white active:scale-[0.97]'
-                        : 'cursor-not-allowed bg-gray-100 text-text-muted'
+                      coins >= item.price ? 'bg-primary text-white active:scale-[0.97]' : 'cursor-not-allowed bg-gray-100 text-text-muted'
                     }`}
                   >
                     <Star size={10} fill="currentColor" />

@@ -147,9 +147,17 @@ const CONFIDENCE_LABELS: Record<ParseConfidence, string> = {
   low: '低',
 };
 
-const cleanOptionPrefix = (text: string): string => text.replace(/^[A-G][\.\)、:：]\s*/, '').trim();
+const cleanOptionPrefix = (text: string): string => text.replace(/^[A-G][.)、:：]\s*/, '').trim();
 
 const normalizeText = (content: string): string => content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
+
+const normalizeQuestionType = (value: unknown): QuestionType =>
+  value === 'single_choice' || value === 'multi_choice' || value === 'true_false'
+    ? value
+    : 'single_choice';
 
 const splitBlocks = (content: string): string[] =>
   normalizeText(content)
@@ -210,7 +218,7 @@ const detectTextParseMode = (content: string): Exclude<RecognizedMode, 'json'> =
 };
 
 const parseJsonContent = (content: string): ParsedImportData => {
-  let data: any;
+  let data: unknown;
 
   try {
     data = JSON.parse(content);
@@ -223,38 +231,44 @@ const parseJsonContent = (content: string): ParsedImportData => {
 
   if (Array.isArray(data)) {
     knowledgePoints = data;
-  } else if (data && typeof data === 'object') {
+  } else if (isRecord(data)) {
     if (Array.isArray(data.knowledgePoints)) {
-      knowledgePoints = data.knowledgePoints;
+      knowledgePoints = data.knowledgePoints as ImportedKnowledgeDraft[];
     } else if (Array.isArray(data.data)) {
-      knowledgePoints = data.data;
+      knowledgePoints = data.data as ImportedKnowledgeDraft[];
     }
 
     if (Array.isArray(data.questions)) {
-      questions = data.questions.map((question: any) => ({
-        id: question.id,
-        knowledgePointId: question.knowledgePointId,
+      questions = data.questions.map((question: unknown) => {
+        const source = isRecord(question) ? question : {};
+        return {
+        id: typeof source.id === 'string' ? source.id : undefined,
+        knowledgePointId: typeof source.knowledgePointId === 'string' ? source.knowledgePointId : undefined,
         knowledgePointName: String(
-          question.knowledgePointName ??
-          question.knowledgePoint ??
-          question.kpName ??
-          question.knowledgeName ??
+          source.knowledgePointName ??
+          source.knowledgePoint ??
+          source.kpName ??
+          source.knowledgeName ??
           '',
         ).trim(),
-        subjectId: question.subjectId,
-        type: question.type ?? 'single_choice',
-        stem: String(question.stem ?? '').trim(),
-        options: Array.isArray(question.options)
-          ? question.options.map((option: any, index: number) => ({
-            id: String(option.id ?? `option-${index + 1}`),
-            text: cleanOptionPrefix(String(option.text ?? option.label ?? '').trim()),
-          }))
+        subjectId: typeof source.subjectId === 'string' ? source.subjectId : undefined,
+        type: normalizeQuestionType(source.type),
+        stem: String(source.stem ?? '').trim(),
+        options: Array.isArray(source.options)
+          ? source.options.map((option: unknown, index: number) => {
+            const optionSource = isRecord(option) ? option : {};
+            return {
+              id: String(optionSource.id ?? `option-${index + 1}`),
+              text: cleanOptionPrefix(String(optionSource.text ?? optionSource.label ?? '').trim()),
+            };
+          })
           : [],
-        correctAnswers: Array.isArray(question.correctAnswers)
-          ? question.correctAnswers.map((answer: any) => String(answer))
+        correctAnswers: Array.isArray(source.correctAnswers)
+          ? source.correctAnswers.map((answer: unknown) => String(answer))
           : [],
-        explanation: String(question.explanation ?? '').trim(),
-      }));
+        explanation: String(source.explanation ?? '').trim(),
+      };
+      });
     }
   }
 
@@ -302,7 +316,7 @@ const parseQuestionFromTemplate = (
   const answerLine = answerIndex >= 0 ? lines[answerIndex] : '';
   const contentLines = lines.filter((_, lineIndex) => lineIndex !== answerIndex);
 
-  const optionPattern = /^([A-D])[\.\)、:：]\s*(.+)$/i;
+  const optionPattern = /^([A-D])[.)、:：]\s*(.+)$/i;
   const optionLines = contentLines.filter(line => optionPattern.test(line));
   const stemLines = contentLines
     .filter(line => !optionPattern.test(line))
@@ -1031,7 +1045,6 @@ export default function ImportKnowledgePage() {
     isImporting,
     learningDispatch,
     learningState.chapters,
-    learningState.knowledgePoints,
     learningState.subjects,
     navigate,
     previewData,

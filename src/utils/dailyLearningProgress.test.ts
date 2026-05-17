@@ -1,5 +1,7 @@
 import { getTodayLearningProgress } from './dailyLearningProgress';
 
+type DailyLearningProgressState = Parameters<typeof getTodayLearningProgress>[0];
+
 describe('daily learning progress', () => {
   test('flashcard progress counts Good/Easy scores only', () => {
     const today = new Date().toISOString();
@@ -24,7 +26,7 @@ describe('daily learning progress', () => {
             { date: today, type: 'flashcard', score: 100, knowledgePointId: 'kp3' },
           ],
         },
-      ] as any,
+      ] as unknown as DailyLearningProgressState['knowledgePoints'],
       quizResults: [],
     });
 

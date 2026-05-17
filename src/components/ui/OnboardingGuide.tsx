@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
 import { ArrowRight, BookOpen, CalendarCheck, CheckCircle2, ChevronLeft, Medal, Trophy } from 'lucide-react';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
@@ -27,6 +27,14 @@ const FAB_MENU_ITEMS = [
 ] as const;
 
 export default function OnboardingGuide({ open, onClose }: OnboardingGuideProps) {
+  if (!open) return null;
+
+  return <OnboardingGuideContent onClose={onClose} />;
+}
+
+type OnboardingGuideContentProps = Pick<OnboardingGuideProps, 'onClose'>;
+
+function OnboardingGuideContent({ onClose }: OnboardingGuideContentProps) {
   const { theme } = useTheme();
   const { navigate } = useUser();
   const [step, setStep] = useState(0);
@@ -34,19 +42,6 @@ export default function OnboardingGuide({ open, onClose }: OnboardingGuideProps)
   const [cardFlipped, setCardFlipped] = useState(false);
   const [cardRated, setCardRated] = useState(false);
   const [fabMode, setFabMode] = useState<'idle' | 'tap' | 'hold'>('idle');
-
-  useEffect(() => {
-    if (open) {
-      setStep(0);
-      setSelectedGoal(null);
-      setCardFlipped(false);
-      setCardRated(false);
-      setFabMode('idle');
-    }
-  }, [open]);
-
-  // ↑ 所有 hooks 必须在此处之前，不能放在 return null 之后
-  if (!open) return null;
 
   const goalObj = STUDY_GOALS.find(g => g.id === selectedGoal);
 

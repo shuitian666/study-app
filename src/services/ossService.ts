@@ -1,4 +1,4 @@
-import type { Chapter } from '@/types';
+import type { Chapter, KnowledgePoint, Question } from '@/types';
 
 const configuredKnowledgeBaseUrl = import.meta.env.VITE_KNOWLEDGE_BASE_URL?.trim();
 const KNOWLEDGE_BASE_URL = configuredKnowledgeBaseUrl
@@ -116,9 +116,9 @@ export async function downloadKnowledgeFromOSS(
   subjectId: string,
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<{
-  chapters: any[];
-  knowledgePoints: any[];
-  questions: any[];
+  chapters: Chapter[];
+  knowledgePoints: KnowledgePoint[];
+  questions: Question[];
 } | null> {
   try {
     onProgress?.({
@@ -147,7 +147,11 @@ export async function downloadKnowledgeFromOSS(
       message: '正在解析数据...',
     });
 
-    const data = await response.json();
+    const data = await response.json() as Partial<{
+      chapters: Chapter[];
+      knowledgePoints: KnowledgePoint[];
+      questions: Question[];
+    }>;
     const total = data.knowledgePoints?.length || 0;
 
     onProgress?.({

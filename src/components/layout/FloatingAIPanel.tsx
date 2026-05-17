@@ -17,7 +17,7 @@
  * ============================================================================
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
@@ -133,17 +133,30 @@ export default function FloatingAIPanel({
     };
   }, []);
 
+  const clearLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    if (shouldHide) {
+    if (!shouldHide) {
+      return;
+    }
+
+    longPressTriggered.current = false;
+    clearLongPress();
+    const resetTimer = window.setTimeout(() => {
       setMenuOpen(false);
       setActiveItemId(null);
       setIsPressed(false);
-      longPressTriggered.current = false;
-      clearLongPress();
-    }
-  }, [shouldHide]);
+    }, 0);
 
-  const getMenuCenter = () => {
+    return () => window.clearTimeout(resetTimer);
+  }, [clearLongPress, shouldHide]);
+
+  const getMenuCenter = useCallback(() => {
     const buttonRect = buttonRef.current?.getBoundingClientRect();
     if (buttonRect) {
       return {
@@ -161,9 +174,9 @@ export default function FloatingAIPanel({
       x: rect.left + CENTER,
       y: rect.top + CENTER,
     };
-  };
+  }, []);
 
-  const getActiveItemIdFromPoint = (clientX: number, clientY: number) => {
+  const getActiveItemIdFromPoint = useCallback((clientX: number, clientY: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
     const menuCenter = getMenuCenter();
     if (!rect || !menuCenter || resolvedItems.length === 0) return null;
@@ -210,15 +223,15 @@ export default function FloatingAIPanel({
     }
     const sectorIndex = sectorAngles.indexOf(sector);
     return resolvedItems[sectorIndex]?.id ?? null;
-  };
+  }, [getMenuCenter, resolvedItems, sectorAngles]);
 
-  const updateHoveredItem = (clientX: number, clientY: number) => {
+  const updateHoveredItem = useCallback((clientX: number, clientY: number) => {
     const nextActiveId = getActiveItemIdFromPoint(clientX, clientY);
     setActiveItemId(nextActiveId);
     return nextActiveId;
-  };
+  }, [getActiveItemIdFromPoint]);
 
-  const closeMenu = () => {
+  const closeMenu = useCallback(() => {
     setMenuOpen(false);
     setActiveItemId(null);
     longPressTriggered.current = false;
@@ -231,9 +244,9 @@ export default function FloatingAIPanel({
       setPulseSuspended(false);
       pulseResumeTimer.current = null;
     }, 180);
-  };
+  }, []);
 
-  const triggerMenuItem = (item: FloatingMenuItem) => {
+  const triggerMenuItem = useCallback((item: FloatingMenuItem) => {
     if (triggeredItemRef.current) return;
     triggeredItemRef.current = true;
     setIsPressed(false);
@@ -244,15 +257,15 @@ export default function FloatingAIPanel({
         triggeredItemRef.current = false;
       }, 120);
     });
-  };
+  }, [closeMenu]);
 
-  const handlePrimaryAction = () => {
+  const handlePrimaryAction = useCallback(() => {
     if (onPrimaryAction) {
       onPrimaryAction();
     } else {
       navigate('flashcard-learning');
     }
-  };
+  }, [navigate, onPrimaryAction]);
 
   const startPress = (clientX: number, clientY: number) => {
     setPulseSuspended(true);
@@ -280,14 +293,7 @@ export default function FloatingAIPanel({
     }, 280);
   };
 
-  const clearLongPress = () => {
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
-  const endPress = (clientX: number, clientY: number) => {
+  const endPress = useCallback((clientX: number, clientY: number) => {
     clearLongPress();
     setIsPressed(false);
     pointerStart.current = null;
@@ -313,9 +319,9 @@ export default function FloatingAIPanel({
 
     setActiveItemId(null);
     longPressTriggered.current = false;
-  };
+  }, [clearLongPress, handlePrimaryAction, resolvedItems, triggerMenuItem, updateHoveredItem]);
 
-  const cancelPress = () => {
+  const cancelPress = useCallback(() => {
     clearLongPress();
     setIsPressed(false);
     pointerStart.current = null;
@@ -330,7 +336,7 @@ export default function FloatingAIPanel({
       setPulseSuspended(false);
       pulseResumeTimer.current = null;
     }, 160);
-  };
+  }, [clearLongPress, closeMenu, menuOpen]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -388,7 +394,7 @@ export default function FloatingAIPanel({
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchCancel);
     };
-  }, [isPressed, menuOpen, resolvedItems, sectorAngles]);
+  }, [cancelPress, clearLongPress, endPress, isPressed, menuOpen, resolvedItems, sectorAngles, updateHoveredItem]);
 
   if (shouldHide) {
     return null;

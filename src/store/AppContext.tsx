@@ -466,7 +466,7 @@ function reducer(state: AppState, action: Action): AppState {
       if (state.drawBalance.up <= 0) return state;
       const { item } = action.payload;
       let newInventoryItems = [...state.inventory.items];
-      let newUser = state.user;
+      const newUser = state.user;
       let newUpPool = state.upPool;
 
       // UP池物品标记为已拥有
@@ -478,7 +478,7 @@ function reducer(state: AppState, action: Action): AppState {
       // 非装饰物品正常添加到背包
       const invItem: InventoryItem = {
         id: `inv-up-${item.id}-${Date.now()}`,
-        type: item.type as any,
+        type: item.type,
         name: item.name,
         description: item.description,
         icon: item.icon,
@@ -546,7 +546,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'DISMISS_ACHIEVEMENT_POPUP':
       return { ...state, achievementPopup: null };
     case 'BUY_SHOP_ITEM': {
-      let item = state.shopItems.find(i => i.id === action.payload);
+      const item = state.shopItems.find(i => i.id === action.payload);
       if (!item || !state.user || state.user.totalPoints < item.price) return state;
 
       // 检查背包中是否已经拥有该物品（装饰类），已经拥有就不能购买
@@ -587,7 +587,7 @@ function reducer(state: AppState, action: Action): AppState {
         } else {
           newInventoryItems.push({
             id: `inv-shop-${item.id}-${Date.now()}`,
-            type: item.type as any,
+            type: item.type,
             name: item.name,
             description: item.description,
             icon: item.icon,
@@ -614,7 +614,7 @@ function reducer(state: AppState, action: Action): AppState {
         // 装饰类物品（头像框、背景等）添加到背包，按照正确稀有度
         newInventoryItems.push({
           id: `inv-shop-${item.id}-${Date.now()}`,
-          type: item.type as any,
+          type: item.type,
           name: item.name,
           description: item.description,
           icon: item.icon,
@@ -849,7 +849,7 @@ function reducer(state: AppState, action: Action): AppState {
             } else {
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
+                type: attachment.type,
                 name: attachment.name,
                 description: `来自邮件: ${mail.title}`,
                 icon: '🎁',
@@ -867,7 +867,7 @@ function reducer(state: AppState, action: Action): AppState {
             if (existing) {
               // 根据稀有度补偿
               let compensation = 10;
-              const rarity = (attachment as any).rarity;
+              const rarity = attachment.rarity;
               if (rarity) {
                 switch (rarity) {
                   case 'N': compensation = 10; break;
@@ -882,11 +882,11 @@ function reducer(state: AppState, action: Action): AppState {
               // 新物品添加到背包
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,
-                type: attachment.type as any,
+                type: attachment.type,
                 name: attachmentName,
                 description: `来自邮件: ${mail.title}`,
                 icon: attachment.icon || '🎁',
-                rarity: (attachment as any).rarity || 'R',
+                rarity: attachment.rarity || 'R',
                 quantity: 1,
                 obtainedAt: new Date().toISOString(),
                 source: 'mail',
@@ -897,7 +897,7 @@ function reducer(state: AppState, action: Action): AppState {
             // 其他物品正常处理
             const invItem: InventoryItem = {
               id: `inv-${Date.now()}-${attachmentIndex}`,
-              type: attachment.type as any,
+              type: 'vip_card',
               name: attachment.name,
               description: `来自邮件: ${mail.title}`,
               icon: '🎁',
@@ -1165,7 +1165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (state.isLoggedIn && state._history.length === 0) {
       dispatch({ type: 'RECORD_HISTORY', payload: {} });
     }
-  }, [state.isLoggedIn]);
+  }, [state._history.length, state.isLoggedIn]);
 
   return (
     <AppContext.Provider value={{ state, dispatch, getLearningStats, getTaskCompletionRate, navigate, undo, redo, recordHistory, _canUndo: state._canUndo, _canRedo: state._canRedo }}>

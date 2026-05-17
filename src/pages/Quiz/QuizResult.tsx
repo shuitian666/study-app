@@ -12,7 +12,7 @@
  * @depends src/hooks/usePreGenerate.ts | src/pages/Quiz/QuizSession.tsx | src/store/LearningContext.tsx | src/store/UserContext.tsx
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -26,15 +26,10 @@ export default function QuizResultPage() {
   const { theme } = useTheme();
 
   // 动画效果 - 使用次级界面动画设置
-  const [animationEffect, setAnimationEffect] = useState<string>('fade-in');
+  const [animationEffect, setAnimationEffect] = useState<string>(() => localStorage.getItem('sub-animation-effect') || 'fade-in');
   const { generateNextStageQuestions, getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
 
   useEffect(() => {
-    const savedEffect = localStorage.getItem('sub-animation-effect');
-    if (savedEffect) {
-      setAnimationEffect(savedEffect);
-    }
-
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sub-animation-effect' && e.newValue) {
         setAnimationEffect(e.newValue);
@@ -74,7 +69,12 @@ export default function QuizResultPage() {
   
   // 学习目标进度
   const dailyGoal = userState.user?.dailyGoal ?? 10;
-  const [todayQuestions, setTodayQuestions] = useState(0);
+  const todayQuestions = useMemo(() => {
+    const today = new Date().toDateString();
+    return learningState.quizResults
+      .filter(r => new Date(r.completedAt).toDateString() === today)
+      .reduce((sum, r) => sum + r.totalQuestions, 0);
+  }, [learningState.quizResults]);
   
   // 预生成状态
   const [generating, setGenerating] = useState(false);
@@ -86,15 +86,6 @@ export default function QuizResultPage() {
   const stageQuestions = learningState.quizResults.length > 0 
     ? learningState.questions.filter(q => q.subjectId === subjectId).slice(-total)
     : [];
-
-  useEffect(() => {
-    const today = new Date().toDateString();
-    const todayResults = learningState.quizResults.filter(r => 
-      new Date(r.completedAt).toDateString() === today
-    );
-    const totalToday = todayResults.reduce((sum, r) => sum + r.totalQuestions, 0);
-    setTodayQuestions(totalToday);
-  }, [learningState.quizResults]);
 
   // 预生成下一阶段题目
   const handlePreGenerate = async () => {

@@ -8,8 +8,9 @@ import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
 import { STREAK_REWARDS } from '@/data/incentive-mock';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
-import { calculateLearningExperienceForDate } from '@/utils/achievementProgress';
-import { DAILY_GOAL_CHECKIN_EXPERIENCE, getLocalDateKey } from '@/utils/experience';
+import { getLocalDateKey } from '@/utils/experience';
+import { accountCheckin, accountMakeupCheckin } from '@/services/aiClient';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -31,19 +32,6 @@ function generateCalendar(year: number, month: number) {
     paddedDays.push({ date, dateStr: formatLocalDate(date), day });
   }
   return paddedDays;
-}
-
-function calculateStreakFromDates(dates: string[]) {
-  if (dates.length === 0) return 0;
-  const sorted = [...dates].sort().reverse();
-  let streak = 1;
-  for (let index = 1; index < sorted.length; index += 1) {
-    const prev = new Date(sorted[index - 1]);
-    const curr = new Date(sorted[index]);
-    if (Math.round((prev.getTime() - curr.getTime()) / 86400000) === 1) streak += 1;
-    else break;
-  }
-  return streak;
 }
 
 export default function CheckinPage() {
@@ -108,31 +96,15 @@ export default function CheckinPage() {
     return radiusMap[theme.borderRadius]?.[size] ?? '20px';
   };
 
-  const performCheckin = () => {
+  const performCheckin = async () => {
     if (!canCheckin || !user || checkinInFlightRef.current) return;
     checkinInFlightRef.current = true;
-
-    const nextStreak = calculateStreakFromDates([...checkin.records.map(record => record.date), today]);
-    const streakReward = nextStreak !== checkin.streak
-      ? STREAK_REWARDS.find(reward => reward.days === nextStreak)
-      : undefined;
-
-    if (streakReward?.coins) {
-      userDispatch({ type: 'ADD_STAR_COINS', payload: streakReward.coins });
+    try {
+      applyServerAccountPayload(await accountCheckin(today), userDispatch, gameDispatch);
+    } catch (err) {
+      checkinInFlightRef.current = false;
+      logoutOnUnauthorized(err, userDispatch);
     }
-
-    userDispatch({
-      type: 'ADD_EXPERIENCE',
-      payload: {
-        source: 'daily_goal_checkin',
-        sourceId: `daily-goal-checkin:${today}`,
-        amount: DAILY_GOAL_CHECKIN_EXPERIENCE,
-        capped: true,
-        dailyUsedOffset: calculateLearningExperienceForDate(learningState, today),
-      },
-    });
-
-    gameDispatch({ type: 'CHECKIN', payload: { date: today, type: 'normal' } });
   };
 
   const canMakeupDate = (date: string) => date < today && !checkedDates.has(date) && checkin.makeupCards > 0;
@@ -141,24 +113,18 @@ export default function CheckinPage() {
     if (canMakeupDate(date)) setPendingMakeupDate(date);
   };
 
-  const confirmMakeup = () => {
+  const confirmMakeup = async () => {
     const date = pendingMakeupDate;
     if (!date || !canMakeupDate(date)) {
       setPendingMakeupDate(null);
       return;
     }
-
-    const nextStreak = calculateStreakFromDates([...checkin.records.map(record => record.date), date]);
-    const streakReward = nextStreak !== checkin.streak
-      ? STREAK_REWARDS.find(reward => reward.days === nextStreak)
-      : undefined;
-
-    if (streakReward?.coins) {
-      userDispatch({ type: 'ADD_STAR_COINS', payload: streakReward.coins });
+    try {
+      applyServerAccountPayload(await accountMakeupCheckin(date), userDispatch, gameDispatch);
+      setPendingMakeupDate(null);
+    } catch (err) {
+      logoutOnUnauthorized(err, userDispatch);
     }
-
-    gameDispatch({ type: 'CHECKIN', payload: { date, type: 'makeup' } });
-    setPendingMakeupDate(null);
   };
 
   const dismissReward = () => {

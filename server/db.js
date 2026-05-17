@@ -121,13 +121,36 @@ CREATE TABLE IF NOT EXISTS ai_quota (
   updated_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS user_game_state (
+  user_id TEXT PRIMARY KEY,
+  redeemed_codes TEXT NOT NULL DEFAULT '[]',
+  shop_owned_ids TEXT NOT NULL DEFAULT '[]',
+  up_pool_owned_ids TEXT NOT NULL DEFAULT '[]',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `);
+
+function addColumn(table, columnDef) {
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
+  } catch {
+    // Existing databases may already have the column.
+  }
+}
 
 try {
   db.exec('ALTER TABLE users ADD COLUMN password_hash TEXT');
 } catch {
   // Existing databases may already have the column.
 }
+
+addColumn('user_assets', 'regular_tickets INTEGER NOT NULL DEFAULT 0');
+addColumn('user_assets', 'up_tickets INTEGER NOT NULL DEFAULT 0');
+addColumn('user_assets', 'makeup_cards INTEGER NOT NULL DEFAULT 0');
+addColumn('user_assets', 'lottery_pity_sr INTEGER NOT NULL DEFAULT 0');
+addColumn('user_assets', 'lottery_pity_ssr INTEGER NOT NULL DEFAULT 0');
 
 export function nowIso() {
   return new Date().toISOString();
@@ -158,8 +181,13 @@ export function createUser(phone, passwordHash = null) {
   `).run(user.id, user.phone, passwordHash, user.nickname, user.avatar, user.created_at, user.updated_at);
 
   db.prepare(`
-    INSERT INTO user_assets (user_id, coins, experience, checkin_streak, updated_at)
-    VALUES (?, 0, 0, 0, ?)
+    INSERT INTO user_assets (user_id, coins, experience, checkin_streak, regular_tickets, up_tickets, makeup_cards, lottery_pity_sr, lottery_pity_ssr, updated_at)
+    VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0, ?)
+  `).run(user.id, createdAt);
+
+  db.prepare(`
+    INSERT INTO user_game_state (user_id, redeemed_codes, shop_owned_ids, up_pool_owned_ids, updated_at)
+    VALUES (?, '[]', '[]', '[]', ?)
   `).run(user.id, createdAt);
 
   db.prepare(`
@@ -207,4 +235,16 @@ export function getAssets(userId) {
 
 export function getInventory(userId) {
   return db.prepare('SELECT * FROM inventory_items WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+}
+
+export function getGameState(userId) {
+  let row = db.prepare('SELECT * FROM user_game_state WHERE user_id = ?').get(userId);
+  if (!row) {
+    db.prepare(`
+      INSERT INTO user_game_state (user_id, redeemed_codes, shop_owned_ids, up_pool_owned_ids, updated_at)
+      VALUES (?, '[]', '[]', '[]', ?)
+    `).run(userId, nowIso());
+    row = db.prepare('SELECT * FROM user_game_state WHERE user_id = ?').get(userId);
+  }
+  return row;
 }

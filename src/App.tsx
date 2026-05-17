@@ -19,13 +19,16 @@
 
 import React, { Suspense, useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
-import { allBackgrounds } from '@/pages/AvatarEdit';
+import { allBackgrounds } from '@/data/avatarCatalog';
 import { isDarkTheme } from '@/utils/adaptiveTheme';
+import { fetchMe } from '@/services/aiClient';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 
 // 懒加载所有页面组件，减少首屏加载体积
 const LoginPage = React.lazy(() => import('@/pages/Login'));
@@ -69,13 +72,33 @@ const LoadingFallback = () => (
 );
 
 function AppContent() {
-  const { userState, navigate } = useUser();
+  const { userState, userDispatch, navigate } = useUser();
+  const { gameDispatch } = useGame();
   const { theme } = useTheme();
   const isDark = isDarkTheme(theme);
   const pagePanelStyle = {
     backgroundColor: isDark ? 'rgba(9, 15, 28, 0.58)' : 'rgba(255, 255, 255, 0.68)',
     backdropFilter: 'blur(14px)',
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMe()
+      .then(payload => {
+        if (cancelled) return;
+        if (!payload) {
+          userDispatch({ type: 'LOGOUT' });
+          return;
+        }
+        applyServerAccountPayload(payload, userDispatch, gameDispatch);
+      })
+      .catch(err => {
+        logoutOnUnauthorized(err, userDispatch);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameDispatch, userDispatch]);
 
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {

@@ -19,18 +19,31 @@ const RARITY_COLORS: Record<string, string> = {
 export default function LotteryDrawModal() {
   const { gameState, gameDispatch } = useGame();
   const popup: LotteryPopup | null = gameState.lotteryPopup;
+
+  if (!popup?.show || !popup.result) return null;
+
+  const dismiss = () => gameDispatch({ type: 'DISMISS_LOTTERY_POPUP' });
+  const visiblePopup: LotteryPopup & { result: LotteryResult | UpPoolResult } = {
+    ...popup,
+    result: popup.result,
+  };
+  const popupKey = `${popup.pool}-${popup.result.timestamp}-${popup.isTenDraw ? 'ten' : 'single'}`;
+
+  return <LotteryDrawModalContent key={popupKey} popup={visiblePopup} dismiss={dismiss} />;
+}
+
+interface LotteryDrawModalContentProps {
+  popup: LotteryPopup & { result: LotteryResult | UpPoolResult };
+  dismiss: () => void;
+}
+
+function LotteryDrawModalContent({ popup, dismiss }: LotteryDrawModalContentProps) {
   const [phase, setPhase] = useState<'shaking' | 'revealing' | 'result' | 'summary'>('shaking');
 
-  const resultTimestamp = popup?.result ? popup.result.timestamp : '';
-  const isTenDraw = Boolean(popup?.isTenDraw && popup.allResults?.length === 10);
+  const resultTimestamp = popup.result.timestamp;
+  const isTenDraw = Boolean(popup.isTenDraw && popup.allResults?.length === 10);
 
   useEffect(() => {
-    if (!popup?.show) {
-      setPhase('shaking');
-      return;
-    }
-
-    setPhase('shaking');
     const revealTimer = setTimeout(() => setPhase('revealing'), 1500);
     const resultTimer = setTimeout(() => setPhase(isTenDraw ? 'summary' : 'result'), 2300);
 
@@ -38,17 +51,13 @@ export default function LotteryDrawModal() {
       clearTimeout(revealTimer);
       clearTimeout(resultTimer);
     };
-  }, [popup?.show, resultTimestamp, isTenDraw]);
-
-  if (!popup?.show || !popup.result) return null;
+  }, [resultTimestamp, isTenDraw]);
 
   const result = popup.result;
   const isRegular = isLotteryResult(result);
   const regularConfig = isRegular ? getTierConfig(result.tier) : null;
   const upColor = !isRegular ? RARITY_COLORS[result.item.rarity] ?? '#3B82F6' : '';
   const accentColor = isRegular ? regularConfig!.color : upColor;
-
-  const dismiss = () => gameDispatch({ type: 'DISMISS_LOTTERY_POPUP' });
 
   const renderTenDrawSummary = () => {
     if (!isTenDraw || !popup.allResults) return null;

@@ -27,16 +27,12 @@ import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
-import { allFrames, allTitles, rarityConfig } from '@/pages/AvatarEdit';
+import { allFrames, allTitles, rarityConfig } from '@/data/avatarCatalog';
 import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
 import { getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
-
-export function getBorderRadius(size: 'small' | 'large') {
-  return size === 'large' ? '16px' : '8px';
-}
 
 export default function ProfilePage() {
   const { userState, userDispatch, navigate } = useUser();

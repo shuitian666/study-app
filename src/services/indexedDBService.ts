@@ -7,6 +7,8 @@
  * ============================================================================
  */
 
+import type { Chapter, KnowledgePoint, Question, Subject } from '@/types';
+
 const DB_NAME = 'study-app-db';
 const DB_VERSION = 1;
 const STORES = {
@@ -126,10 +128,10 @@ async function hasData(storeName: string): Promise<boolean> {
 
 // 存储知识库数据
 export async function storeKnowledgeData(data: {
-  subjects: any[];
-  chapters: any[];
-  knowledgePoints: any[];
-  questions: any[];
+  subjects: Subject[];
+  chapters: Chapter[];
+  knowledgePoints: KnowledgePoint[];
+  questions: Question[];
 }): Promise<void> {
   await storeData(STORES.SUBJECTS, data.subjects);
   await storeData(STORES.CHAPTERS, data.chapters);
@@ -139,15 +141,15 @@ export async function storeKnowledgeData(data: {
 
 // 读取知识库数据
 export async function getKnowledgeData(): Promise<{
-  subjects: any[];
-  chapters: any[];
-  knowledgePoints: any[];
-  questions: any[];
+  subjects: Subject[];
+  chapters: Chapter[];
+  knowledgePoints: KnowledgePoint[];
+  questions: Question[];
 }> {
-  const subjects = await getData(STORES.SUBJECTS);
-  const chapters = await getData(STORES.CHAPTERS);
-  const knowledgePoints = await getData(STORES.KNOWLEDGE_POINTS);
-  const questions = await getData(STORES.QUESTIONS);
+  const subjects = await getData<Subject>(STORES.SUBJECTS);
+  const chapters = await getData<Chapter>(STORES.CHAPTERS);
+  const knowledgePoints = await getData<KnowledgePoint>(STORES.KNOWLEDGE_POINTS);
+  const questions = await getData<Question>(STORES.QUESTIONS);
 
   return { subjects, chapters, knowledgePoints, questions };
 }

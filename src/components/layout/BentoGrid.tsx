@@ -300,7 +300,6 @@ export function StatsBentoCard({
   value,
   subtitle,
   icon,
-  iconColor: _iconColor,
   trend,
   colSpan = 1,
 }: StatsBentoCardProps) {

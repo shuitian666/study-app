@@ -5,7 +5,7 @@
  * Fluid Scholar keeps the same data surface with a quieter shell.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   Bot,
@@ -138,9 +138,9 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     setIsGuideOpen(false);
   };
 
-  const openPrimaryLearning = () => {
+  const openPrimaryLearning = useCallback(() => {
     navigate('flashcard-learning');
-  };
+  }, [navigate]);
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const userName = userState.user?.nickname?.trim() || '同学';
@@ -296,7 +296,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       accentColor: theme.primary,
       backgroundColor: theme.bgCard,
     },
-  ], [navigate, theme.bgCard, theme.primary]);
+  ], [navigate, openPrimaryLearning, theme.bgCard, theme.primary]);
 
   const bottomNav = <TabBar placement="contained" />;
   const floatingPanel = (

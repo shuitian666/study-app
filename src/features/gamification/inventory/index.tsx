@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Backpack, Package, Gift, Ticket, Sparkles, Crown } from 'lucide-react';
+import { accountUseInventoryItem } from '@/services/aiClient';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 
 const rarityConfig = {
   N: { label: '普通', color: '#9ca3af', bg: 'bg-gray-100' },
@@ -25,7 +28,9 @@ const STACKABLE_TYPES = ['makeup_card', 'coin_bag', 'vip_card'];
 
 export default function InventoryPage() {
   const { userState, userDispatch, navigate } = useUser();
+  const { gameDispatch } = useGame();
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [usingItemId, setUsingItemId] = useState<string | null>(null);
 
   const items = userState.inventory.items;
 
@@ -62,8 +67,16 @@ export default function InventoryPage() {
     ? processedItems.filter(i => i.type === filterType)
     : processedItems;
 
-  const handleUseItem = (itemId: string) => {
-    userDispatch({ type: 'USE_INVENTORY_ITEM', payload: itemId });
+  const handleUseItem = async (itemId: string) => {
+    if (usingItemId) return;
+    setUsingItemId(itemId);
+    try {
+      applyServerAccountPayload(await accountUseInventoryItem(itemId), userDispatch, gameDispatch);
+    } catch (err) {
+      logoutOnUnauthorized(err, userDispatch);
+    } finally {
+      setUsingItemId(null);
+    }
   };
 
   return (
@@ -189,8 +202,9 @@ export default function InventoryPage() {
                     )}
                     {item.usable && item.quantity > 0 && (
                       <button
-                        onClick={() => handleUseItem(item.id)}
-                        className="text-xs px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                        onClick={() => void handleUseItem(item.id)}
+                        disabled={usingItemId !== null}
+                        className="text-xs px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
                         使用
                       </button>

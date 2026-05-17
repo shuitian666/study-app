@@ -3,6 +3,8 @@ import { useUser } from '@/store/UserContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle, Sparkles } from 'lucide-react';
 
+type MailFilter = 'all' | 'unread' | 'claimable';
+
 const attachmentIcons: Record<string, React.ReactNode> = {
   makeup_card: <Ticket size={14} className="text-blue-500" />,
   avatar_frame: <Crown size={14} className="text-purple-500" />,
@@ -14,7 +16,7 @@ const attachmentIcons: Record<string, React.ReactNode> = {
 export default function MailPage() {
   const { userState, userDispatch, navigate } = useUser();
   const [selectedMail, setSelectedMail] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'claimable'>('all');
+  const [filter, setFilter] = useState<MailFilter>('all');
 
   const mails = userState.mail.mails;
   const currentVersion = userState.mail.currentVersion;
@@ -94,7 +96,7 @@ export default function MailPage() {
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
+              onClick={() => setFilter(tab.key as MailFilter)}
               className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
                 filter === tab.key ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
               }`}

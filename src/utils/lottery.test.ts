@@ -1,4 +1,4 @@
-import { drawLottery, drawFromUpPool, LOTTERY_TIERS } from './lottery';
+import { drawLottery, drawFromUpPool } from './lottery';
 import type { LotteryPityState, UpPoolConfig } from '@/types';
 
 // 测试抽卡算法

@@ -34,6 +34,14 @@ export default function KnowledgeDetailPage() {
   };
   const source = sourceConfig[kp?.source || 'manual'];
 
+  const knowledgeNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    learningState.knowledgePoints.forEach(kp => {
+      map[kp.name] = kp.id;
+    });
+    return map;
+  }, [learningState.knowledgePoints]);
+
   if (!kp) {
     return (
       <div>
@@ -56,14 +64,6 @@ export default function KnowledgeDetailPage() {
   const SourceIcon = source.icon;
 
   // 建立所有知识点名称 -> id 映射表（用于跨知识库链接）
-  const knowledgeNameMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    learningState.knowledgePoints.forEach(kp => {
-      map[kp.name] = kp.id;
-    });
-    return map;
-  }, [learningState.knowledgePoints]);
-
   // 将文本中的知识点名称转换为可点击链接
   const parseTextWithLinks = (text: string) => {
     const names = Object.keys(knowledgeNameMap).sort((a, b) => b.length - a.length);

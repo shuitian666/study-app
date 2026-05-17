@@ -1053,7 +1053,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       streakDays: 0, // 从UserContext获取
       weakSubjects,
     };
-  }, [learningState, learningState.quizResults, learningState.subjects]);
+  }, [learningState]);
 
   const getTaskCompletionRate = useCallback(() => {
     const allTasks = [...learningState.todayReviewItems, ...learningState.todayNewItems];
@@ -1091,7 +1091,17 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     recordHistory,
     _canUndo: learningState._canUndo,
     _canRedo: learningState._canRedo
-  }), [publicLearningState, learningDispatch, getLearningStats, getTaskCompletionRate, undo, redo, recordHistory]);
+  }), [
+    publicLearningState,
+    learningDispatch,
+    getLearningStats,
+    getTaskCompletionRate,
+    undo,
+    redo,
+    recordHistory,
+    learningState._canUndo,
+    learningState._canRedo,
+  ]);
 
   return (
     <LearningContext.Provider value={contextValue}>

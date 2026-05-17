@@ -40,7 +40,7 @@ export default function AddKnowledgePage() {
   const handleSubmit = () => {
     if (!name.trim() || !subjectId) return;
     const now = new Date().toISOString();
-    const knowledgePointId = `kp-${Date.now()}`;
+    const knowledgePointId = `kp-${now.replace(/\D/g, '')}`;
 
     learningDispatch({
       type: 'ADD_KNOWLEDGE_POINT',

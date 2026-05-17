@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { BookOpen, Lock, Phone, Sparkles } from 'lucide-react';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface, isDarkTheme } from '@/utils/adaptiveTheme';
 import { loginWithPassword, registerWithPassword, sendEmailCode } from '@/services/aiClient';
-import type { User } from '@/types';
+import { applyServerAccountPayload } from '@/store/accountSync';
 
 export default function LoginPage() {
   const { userDispatch } = useUser();
+  const { gameDispatch } = useGame();
   const { theme } = useTheme();
   const dark = isDarkTheme(theme);
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -34,7 +36,7 @@ export default function LoginPage() {
       const payload = mode === 'login'
         ? await loginWithPassword(email.trim(), password)
         : await registerWithPassword(email.trim(), password, code.trim());
-      userDispatch({ type: 'LOGIN', payload: payload.user as User });
+      applyServerAccountPayload(payload, userDispatch, gameDispatch);
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
     } finally {

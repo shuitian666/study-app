@@ -5,7 +5,7 @@ import { useTheme } from '@/store/ThemeContext';
 import type { LucideIcon } from 'lucide-react';
 import { ProficiencyBadge, PageHeader, EmptyState } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
-import type { ProficiencyLevel } from '@/types';
+import type { Chapter, KnowledgePoint, ProficiencyLevel, Question, Subject } from '@/types';
 import { Plus, Search, ChevronRight, Filter, Sparkles, BookOpen, LayoutGrid, List, Upload, Trash2, Check, Cloud, History, X } from 'lucide-react';
 import { TopAppBar, FloatingAIPanel } from '@/components/layout';
 import CloudDownloadModal from '@/components/ui/CloudDownloadModal';
@@ -31,6 +31,13 @@ const sourceConfig: Record<string, { label: string; color: string; bgColor: stri
     icon: BookOpen,
   },
 };
+
+const IMPORT_HISTORY_NOW_MS = Date.now();
+
+type KnowledgePointWithTimestamp = KnowledgePoint & { updatedAt?: string };
+
+const getKnowledgePointTimestamp = (knowledgePoint: KnowledgePointWithTimestamp): string | undefined =>
+  knowledgePoint.updatedAt ?? knowledgePoint.createdAt;
 
 interface KnowledgePageProps {
   isActive?: boolean;
@@ -177,10 +184,10 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
 
   // 处理从云端弹窗导入的数据
   const handleCloudImportData = (
-    newSubjects: any[],
-    chapters: any[],
-    knowledgePoints: any[],
-    questions: any[],
+    newSubjects: Subject[],
+    chapters: Chapter[],
+    knowledgePoints: KnowledgePoint[],
+    questions: Question[],
     meta?: { label: string; createdAt: string; sourceId?: string }
   ) => {
     // 构建导入数据 - 合并新subject和现有subject
@@ -400,7 +407,7 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                     </div>
                     {historyView === 'deleted' && (
                       <div className="shrink-0 text-xs rounded-xl px-2 py-1" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
-                        剩余 {Math.max(0, Math.ceil((new Date(batch.deleteExpiresAt ?? '').getTime() - Date.now()) / 86400000)) || 0} 天
+                        剩余 {Math.max(0, Math.ceil((new Date(batch.deleteExpiresAt ?? '').getTime() - IMPORT_HISTORY_NOW_MS) / 86400000)) || 0} 天
                       </div>
                     )}
                     <button
@@ -439,27 +446,25 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
     </div>
   ) : null;
 
-  const filteredKPs = useMemo(() => {
-    return allKPs
-      .filter(kp => {
-        if (selectedSubject && kp.subjectId !== selectedSubject) return false;
-        if (filterProf !== 'all' && kp.proficiency !== filterProf) return false;
-        if (searchQuery && !kp.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        let cmp = 0;
-        if (sortBy === 'name') {
-          cmp = a.name.localeCompare(b.name);
-        } else if (sortBy === 'createdAt') {
-          cmp = getSortableTime(a.createdAt) - getSortableTime(b.createdAt);
-        } else if (sortBy === 'proficiency') {
-          const profOrder = { none: 0, rusty: 1, normal: 2, master: 3 };
-          cmp = profOrder[a.proficiency] - profOrder[b.proficiency];
-        }
-        return sortOrder === 'asc' ? cmp : -cmp;
-      });
-  }, [allKPs, selectedSubject, filterProf, searchQuery, sortBy, sortOrder]);
+  const filteredKPs = allKPs
+    .filter(kp => {
+      if (selectedSubject && kp.subjectId !== selectedSubject) return false;
+      if (filterProf !== 'all' && kp.proficiency !== filterProf) return false;
+      if (searchQuery && !kp.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'name') {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortBy === 'createdAt') {
+        cmp = getSortableTime(a.createdAt) - getSortableTime(b.createdAt);
+      } else if (sortBy === 'proficiency') {
+        const profOrder = { none: 0, rusty: 1, normal: 2, master: 3 };
+        cmp = profOrder[a.proficiency] - profOrder[b.proficiency];
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
 
   const grouped = filteredKPs.reduce<Record<string, typeof filteredKPs>>((acc, kp) => {
     const chapter = learningState.chapters.find(c => c.id === kp.chapterId);
@@ -483,12 +488,12 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
     };
 
     const recentKPs = [...filteredKPs]
-      .sort((a, b) => new Date((b as any).updatedAt || (b as any).createdAt || 0).getTime() - new Date((a as any).updatedAt || (a as any).createdAt || 0).getTime())
+      .sort((a, b) => new Date(getKnowledgePointTimestamp(b) || 0).getTime() - new Date(getKnowledgePointTimestamp(a) || 0).getTime())
       .slice(0, 12);
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayLearnedKPs = recentKPs.filter(kp => {
-      const ts = (kp as any).updatedAt || (kp as any).createdAt;
+      const ts = getKnowledgePointTimestamp(kp);
       if (!ts) return false;
       return new Date(ts).toISOString().slice(0, 10) === todayStr;
     });
@@ -667,9 +672,9 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
                   const iconBg = tileBgs[subIdx >= 0 ? subIdx % tileBgs.length : 0];
                   const isSelected = selectedIds.has(kp.id);
                   const timeAgo = (() => {
-                    const ts = (kp as any).updatedAt || (kp as any).createdAt;
+                    const ts = getKnowledgePointTimestamp(kp);
                     if (!ts) return '';
-                    const days = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+                    const days = Math.floor((IMPORT_HISTORY_NOW_MS - new Date(ts).getTime()) / 86400000);
                     if (days === 0) return '刚刚更新';
                     if (days === 1) return '1天前更新';
                     return `${days}天前更新`;
