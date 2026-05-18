@@ -44,6 +44,7 @@ const QuizResultPage = React.lazy(() => import('@/pages/Quiz/QuizResult'));
 const WrongBookPage = React.lazy(() => import('@/pages/Quiz/WrongBook'));
 const KnowledgeMapPage = React.lazy(() => import('@/pages/KnowledgeMap'));
 const CheckinPage = React.lazy(() => import('@/features/gamification/checkin'));
+const TeamPage = React.lazy(() => import('@/features/gamification/team'));
 const AchievementsPage = React.lazy(() => import('@/features/gamification/achievements'));
 const ShopPage = React.lazy(() => import('@/features/gamification/shop'));
 const RankingPage = React.lazy(() => import('@/features/gamification/ranking'));
@@ -212,6 +213,7 @@ function AppContent() {
       case 'wrong-book': return <WrongBookPage />;
       case 'knowledge-map': return <KnowledgeMapPage />;
       case 'checkin': return <CheckinPage />;
+      case 'team': return <TeamPage />;
       case 'achievements': return <AchievementsPage />;
       case 'shop': return <ShopPage />;
       case 'ranking': return <RankingPage />;

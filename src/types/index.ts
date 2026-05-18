@@ -30,6 +30,7 @@ export interface User {
   nickname: string;
   avatar: string;
   learningDays: number;
+  totalStudyMinutes?: number;
   totalPoints: number;
   bonusExperience: number;
   experienceLedger: ExperienceLedgerEntry[];
@@ -274,6 +275,7 @@ export type PageName =
   | 'add-knowledge'
   | 'import-knowledge'
   | 'checkin'
+  | 'team'
   | 'achievements'
   | 'shop'
   | 'ranking'
@@ -444,6 +446,9 @@ export interface RankEntry {
   avatar: string;
   avatarFrame?: string;
   value: number;
+  learningDays?: number;
+  studyMinutes?: number;
+  masterCount?: number;
   isMe: boolean;
 }
 

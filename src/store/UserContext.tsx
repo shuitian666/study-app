@@ -35,6 +35,7 @@ function normalizeUser(user: User): User {
     ...normalizeBackgroundUser(user),
     dailyGoal,
     dailyNewGoal: dailyGoal,
+    totalStudyMinutes: Number.isFinite(user.totalStudyMinutes ?? NaN) ? user.totalStudyMinutes : 0,
     totalPoints: Number.isFinite(user.totalPoints) ? user.totalPoints : 0,
     bonusExperience: Number.isFinite(user.bonusExperience) ? user.bonusExperience : 0,
     experienceLedger: Array.isArray(user.experienceLedger) ? user.experienceLedger : [],

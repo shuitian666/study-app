@@ -210,6 +210,7 @@ export function toPublicUser(row, assets) {
     nickname: row.nickname,
     avatar: row.avatar,
     learningDays: 0,
+    totalStudyMinutes: 0,
     totalPoints: assets?.coins ?? 0,
     bonusExperience: assets?.experience ?? 0,
     experienceLedger: [],

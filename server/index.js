@@ -335,14 +335,85 @@ app.get('/api/health', (_req, res) => {
 });
 
 const teams = new Map();
+
+function makeTeamMember({ userId, userName, userAvatar }) {
+  return {
+    id: String(userId || `guest-${crypto.randomUUID()}`),
+    name: String(userName || '学习伙伴'),
+    avatar: String(userAvatar || '👤'),
+    isSimulated: false,
+    progress: {
+      taskCompletionRate: 0,
+      studyMinutes: 0,
+      isReady: false,
+      lastUpdated: nowIso(),
+    },
+  };
+}
+
+function findTeam(idOrCode) {
+  const key = String(idOrCode || '').trim().toUpperCase();
+  if (!key) return null;
+  return teams.get(idOrCode) || Array.from(teams.values()).find(team => team.inviteCode === key) || null;
+}
+
 app.post('/api/team/create', (req, res) => {
   const teamId = `team-${Date.now()}`;
   const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-  const team = { id: teamId, inviteCode, members: [], status: 'waiting', createdAt: nowIso(), todayCheckedIn: false };
+  const team = {
+    id: teamId,
+    inviteCode,
+    members: [makeTeamMember(req.body || {})],
+    status: 'waiting',
+    createdAt: nowIso(),
+    todayCheckedIn: false,
+  };
   teams.set(teamId, team);
   res.json({ teamId, inviteCode, team });
 });
-app.get('/api/team/:teamId', (req, res) => res.json(teams.get(req.params.teamId) || null));
+
+app.post('/api/team/join', (req, res) => {
+  const team = findTeam(req.body.inviteCode);
+  if (!team || team.status === 'dissolved') return res.status(404).json({ error: 'Team not found' });
+  if (team.members.length >= 2 && !team.members.some(member => member.id === req.body.userId)) {
+    return res.status(409).json({ error: 'Team is full' });
+  }
+
+  if (!team.members.some(member => member.id === req.body.userId)) {
+    team.members.push(makeTeamMember(req.body || {}));
+  }
+  team.status = team.members.length >= 2 ? 'active' : 'waiting';
+  res.json({ team });
+});
+
+app.post('/api/team/progress', (req, res) => {
+  const team = findTeam(req.body.teamId);
+  if (!team || team.status === 'dissolved') return res.status(404).json({ error: 'Team not found' });
+  const member = team.members.find(item => item.id === req.body.userId);
+  if (!member) return res.status(404).json({ error: 'Team member not found' });
+  const progress = req.body.progress || {};
+  member.progress = {
+    taskCompletionRate: Math.max(0, Math.min(1, Number(progress.taskCompletionRate) || 0)),
+    studyMinutes: Math.max(0, Math.round(Number(progress.studyMinutes) || 0)),
+    isReady: Boolean(progress.isReady),
+    lastUpdated: nowIso(),
+  };
+  res.json({ team });
+});
+
+app.post('/api/team/dissolve', (req, res) => {
+  const team = findTeam(req.body.teamId);
+  if (team) {
+    team.status = 'dissolved';
+  }
+  res.json({ ok: true });
+});
+
+app.get('/api/team/:teamId', (req, res) => {
+  const team = findTeam(req.params.teamId);
+  if (!team || team.status === 'dissolved') return res.status(404).json({ error: 'Team not found' });
+  res.json(team);
+});
 
 const PORT = process.env.PORT || 3001;
 app.use(express.static(distDir));

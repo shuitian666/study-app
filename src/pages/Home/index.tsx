@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { FloatingAIPanel, TabBar } from '@/components/layout';
 import OnboardingGuide from '@/components/ui/OnboardingGuide';
-import TeamPanel from '@/features/gamification/checkin/TeamPanel';
 import { useApp } from '@/store/AppContext';
 import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
@@ -80,7 +79,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const stats = getLearningStats();
   const [fallbackEncouragement] = useState(() => getEncouragement());
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [isTeamSheetOpen, setIsTeamSheetOpen] = useState(false);
 
   useEffect(() => {
     const { review, newItems } = generateTodayReviewPlan(
@@ -260,7 +258,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       id: 'team',
       label: '小队',
       icon: Users,
-      onSelect: () => setIsTeamSheetOpen(true),
+      onSelect: () => navigate('team'),
       accentColor: '#4f46e5',
       backgroundColor: theme.bgCard,
     },
@@ -309,14 +307,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       onPrimaryAction={openPrimaryLearning}
     />
   );
-  const teamSheet = isActive && isTeamSheetOpen ? (
-    <div className="absolute inset-0 z-[120] flex items-end justify-center bg-black/40 p-4" onClick={() => setIsTeamSheetOpen(false)}>
-      <div onClick={event => event.stopPropagation()}>
-        <TeamPanel onClose={() => setIsTeamSheetOpen(false)} />
-      </div>
-    </div>
-  ) : null;
-
   if (isScholar) {
     const accentPrimary = theme.primary || '#24389c';
     const accentSurface = theme.onSurface || '#191c1d';
@@ -593,7 +583,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           </div>
         )}
         <OnboardingGuide open={isGuideOpen} onClose={handleCloseGuide} />
-        {teamSheet}
       </div>
     );
   }
@@ -897,7 +886,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
         </div>
       )}
       <OnboardingGuide open={isGuideOpen} onClose={handleCloseGuide} />
-      {teamSheet}
     </div>
   );
 }
