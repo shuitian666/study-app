@@ -1,6 +1,7 @@
 import type { AIConfig, CheckinState, DrawBalance, InventoryItem, LotteryResult, Question, UpPoolResult, User } from '@/types';
 
-export const API_BASE = '/api';
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
+export const API_BASE = configuredApiBase || '/api';
 
 export function getAIConfig(): AIConfig {
   return { provider: 'server' };

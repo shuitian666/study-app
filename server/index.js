@@ -30,10 +30,15 @@ import {
 } from './security.js';
 
 const app = express();
-const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const defaultDevOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const configuredOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const allowedOrigins = new Set([
+  ...configuredOrigins,
+  ...(process.env.NODE_ENV === 'production' ? [] : defaultDevOrigins),
+]);
 const corsMiddleware = cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.size === 0 || allowedOrigins.has(origin)) return callback(null, true);
     return callback(new Error('CORS origin denied'));
   },
   credentials: true,

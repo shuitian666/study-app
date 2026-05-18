@@ -87,7 +87,9 @@ function AppContent() {
       .then(payload => {
         if (cancelled) return;
         if (!payload) {
-          userDispatch({ type: 'LOGOUT' });
+          if (userState.isLoggedIn) {
+            userDispatch({ type: 'LOGOUT' });
+          }
           return;
         }
         applyServerAccountPayload(payload, userDispatch, gameDispatch);
@@ -98,7 +100,7 @@ function AppContent() {
     return () => {
       cancelled = true;
     };
-  }, [gameDispatch, userDispatch]);
+  }, [gameDispatch, userDispatch, userState.isLoggedIn]);
 
   // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {

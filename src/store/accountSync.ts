@@ -13,7 +13,11 @@ export function applyServerAccountPayload(
 }
 
 export function logoutOnUnauthorized(err: unknown, userDispatch: Dispatch<UserAction>) {
-  if ((err as Error & { status?: number }).status === 401) {
+  if (isUnauthorizedError(err)) {
     userDispatch({ type: 'LOGOUT' });
   }
+}
+
+export function isUnauthorizedError(err: unknown) {
+  return (err as Error & { status?: number }).status === 401;
 }

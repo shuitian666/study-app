@@ -10,7 +10,7 @@ import { STREAK_REWARDS } from '@/data/incentive-mock';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { getLocalDateKey } from '@/utils/experience';
 import { accountCheckin, accountMakeupCheckin } from '@/services/aiClient';
-import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
+import { applyServerAccountPayload, isUnauthorizedError } from '@/store/accountSync';
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -20,7 +20,6 @@ function formatLocalDate(date: Date) {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-
 function generateCalendar(year: number, month: number) {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -47,6 +46,9 @@ export default function CheckinPage() {
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [pendingMakeupDate, setPendingMakeupDate] = useState<string | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [makeupSubmitting, setMakeupSubmitting] = useState(false);
+  const [accountError, setAccountError] = useState('');
   const checkinInFlightRef = useRef(false);
 
   const checkedDates = useMemo(() => new Set(checkin.records.map(record => record.date)), [checkin.records]);
@@ -96,14 +98,27 @@ export default function CheckinPage() {
     return radiusMap[theme.borderRadius]?.[size] ?? '20px';
   };
 
+  const handleAccountError = (err: unknown) => {
+    if (isUnauthorizedError(err)) {
+      setAccountError('登录已过期，请重新登录');
+      window.setTimeout(() => userDispatch({ type: 'LOGOUT' }), 900);
+      return;
+    }
+    setAccountError(err instanceof Error ? err.message : '操作失败，请稍后重试');
+  };
+
   const performCheckin = async () => {
     if (!canCheckin || !user || checkinInFlightRef.current) return;
     checkinInFlightRef.current = true;
+    setCheckingIn(true);
+    setAccountError('');
     try {
       applyServerAccountPayload(await accountCheckin(today), userDispatch, gameDispatch);
     } catch (err) {
+      handleAccountError(err);
+    } finally {
       checkinInFlightRef.current = false;
-      logoutOnUnauthorized(err, userDispatch);
+      setCheckingIn(false);
     }
   };
 
@@ -115,15 +130,19 @@ export default function CheckinPage() {
 
   const confirmMakeup = async () => {
     const date = pendingMakeupDate;
-    if (!date || !canMakeupDate(date)) {
+    if (!date || !canMakeupDate(date) || makeupSubmitting) {
       setPendingMakeupDate(null);
       return;
     }
+    setMakeupSubmitting(true);
+    setAccountError('');
     try {
       applyServerAccountPayload(await accountMakeupCheckin(date), userDispatch, gameDispatch);
       setPendingMakeupDate(null);
     } catch (err) {
-      logoutOnUnauthorized(err, userDispatch);
+      handleAccountError(err);
+    } finally {
+      setMakeupSubmitting(false);
     }
   };
 
@@ -213,12 +232,21 @@ export default function CheckinPage() {
                 今日已签到
               </div>
             ) : canCheckin ? (
-              <button onClick={performCheckin} className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white active:opacity-85">
-                立即签到
+              <button
+                onClick={performCheckin}
+                disabled={checkingIn}
+                className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-white active:opacity-85 disabled:opacity-60"
+              >
+                {checkingIn ? '签到中...' : '立即签到'}
               </button>
             ) : (
               <div className="rounded-xl bg-gray-100 py-3 text-center text-sm text-text-muted">
                 完成学习任务后可签到
+              </div>
+            )}
+            {accountError && (
+              <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-center text-xs font-medium text-red-600">
+                {accountError}
               </div>
             )}
           </div>
@@ -312,8 +340,12 @@ export default function CheckinPage() {
               <button onClick={() => setPendingMakeupDate(null)} className="rounded-xl bg-gray-100 py-3 text-sm font-medium text-text-muted active:opacity-80">
                 取消
               </button>
-              <button onClick={confirmMakeup} className="rounded-xl bg-primary py-3 text-sm font-semibold text-white active:opacity-80">
-                使用补签卡
+              <button
+                onClick={confirmMakeup}
+                disabled={makeupSubmitting}
+                className="rounded-xl bg-primary py-3 text-sm font-semibold text-white active:opacity-80 disabled:opacity-60"
+              >
+                {makeupSubmitting ? '补签中...' : '使用补签卡'}
               </button>
             </div>
           </div>
@@ -378,7 +410,6 @@ export default function CheckinPage() {
     </div>
   );
 }
-
 function RewardItem({ icon, value, label, tone }: { icon: ReactNode; value: string; label: string; tone: 'blue' | 'purple' | 'amber' }) {
   const toneClass = {
     blue: 'bg-blue-100 text-blue-700',

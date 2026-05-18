@@ -7,13 +7,15 @@ import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface, isDar
 import { loginWithPassword, registerWithPassword, sendEmailCode } from '@/services/aiClient';
 import { applyServerAccountPayload } from '@/store/accountSync';
 
+const LAST_LOGIN_EMAIL_KEY = 'study-app:last-login-email';
+
 export default function LoginPage() {
   const { userDispatch } = useUser();
   const { gameDispatch } = useGame();
   const { theme } = useTheme();
   const dark = isDarkTheme(theme);
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem(LAST_LOGIN_EMAIL_KEY) || '');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [sendingCode, setSendingCode] = useState(false);
@@ -36,6 +38,7 @@ export default function LoginPage() {
       const payload = mode === 'login'
         ? await loginWithPassword(email.trim(), password)
         : await registerWithPassword(email.trim(), password, code.trim());
+      localStorage.setItem(LAST_LOGIN_EMAIL_KEY, email.trim());
       applyServerAccountPayload(payload, userDispatch, gameDispatch);
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');

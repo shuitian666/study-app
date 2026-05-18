@@ -3,6 +3,18 @@ import crypto from 'node:crypto';
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME || 'study_session';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+function getCookieOptions() {
+  const sameSite = process.env.SESSION_COOKIE_SAMESITE || 'Lax';
+  const secure = process.env.SESSION_COOKIE_SECURE === undefined
+    ? process.env.NODE_ENV === 'production'
+    : process.env.SESSION_COOKIE_SECURE === 'true';
+  return {
+    domain: process.env.SESSION_COOKIE_DOMAIN || '',
+    sameSite,
+    secure,
+  };
+}
+
 export function hashValue(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
 }
@@ -47,28 +59,30 @@ export function getSessionId(req) {
 }
 
 export function setSessionCookie(res, sessionId) {
-  const secure = process.env.NODE_ENV === 'production';
+  const { domain, sameSite, secure } = getCookieOptions();
   const maxAge = 30 * DAY_MS;
   const parts = [
     `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${sameSite}`,
     `Max-Age=${Math.floor(maxAge / 1000)}`,
   ];
+  if (domain) parts.push(`Domain=${domain}`);
   if (secure) parts.push('Secure');
   res.setHeader('Set-Cookie', parts.join('; '));
 }
 
 export function clearSessionCookie(res) {
-  const secure = process.env.NODE_ENV === 'production';
+  const { domain, sameSite, secure } = getCookieOptions();
   const parts = [
     `${SESSION_COOKIE}=`,
     'Path=/',
     'HttpOnly',
-    'SameSite=Lax',
+    `SameSite=${sameSite}`,
     'Max-Age=0',
   ];
+  if (domain) parts.push(`Domain=${domain}`);
   if (secure) parts.push('Secure');
   res.setHeader('Set-Cookie', parts.join('; '));
 }
