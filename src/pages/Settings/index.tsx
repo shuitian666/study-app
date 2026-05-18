@@ -1,27 +1,14 @@
-/**
- * @section SETTINGS - 简化版
- * 
- * 设置页面功能:
- * 1. AI模式选择（豆包云端 / 离线模式）
- * 2. 学习目标设置
- * 
- * 豆包API配置:
- * - API Key: 用户提供的密钥
- * - 模型: doubao-lite-32k (最轻量)
- */
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Bot, BookOpen, Check, Cloud, KeyRound, Palette, ShieldCheck, Sparkles, Target, Trash2 } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
 import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/store/ThemeContext';
-import { fetchAIConfig, saveAIConfig } from '@/services/aiClient';
+import { fetchAIConfig, saveAIConfig, type ServerAIConfigStatus } from '@/services/aiClient';
 import { clearKnowledgeData } from '@/services/indexedDBService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
-import { Bot, Target, Check, Sparkles, WifiOff, Cloud, Trash2, AlertTriangle, Palette, BookOpen } from 'lucide-react';
 
-// 豆包默认模型
 const DEFAULT_AI_MODEL = 'deepseek-chat';
 const DEFAULT_AI_BASE_URL = 'https://api.deepseek.com';
 const ONBOARDING_FORCE_OPEN_KEY = 'study-app:onboarding-force-open:v1';
@@ -33,95 +20,91 @@ export default function SettingsPage() {
   const { dispatch: appDispatch } = useApp();
   const { theme } = useTheme();
 
-  const [aiMode, setAiMode] = useState<'platform' | 'custom' | 'offline' | 'douban' | 'openclaw'>('platform');
-
-  // API Key 输入框
-  const [apiKey, setApiKey] = useState(() => {
-    return '';
-  });
-  const [modelId, setModelId] = useState(() => {
-    return DEFAULT_AI_MODEL;
-  });
+  const [aiStatus, setAiStatus] = useState<ServerAIConfigStatus | null>(null);
+  const [aiMode, setAiMode] = useState<'platform' | 'custom'>('platform');
+  const [apiKey, setApiKey] = useState('');
+  const [modelId, setModelId] = useState(DEFAULT_AI_MODEL);
   const [baseUrl, setBaseUrl] = useState(DEFAULT_AI_BASE_URL);
+  const [savingAI, setSavingAI] = useState(false);
+  const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  // 销号确认弹窗
+  const [dailyGoal, setDailyGoal] = useState(() => {
+    if (userState.user?.dailyGoal) return userState.user.dailyGoal;
+    const saved = localStorage.getItem('daily-goal') ?? localStorage.getItem('daily-question-goal');
+    return saved ? parseInt(saved, 10) : 10;
+  });
+  const [goalSaved, setGoalSaved] = useState(false);
+  const [themeStyle, setThemeStyle] = useState(() => userState.user?.themeStyle || 'default');
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
+
+  const todayCompleted = getTodayLearningProgress(learningState).totalCount;
+  const goalAchieved = todayCompleted >= dailyGoal;
 
   useEffect(() => {
     fetchAIConfig()
       .then(status => {
+        setAiStatus(status);
         setAiMode(status.mode);
         setBaseUrl(status.baseUrl || DEFAULT_AI_BASE_URL);
         setModelId(status.model || DEFAULT_AI_MODEL);
       })
-      .catch(() => {});
+      .catch(() => {
+        setAiMessage({ type: 'error', text: '无法读取 AI 配置，请确认已登录。' });
+      });
   }, []);
 
-  // 保存AI模式
-  const saveAIMode = async (mode: 'platform' | 'custom' | 'offline') => {
-    setSaving(true);
+  const getBorderRadius = (size: 'small' | 'medium' | 'large' = 'medium') => {
+    const radiusMap: Record<string, Record<string, string>> = {
+      small: { sm: '12px', md: '16px', lg: '20px' },
+      medium: { sm: '16px', md: '20px', lg: '24px' },
+      large: { sm: '20px', md: '24px', lg: '28px' },
+      cute: { sm: '20px', md: '24px', lg: '32px' },
+    };
+    return radiusMap[theme.borderRadius]?.[size] ?? '20px';
+  };
+
+  const cardStyle = {
+    borderRadius: getBorderRadius('large'),
+    backgroundColor: theme.bgCard || '#ffffff',
+    border: `1px solid ${theme.border || '#e5e7eb'}`,
+  };
+
+  const saveCurrentAIConfig = async () => {
+    setSavingAI(true);
+    setAiMessage(null);
     try {
-      if (mode === 'offline') {
-        await saveAIConfig({ mode: 'platform' });
-      } else if (mode === 'custom') {
-        await saveAIConfig({
-          mode: 'custom',
-          baseUrl: baseUrl.trim(),
-          model: modelId.trim(),
-          apiKey: apiKey.trim() || undefined,
-        });
-      } else {
-        await saveAIConfig({ mode: 'platform' });
-      }
-      setAiMode(mode);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      const status = aiMode === 'platform'
+        ? await saveAIConfig({ mode: 'platform' })
+        : await saveAIConfig({
+            mode: 'custom',
+            baseUrl: baseUrl.trim(),
+            model: modelId.trim(),
+            apiKey: apiKey.trim() || undefined,
+          });
+      setAiStatus(status);
+      setAiMode(status.mode);
+      setBaseUrl(status.baseUrl || DEFAULT_AI_BASE_URL);
+      setModelId(status.model || DEFAULT_AI_MODEL);
+      setApiKey('');
+      setAiMessage({ type: 'success', text: 'AI 配置已保存。' });
+    } catch (error) {
+      setAiMessage({ type: 'error', text: error instanceof Error ? error.message : '保存 AI 配置失败。' });
     } finally {
-      setSaving(false);
+      setSavingAI(false);
     }
   };
 
-  // 学习目标状态 —— 优先用 userState 中已持久化的值，再回退到 localStorage，最后默认 10
-  const [dailyGoal, setDailyGoal] = useState(() => {
-    if (userState.user?.dailyGoal) return userState.user.dailyGoal;
-    const saved = localStorage.getItem('daily-goal') ?? localStorage.getItem('daily-question-goal');
-    return saved ? parseInt(saved) : 10;
-  });
-  const [goalAchieved, setGoalAchieved] = useState(false);
-  const [todayCompleted, setTodayCompleted] = useState(0);
-
-  // 主题风格状态 ('default' | 'fluidScholar')
-  const [themeStyle, setThemeStyle] = useState(() => {
-    return userState.user?.themeStyle || 'default';
-  });
-
-  // 计算今日完成学习量
-  useEffect(() => {
-    const total = getTodayLearningProgress(learningState).totalCount;
-    setTodayCompleted(total);
-    setGoalAchieved(total >= dailyGoal);
-  }, [learningState, dailyGoal]);
-
-  // 保存学习目标
   const handleSaveGoal = () => {
     localStorage.setItem('daily-goal', String(dailyGoal));
     localStorage.removeItem('daily-question-goal');
-    userDispatch({
-      type: 'SET_DAILY_GOAL',
-      payload: dailyGoal
-    });
+    userDispatch({ type: 'SET_DAILY_GOAL', payload: dailyGoal });
+    setGoalSaved(true);
+    setTimeout(() => setGoalSaved(false), 1600);
   };
 
-  // 保存主题风格
   const handleSaveThemeStyle = (style: string) => {
-    userDispatch({
-      type: 'UPDATE_USER',
-      payload: { themeStyle: style }
-    });
+    userDispatch({ type: 'UPDATE_USER', payload: { themeStyle: style } });
     setThemeStyle(style);
   };
 
@@ -130,19 +113,14 @@ export default function SettingsPage() {
     navigate('home', { showGuide: '1' });
   };
 
-  // 销号处理
   const handleDestroyAccount = async () => {
     if (destroyConfirmText !== '确认销号') return;
-
-    // 清除所有本地存储
     localStorage.clear();
     try {
       await clearKnowledgeData();
     } catch (error) {
       console.error('Failed to clear IndexedDB during account destroy:', error);
     }
-
-    // 彻底重置状态
     appDispatch({ type: 'RESET_ALL' });
     learningDispatch({ type: 'RESET_ALL' });
     gameDispatch({ type: 'RESET_ALL' });
@@ -150,407 +128,250 @@ export default function SettingsPage() {
     navigate('login');
   };
 
-  const isCustomMode = aiMode === 'custom' || aiMode === 'douban';
-  const isDoubanMode = isCustomMode;
-  const normalizedAiMode: 'platform' | 'custom' | 'offline' =
-    aiMode === 'douban' ? 'custom' : aiMode === 'openclaw' ? 'platform' : aiMode;
-
-  // 根据主题获取圆角大小
-  const getBorderRadius = (size: 'small' | 'medium' | 'large' = 'medium') => {
-    const radiusMap: Record<string, Record<string, string>> = {
-      small: { sm: '12px', md: '16px', lg: '20px' },
-      medium: { sm: '16px', md: '20px', lg: '24px' },
-      large: { sm: '20px', md: '24px', lg: '28px' },
-      cute: { sm: '20px', md: '24px', lg: '32px' }
-    };
-    return radiusMap[theme.borderRadius][size];
-  };
+  const customMissingRequired = aiMode === 'custom'
+    && (!baseUrl.trim() || !modelId.trim() || (!apiKey.trim() && !aiStatus?.customConfigured));
 
   return (
-    <div className="page-scroll pb-4">
-      {/* 渐变头部背景 */}
+    <div className="page-scroll pb-6" style={{ backgroundColor: theme.bg || '#f8f9fa' }}>
       <div
-        className="text-white px-5 pt-5 pb-4 rounded-b-3xl mb-4 overflow-hidden"
-        style={{
-          backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)`
-        }}
+        className="mb-4 rounded-b-3xl px-5 pb-4 pt-5 text-white"
+        style={{ backgroundImage: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryDark} 100%)` }}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">设置</h2>
-          <button
-            onClick={() => navigate('profile')}
-            className="p-2 bg-white/20 rounded-full active:bg-white/30 transition-colors"
-          >
-            <span className="text-sm" style={{ color: '#ffffff' }}>返回</span>
+          <button onClick={() => navigate('profile')} className="rounded-full bg-white/20 px-3 py-1.5 text-sm active:bg-white/30">
+            返回
           </button>
         </div>
-        <p className="text-sm mt-1" style={{ color: '#ffffff' }}>个性化您的学习体验</p>
+        <p className="mt-1 text-sm text-white/85">管理账号、AI 和学习偏好</p>
       </div>
 
-      {/* AI设置 */}
-      <div className="px-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+      <section className="px-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <Bot size={16} className="text-primary" />
-          AI配置
+          AI 个性设置
         </h3>
 
-        <div className="bg-white border border-border shadow-sm overflow-hidden" style={{ borderRadius: getBorderRadius('large') }}>
-          {/* 当前状态显示 */}
-          <div className="p-4 flex items-center justify-between border-b border-border">
-            <div className="flex items-center gap-3">
-              {aiMode === 'douban' ? (
-                <Cloud size={20} className="text-purple-500" />
-              ) : aiMode === 'openclaw' ? (
-                <Sparkles size={20} className="text-green-500" />
-              ) : (
-                <WifiOff size={20} className="text-gray-400" />
-              )}
+        <div className="overflow-hidden shadow-sm" style={cardStyle}>
+          <div className="border-b border-border p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-green-50 text-green-600">
+                <ShieldCheck size={20} />
+              </div>
               <div>
-                <div className="text-sm font-medium">
-                  {aiMode === 'douban' ? '豆包 AI (云端)' :
-                    aiMode === 'openclaw' ? 'OpenClaw (本地)' : '离线模式'}
+                <div className="text-sm font-semibold text-text-primary">
+                  当前模式：{aiMode === 'custom' ? '自定义 AI' : '平台 DeepSeek'}
                 </div>
-                <div className="text-xs text-text-muted">
-                  {aiMode === 'douban'
-                    ? `使用 doubao-lite-32k 模型`
-                    : aiMode === 'openclaw'
-                      ? '连接本地 OpenClaw 服务，使用本地知识库'
-                      : '使用预设任务流，无AI能力'}
-                </div>
+                <p className="mt-1 text-xs leading-5 text-text-muted">
+                  API Key 只保存在服务器端。自定义 Key 会加密入库，前端不会回显明文。
+                </p>
               </div>
             </div>
-            {saved && (
-              <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full flex items-center gap-1">
-                <Check size={12} />
-                已保存
-              </span>
-            )}
           </div>
 
-          {/* 模式选择 */}
-          <div className="p-4 space-y-3">
-            <div className="text-xs text-text-muted mb-2">选择AI模式</div>
-
-            {/* 豆包云端 */}
+          <div className="space-y-3 p-4">
             <button
-              onClick={() => setAiMode('douban')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${isDoubanMode
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-border bg-white hover:border-purple-300'
-                }`}
+              onClick={() => setAiMode('platform')}
+              className={`w-full rounded-xl border-2 p-4 text-left transition-all ${
+                aiMode === 'platform' ? 'border-primary bg-primary/5' : 'border-border bg-white hover:border-primary/30'
+              }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Sparkles size={20} className="text-purple-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Cloud size={20} className="text-primary" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium">豆包 AI (云端)</div>
-                    <div className="text-xs text-text-muted">智能出题、聊天辅导、错题解析</div>
+                    <div className="text-sm font-medium">平台 AI</div>
+                    <div className="text-xs text-text-muted">使用服务器内置 DeepSeek Key，适合普通用户直接使用。</div>
                   </div>
                 </div>
-                {isDoubanMode && <Check size={18} className="text-purple-500" />}
+                {aiMode === 'platform' && <Check size={18} className="text-primary" />}
               </div>
             </button>
 
-            {/* 豆包配置 */}
-            {isDoubanMode && (
-              <div className="mt-3 space-y-3">
-                {/* API Key */}
-                <div>
-                  <label className="text-xs text-text-secondary mb-1.5 block">
-                    豆包 API Key
-                  </label>
+            <button
+              onClick={() => setAiMode('custom')}
+              className={`w-full rounded-xl border-2 p-4 text-left transition-all ${
+                aiMode === 'custom' ? 'border-purple-500 bg-purple-50' : 'border-border bg-white hover:border-purple-300'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
+                    <KeyRound size={20} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">自定义 AI</div>
+                    <div className="text-xs text-text-muted">填写 OpenAI-compatible 的 Base URL、Model 和 API Key。</div>
+                  </div>
+                </div>
+                {aiMode === 'custom' && <Check size={18} className="text-purple-600" />}
+              </div>
+            </button>
+
+            {aiMode === 'custom' && (
+              <div className="space-y-3 rounded-2xl border border-purple-100 bg-purple-50/60 p-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-text-secondary">Base URL</span>
+                  <input
+                    value={baseUrl}
+                    onChange={event => setBaseUrl(event.target.value)}
+                    placeholder="https://api.deepseek.com 或 https://api.openai.com/v1"
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-purple-400"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-text-secondary">模型</span>
+                  <input
+                    value={modelId}
+                    onChange={event => setModelId(event.target.value)}
+                    placeholder="deepseek-chat / gpt-4o-mini / qwen-plus"
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-purple-400"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-text-secondary">API Key</span>
                   <input
                     type="password"
                     value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="请输入你的火山方舟 API Key"
-                    className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-400 transition-colors"
+                    onChange={event => setApiKey(event.target.value)}
+                    placeholder={aiStatus?.customConfigured ? '留空则保留已保存的密钥' : '请输入 API Key'}
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-purple-400"
                   />
-                  <p className="text-[10px] text-text-muted mt-1">
-                    在 <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" className="text-purple-500 underline">火山方舟控制台</a> 获取 API Key
+                  <p className="mt-1 text-[10px] text-text-muted">
+                    保存后只显示“已配置”，不会再回传明文 Key。
                   </p>
-                </div>
-
-                {/* 模型 ID / 推理接入点 ID */}
-                <div>
-                  <label className="text-xs text-text-secondary mb-1.5 block">
-                    推理接入点 ID (模型 ID)
-                  </label>
-                  <input
-                    type="text"
-                    value={modelId}
-                    onChange={(e) => setModelId(e.target.value)}
-                    placeholder="例如: doubao-lite-32k 或 ep-xxxxxx-xxxxxx"
-                    className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-purple-400 transition-colors"
-                  />
-                  <p className="text-[10px] text-text-muted mt-1">
-                    在火山方舟创建推理接入点后复制，通常是 ep- 开头或直接用 doubao-lite-32k
-                  </p>
-                </div>
+                </label>
               </div>
             )}
 
-            {/* OpenClaw 本地接入 - 用户要求手动选择接入 ✅ */}
-            <button
-              onClick={() => setAiMode('openclaw')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${aiMode === 'openclaw'
-                ? 'border-green-500 bg-green-50'
-                : 'border-border bg-white hover:border-green-300'
-                }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Sparkles size={20} className="text-green-500" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">OpenClaw (本地)</div>
-                    <div className="text-xs text-text-muted">接入本地 OpenClaw，使用本地知识库</div>
-                  </div>
-                </div>
-                {aiMode === 'openclaw' && <Check size={18} className="text-green-500" />}
+            {aiMessage && (
+              <div className={`rounded-xl border px-3 py-2 text-xs ${
+                aiMessage.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
+              }`}>
+                {aiMessage.text}
               </div>
-            </button>
+            )}
 
-            {/* 离线模式 */}
             <button
-              onClick={() => setAiMode('offline')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${aiMode === 'offline'
-                ? 'border-gray-400 bg-gray-50'
-                : 'border-border bg-white hover:border-gray-300'
-                }`}
+              onClick={saveCurrentAIConfig}
+              disabled={savingAI || customMissingRequired}
+              className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                    <WifiOff size={20} className="text-gray-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">离线模式</div>
-                    <div className="text-xs text-text-muted">无需联网，使用预设任务流</div>
-                  </div>
-                </div>
-                {!isDoubanMode && <Check size={18} className="text-gray-400" />}
-              </div>
-            </button>
-
-            {/* 保存按钮 */}
-            <button
-              onClick={() => saveAIMode(normalizedAiMode)}
-              disabled={saving || (aiMode === 'douban' && (!apiKey.trim() || !modelId.trim()))}
-              className="w-full mt-2 py-2.5 bg-purple-500 text-white text-sm rounded-xl font-medium active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? '保存中...' : '保存 AI 配置'}
+              {savingAI ? '保存中...' : '保存 AI 配置'}
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 学习目标设置 */}
-      <div className="px-4 mt-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+      <section className="mt-4 px-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <Target size={16} className="text-accent" />
           学习目标
         </h3>
-
-        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
-          {/* 当前进度 */}
+        <div className="p-4 shadow-sm" style={cardStyle}>
           <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-text-muted mb-2">
+            <div className="mb-2 flex items-center justify-between text-xs text-text-muted">
               <span>今日完成</span>
               <span>{todayCompleted} / {dailyGoal} 项</span>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min(100, (todayCompleted / dailyGoal) * 100)}%`,
-                  backgroundColor: goalAchieved ? '#10b981' : '#f59e0b'
+                  backgroundColor: goalAchieved ? '#10b981' : theme.primary,
                 }}
               />
             </div>
-            {goalAchieved && (
-              <p className="text-xs text-accent mt-2 flex items-center gap-1">
-                <Check size={12} />
-                今日目标已达成！
-              </p>
-            )}
           </div>
 
-          {/* 目标设置 */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-secondary">每日目标（学习量）</span>
-              <span className="text-sm font-bold text-primary">{dailyGoal} 项</span>
-            </div>
-
-            <input
-              type="range"
-              min="10"
-              max="50"
-              step="5"
-              value={dailyGoal}
-              onChange={e => setDailyGoal(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
-            />
-
-            <div className="flex justify-between text-[10px] text-text-muted mt-1">
-              <span>10项</span>
-              <span>50项</span>
-            </div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs text-text-secondary">每日目标</span>
+            <span className="text-sm font-bold text-primary">{dailyGoal} 项</span>
+          </div>
+          <input
+            type="range"
+            min="10"
+            max="50"
+            step="5"
+            value={dailyGoal}
+            onChange={event => setDailyGoal(parseInt(event.target.value, 10))}
+            className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-primary"
+          />
+          <div className="mt-1 flex justify-between text-[10px] text-text-muted">
+            <span>10 项</span>
+            <span>50 项</span>
           </div>
 
-          <button
-            onClick={handleSaveGoal}
-            className="w-full mt-4 py-2.5 bg-primary text-white text-sm rounded-xl font-medium active:opacity-80"
-          >
-            保存目标
+          <button onClick={handleSaveGoal} className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80">
+            {goalSaved ? '已保存' : '保存目标'}
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* 主题风格设置 */}
-      <div className="px-4 mt-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+      <section className="mt-4 px-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <Palette size={16} className="text-primary" />
           主题风格
         </h3>
-
-        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
-          <div className="text-xs text-text-muted mb-3">选择主题风格后，将统一应用于所有背景</div>
-
-          <div className="space-y-2">
-            {/* 经典风格 */}
-            <button
-              onClick={() => handleSaveThemeStyle('default')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${themeStyle === 'default'
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-white hover:border-primary/30'
-                }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
-                  >
-                    <span className="text-white text-lg">🎨</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">经典风格</div>
-                    <div className="text-xs text-text-muted">多彩主题，各背景有独立配色</div>
-                  </div>
-                </div>
-                {themeStyle === 'default' && <Check size={18} className="text-primary" />}
-              </div>
-            </button>
-
-            {/* Fluid Scholar 风格 */}
-            <button
-              onClick={() => handleSaveThemeStyle('fluidScholar')}
-              className={`w-full p-4 rounded-xl border-2 transition-all text-left ${themeStyle === 'fluidScholar'
-                ? 'border-primary bg-primary/5'
-                : 'border-border bg-white hover:border-primary/30'
-                }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #24389c, #73008e)' }}
-                  >
-                    <span className="text-white text-lg">✨</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">Fluid Scholar</div>
-                    <div className="text-xs text-text-muted">专业编辑风格，统一配色适配所有背景</div>
-                  </div>
-                </div>
-                {themeStyle === 'fluidScholar' && <Check size={18} className="text-primary" />}
-              </div>
-              {/* 风格预览 */}
-              <div className="mt-3 flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#24389c' }} />
-                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#4355b9' }} />
-                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#73008e' }} />
-                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#9026ac' }} />
-                  <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#ffdfa0' }} />
-                </div>
-                <span className="text-[10px] text-text-muted">深靛蓝 + 紫色 + 琥珀色</span>
-              </div>
-            </button>
-          </div>
+        <div className="space-y-2 p-4 shadow-sm" style={cardStyle}>
+          <ThemeButton
+            active={themeStyle === 'default'}
+            title="经典风格"
+            desc="多彩主题，各背景拥有独立配色。"
+            preview="linear-gradient(135deg, #6366f1, #4f46e5)"
+            onClick={() => handleSaveThemeStyle('default')}
+          />
+          <ThemeButton
+            active={themeStyle === 'fluidScholar'}
+            title="Fluid Scholar"
+            desc="专业编辑风格，统一配色适配所有背景。"
+            preview="linear-gradient(135deg, #24389c, #73008e)"
+            onClick={() => handleSaveThemeStyle('fluidScholar')}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* 提示信息 */}
-      <div className="px-4 mt-4">
-        <div className="bg-blue-50 p-3 text-xs text-blue-700" style={{ borderRadius: getBorderRadius('medium') }}>
-          <div className="font-medium mb-1">提示</div>
-          <ul className="space-y-1 text-blue-600">
-            <li>• <strong>豆包AI</strong>：需要网络，智能程度高</li>
-            <li>• <strong>离线模式</strong>：无需联网，功能有限</li>
-            <li>• 完成{dailyGoal}项学习量可达成今日学习目标</li>
-            <li>• Fluid Scholar 风格将统一配色，适配所有背景</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* 销号功能 */}
-      <div className="px-4 mt-4">
-        <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+      <section className="mt-4 px-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <BookOpen size={16} className="text-primary" />
           使用帮助
         </h3>
-
-        <div className="bg-white border border-border shadow-sm p-4" style={{ borderRadius: getBorderRadius('large') }}>
+        <div className="p-4 shadow-sm" style={cardStyle}>
           <div className="flex items-start gap-3">
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: `${theme.primary}12`, color: theme.primary }}
-            >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Sparkles size={18} />
             </div>
-            <div className="min-w-0 flex-1">
+            <div>
               <div className="text-sm font-medium">新手指导</div>
-              <p className="mt-1 text-xs leading-5 text-text-muted">
-                回看应用的核心功能介绍，重新熟悉首页、知识库、刷题、AI 助手和激励系统。
-              </p>
+              <p className="mt-1 text-xs leading-5 text-text-muted">重新查看首页、知识库、刷题、AI 助手和激励系统的功能介绍。</p>
             </div>
           </div>
-
-          <button
-            onClick={handleReopenGuide}
-            className="w-full mt-4 py-2.5 bg-primary text-white text-sm rounded-xl font-medium active:opacity-80"
-          >
+          <button onClick={handleReopenGuide} className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80">
             重新查看新手指导
           </button>
         </div>
-      </div>
+      </section>
 
-      <div className="px-4 mt-6 mb-4">
+      <div className="mb-4 mt-6 px-4">
         <button
           onClick={() => setShowDestroyConfirm(true)}
-          className="w-full py-3 bg-red-50 text-red-600 text-sm font-medium flex items-center justify-center gap-2 border border-red-200"
+          className="flex w-full items-center justify-center gap-2 border border-red-200 bg-red-50 py-3 text-sm font-medium text-red-600"
           style={{ borderRadius: getBorderRadius('large') }}
         >
           <Trash2 size={16} />
           注销账号
         </button>
-        <p className="text-[10px] text-text-muted text-center mt-2">
-          注销后将清除所有学习记录，此操作不可恢复
-        </p>
+        <p className="mt-2 text-center text-[10px] text-text-muted">注销会清除本地学习记录，此操作不可恢复。</p>
       </div>
 
-      {/* 销号确认弹窗 */}
       {showDestroyConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
                 <AlertTriangle size={24} className="text-red-600" />
               </div>
               <div>
@@ -559,29 +380,19 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="bg-red-50 rounded-xl p-3 mb-4 text-xs text-red-700">
-              <p className="font-medium mb-2">注销后将清除以下数据：</p>
-              <ul className="space-y-1">
-                <li>• 所有学习记录和进度</li>
-                <li>• 错题本和收藏</li>
-                <li>• 签到记录和成就</li>
-                <li>• 背包物品和邮件</li>
-                <li>• 个人设置和目标</li>
-              </ul>
+            <div className="mb-4 rounded-xl bg-red-50 p-3 text-xs text-red-700">
+              注销后会清除学习记录、错题、签到、背包、邮件和个人设置。
             </div>
 
-            <div className="mb-4">
-              <label className="text-xs text-text-secondary mb-1.5 block">
-                请输入 <span className="font-bold text-red-600">确认销号</span> 以确认
-              </label>
+            <label className="mb-4 block">
+              <span className="mb-1.5 block text-xs text-text-secondary">请输入“确认销号”</span>
               <input
-                type="text"
                 value={destroyConfirmText}
-                onChange={(e) => setDestroyConfirmText(e.target.value)}
+                onChange={event => setDestroyConfirmText(event.target.value)}
                 placeholder="确认销号"
-                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-red-400 transition-colors"
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-red-400"
               />
-            </div>
+            </label>
 
             <div className="flex gap-3">
               <button
@@ -589,14 +400,14 @@ export default function SettingsPage() {
                   setShowDestroyConfirm(false);
                   setDestroyConfirmText('');
                 }}
-                className="flex-1 py-2.5 bg-gray-100 text-text-secondary text-sm font-medium rounded-xl"
+                className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-medium text-text-secondary"
               >
                 取消
               </button>
               <button
                 onClick={handleDestroyAccount}
                 disabled={destroyConfirmText !== '确认销号'}
-                className="flex-1 py-2.5 bg-red-600 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 确认注销
               </button>
@@ -605,5 +416,41 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function ThemeButton({
+  active,
+  title,
+  desc,
+  preview,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  desc: string;
+  preview: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full rounded-xl border-2 p-4 text-left transition-all ${
+        active ? 'border-primary bg-primary/5' : 'border-border bg-white hover:border-primary/30'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: preview }}>
+            <Palette size={18} className="text-white" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">{title}</div>
+            <div className="text-xs text-text-muted">{desc}</div>
+          </div>
+        </div>
+        {active && <Check size={18} className="text-primary" />}
+      </div>
+    </button>
   );
 }
