@@ -16,6 +16,7 @@ const {
   redeemCode,
   useInventoryItem,
 } = await import('./account.js');
+const { setSessionCookie } = await import('./security.js');
 
 function clearDb() {
   for (const table of [
@@ -175,4 +176,40 @@ test('usable inventory item quantity is consumed', () => {
 
   const item = db.prepare('SELECT * FROM inventory_items WHERE id = ?').get(itemId);
   assert.equal(item.quantity, 1);
+});
+
+test('session cookie is not secure by default even in production', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalSecure = process.env.SESSION_COOKIE_SECURE;
+  process.env.NODE_ENV = 'production';
+  delete process.env.SESSION_COOKIE_SECURE;
+  try {
+    let cookie = '';
+    setSessionCookie({ setHeader: (_, value) => { cookie = value; } }, 'session-id');
+    assert.match(cookie, /SameSite=Lax/);
+    assert.doesNotMatch(cookie, /;\s*Secure/);
+  } finally {
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalSecure === undefined) delete process.env.SESSION_COOKIE_SECURE;
+    else process.env.SESSION_COOKIE_SECURE = originalSecure;
+  }
+});
+
+test('session cookie secure flag is opt-in for cross-site HTTPS deployments', () => {
+  const originalSecure = process.env.SESSION_COOKIE_SECURE;
+  const originalSameSite = process.env.SESSION_COOKIE_SAMESITE;
+  process.env.SESSION_COOKIE_SECURE = 'true';
+  process.env.SESSION_COOKIE_SAMESITE = 'None';
+  try {
+    let cookie = '';
+    setSessionCookie({ setHeader: (_, value) => { cookie = value; } }, 'session-id');
+    assert.match(cookie, /SameSite=None/);
+    assert.match(cookie, /;\s*Secure/);
+  } finally {
+    if (originalSecure === undefined) delete process.env.SESSION_COOKIE_SECURE;
+    else process.env.SESSION_COOKIE_SECURE = originalSecure;
+    if (originalSameSite === undefined) delete process.env.SESSION_COOKIE_SAMESITE;
+    else process.env.SESSION_COOKIE_SAMESITE = originalSameSite;
+  }
 });

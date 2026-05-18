@@ -5,9 +5,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 function getCookieOptions() {
   const sameSite = process.env.SESSION_COOKIE_SAMESITE || 'Lax';
-  const secure = process.env.SESSION_COOKIE_SECURE === undefined
-    ? process.env.NODE_ENV === 'production'
-    : process.env.SESSION_COOKIE_SECURE === 'true';
+  const secure = process.env.SESSION_COOKIE_SECURE === 'true';
   return {
     domain: process.env.SESSION_COOKIE_DOMAIN || '',
     sameSite,
