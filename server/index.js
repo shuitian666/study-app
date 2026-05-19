@@ -28,6 +28,19 @@ import {
   setSessionCookie,
   verifyPassword,
 } from './security.js';
+import {
+  createTeamForUser,
+  dissolveTeamForUser,
+  getTeam,
+  joinTeamForUser,
+  updateTeamProgressForUser,
+} from './team.js';
+import {
+  deleteLearningRecords,
+  getLearningBootstrap,
+  importLearningBatch,
+  patchLearningProgress,
+} from './learning.js';
 
 const app = express();
 const defaultDevOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
@@ -44,7 +57,7 @@ const corsMiddleware = cors({
   credentials: true,
 });
 app.use('/api', corsMiddleware);
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -165,6 +178,38 @@ app.get('/api/me', requireAuth, (req, res) => {
 
 app.get('/api/account/state', requireAuth, (req, res) => {
   res.json(getAccountState(req.user.id));
+});
+
+app.get('/api/learning/bootstrap', requireAuth, (req, res) => {
+  try {
+    res.json(getLearningBootstrap(req.user.id));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/learning/import-batch', requireAuth, (req, res) => {
+  try {
+    res.json(importLearningBatch(req.user.id, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.patch('/api/learning/progress', requireAuth, (req, res) => {
+  try {
+    res.json(patchLearningProgress(req.user.id, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/learning/delete', requireAuth, (req, res) => {
+  try {
+    res.json(deleteLearningRecords(req.user.id, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
 });
 
 app.post('/api/account/checkin', requireAuth, (req, res) => {
@@ -334,85 +379,43 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: nowIso() });
 });
 
-const teams = new Map();
-
-function makeTeamMember({ userId, userName, userAvatar }) {
-  return {
-    id: String(userId || `guest-${crypto.randomUUID()}`),
-    name: String(userName || '学习伙伴'),
-    avatar: String(userAvatar || '👤'),
-    isSimulated: false,
-    progress: {
-      taskCompletionRate: 0,
-      studyMinutes: 0,
-      isReady: false,
-      lastUpdated: nowIso(),
-    },
-  };
-}
-
-function findTeam(idOrCode) {
-  const key = String(idOrCode || '').trim().toUpperCase();
-  if (!key) return null;
-  return teams.get(idOrCode) || Array.from(teams.values()).find(team => team.inviteCode === key) || null;
-}
-
-app.post('/api/team/create', (req, res) => {
-  const teamId = `team-${Date.now()}`;
-  const inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
-  const team = {
-    id: teamId,
-    inviteCode,
-    members: [makeTeamMember(req.body || {})],
-    status: 'waiting',
-    createdAt: nowIso(),
-    todayCheckedIn: false,
-  };
-  teams.set(teamId, team);
-  res.json({ teamId, inviteCode, team });
-});
-
-app.post('/api/team/join', (req, res) => {
-  const team = findTeam(req.body.inviteCode);
-  if (!team || team.status === 'dissolved') return res.status(404).json({ error: 'Team not found' });
-  if (team.members.length >= 2 && !team.members.some(member => member.id === req.body.userId)) {
-    return res.status(409).json({ error: 'Team is full' });
+app.post('/api/team/create', requireAuth, (req, res) => {
+  try {
+    const team = createTeamForUser(req.user);
+    res.json({ teamId: team.id, inviteCode: team.inviteCode, team });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
+});
 
-  if (!team.members.some(member => member.id === req.body.userId)) {
-    team.members.push(makeTeamMember(req.body || {}));
+app.post('/api/team/join', requireAuth, (req, res) => {
+  try {
+    res.json({ team: joinTeamForUser(req.body.inviteCode, req.user) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
-  team.status = team.members.length >= 2 ? 'active' : 'waiting';
-  res.json({ team });
 });
 
-app.post('/api/team/progress', (req, res) => {
-  const team = findTeam(req.body.teamId);
-  if (!team || team.status === 'dissolved') return res.status(404).json({ error: 'Team not found' });
-  const member = team.members.find(item => item.id === req.body.userId);
-  if (!member) return res.status(404).json({ error: 'Team member not found' });
-  const progress = req.body.progress || {};
-  member.progress = {
-    taskCompletionRate: Math.max(0, Math.min(1, Number(progress.taskCompletionRate) || 0)),
-    studyMinutes: Math.max(0, Math.round(Number(progress.studyMinutes) || 0)),
-    isReady: Boolean(progress.isReady),
-    lastUpdated: nowIso(),
-  };
-  res.json({ team });
-});
-
-app.post('/api/team/dissolve', (req, res) => {
-  const team = findTeam(req.body.teamId);
-  if (team) {
-    team.status = 'dissolved';
+app.post('/api/team/progress', requireAuth, (req, res) => {
+  try {
+    res.json({ team: updateTeamProgressForUser(req.body.teamId, req.user.id, req.body.progress || {}) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
-  res.json({ ok: true });
 });
 
-app.get('/api/team/:teamId', (req, res) => {
-  const team = findTeam(req.params.teamId);
-  if (!team || team.status === 'dissolved') return res.status(404).json({ error: 'Team not found' });
-  res.json(team);
+app.post('/api/team/dissolve', requireAuth, (req, res) => {
+  try {
+    res.json(dissolveTeamForUser(req.body.teamId, req.user.id));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.get('/api/team/:teamId', requireAuth, (req, res) => {
+  const team = getTeam(req.params.teamId);
+  if (!team) return res.status(404).json({ error: 'Team not found' });
+  return res.json(team);
 });
 
 const PORT = process.env.PORT || 3001;

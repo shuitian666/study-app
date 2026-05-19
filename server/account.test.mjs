@@ -16,10 +16,34 @@ const {
   redeemCode,
   useInventoryItem,
 } = await import('./account.js');
+const {
+  createTeamForUser,
+  dissolveTeamForUser,
+  getTeam,
+  joinTeamForUser,
+  updateTeamProgressForUser,
+} = await import('./team.js');
+const {
+  deleteLearningRecords,
+  getLearningBootstrap,
+  importLearningBatch,
+  patchLearningProgress,
+} = await import('./learning.js');
 const { setSessionCookie } = await import('./security.js');
 
 function clearDb() {
   for (const table of [
+    'team_events',
+    'team_members',
+    'teams',
+    'user_import_history',
+    'user_question_explanations',
+    'user_wrong_records',
+    'user_learning_progress',
+    'user_questions',
+    'user_knowledge_points',
+    'user_chapters',
+    'user_subjects',
     'asset_ledger',
     'checkin_records',
     'inventory_items',
@@ -212,4 +236,120 @@ test('session cookie secure flag is opt-in for cross-site HTTPS deployments', ()
     if (originalSameSite === undefined) delete process.env.SESSION_COOKIE_SAMESITE;
     else process.env.SESSION_COOKIE_SAMESITE = originalSameSite;
   }
+});
+
+test('team lifecycle is persisted in sqlite', () => {
+  const owner = makeUser();
+  const teammate = makeUser();
+
+  const created = createTeamForUser(owner);
+  assert.equal(created.members.length, 1);
+  assert.equal(created.members[0].id, owner.id);
+
+  const joined = joinTeamForUser(created.inviteCode, teammate);
+  assert.equal(joined.status, 'active');
+  assert.equal(joined.members.length, 2);
+
+  const updated = updateTeamProgressForUser(joined.id, teammate.id, {
+    taskCompletionRate: 0.75,
+    studyMinutes: 42,
+    isReady: true,
+  });
+  const updatedMember = updated.members.find(member => member.id === teammate.id);
+  assert.equal(updatedMember.progress.taskCompletionRate, 0.75);
+  assert.equal(updatedMember.progress.studyMinutes, 42);
+  assert.equal(updatedMember.progress.isReady, true);
+
+  const reloaded = getTeam(joined.id);
+  assert.equal(reloaded.members.length, 2);
+
+  dissolveTeamForUser(joined.id, teammate.id);
+  assert.equal(getTeam(joined.id), null);
+});
+
+test('team rejects progress updates from non-members', () => {
+  const owner = makeUser();
+  const outsider = makeUser();
+  const team = createTeamForUser(owner);
+
+  assert.throws(
+    () => updateTeamProgressForUser(team.id, outsider.id, { taskCompletionRate: 1 }),
+    err => err.status === 404 && err.message === 'Team member not found',
+  );
+});
+
+test('learning import batch is persisted and returned by bootstrap', () => {
+  const user = makeUser();
+
+  const snapshot = importLearningBatch(user.id, {
+    importId: 'import-1',
+    sourceType: 'local-import',
+    subjects: [{ id: 'subject-1', name: 'Pharmacy', updatedAt: '2026-05-18T00:00:00.000Z' }],
+    chapters: [{ id: 'chapter-1', subjectId: 'subject-1', name: 'Basics', updatedAt: '2026-05-18T00:01:00.000Z' }],
+    knowledgePoints: [{ id: 'kp-1', subjectId: 'subject-1', chapterId: 'chapter-1', title: 'Dose', updatedAt: '2026-05-18T00:02:00.000Z' }],
+    questions: [{ id: 'q-1', knowledgePointId: 'kp-1', stem: 'Question', updatedAt: '2026-05-18T00:03:00.000Z' }],
+  });
+
+  assert.equal(snapshot.subjects.length, 1);
+  assert.equal(snapshot.chapters[0].ownerUserId, user.id);
+  assert.equal(snapshot.knowledgePoints[0].importId, 'import-1');
+  assert.equal(snapshot.questions[0].sourceType, 'local-import');
+
+  const reloaded = getLearningBootstrap(user.id);
+  assert.equal(reloaded.knowledgePoints[0].title, 'Dose');
+  assert.equal(reloaded.importHistory.length, 1);
+});
+
+test('learning progress patch uses per-record last-write-wins', () => {
+  const user = makeUser();
+
+  patchLearningProgress(user.id, {
+    progress: [{
+      id: 'progress-1',
+      knowledgePointId: 'kp-1',
+      fsrsState: 'Review',
+      currentScore: 80,
+      updatedAt: '2026-05-18T10:00:00.000Z',
+    }],
+    wrongRecords: [{ id: 'wrong-1', questionId: 'q-1', updatedAt: '2026-05-18T10:00:00.000Z' }],
+    questionExplanations: [{ id: 'explain-1', questionId: 'q-1', explanation: 'new', updatedAt: '2026-05-18T10:00:00.000Z' }],
+  });
+
+  patchLearningProgress(user.id, {
+    progress: [{
+      id: 'progress-older',
+      knowledgePointId: 'kp-1',
+      fsrsState: 'Learning',
+      currentScore: 10,
+      updatedAt: '2026-05-18T09:00:00.000Z',
+    }],
+    questionExplanations: [{ id: 'explain-older', questionId: 'q-1', explanation: 'old', updatedAt: '2026-05-18T09:00:00.000Z' }],
+  });
+
+  const snapshot = getLearningBootstrap(user.id);
+  assert.equal(snapshot.progress.length, 1);
+  assert.equal(snapshot.progress[0].currentScore, 80);
+  assert.equal(snapshot.progress[0].fsrsState, 'Review');
+  assert.equal(snapshot.wrongRecords.length, 1);
+  assert.equal(snapshot.questionExplanations[0].explanation, 'new');
+});
+
+test('learning delete can soft-delete an import batch', () => {
+  const user = makeUser();
+
+  importLearningBatch(user.id, {
+    importId: 'import-delete',
+    sourceType: 'local-import',
+    knowledgePoints: [{ id: 'kp-delete', importId: 'import-delete', title: 'Delete me', updatedAt: '2026-05-18T00:00:00.000Z' }],
+    questions: [{ id: 'q-delete', importId: 'import-delete', knowledgePointId: 'kp-delete', updatedAt: '2026-05-18T00:00:00.000Z' }],
+  });
+
+  const snapshot = deleteLearningRecords(user.id, {
+    importId: 'import-delete',
+    deletedAt: '2026-05-19T00:00:00.000Z',
+  });
+
+  assert.equal(snapshot.knowledgePoints[0].deletedAt, '2026-05-19T00:00:00.000Z');
+  assert.equal(snapshot.questions[0].deletedAt, '2026-05-19T00:00:00.000Z');
+  assert.equal(snapshot.importHistory[0].deletedAt, '2026-05-19T00:00:00.000Z');
 });

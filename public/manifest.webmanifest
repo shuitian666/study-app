@@ -1,0 +1,20 @@
+{
+  "name": "智学助手",
+  "short_name": "智学",
+  "description": "支持 FSRS 复习、知识导入和学习进度同步的移动学习工具。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

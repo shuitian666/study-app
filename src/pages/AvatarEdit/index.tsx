@@ -33,6 +33,19 @@ import {
 
 type TabType = 'avatar' | 'frame' | 'background' | 'title';
 
+type StarParticle = {
+  left: number;
+  top: number;
+  animationDelay: number;
+  opacity: number;
+};
+
+type CherryParticle = {
+  left: number;
+  top: number;
+  animationDelay: number;
+};
+
 const defaultAvatars = ['👤', '🦊', '🐰', '🐼', '🦁', '🐨', '🐯', '🐸', '🦄', '🐲', '🐱', '🐶', '🦋', '🌟', '💎', '🎭'];
 
 export default function AvatarEditPage() {
@@ -65,6 +78,29 @@ export default function AvatarEditPage() {
   const currentTitle = useMemo(() => 
     previewTitle || allTitles.find(t => t.id === user?.activeTitle)
   , [previewTitle, user?.activeTitle]);
+
+  const starParticles = useMemo(() => ({
+    stars: Array.from({ length: 20 }, (): StarParticle => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animationDelay: Math.random() * 3,
+      opacity: Math.random() * 0.8 + 0.2,
+    })),
+    galaxy: Array.from({ length: 40 }, (): StarParticle => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animationDelay: Math.random() * 3,
+      opacity: Math.random() * 0.8 + 0.2,
+    })),
+  }), []);
+
+  const cherryParticles = useMemo(() => (
+    Array.from({ length: 8 }, (_, i): CherryParticle => ({
+      left: (i % 4) * 25 + Math.random() * 15,
+      top: Math.floor(i / 4) * 40 + Math.random() * 20,
+      animationDelay: i * 0.8,
+    }))
+  ), []);
 
   const saveNickname = () => {
     const nickname = nameDraft.trim().slice(0, 12);
@@ -283,17 +319,18 @@ export default function AvatarEditPage() {
     if (!pattern) return null;
 
     if (pattern === 'stars' || pattern === 'galaxy') {
+      const particles = pattern === 'galaxy' ? starParticles.galaxy : starParticles.stars;
       return (
         <div className="absolute inset-0 opacity-50">
-          {[...Array(pattern === 'galaxy' ? 40 : 20)].map((_, i) => (
+          {particles.map((particle, i) => (
             <div
               key={i}
               className="absolute w-1 h-1 bg-white rounded-full animate-twinkle"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                opacity: Math.random() * 0.8 + 0.2,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animationDelay: `${particle.animationDelay}s`,
+                opacity: particle.opacity,
               }}
             />
           ))}
@@ -304,14 +341,14 @@ export default function AvatarEditPage() {
     if (pattern === 'cherry') {
       return (
         <div className="absolute inset-0 opacity-20 pointer-events-none">
-          {[...Array(8)].map((_, i) => (
+          {cherryParticles.map((particle, i) => (
             <div
               key={i}
               className="absolute text-4xl animate-float"
               style={{
-                left: `${(i % 4) * 25 + Math.random() * 15}%`,
-                top: `${Math.floor(i / 4) * 40 + Math.random() * 20}%`,
-                animationDelay: `${i * 0.8}s`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animationDelay: `${particle.animationDelay}s`,
               }}
             >
               🌸

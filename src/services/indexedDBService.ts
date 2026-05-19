@@ -1,12 +1,3 @@
-/**
- * ============================================================================
- * IndexedDB 存储服务
- * ============================================================================
- * 
- * 用于存储大型知识库数据，替代 localStorage 的容量限制
- * ============================================================================
- */
-
 import type { Chapter, KnowledgePoint, Question, Subject } from '@/types';
 
 const DB_NAME = 'study-app-db';
@@ -16,9 +7,11 @@ const STORES = {
   QUESTIONS: 'questions',
   SUBJECTS: 'subjects',
   CHAPTERS: 'chapters',
-};
+} as const;
 
-// 打开数据库连接
+type StoreName = typeof STORES[keyof typeof STORES];
+type StoredRecord = { id: string };
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -29,93 +22,71 @@ function openDB(): Promise<IDBDatabase> {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
 
-      // 创建存储对象
-      if (!db.objectStoreNames.contains(STORES.KNOWLEDGE_POINTS)) {
-        db.createObjectStore(STORES.KNOWLEDGE_POINTS, { keyPath: 'id' });
-      }
-
-      if (!db.objectStoreNames.contains(STORES.QUESTIONS)) {
-        db.createObjectStore(STORES.QUESTIONS, { keyPath: 'id' });
-      }
-
-      if (!db.objectStoreNames.contains(STORES.SUBJECTS)) {
-        db.createObjectStore(STORES.SUBJECTS, { keyPath: 'id' });
-      }
-
-      if (!db.objectStoreNames.contains(STORES.CHAPTERS)) {
-        db.createObjectStore(STORES.CHAPTERS, { keyPath: 'id' });
-      }
+      Object.values(STORES).forEach(storeName => {
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName, { keyPath: 'id' });
+        }
+      });
     };
   });
 }
 
-// 存储数据到指定存储对象
-async function storeData<T>(storeName: string, data: T[]): Promise<void> {
+async function storeData<T extends StoredRecord>(storeName: StoreName, data: T[]): Promise<void> {
   const db = await openDB();
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
+    const nextIds = new Set(data.map(item => item.id));
+    let settled = false;
 
-    // 清空现有数据
-    store.clear();
+    const rejectOnce = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
 
-    // 批量添加数据
-    if (data.length === 0) {
-      console.log(`[IndexedDB] ${storeName}: empty data, skipping`);
-      resolve();
-      return;
-    }
-
-    let completed = 0;
-    let errorOccurred = false;
-    data.forEach(item => {
-      const request = store.put(item);  // 使用 put 代替 add，支持更新
-      request.onerror = () => {
-        console.error(`[IndexedDB] ${storeName}: error putting item`, request.error);
-        errorOccurred = true;
-        reject(request.error);
-      };
-      request.onsuccess = () => {
-        completed++;
-        if (completed === data.length && !errorOccurred) {
-          console.log(`[IndexedDB] ${storeName}: saved ${completed} items`);
-          resolve();
+    const keysRequest = store.getAllKeys();
+    keysRequest.onerror = () => rejectOnce(keysRequest.error);
+    keysRequest.onsuccess = () => {
+      keysRequest.result.forEach(key => {
+        if (typeof key === 'string' && !nextIds.has(key)) {
+          store.delete(key).onerror = event => rejectOnce((event.target as IDBRequest).error);
         }
-      };
-    });
+      });
+
+      data.forEach(item => {
+        store.put(item).onerror = event => rejectOnce((event.target as IDBRequest).error);
+      });
+    };
 
     transaction.oncomplete = () => {
-      console.log(`[IndexedDB] ${storeName}: transaction complete`);
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
     };
-    transaction.onerror = () => {
-      console.error(`[IndexedDB] ${storeName}: transaction error`, transaction.error);
-      reject(transaction.error);
-    };
+    transaction.onerror = () => rejectOnce(transaction.error);
+    transaction.onabort = () => rejectOnce(transaction.error || new Error(`IndexedDB transaction aborted: ${storeName}`));
   });
 }
 
-// 从指定存储对象读取所有数据
-async function getData<T>(storeName: string): Promise<T[]> {
+async function getData<T>(storeName: StoreName): Promise<T[]> {
   const db = await openDB();
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');
     const store = transaction.objectStore(storeName);
     const request = store.getAll();
 
-    request.onerror = () => {
-      console.error(`[IndexedDB] ${storeName}: error reading`, request.error);
-      reject(request.error);
-    };
-    request.onsuccess = () => {
-      console.log(`[IndexedDB] ${storeName}: read ${request.result.length} items`);
-      resolve(request.result);
-    };
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
   });
 }
 
-// 检查存储对象是否有数据
-async function hasData(storeName: string): Promise<boolean> {
+async function hasData(storeName: StoreName): Promise<boolean> {
   const db = await openDB();
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readonly');
     const store = transaction.objectStore(storeName);
@@ -126,7 +97,6 @@ async function hasData(storeName: string): Promise<boolean> {
   });
 }
 
-// 存储知识库数据
 export async function storeKnowledgeData(data: {
   subjects: Subject[];
   chapters: Chapter[];
@@ -139,7 +109,6 @@ export async function storeKnowledgeData(data: {
   await storeData(STORES.QUESTIONS, data.questions);
 }
 
-// 读取知识库数据
 export async function getKnowledgeData(): Promise<{
   subjects: Subject[];
   chapters: Chapter[];
@@ -154,7 +123,6 @@ export async function getKnowledgeData(): Promise<{
   return { subjects, chapters, knowledgePoints, questions };
 }
 
-// 检查是否有存储的知识库数据
 export async function hasKnowledgeData(): Promise<boolean> {
   const hasSubjects = await hasData(STORES.SUBJECTS);
   const hasChapters = await hasData(STORES.CHAPTERS);
@@ -164,12 +132,12 @@ export async function hasKnowledgeData(): Promise<boolean> {
   return hasSubjects && hasChapters && hasKnowledgePoints && hasQuestions;
 }
 
-// 清除所有知识库数据
 export async function clearKnowledgeData(): Promise<void> {
   const db = await openDB();
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(Object.values(STORES), 'readwrite');
-    
+
     Object.values(STORES).forEach(storeName => {
       const store = transaction.objectStore(storeName);
       const request = store.clear();

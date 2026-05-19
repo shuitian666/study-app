@@ -28,17 +28,6 @@ export interface CheckinRewardInfo {
   source?: 'checkin' | 'makeup' | 'team_upgrade';
 }
 
-// ---------- Redemption codes ----------
-export const REDEMPTION_CODES: Record<string, { upDraws: number; regularDraws: number; coins: number }> = {
-  '学习使我快乐': { upDraws: 10, regularDraws: 0, coins: 0 },
-  '勤奋好学': { upDraws: 5, regularDraws: 0, coins: 0 },
-  '全部解锁': { upDraws: 99, regularDraws: 99, coins: 9999 },
-};
-
-export function isValidRedeemCode(code: string): boolean {
-  return code in REDEMPTION_CODES;
-}
-
 // ---------- Helpers ----------
 function calculateStreak(records: { date: string }[]): number {
   if (records.length === 0) return 0;
@@ -102,7 +91,6 @@ export type GameAction =
   | { type: 'DRAW_UP'; payload: UpPoolResult }
   | { type: 'SHOW_LOTTERY_POPUP'; payload: LotteryPopup }
   | { type: 'DISMISS_LOTTERY_POPUP' }
-  | { type: 'REDEEM_CODE'; payload: string }
   | { type: 'RESET_ALL' };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -142,12 +130,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'CHECKIN': {
       const exists = state.checkin.records.some(r => r.date === action.payload.date);
       if (exists) {
-        console.log('[CHECKIN] 已存在今日签到记录', action.payload.date);
         return state;
       }
       const isMakeup = action.payload.type === 'makeup';
       if (isMakeup && state.checkin.makeupCards <= 0) {
-        console.log('[CHECKIN] 补签卡不足');
         return state;
       }
 
@@ -368,21 +354,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
     }
 
-    case 'REDEEM_CODE': {
-      const code = action.payload;
-      if (state.redeemedCodes.includes(code)) return state;
-      const reward = REDEMPTION_CODES[code];
-      if (!reward) return state;
-      return {
-        ...state,
-        redeemedCodes: [...state.redeemedCodes, code],
-        drawBalance: {
-          regular: state.drawBalance.regular + reward.regularDraws,
-          up: state.drawBalance.up + reward.upDraws,
-        },
-      };
-    }
-
     case 'RESET_ALL':
       return initialGameState;
 
@@ -395,7 +366,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 interface GameContextType {
   gameState: GameState;
   gameDispatch: React.Dispatch<GameAction>;
-  isValidRedeemCode: (code: string) => boolean;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -439,7 +409,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [gameState]);
 
   return (
-    <GameContext.Provider value={{ gameState, gameDispatch, isValidRedeemCode }}>
+    <GameContext.Provider value={{ gameState, gameDispatch }}>
       {children}
     </GameContext.Provider>
   );

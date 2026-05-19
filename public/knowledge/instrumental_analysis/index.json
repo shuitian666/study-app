@@ -1,0 +1,4715 @@
+{
+  "version": "1.0",
+  "exportTime": "2026-05-18T13:48:15.843Z",
+  "subjectId": "instrumental_analysis",
+  "subjectName": "仪器分析",
+  "total": 98,
+  "chapters": [
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 1,
+      "id": "uv_spectroscopy__basic_theory",
+      "name": "电子能级跃迁基础理论"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 2,
+      "id": "uv_spectroscopy__beer_lambert",
+      "name": "Beer-Lambert定量分析"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 3,
+      "id": "uv_spectroscopy__spectral_analysis",
+      "name": "光谱解析与定性定量应用"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 4,
+      "id": "ir_spectroscopy__basic_theory",
+      "name": "分子振动与红外吸收原理"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 5,
+      "id": "ir_spectroscopy__characteristic_frequencies",
+      "name": "特征吸收频率与官能团识别"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 6,
+      "id": "ir_spectroscopy__spectral_interpretation",
+      "name": "红外光谱解析方法"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 7,
+      "id": "ir_spectroscopy__advanced_interpretation",
+      "name": "综合谱图解析"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 8,
+      "id": "nmr_spectroscopy__basic_principles",
+      "name": "核磁共振基本原理"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 9,
+      "id": "nmr_spectroscopy__spin_systems",
+      "name": "自旋系统与高级谱"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 10,
+      "id": "nmr_spectroscopy__integration_and_structure",
+      "name": "积分面积与结构确定"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 11,
+      "id": "nmr_spectroscopy__advanced_topics",
+      "name": "高级核磁技术"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 12,
+      "id": "ms_spectroscopy__basic_principles",
+      "name": "质谱基本原理与离子化方法"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 13,
+      "id": "ms_spectroscopy__fragmentation",
+      "name": "离子断裂规律"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 14,
+      "id": "ms_spectroscopy__organic_fragmentation",
+      "name": "常见有机化合物的特征断裂模式"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 15,
+      "id": "ms_spectroscopy__spectral_interpretation",
+      "name": "质谱图解析"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 16,
+      "id": "chromatography__basic_theory",
+      "name": "色谱分析基础理论"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 17,
+      "id": "chromatography__gc_analysis",
+      "name": "气相色谱法"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 18,
+      "id": "chromatography__hplc_analysis",
+      "name": "高效液相色谱法"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 19,
+      "id": "chromatography__quantitative_methods",
+      "name": "色谱定量方法"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "order": 20,
+      "id": "chromatography__qualitative_analysis",
+      "name": "色谱定性方法"
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "atomic_spectroscopy__principles",
+      "name": "原子光谱基础与原子化",
+      "order": 21
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "atomic_spectroscopy__aas_aes",
+      "name": "原子吸收与原子发射分析",
+      "order": 22
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "fluorescence_raman__molecular_spectroscopy",
+      "name": "分子荧光、磷光与拉曼光谱",
+      "order": 23
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "electrochemistry__potentiometry",
+      "name": "电位分析与离子选择电极",
+      "order": 24
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "electrochemistry__voltammetry_conductometry",
+      "name": "伏安法、极谱法与电导分析",
+      "order": 25
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "chromatography__expanded_methods",
+      "name": "离子色谱、凝胶色谱与样品前处理",
+      "order": 26
+    },
+    {
+      "subjectId": "instrumental_analysis",
+      "id": "instrumental_analysis__quality_control",
+      "name": "仪器分析质量控制与方法学评价",
+      "order": 27
+    }
+  ],
+  "knowledgePoints": [
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_001",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "name": "电子跃迁类型",
+      "explanation": "电子跃迁类型：σ→σ*、n→σ*、π→π*、n→π*四类，能量依次减小，σ→σ*约150nm，n→σ*约200nm，π→π*约200nm，n→π*约300nm"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_002",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "name": "紫外-可见光区分为",
+      "explanation": "紫外-可见光区分为：远紫外（10-200nm）、近紫外（200-400nm）、可见光（400-800nm）；一般紫外分光光度计测量范围190-850nm"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_003",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "name": "吸收带分类",
+      "explanation": "吸收带分类：R带（n→π*，弱）、K带（π→π*，强）、B带（芳香族，中）、E带（共轭烯烃，强）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_004",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "name": "生色团",
+      "explanation": "生色团：含有π电子的不饱和基团，能在紫外-可见区产生吸收；助色团：本身不吸收紫外光，但能增强生色团吸收或改变吸收位置"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_005",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "name": "Beer-Lambert定律",
+      "explanation": "Beer-Lambert定律：A=εbc，吸光度与浓度和光程成正比；ε为摩尔吸光系数，是物质在特定波长的特征常数"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_006",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "name": "偏离Beer-Lambert定律的因素",
+      "explanation": "偏离Beer-Lambert定律的因素：化学因素（浓度过高导致缔合、解离、溶剂反应）和物理因素（单色光不纯、散射）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_007",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "name": "溶剂效应",
+      "explanation": "溶剂效应：极性溶剂导致n→π*蓝移、π→π*红移；选择溶剂原则：非极性溶剂获精细结构，测定波长范围内无吸收"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_008",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "name": "红移（向长波移动）",
+      "explanation": "红移（向长波移动）：共轭效应、溶剂极性增加、引入助色团；蓝移（向短波移动）：诱导效应、溶剂极性降低、取代基位阻"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_009",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "name": "λmax影响因素",
+      "explanation": "λmax影响因素：共轭体系延长使λmax红移；取代基电负性、立体化学、pH环境均影响最大吸收波长"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_010",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "name": "多组分定量分析",
+      "explanation": "多组分定量分析：双波长法、导数光谱法、矩阵法求解联立方程；痕量分析灵敏度可达10^-4～10^-6 g/mL"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_011",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "name": "摩尔吸光系数ε>10^4为强吸收",
+      "explanation": "摩尔吸光系数ε>10^4为强吸收，10^3～10^4为中等吸收，<10^3为弱吸收；用于估算化合物结构中发色团的个数"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "uv_012",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "name": "比尔定律的适用条件",
+      "explanation": "比尔定律的适用条件：均匀非散射溶液、单色光、溶质无相互作用；浓度适用范围通常在A=0.2～0.8区间误差最小"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_001",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "name": "红外活性条件",
+      "explanation": "红外活性条件：振动过程中偶极矩发生变化（Δμ≠0）才能吸收红外光；同核双原子分子（如N₂、O₂、Cl₂）无红外活性"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_002",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "name": "振动自由度计算",
+      "explanation": "振动自由度计算：线性分子3N-5，非线性分子3N-6（N为原子数）；CO₂为线性分子有4种基本振动模式，实际红外吸收峰少于理论值"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_003",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "name": "伸缩振动与弯曲振动",
+      "explanation": "伸缩振动与弯曲振动：伸缩振动（ν）引起键长变化，频率较高；弯曲振动（δ）引起键角变化，频率较低；分为对称伸缩和反对称伸缩"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_004",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "name": "基频峰与倍频峰",
+      "explanation": "基频峰与倍频峰：基频峰（V0→V1）强度较大；倍频峰（V0→V2）强度较弱；当倍频与基频峰位接近时发生费米共振，使吸收增强或裂分"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_005",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "name": "红外光谱分区",
+      "explanation": "红外光谱分区：官能团区（4000-1500 cm⁻¹）吸收峰稀疏、特征性强；指纹区（1500-400 cm⁻¹）吸收峰密集、用于结构细节确认"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_006",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "name": "重要官能团特征吸收",
+      "explanation": "重要官能团特征吸收：O-H/N-H（3750-3000 cm⁻¹，强宽峰）；C≡C（2100-2260 cm⁻¹）；C=O（1750-1650 cm⁻¹，强峰）；C=C（1680-1620 cm⁻¹）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_007",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "name": "苯环取代类型判断（面外弯曲振动区650-900 cm⁻¹）",
+      "explanation": "苯环取代类型判断（面外弯曲振动区650-900 cm⁻¹）：单取代两个峰（750、700 cm⁻¹附近）；邻二取代（770-735 cm⁻¹）；间二取代（810-750、710-690 cm⁻¹）；对二取代（860-800 cm⁻¹）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_008",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "name": "诱导效应、共轭效应、氢键对C=O吸收峰位的影响",
+      "explanation": "诱导效应、共轭效应、氢键对C=O吸收峰位的影响：诱导效应（吸电子基）使C=O向高频移动；共轭效应使C=O向低频移动；分子内/分子间氢键使O-H向低频移动并加宽"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_009",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "name": "解析原则",
+      "explanation": "解析原则：先特征后指纹，先强峰后弱峰，一组相关峰确认一个官能团；注意倍频峰、费米共振引起的假峰"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_010",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "name": "羰基化合物判断",
+      "explanation": "羰基化合物判断：醛（2720、2820 cm⁻¹双峰）；酮（1715-1680 cm⁻¹）；酯（1735-1750 cm⁻¹）；酰胺（1680-1650 cm⁻¹）；羧酸（1710-1680 cm⁻¹，宽峰3000-2500 cm⁻¹）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_011",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "name": "不饱和度计算",
+      "explanation": "不饱和度计算：Ω=C+1-(H/2)+(N/2)-(X/2)；苯环Ω=4（含3个双键和1个环）；用于验证分子式与结构的一致性"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_012",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "name": "样品制备方法",
+      "explanation": "样品制备方法：KBr压片法（固体样品）；液膜法（液体样品）；气体样品用气体池；糊剂法（矿物油悬浮）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_013",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__advanced_interpretation",
+      "name": "共轭效应对C=C伸缩振动的影响",
+      "explanation": "共轭效应对C=C伸缩振动的影响：共轭使C=C向低频移动（1620→1600 cm⁻¹或更低）；共轭体系越长，频率越低；芳香环C=C骨架振动在1600、1500 cm⁻¹附近"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_014",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__advanced_interpretation",
+      "name": "分子内氢键与分子间氢键的区别",
+      "explanation": "分子内氢键与分子间氢键的区别：分子内氢键（ chelation）使O-H向低频移动（3200-2500 cm⁻¹，宽散），C=O向低频移动（1650 cm⁻¹附近）；分子间氢键随浓度变化，稀释后峰位置会移动"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ir_015",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ir_spectroscopy__advanced_interpretation",
+      "name": "红外定量分析原理",
+      "explanation": "红外定量分析原理：吸光度A=abc，符合Beer-Lambert定律；但红外光谱定量比紫外-可见光谱更复杂，因为仪器因素（狭缝宽度、杂散光）和样品处理（ KBr压片均匀性）影响更大"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_001",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "name": "核自旋量子数I",
+      "explanation": "核自旋量子数I：质量数为奇数的核（如¹H、¹³C、¹⁹F、³¹P）自旋量子数I为半整数；质量数和电荷数都为偶数的核（如¹²C、¹⁶O）无磁性，无NMR信号"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_002",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "name": "化学位移δ",
+      "explanation": "化学位移δ：δ=(ν样品-ν参比)/ν仪器×10⁶ ppm；化学位移是核所处化学环境的反映，与电子屏蔽效应直接相关"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_003",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "name": "¹H化学位移经验值",
+      "explanation": "¹H化学位移经验值：脂肪氢δ 0.9-1.5；烯烃氢δ 4.5-6.5；芳香氢δ 6.5-8.0；醛氢δ 9-10；羧酸氢δ 10-13；醇羟基δ 1-5（可变）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_004",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "name": "自旋-自旋耦合与裂分",
+      "explanation": "自旋-自旋耦合与裂分：相邻氢核耦合使信号裂分，裂分数目=n+1（n为等价邻近氢数）；耦合常数J单位Hz，与外磁场强度无关"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_005",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "name": "常见自旋系统",
+      "explanation": "常见自旋系统：AX系统（两个核化学位移差远大于J，典型一级谱）；AB系统（化学位移差与J相当，高级谱）；A₂B₂系统（对二取代苯特征）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_006",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "name": "一级谱条件",
+      "explanation": "一级谱条件：化学位移差Δν与耦合常数J之比Δν/J > 6；满足一级谱条件时，裂分数目=n+1，峰强度比符合二项式展开系数"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_007",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "name": "二级谱特征",
+      "explanation": "二级谱特征：Δν/J < 6时出现高级谱，峰数超过(n+1)规律，峰强度比不规则，化学位移和耦合常数不能直接读出"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_008",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "name": "自旋系统命名",
+      "explanation": "自旋系统命名：化学等价核（化学位移相同，耦合常数相同）用同一字母表示；不等价核用不同字母；AX₂、A₂B₂等表示相互耦合的核群"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_009",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__integration_and_structure",
+      "name": "积分面积与氢原子数目",
+      "explanation": "积分面积与氢原子数目：积分面积之比等于氢原子数目之比；用于确定分子中各类型氢的个数"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_010",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__integration_and_structure",
+      "name": "常见氘代试剂的残留信号",
+      "explanation": "常见氘代试剂的残留信号：CDCl₃（7.26 ppm），DMSO-d₆（2.50 ppm），D₂O（4.70 ppm），CD₃OD（3.31 ppm），acetone-d₆（2.05 ppm）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_011",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__integration_and_structure",
+      "name": "¹³C NMR特点",
+      "explanation": "¹³C NMR特点：¹³C天然丰度仅1.1%，信号弱；化学位移范围0-220 ppm，比¹H宽；¹³C-{¹H}去耦技术使每条碳都变成单峰"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_012",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "name": "二维核磁概述",
+      "explanation": "二维核磁概述：COSY（相关谱）显示相邻碳上的氢之间的耦合；HSQC（异核单量子相干）显示直接连接的¹H和¹³C之间的相关性"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_013",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "name": "NOE效应（核Overhauser效应）",
+      "explanation": "NOE效应（核Overhauser效应）：空间上接近的核被照射后，目标核信号增强；用于判断空间邻近关系和立体化学"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_014",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "name": "活泼氢的识别",
+      "explanation": "活泼氢的识别：-OH、-NH₂、-SH等活泼氢化学位移不固定，随浓度、温度、溶剂变化；重水交换（D₂O）后消失是确认活泼氢的方法"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "nmr_015",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "name": "远程耦合（³J、⁴J）",
+      "explanation": "远程耦合（³J、⁴J）：隔着3个键的³J耦合最常见；隔着4个键的⁴J耦合较小，但芳香族和烯烃体系中可观察到；远程耦合常数提供立体化学信息"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_001",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "name": "离子化方法比较",
+      "explanation": "离子化方法比较：EI（电子轰击，硬电离，碎片多，适合非极性挥发性化合物）；CI（化学电离，软电离，产生准分子离子）；FAB/ESI/MALDI（更软，适合极性大分子）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_002",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "name": "分子离子峰M⁺·",
+      "explanation": "分子离子峰M⁺·：分子失去一个电子形成的离子，质荷比等于分子量；是质谱中最重要的峰，用于确定分子量"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_003",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "name": "氮规则",
+      "explanation": "氮规则：不含氮或含偶数个氮的有机化合物，分子离子质荷比为偶数；含奇数个氮的化合物，分子离子质荷比为奇数"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_004",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "name": "同位素峰分布",
+      "explanation": "同位素峰分布：含Cl时M+2峰强度约为M的1/3（含1个Cl）；含Br时M+2约为M的1:1（含1个Br）；S、Si等也有特征同位素峰"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_005",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "name": "α断裂（游离基中心诱导）",
+      "explanation": "α断裂（游离基中心诱导）：发生在与杂原子相邻的键上，产生稳定的氧鎓离子或氮鎓离子；醛、酮、酯、酰胺均发生α断裂"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_006",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "name": "β断裂（烯烃特征）",
+      "explanation": "β断裂（烯烃特征）：发生在双键的β位，产生稳定的烯丙基离子或苄基离子（m/z 91，卓鎓离子）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_007",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "name": "i断裂（诱导断裂）",
+      "explanation": "i断裂（诱导断裂）：电负性大的杂原子诱导的断裂，正电荷留在烷基上，产生m/z 31、45、59等碎片"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_008",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "name": "重排反应",
+      "explanation": "重排反应：McLafferty重排（含γ-H的酮、烯烃的氢重排）；逆Diels-Alder裂解（环状烯烃）；中性碎片丢失"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_009",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "name": "烷烃断裂",
+      "explanation": "烷烃断裂：σ键断裂，丢失大烷基游离基，生成更稳定的仲碳或叔碳离子；M-15（丢失CH₃）峰常见"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_010",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "name": "芳香族化合物",
+      "explanation": "芳香族化合物：苄基断裂生成m/z 91（卓鎓离子），进一步丢失C₂H₂生成m/z 65；烷基苯的特征断裂模式"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_011",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "name": "马库西规则（偶电子规则）",
+      "explanation": "马库西规则（偶电子规则）：中性碎片丢失倾向于生成稳定的偶电子离子（EE⁺）；奇电子离子倾向于断裂生成偶电子离子+中性碎片"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_012",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "name": "醇类断裂",
+      "explanation": "醇类断裂：丢失H₂O（分子量-18）生成M-18；丢失H和H₂O生成M-19；α断裂生成氧鎓离子；脱水重排"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_013",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__spectral_interpretation",
+      "name": "质谱图解析步骤",
+      "explanation": "质谱图解析步骤：(1)确认分子离子峰，确定分子量；(2)分析同位素峰判断是否含Cl/Br/S等；(3)计算不饱和度；(4)分析特征碎片离子；(5)识别重排离子"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_014",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__spectral_interpretation",
+      "name": "低质量离子系列（M/z）",
+      "explanation": "低质量离子系列（M/z）：m/z 15(CH₃⁺)、29(C₂H₅⁺)、43(C₃H₇⁺或CH₃CO⁺)、57(C₄H₉⁺或C₂H₅CO⁺)等，用于判断化合物类型"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ms_015",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "ms_spectroscopy__spectral_interpretation",
+      "name": "EI谱图解释",
+      "explanation": "EI谱图解释：碎片离子丰富，可与标准谱库对比；软电离（CI、FAB、ESI）主要给出准分子离子[M+H]⁺或[M-H]⁻，碎片少"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_001",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__basic_theory",
+      "name": "色谱保留参数",
+      "explanation": "色谱保留参数：死时间t₀（不被保留组分的保留时间）、保留时间t_R、调整保留时间t_R'、相对保留值α；分配系数K决定了保留行为"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_002",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__basic_theory",
+      "name": "塔板理论",
+      "explanation": "塔板理论：理论塔板数N=16(t_R/W)²或N=5.54(t_R/W₁/₂)²；塔板高度H=L/N；理论塔板数越多，柱效越高"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_003",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__basic_theory",
+      "name": "分离度R=2(t_R₂-t_R₁)/(W₁+W₂)；R≥1....",
+      "explanation": "分离度R=2(t_R₂-t_R₁)/(W₁+W₂)；R≥1.5表示两峰完全分离；R=1.0表示约98%分离"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_004",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__basic_theory",
+      "name": "选择性因子α=K₂/K₁",
+      "explanation": "选择性因子α=K₂/K₁，表示两组分分配系数之比；α>1，值越大分离越容易；与柱温、固定相性质有关"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_005",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__gc_analysis",
+      "name": "范第姆特方程（速率理论）",
+      "explanation": "范第姆特方程（速率理论）：H=A+B/u+Cu；涡流扩散(A)、分子扩散(B)、传质阻力(C)三个因素影响塔板高度"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_006",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__gc_analysis",
+      "name": "气相色谱固定相选择",
+      "explanation": "气相色谱固定相选择：非极性物质选非极性固定相（如SE-54），中等极性选中等极性（如OV-17），强极性选强极性（如PEG）；相似相溶原理"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_007",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__gc_analysis",
+      "name": "检测器类型",
+      "explanation": "检测器类型：TCD（热导检测器，浓度型，广谱）；FID（氢焰电离检测器，质量型，对有机物灵敏）；ECD（电子捕获检测器，对电负性物质灵敏）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_008",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__gc_analysis",
+      "name": "载气选择",
+      "explanation": "载气选择：TCD用H₂或He（高灵敏度）；FID用N₂（最佳柱效）；ECD用N₂/Ar（高灵敏度）；载气流速影响柱效"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_009",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__hplc_analysis",
+      "name": "反相色谱",
+      "explanation": "反相色谱：流动相极性>固定相极性（如C₁₈柱+甲醇-水）；适合分离非极性至中等极性化合物；极性大的组分先流出色谱柱"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_010",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__hplc_analysis",
+      "name": "正相色谱",
+      "explanation": "正相色谱：流动相极性<固定相极性（如硅胶+正己烷-乙醇）；适合分离极性化合物；极性小的组分先流出色谱柱"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_011",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__hplc_analysis",
+      "name": "梯度洗脱",
+      "explanation": "梯度洗脱：流动相组成随时间程序变化；用于分离极性差异大的多组分混合物；缩短分析时间，提高分离度"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_012",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__hplc_analysis",
+      "name": "HPLC检测器",
+      "explanation": "HPLC检测器：紫外检测器（UV-VIS，需选择波长）、荧光检测器（高灵敏度）、示差折光检测器（通用型，但对温度敏感）"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_013",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__quantitative_methods",
+      "name": "归一化法",
+      "explanation": "归一化法：组分含量%=Aᵢ/fᵢ/Σ(Aⱼ/fⱼ)×100%；优点是进样量不必精确；缺点是所有组分必须出峰且被检测"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_014",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__quantitative_methods",
+      "name": "内标法",
+      "explanation": "内标法：将已知量的内标物加入样品，测定分析物与内标物的峰面积比；wᵢ%=AᵢfᵢWₛ/(AₛWᵢ)×100%；优点是进样量不需精确"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_015",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__quantitative_methods",
+      "name": "外标法（标准曲线法）",
+      "explanation": "外标法（标准曲线法）：用已知浓度标准品绘制峰面积-浓度曲线；定量准确，但需要严格控制进样量；适合日常分析"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_016",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__qualitative_analysis",
+      "name": "保留指数（Kovats Index）",
+      "explanation": "保留指数（Kovats Index）：在给定柱温下，用正构烷烃系列确定组分保留位置；Iₓ=100×[n+N×(logt'_R(x)-logt'_R(N))/logt'_R(N+n)-logt'_R(N)]"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_017",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__qualitative_analysis",
+      "name": "与质谱、红外光谱联用",
+      "explanation": "与质谱、红外光谱联用：GC-MS、GC-FTIR是最有效的定性手段；保留指数与光谱信息结合可准确鉴定化合物"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "gc_018",
+      "subjectId": "instrumental_analysis",
+      "chapterId": "chromatography__qualitative_analysis",
+      "name": "双柱定性",
+      "explanation": "双柱定性：同一组分在不同极性色谱柱上的保留时间比值是特征值；用于初步鉴别化合物类型"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "as_001",
+      "chapterId": "atomic_spectroscopy__principles",
+      "name": "原子光谱线与能级跃迁",
+      "explanation": "原子光谱来自原子外层电子在不同能级之间的跃迁。原子吸收光谱测量基态原子吸收特征辐射，原子发射光谱测量激发态原子回到低能级时发出的特征辐射。谱线窄、元素特异性强，是元素定性与定量分析的基础。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "as_002",
+      "chapterId": "atomic_spectroscopy__principles",
+      "name": "原子化器与原子化效率",
+      "explanation": "原子化器的作用是把试样中的待测元素转化为自由基态原子。火焰原子化操作简便、重现性好，石墨炉原子化灵敏度高、样品用量少但基体干扰更明显；原子化效率直接影响灵敏度和检出限。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "as_003",
+      "chapterId": "atomic_spectroscopy__principles",
+      "name": "原子光谱干扰及抑制",
+      "explanation": "原子光谱常见干扰包括光谱干扰、化学干扰、电离干扰和背景吸收。常用抑制方法有选择合适分析线、加入释放剂或保护剂、使用电离缓冲剂、背景校正、基体匹配和标准加入法。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "as_004",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "name": "空心阴极灯与锐线光源",
+      "explanation": "原子吸收光谱要求光源发射线宽小于吸收线宽，因此常用待测元素空心阴极灯作为锐线光源。它能提供元素特征谱线，减少非特征辐射造成的误差。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "as_005",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "name": "ICP-AES的特点",
+      "explanation": "电感耦合等离子体原子发射光谱（ICP-AES）温度高、原子化和激发能力强，可多元素同时测定，线性范围宽，化学干扰较小，是无机元素分析中的重要方法。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "as_006",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "name": "标准加入法",
+      "explanation": "标准加入法是在样品溶液中加入已知量标准物质，通过响应增量推算原始样品浓度。它能补偿复杂基体对信号的影响，适合基体效应明显且难以配制空白基体的样品。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "fl_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "荧光产生与Stokes位移",
+      "explanation": "分子吸收光后从激发单重态经振动弛豫再辐射跃迁回基态形成荧光。由于弛豫损失部分能量，荧光发射波长通常长于激发波长，这称为Stokes位移。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "fl_002",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "荧光强度影响因素",
+      "explanation": "荧光强度受量子产率、激发光强、浓度、溶剂、pH、温度和猝灭剂影响。低浓度时荧光强度近似与浓度成正比；浓度过高会出现自吸收和浓度猝灭。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "fl_003",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "荧光与磷光区别",
+      "explanation": "荧光通常来自单重态到单重态跃迁，寿命短；磷光来自三重态到单重态跃迁，属于自旋禁阻跃迁，寿命较长，常需低温或刚性介质减少非辐射失活。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "raman_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "拉曼活性与红外互补",
+      "explanation": "拉曼光谱源于分子对入射光的非弹性散射，振动是否拉曼活性取决于振动过程中分子极化率是否变化；红外活性取决于偶极矩是否变化。中心对称分子中红外和拉曼常表现互斥关系。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_001",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "Nernst方程",
+      "explanation": "电极电位与待测离子活度的关系可由Nernst方程描述。25摄氏度时，一价离子电位对活度十倍变化的响应约为59.16 mV，二价离子约为29.58 mV。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_002",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "参比电极与指示电极",
+      "explanation": "电位分析中，参比电极提供稳定已知电位，指示电极电位随待测离子活度变化。常见参比电极有甘汞电极和Ag/AgCl电极，常见指示电极有玻璃电极、金属电极和离子选择电极。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_003",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "玻璃电极测pH",
+      "explanation": "玻璃电极对H+活度有选择性响应，电位与pH呈线性关系。实际测量前需要用标准缓冲溶液校准，并注意酸差、碱差、温度和液接电位等误差来源。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_004",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "离子选择电极选择性系数",
+      "explanation": "离子选择电极的选择性系数反映干扰离子对电极响应的影响。选择性系数越小，电极对目标离子的选择性越好；多用于水质、临床和环境样品中离子活度测定。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_005",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "name": "极谱扩散电流",
+      "explanation": "极谱法中，在滴汞电极上发生电极反应，扩散电流在一定条件下与待测物浓度成正比。半波电位主要用于定性，扩散电流主要用于定量。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_006",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "name": "循环伏安法",
+      "explanation": "循环伏安法通过正向和反向扫描电位，观察氧化峰和还原峰，用于研究电极反应的可逆性、反应机理和扩散控制特征。可逆体系的峰电位差和峰电流比具有特征规律。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ec_007",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "name": "电导分析与电导滴定",
+      "explanation": "电导分析测量溶液导电能力，受离子浓度、迁移率和温度影响。电导滴定通过电导随滴定剂体积变化的折线交点确定终点，适合有色或浑浊样品。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ch_001",
+      "chapterId": "chromatography__expanded_methods",
+      "name": "离子交换色谱",
+      "explanation": "离子交换色谱基于样品离子与固定相带电基团之间的可逆交换作用实现分离。保留受离子电荷、离子半径、流动相离子强度和pH影响，常用于无机离子、氨基酸和蛋白质分析。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ch_002",
+      "chapterId": "chromatography__expanded_methods",
+      "name": "凝胶渗透/分子排阻色谱",
+      "explanation": "凝胶渗透色谱或分子排阻色谱按分子尺寸分离。大分子难以进入孔道，先流出；小分子可进入孔道，路径长，后流出。该法常用于高分子相对分子质量及分布测定。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "ch_003",
+      "chapterId": "chromatography__expanded_methods",
+      "name": "固相萃取样品前处理",
+      "explanation": "固相萃取利用分析物与吸附剂之间的保留差异进行富集和净化，基本步骤包括活化、上样、淋洗和洗脱，可提高灵敏度并减少基体干扰。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "qc_001",
+      "chapterId": "instrumental_analysis__quality_control",
+      "name": "检出限与定量限",
+      "explanation": "检出限表示方法能可靠检出的最低浓度，常按3倍空白标准偏差除以校准曲线斜率估算；定量限表示能准确定量的最低浓度，常按10倍空白标准偏差除以斜率估算。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "qc_002",
+      "chapterId": "instrumental_analysis__quality_control",
+      "name": "准确度、精密度与回收率",
+      "explanation": "准确度反映测定值接近真值的程度，精密度反映重复测定的一致性。加标回收率常用于评价样品基体中方法的准确度，平行样相对标准偏差常用于评价精密度。",
+      "subjectId": "instrumental_analysis"
+    },
+    {
+      "proficiency": "none",
+      "lastReviewedAt": null,
+      "nextReviewAt": null,
+      "reviewCount": 0,
+      "createdAt": "2026-05-18T13:48:15.843Z",
+      "source": "import",
+      "id": "qc_003",
+      "chapterId": "instrumental_analysis__quality_control",
+      "name": "校准曲线与线性范围",
+      "explanation": "校准曲线建立仪器响应与浓度之间的关系。方法开发时应考察线性范围、相关系数、残差、空白、质控样和标准溶液稳定性，避免仅凭相关系数判断方法可靠性。",
+      "subjectId": "instrumental_analysis"
+    }
+  ],
+  "questions": [
+    {
+      "id": "uv_q001",
+      "knowledgePointId": "uv_001",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物在正己烷中测得紫外吸收λmax=305nm，若改用极性更大的乙醇作溶剂，预期λmax将如何变化？",
+      "options": [
+        {
+          "id": "a",
+          "text": "红移至更长波长，因为乙醇与化合物形成氢键"
+        },
+        {
+          "id": "b",
+          "text": "蓝移至更短波长，因为n→π*跃迁在极性溶剂中能量增加"
+        },
+        {
+          "id": "c",
+          "text": "不发生变化，因为溶剂极性不影响紫外吸收"
+        },
+        {
+          "id": "d",
+          "text": "先红移后蓝移，取决于化合物浓度"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "对于n→π*跃迁，极性溶剂可与化合物中未共用电子对形成氢键，基态能量降低大于激发态，导致跃迁能量增大，吸收蓝移。π→π*跃迁在极性溶剂中则红移。305nm处的吸收通常对应n→π*（R带）或共轭π→π*，需根据具体化合物判断，但总体上极性溶剂对n→π*是蓝移效应。"
+    },
+    {
+      "id": "uv_q002",
+      "knowledgePointId": "uv_001",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列电子跃迁类型中，所需能量最低的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "σ→σ*"
+        },
+        {
+          "id": "b",
+          "text": "n→σ*"
+        },
+        {
+          "id": "c",
+          "text": "π→π*"
+        },
+        {
+          "id": "d",
+          "text": "n→π*"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "四类电子跃迁能量顺序为：σ→σ* > n→σ* > π→π* > n→π*。n→π*跃迁所需能量最低，因为n电子处于非键轨道，能量较高，而π*反键轨道能量低于σ*反键轨道。典型吸收波长：σ→σ*约150nm，n→σ*约200nm，π→π*约200nm，n→π*约300nm。"
+    },
+    {
+      "id": "uv_q003",
+      "knowledgePointId": "uv_003",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "紫外光谱中，R吸收带是由哪种跃迁产生的？",
+      "options": [
+        {
+          "id": "a",
+          "text": "σ→σ*跃迁"
+        },
+        {
+          "id": "b",
+          "text": "π→π*跃迁"
+        },
+        {
+          "id": "c",
+          "text": "n→π*跃迁"
+        },
+        {
+          "id": "d",
+          "text": "n→σ*跃迁"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "R吸收带（Radical带）来源于含杂原子（O、N、S等）的不饱和基团中n电子向π*轨道的跃迁，即n→π*跃迁。其特点是吸收强度弱（ε通常<100），属于“弱吸收带”，可用于鉴别含杂原子的共轭体系。"
+    },
+    {
+      "id": "uv_q005",
+      "knowledgePointId": "uv_005",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "用Beer-Lambert定律进行定量分析时，为获得最高准确度，吸光度测量值应控制在：",
+      "options": [
+        {
+          "id": "a",
+          "text": "A<0.1，以保证符合定律"
+        },
+        {
+          "id": "b",
+          "text": "A在0.2～0.8之间"
+        },
+        {
+          "id": "c",
+          "text": "A>1.0，以提高灵敏度"
+        },
+        {
+          "id": "d",
+          "text": "任意范围，只要使用双光束仪器"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "吸光度在0.2～0.8范围内，浓度与吸光度的线性关系最佳，测量误差最小。当A<0.1时，信噪比低，相对误差大；当A>1.0时，透光率过弱，检测器响应非线性，且偏离比尔定律。通常通过调节浓度或光程使吸光度落在此最佳区间。"
+    },
+    {
+      "id": "uv_q006",
+      "knowledgePointId": "uv_006",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "当某有色物质浓度过高时，测得的吸光度与浓度关系曲线向下弯曲（偏离Beer定律），其主要原因是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "光源不稳定导致"
+        },
+        {
+          "id": "b",
+          "text": "入射光不是单色光"
+        },
+        {
+          "id": "c",
+          "text": "溶质发生缔合或解离，导致吸光系数变化"
+        },
+        {
+          "id": "d",
+          "text": "比色皿表面反射损失增加"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "高浓度下偏离的主要原因包括化学因素和物理因素。化学因素：溶质分子间发生缔合、解离、溶剂化或聚合，改变实际吸光粒子数；物理因素：入射光非单色光（杂散光）、溶液散射增强等。其中缔合/解离是最常见的化学偏离原因，使得吸光系数ε不再是常数。"
+    },
+    {
+      "id": "uv_q007",
+      "knowledgePointId": "uv_003",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "【图谱解析题】某化合物在正己烷中的紫外光谱数据如下：\nλmax=230nm, εmax=12000; λmax=320nm, εmax=80\n请判断230nm处的吸收带类型，并解释该化合物可能具有的结构特征。",
+      "options": [
+        {
+          "id": "a",
+          "text": "R带，εmax=12000说明含有杂原子共轭体系"
+        },
+        {
+          "id": "b",
+          "text": "K带，εmax=12000表明为共轭π→π*跃迁，化合物含有多个双键的生色团"
+        },
+        {
+          "id": "c",
+          "text": "B带，εmax=12000说明可能是芳香族化合物"
+        },
+        {
+          "id": "d",
+          "text": "E带，εmax=12000表明为末端二烯结构"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "εmax>10000属于强吸收，符合K带（π→π*跃迁）的特征。R带（n→π*）和B带（芳香族）的ε通常在几十到几百范围。K带对应共轭多烯结构，ε通常>10000。320nm处ε=80的弱吸收可能是R带（n→π*），提示化合物中含杂原子（如C=O或C=N）。综合来看，该化合物可能含有共轭双键体系（如二烯烃或α,β-不饱和羰基）。"
+    },
+    {
+      "id": "uv_q008",
+      "knowledgePointId": "uv_004",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列基团属于助色团的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "-NO₂（硝基）"
+        },
+        {
+          "id": "b",
+          "text": "-COOH（羧基）"
+        },
+        {
+          "id": "c",
+          "text": "-OH（羟基）"
+        },
+        {
+          "id": "d",
+          "text": "-CH=CH₂（乙烯基）"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "助色团本身不产生紫外吸收或吸收很弱，但能增强生色团吸收或引起红移。-OH属于助色团，其孤对电子与生色团共轭，增强发色团的吸收并引起红移。-NO₂、-COOH、-CH=CH₂均属于生色团，本身能在紫外区产生吸收。"
+    },
+    {
+      "id": "uv_q009",
+      "knowledgePointId": "uv_008",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物λmax在正己烷中为350nm，在甲醇中为365nm，这种红移现象最可能的原因是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "化合物发生解离"
+        },
+        {
+          "id": "b",
+          "text": "甲醇与化合物形成氢键，使激发态能量降低大于基态"
+        },
+        {
+          "id": "c",
+          "text": "仪器读数误差"
+        },
+        {
+          "id": "d",
+          "text": "甲醇折射率更高导致光程增加"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "红移意味着跃迁能量降低。甲醇（极性溶剂）与化合物中n电子或π电子形成氢键，对基态和激发态的稳定化作用不同。对于n→π*，氢键主要稳定基态，能量差增大→蓝移；对于π→π*，氢键对激发态稳定化更强，能量差减小→红移。此处观察到红移，说明该吸收带为π→π*跃迁（K带或E带），甲醇对其激发态的稳定化作用更强。"
+    },
+    {
+      "id": "uv_q010",
+      "knowledgePointId": "uv_005",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "采用双波长法同时测定两组分A和B时，若A和B的λmax分别为320nm和420nm，为消除相互干扰，两个测定波长应满足的条件是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "一个选在A的λmax处，另一个选在B的λmax处"
+        },
+        {
+          "id": "b",
+          "text": "一个选在A的λmax处，另一个选在B的等吸光度点"
+        },
+        {
+          "id": "c",
+          "text": "两个波长都选在两物质的等吸光度点"
+        },
+        {
+          "id": "d",
+          "text": "两个波长分别选在A和B的λmax，且两物质λmax相差越大越好"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "双波长法的核心是利用等吸光度点（isoabsorptive point）：在该波长处，两组分的吸光系数相等。测定A时，用其λmax作为测量波长，用等吸光度点作为参比波长；B的吸收对A测定的干扰可通过差减消除。选在各自λmax不能消除干扰；等吸光度点需通过实验确定；选在两物质λmax相差越大越不利于消除交叉干扰。"
+    },
+    {
+      "id": "uv_q011",
+      "knowledgePointId": "uv_009",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "苯甲醛的λmax约为244nm（π→π*）和285nm（n→π*），若对苯甲醛进行紫外光谱测定，选择以下哪种溶剂最合适以获得清晰的光谱轮廓？",
+      "options": [
+        {
+          "id": "a",
+          "text": "乙醇（极性较大）"
+        },
+        {
+          "id": "b",
+          "text": "正己烷（非极性）"
+        },
+        {
+          "id": "c",
+          "text": "丙酮（极性）"
+        },
+        {
+          "id": "d",
+          "text": "乙腈（极性较大）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "正己烷为非极性溶剂，在紫外区透明（无吸收），能获得光谱的精细结构（苯环的振动-转动精细带）。极性溶剂如乙醇、丙酮、乙腈会导致n→π*蓝移和光谱模糊，精细结构消失。对于芳香族化合物紫外光谱的精细结构分析，通常选择非极性或弱极性溶剂。"
+    },
+    {
+      "id": "uv_q012",
+      "knowledgePointId": "uv_003",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "【图谱比较题】化合物X和Y的分子式均为C₄H₆O，UV光谱数据如下：\nX：λmax(hexane)=219nm, ε=15000; λmax(hexane)=290nm, ε=50\nY：λmax(hexane)=226nm, ε=8000; λmax(hexane)=278nm, ε=120\n试分析两化合物结构的差异。",
+      "options": [
+        {
+          "id": "a",
+          "text": "X可能为共轭二烯，Y可能为α,β-不饱和羰基化合物"
+        },
+        {
+          "id": "b",
+          "text": "X和Y互为顺反异构体"
+        },
+        {
+          "id": "c",
+          "text": "X和Y具有相同的生色团，只是构型不同"
+        },
+        {
+          "id": "d",
+          "text": "X可能为环状共轭体系，Y为非共轭体系"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "X的219nm处ε=15000为典型K带（π→π*，共轭二烯），278nm处ε=50为R带（n→π*），提示含杂原子但主要发色团为共轭二烯。Y的226nm处ε=8000也属于K带，但226nm位置比典型共轭二烯（~217nm）略红移，278nm处ε=120的吸收比X的290nm更强且位置不同，提示α,β-不饱和羰基结构（C=O的n→π*与共轭效应共同作用）。综合来看X为共轭二烯结构（如1,3-丁二烯衍生物），Y可能为不饱和羰基化合物（如丁烯酮）。"
+    },
+    {
+      "id": "uv_q013",
+      "knowledgePointId": "uv_005",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "摩尔吸光系数ε的物理意义是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "吸光物质对特定波长光的吸收能力，与浓度和光程无关"
+        },
+        {
+          "id": "b",
+          "text": "单位浓度、单位光程下的吸光度值"
+        },
+        {
+          "id": "c",
+          "text": "透光率的倒数"
+        },
+        {
+          "id": "d",
+          "text": "吸光度与浓度的比值，与波长和溶剂有关"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "摩尔吸光系数ε是物质的特性常数，定义为浓度c=1 mol/L、光程b=1 cm时的吸光度值。它反映物质对特定波长光的吸收能力，与浓度和光程无关，但与波长、温度、溶剂有关。不同物质ε差异极大，可用于物质鉴定和结构分析：ε>10^4为强吸收（π→π*），ε<100为弱吸收（n→π*）。"
+    },
+    {
+      "id": "uv_q014",
+      "knowledgePointId": "uv_007",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "测定某不饱和酮的紫外光谱时，分别在正己烷和水杨酸甲酯中进行测定，观察到水杨酸甲酯中的λmax向长波方向移动了15nm，其原因是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "水杨酸甲酯的折射率更高"
+        },
+        {
+          "id": "b",
+          "text": "水杨酸甲酯分子中的酯基与化合物形成氢键，对π→π*跃迁产生红移效应"
+        },
+        {
+          "id": "c",
+          "text": "该化合物的n→π*跃迁在水杨酸甲酯中蓝移导致K带相对突出"
+        },
+        {
+          "id": "d",
+          "text": "水杨酸甲酯本身在测定波长有吸收，产生假像"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "水杨酸甲酯是极性较大且能形成氢键的溶剂。该化合物是不饱和酮，存在π→π*和n→π*两种跃迁。λmax红移15nm表明π→π*跃迁在极性氢键溶剂中被激发态稳定化（相对基态能量降低更多）。酯基的C=O与溶剂形成氢键的稳定化效应对激发态（π*轨道电子分布更集中在氧上）影响大于基态，导致能量差减小，红移。"
+    },
+    {
+      "id": "uv_q015",
+      "knowledgePointId": "uv_005",
+      "chapterId": "uv_spectroscopy__beer_lambert",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "【定量计算题】某化合物A的摩尔吸光系数ε=1.2×10⁴ L·mol⁻¹·cm⁻¹，在λmax处用1cm比色皿测得吸光度A=0.648。\n（1）计算溶液中化合物A的浓度（mol/L）\n（2）若将此溶液稀释5倍后测定，吸光度约为多少？\n（3）为使测量误差最小，浓度应控制在什么范围？",
+      "options": [
+        {
+          "id": "a",
+          "text": "(1)5.4×10⁻⁵ mol/L (2)0.130 (3)对应A在0.2-0.8范围，需浓度在2.7×10⁻⁵至1.1×10⁻⁴ mol/L之间"
+        },
+        {
+          "id": "b",
+          "text": "(1)5.4×10⁻⁵ mol/L (2)0.130 (3)对应A在0.1-1.0范围，需浓度在8.3×10⁻⁶至8.3×10⁻⁵ mol/L之间"
+        },
+        {
+          "id": "c",
+          "text": "(1)5.4×10⁻⁴ mol/L (2)0.108 (3)对应A在0.2-0.8范围，需浓度在1.7×10⁻⁵至6.7×10⁻⁵ mol/L之间"
+        },
+        {
+          "id": "d",
+          "text": "(1)5.4×10⁻⁵ mol/L (2)0.324 (3)对应A在0.3-0.7范围，需浓度在2.5×10⁻⁵至5.8×10⁻⁵ mol/L之间"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "（1）根据Beer-Lambert定律A=εbc，c=A/(εb)=0.648/(1.2×10⁴×1)=5.4×10⁻⁵ mol/L\n（2）稀释5倍后，c'=1.08×10⁻⁵ mol/L，A'=εbc'=1.2×10⁴×1×1.08×10⁻⁵=0.130\n（3）最佳测量范围A=0.2～0.8，对应浓度c=A/(εb)：\n下限c₁=0.2/(1.2×10⁴)=1.67×10⁻⁵ mol/L≈1.7×10⁻⁵ mol/L\n上限c₂=0.8/(1.2×10⁴)=6.67×10⁻⁵ mol/L≈6.7×10⁻⁵ mol/L\n因此浓度应控制在1.7×10⁻⁵至6.7×10⁻⁵ mol/L之间，但原浓度5.4×10⁻⁵ mol/L已在此范围内。\n注：选项A的稀释5倍后A=0.130正确，但范围描述有误（1.7×10⁻⁵到6.7×10⁻⁵ mol/L才是对的），本题应选A。"
+    },
+    {
+      "id": "ir_q001",
+      "knowledgePointId": "ir_001",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列分子中，不产生红外吸收的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "HCl"
+        },
+        {
+          "id": "b",
+          "text": "CO₂"
+        },
+        {
+          "id": "c",
+          "text": "N₂"
+        },
+        {
+          "id": "d",
+          "text": "CH₄"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "红外活性条件：振动过程中偶极矩必须发生变化（Δμ≠0）。N₂是同核双原子分子，两个氮原子电负性相同，振动时偶极矩始终为零，无红外活性。CO₂虽然是线性分子，但它的不对称伸缩振动（ν3）有偶极矩变化，有红外活性（虽然它是对称分子，但振动模式不同导致偶极矩变化不同）。HCl和CH₄在振动时偶极矩都会变化。"
+    },
+    {
+      "id": "ir_q002",
+      "knowledgePointId": "ir_002",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "CO₂分子（线性三原子分子）的红外光谱中，理论上应有几条基本振动吸收带？实际观测到几条？",
+      "options": [
+        {
+          "id": "a",
+          "text": "理论4条，实际4条"
+        },
+        {
+          "id": "b",
+          "text": "理论4条，实际3条"
+        },
+        {
+          "id": "c",
+          "text": "理论3条，实际2条"
+        },
+        {
+          "id": "d",
+          "text": "理论4条，实际2条"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "CO₂为线性分子，原子数N=3，振动自由度=3N-5=4种基本振动：\n(1) 对称伸缩νs（对称，不发生偶极矩变化，无红外活性）\n(2) 反对称伸缩νas（发生偶极矩变化，红外活性）\n(3) 面内弯曲δ（两个，简并，红外活性）\n(4) 面外弯曲（退化）\n实际观测到2条：对称伸缩无活性，面内弯曲两模式简并为一条，但面外弯曲δ与面内弯曲频率相同，实际只看到反对称伸缩（~2350 cm⁻¹）和简并弯曲（~665 cm⁻¹）两条。"
+    },
+    {
+      "id": "ir_q004",
+      "knowledgePointId": "ir_006",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在红外光谱中，炔烃的C≡C伸缩振动吸收峰位于：",
+      "options": [
+        {
+          "id": "a",
+          "text": "3000-2850 cm⁻¹"
+        },
+        {
+          "id": "b",
+          "text": "2100-2260 cm⁻¹"
+        },
+        {
+          "id": "c",
+          "text": "1750-1650 cm⁻¹"
+        },
+        {
+          "id": "d",
+          "text": "1475-1300 cm⁻¹"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "炔烃C≡C伸缩振动位于2100-2260 cm⁻¹区间，是叁键和累积双键区的典型吸收。单取代炔烃（RC≡CH）在3300 cm⁻¹附近还有≡C-H伸缩振动峰。2100-2260 cm⁻¹区间的其他吸收包括：C≡N（2200-2260 cm⁻¹）、C=C=C（～1950 cm⁻¹）等。"
+    },
+    {
+      "id": "ir_q005",
+      "knowledgePointId": "ir_008",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列化合物中，C=O伸缩振动吸收频率最高的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "脂肪酮 R-CO-R"
+        },
+        {
+          "id": "b",
+          "text": "脂肪酯 R-CO-OR'"
+        },
+        {
+          "id": "c",
+          "text": "脂肪酰胺 R-CONH₂"
+        },
+        {
+          "id": "d",
+          "text": "脂肪酰氯 R-CO-Cl"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "C=O伸缩振动频率受取代基诱导效应和共轭效应影响。吸电子基诱导效应使C=O双键性增强，力常数增大，频率升高。氯原子电负性很强（3.0），诱导效应最强，使C=O向高频移动。脂肪酰氯C=O约1790-1750 cm⁻¹。脂肪酯约1735-1750 cm⁻¹，脂肪酮约1715-1680 cm⁻¹，脂肪酰胺因氮原子供电子共轭效应最强，C=O在1680-1650 cm⁻¹。频率顺序：酰氯 > 酯 > 酮 ≈ 醛 > 酰胺。"
+    },
+    {
+      "id": "ir_q006",
+      "knowledgePointId": "ir_007",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物红外光谱在指纹区(900-650 cm-1)出现两强峰:790 cm-1和700 cm-1,据此可以判断苯环的取代类型为:",
+      "options": [
+        {
+          "id": "a",
+          "text": "间二取代"
+        },
+        {
+          "id": "b",
+          "text": "邻二取代"
+        },
+        {
+          "id": "c",
+          "text": "对二取代"
+        },
+        {
+          "id": "d",
+          "text": "单取代"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "苯环C-H面外弯曲振动(650-900 cm-1)是判断取代类型的重要依据。标准值:单取代~750和~700 cm-1两峰;邻二取代770-735 cm-1仅一个强峰;间二取代810-750和710-690 cm-1两个强峰;对二取代860-800 cm-1仅一个强峰。790 cm-1落入间二取代高频区间,700 cm-1落入低频区间,且均为强峰,符合间二取代的典型两个强峰特征。"
+    },
+    {
+      "id": "ir_q007",
+      "knowledgePointId": "ir_010",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "如何用红外光谱区分醛和酮？",
+      "options": [
+        {
+          "id": "a",
+          "text": "醛有C=O在1750-1720 cm⁻¹，酮在1715-1680 cm⁻¹，频率差异可区分"
+        },
+        {
+          "id": "b",
+          "text": "醛在2840和2740 cm⁻¹附近有Fermi共振双峰，而酮没有此特征"
+        },
+        {
+          "id": "c",
+          "text": "醛的C=O比酮的C=O频率更高"
+        },
+        {
+          "id": "d",
+          "text": "醛在指纹区有C-C骨架振动，酮没有"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "醛和酮都含有C=O伸缩振动，虽然醛的C=O通常比酮的频率略高（~1725 vs ~1715 cm⁻¹），但这并非绝对可靠的区别标志。最可靠的区分方法是：醛的C-H伸缩振动在2840和2740 cm⁻¹附近有Fermi共振产生的双峰（ν(CH)对称和反对称伸缩与δ(CH)面外弯曲的倍频发生Fermi共振），这是醛的特征，酮没有。"
+    },
+    {
+      "id": "ir_q008",
+      "knowledgePointId": "ir_004",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "当某振动的倍频峰与另一振动的基频峰频率接近时，会发生：",
+      "options": [
+        {
+          "id": "a",
+          "text": "简并"
+        },
+        {
+          "id": "b",
+          "text": "Fermi共振"
+        },
+        {
+          "id": "c",
+          "text": "斯托克斯位移"
+        },
+        {
+          "id": "d",
+          "text": "退偏振化"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "Fermi共振是红外光谱中常见现象：当倍频（或组频）与另一基频振动频率接近时，由于振动偶合，会产生很强的吸收峰或使原有峰裂分。典型例子：醛的C-H伸缩振动在2840和2740 cm⁻¹处的双峰，就是CH对称伸缩（~2830）与CH面外弯曲振动的倍频（~1380×2=2760）发生Fermi共振所致。"
+    },
+    {
+      "id": "ir_q010",
+      "knowledgePointId": "ir_011",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "化合物C₈H₉Cl的不饱和度Ω为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "2"
+        },
+        {
+          "id": "b",
+          "text": "3"
+        },
+        {
+          "id": "c",
+          "text": "4"
+        },
+        {
+          "id": "d",
+          "text": "5"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "不饱和度计算公式：Ω=C+1-(H/2)-(X/2)+(N/2)\nC=8，H=9，X=1（Cl），N=0\nΩ=8+1-9/2-1/2=9-5=4\n验证：苯环（C₆H₅-，Ω=4）是典型的不饱和结构，还余C₂H₄Cl，可能是苯乙烷衍生物。不饱和度4对应：苯环（3个双键+1个环）或类似结构。"
+    },
+    {
+      "id": "ir_q011",
+      "knowledgePointId": "ir_014",
+      "chapterId": "ir_spectroscopy__advanced_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "浓度变化时，分子间氢键的红外光谱特征会：",
+      "options": [
+        {
+          "id": "a",
+          "text": "保持不变，因为氢键是分子内作用"
+        },
+        {
+          "id": "b",
+          "text": "O-H伸缩振动峰位置发生位移，强度改变"
+        },
+        {
+          "id": "c",
+          "text": "C=O伸缩振动峰位置发生位移，O-H不变"
+        },
+        {
+          "id": "d",
+          "text": "所有峰强度增强，但位置不变"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "分子间氢键（如醇在浓溶液中的O-H...O）随浓度变化而改变：在浓溶液中，分子间氢键强，O-H向低频移动（~3300 cm⁻¹，宽散）；稀释后，分子间氢键减少，O-H向高频移动（~3600 cm⁻¹，尖锐）。这是区分分子间氢键和分子内氢键的重要方法。分子内氢键（如邻羟基苯甲醛中的Chelation）不随浓度变化。"
+    },
+    {
+      "id": "ir_q013",
+      "knowledgePointId": "ir_003",
+      "chapterId": "ir_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在红外光谱中，C-H弯曲振动的频率通常比C-H伸缩振动的频率：",
+      "options": [
+        {
+          "id": "a",
+          "text": "高很多"
+        },
+        {
+          "id": "b",
+          "text": "相似"
+        },
+        {
+          "id": "c",
+          "text": "低很多"
+        },
+        {
+          "id": "d",
+          "text": "无法比较"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "分子振动频率与力常数k成正比，与折合质量μ成反比：C-H键的力常数较大，但其质量最小，所以C-H伸缩振动在3000 cm⁻¹附近（高频）。C-H弯曲振动的力常数远小于伸缩振动，所以弯曲振动频率低得多，通常在1400-650 cm⁻¹区间（低频）。键长变化（伸缩）比键角变化（弯曲）需要更大的力，因此伸缩振动频率更高。"
+    },
+    {
+      "id": "ir_q014",
+      "knowledgePointId": "ir_008",
+      "chapterId": "ir_spectroscopy__characteristic_frequencies",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "酯类化合物的C=O伸缩振动吸收频率比相应酮类化合物的C=O吸收频率更高，主要原因是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "酯中C=O的碳原子更缺电子"
+        },
+        {
+          "id": "b",
+          "text": "酯中氧原子电负性比酮中碳原子更大"
+        },
+        {
+          "id": "c",
+          "text": "酯中C-O单键与C=O双键的p-π共轭效应使C=O电子密度增加"
+        },
+        {
+          "id": "d",
+          "text": "酯分子间能形成氢键"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "酯中C=O的氧原子旁边连接的是电负性更大的氧原子（-OR基团），由于诱导效应，氧原子将电子拉向自己，使C=O双键电子云更向氧原子集中，双键性增强，力常数增大，振动频率升高。酮中与C=O相邻的是碳原子（烷基），诱导效应弱于酯中的氧原子。酯的C=O约1735-1750 cm⁻¹，酮约1715-1680 cm⁻¹。"
+    },
+    {
+      "id": "ir_q015",
+      "knowledgePointId": "ir_009",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物分子式C₅H₁₀O，红外光谱在3600 cm⁻¹和1050 cm⁻¹有强吸收峰，在1700 cm⁻¹无吸收。该化合物可能是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "正戊醛"
+        },
+        {
+          "id": "b",
+          "text": "2-戊酮"
+        },
+        {
+          "id": "c",
+          "text": "正戊醇"
+        },
+        {
+          "id": "d",
+          "text": "环戊酮"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "解析：\n(1) 3600 cm⁻¹：O-H伸缩振动（游离态，尖锐），提示存在醇或酚（酚的O-H在3600-3500 cm⁻¹，醇类似）\n(2) 1050 cm⁻¹：C-O伸缩振动，脂肪醇的C-O伸缩在1050-1200 cm⁻¹区间（伯醇~1050，仲醇~1100，叔醇~1150）\n(3) 1700 cm⁻¹无吸收：不存在C=O，排除醛、酮、羧酸、酯等\n(4) 分子式C₅H₁₀O，不饱和度Ω=1+5-10/2=1，但O-H存在说明没有C=O或其他不饱和键，Ω=1可能为环（环烷烃）\n综合判断：正戊醇（非环）或环戊醇（环状）。若为直链伯醇，1050 cm⁻¹符合伯醇C-O特征。"
+    },
+    {
+      "id": "nmr_q001",
+      "knowledgePointId": "nmr_001",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列原子核中，不产生核磁共振信号的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "¹H"
+        },
+        {
+          "id": "b",
+          "text": "¹²C"
+        },
+        {
+          "id": "c",
+          "text": "¹³C"
+        },
+        {
+          "id": "d",
+          "text": "¹⁹F"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "只有自旋量子数I≠0的核才具有磁性，能产生核磁共振信号。¹²C的质量数为12、电荷数为6，都是偶数，自旋量子数I=0，无磁性，无NMR信号。¹H（I=1/2）、¹³C（I=1/2）、¹⁹F（I=1/2）都有NMR信号。¹²C虽然丰度98.9%，但因为没有磁矩所以不能用于NMR；¹³C丰度仅1.1%但可用于¹³C NMR。"
+    },
+    {
+      "id": "nmr_q002",
+      "knowledgePointId": "nmr_002",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在400 MHz核磁共振仪中，某种氢核的化学位移δ=2.50 ppm，其实际共振频率为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "400.000 MHz"
+        },
+        {
+          "id": "b",
+          "text": "400.100 MHz"
+        },
+        {
+          "id": "c",
+          "text": "399.000 MHz"
+        },
+        {
+          "id": "d",
+          "text": "400.001 MHz"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "d = 2.50 ppm = (n_sample - n_TMS)/n_instrument * 10**6。n_instrument = 400 MHz, n_TMS = 400.000 MHz。n_sample = n_TMS + d * n_instrument/10**6 = 400.000 + 2.50 * 400.000/10**6 = 400.000 + 0.001 = 400.001 MHz。注意计算: 400 + 0.001 = 400.001，非 401。"
+    },
+    {
+      "id": "nmr_q004",
+      "knowledgePointId": "nmr_004",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "化合物CH₃-CH₂-O-CH₂-CH₃的¹H NMR中，乙基的CH₂信号应该裂分为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "三重峰"
+        },
+        {
+          "id": "b",
+          "text": "四重峰"
+        },
+        {
+          "id": "c",
+          "text": "五重峰"
+        },
+        {
+          "id": "d",
+          "text": "六重峰"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "分析乙氧基-CH₂-CH₃的结构：\n甲氧基的CH₂（与O相连）：被CH₃的3个氢耦合（n=3），按n+1规律裂分为四重峰。\nCH₃：被CH₂的2个氢耦合（n=2），裂分为三重峰。\n注意：甲氧基CH₂的裂分是按n+1=3+1=4，而不是2+1=3，因为相邻的3个氢虽然不是完全等价的，但在乙基中甲氧基的CH₂受到的耦合主要来自CH₃的3个氢，产生四重峰。"
+    },
+    {
+      "id": "nmr_q005",
+      "knowledgePointId": "nmr_009",
+      "chapterId": "nmr_spectroscopy__integration_and_structure",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在¹H NMR中，峰的积分面积反映了：",
+      "options": [
+        {
+          "id": "a",
+          "text": "氢核的化学环境"
+        },
+        {
+          "id": "b",
+          "text": "氢核的耦合数目"
+        },
+        {
+          "id": "c",
+          "text": "氢核的相对数目"
+        },
+        {
+          "id": "d",
+          "text": "氢核的弛豫时间"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "在¹H NMR中，积分面积（或积分高度）与该类氢核的数目成正比。通过比较不同信号的积分面积，可以确定各类型氢的相对数目。例如，若某信号积分面积是另一信号的3倍，说明前者含有3倍数量的氢。积分面积不直接反映化学环境（那是化学位移的作用）、耦合数目（那是裂分的作用）或弛豫时间。"
+    },
+    {
+      "id": "nmr_q006",
+      "knowledgePointId": "nmr_007",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "当化学位移差Δν与耦合常数J满足Δν/J < 6时，核磁图谱呈现：",
+      "options": [
+        {
+          "id": "a",
+          "text": "标准一级谱，裂分数=n+1"
+        },
+        {
+          "id": "b",
+          "text": "高级谱，峰数超过(n+1)规律"
+        },
+        {
+          "id": "c",
+          "text": "所有峰合并为单峰"
+        },
+        {
+          "id": "d",
+          "text": "仅偶数峰消失"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "一级谱条件：Δν/J > 6。当Δν/J < 6时，为高级谱（或二级谱）。高级谱的特征：\n1. 裂分峰数目不服从n+1规律，往往超过计算值\n2. 峰组内各峰相对强度关系不规则（不符合二项式展开系数）\n3. 化学位移和耦合常数不能直接读出，需要通过计算获得\n典型例子：AB系统（化学位移差与J相当）、A₂B₂系统（苯环对位取代）"
+    },
+    {
+      "id": "nmr_q007",
+      "knowledgePointId": "nmr_010",
+      "chapterId": "nmr_spectroscopy__integration_and_structure",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在CDCl₃中测定¹H NMR时，常加入TMS（四甲基硅烷）作为内标。在CDCl₃中残留的CDHCl₂信号出现在：",
+      "options": [
+        {
+          "id": "a",
+          "text": "0.00 ppm"
+        },
+        {
+          "id": "b",
+          "text": "5.50 ppm"
+        },
+        {
+          "id": "c",
+          "text": "7.26 ppm"
+        },
+        {
+          "id": "d",
+          "text": "4.70 ppm"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "氘代氯仿CDCl₃中约有0.03%的CHCl₃杂质，CHCl₃的¹H信号在7.26 ppm附近（因为Cl原子去屏蔽效应强）。这是¹H NMR中最常见的残留溶剂峰，在解析谱图时需要注意。\n常见氘代试剂残留信号：\n- CDCl₃：7.26 ppm\n- DMSO-d₆：2.50 ppm\n- D₂O：4.70 ppm\n- CD₃OD：3.31 ppm\n- Acetone-d₆：2.05 ppm\n- C₆D₆：7.16 ppm"
+    },
+    {
+      "id": "nmr_q008",
+      "knowledgePointId": "nmr_004",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "【图谱解析题】某化合物分子式C₉H₁₂，¹H NMR（CDCl₃）如下：\nδ 7.20 ppm (多重峰, 5H) — 苯环氢\nδ 2.90 ppm (七重峰, 1H, J≈6.5 Hz)\nδ 1.20 ppm (双重峰, 6H, J≈6.5 Hz)\n请推断结构。",
+      "options": [
+        {
+          "id": "a",
+          "text": "正丙苯"
+        },
+        {
+          "id": "b",
+          "text": "异丙苯（cumene）"
+        },
+        {
+          "id": "c",
+          "text": "对甲基异丙苯（对伞花烃）"
+        },
+        {
+          "id": "d",
+          "text": "1,3,5-三甲苯"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "解析：\n(1) δ 7.20 ppm多重峰5H：单取代苯环（5个氢，化学环境不同导致多重峰）\n(2) δ 2.90 ppm七重峰1H：J≈6.5 Hz，被6个等价氢耦合（n=6，裂分为7重峰），这是一个次甲基（CH）连接在苯环上\n(3) δ 1.20 ppm双重峰6H：被1个氢耦合（n=1，裂分为2重峰），这是两个等价的甲基（CH₃）连接在同一个CH上\n不饱和度Ω=1+9-12/2=4，符合苯环（Ω=4）。苯环单取代 + 异丙基（-CH(CH₃)₂）结构 = 异丙苯。\n异丙苯中：与苯环相连的CH被两个CH₃（各3个H，但两个CH₃化学等价，所以总6个H）耦合，裂分为7重峰；两个CH₃被CH（1个H）耦合，各裂分为双重峰。"
+    },
+    {
+      "id": "nmr_q009",
+      "knowledgePointId": "nmr_014",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "如何用¹H NMR确认醇类化合物中的羟基（-OH）？",
+      "options": [
+        {
+          "id": "a",
+          "text": "观察δ 1-5 ppm范围内的单峰，积分面积为1"
+        },
+        {
+          "id": "b",
+          "text": "加入D₂O后，该信号消失"
+        },
+        {
+          "id": "c",
+          "text": "该信号在所有溶剂中都出现在相同位置"
+        },
+        {
+          "id": "d",
+          "text": "该信号裂分数目为n+1（n为相邻氢数）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "活泼氢（-OH、-NH₂、-SH等）的化学位移不固定，随浓度、温度、溶剂变化而改变，是NMR解析中的难点。确认活泼氢的最常用方法是重水交换（D₂O）实验：\n加入D₂O后，活泼氢与D发生交换，原来的-OH信号消失（在D₂O中显示为HDO峰，约4.7 ppm）。如果信号消失，说明原信号是活泼氢。该方法比观察化学位移更可靠，因为活泼氢的δ值范围很大（醇1-5 ppm，酚4-7 ppm，羧酸10-13 ppm），不固定。"
+    },
+    {
+      "id": "nmr_q010",
+      "knowledgePointId": "nmr_003",
+      "chapterId": "nmr_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在¹H NMR中，烯烃双键碳上的氢（=CH-）的化学位移范围通常是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "0.5-1.5 ppm"
+        },
+        {
+          "id": "b",
+          "text": "2.0-3.0 ppm"
+        },
+        {
+          "id": "c",
+          "text": "4.5-6.5 ppm"
+        },
+        {
+          "id": "d",
+          "text": "7.0-8.5 ppm"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "烯烃氢的化学位移δ在4.5-6.5 ppm范围内，这是由于双键的π电子产生的去屏蔽效应比饱和碳强。典型值：\n- R-CH=CH-R（反式）：δ 5.0-6.0 ppm\n- R-CH=CH-R（顺式）：δ 5.3-6.3 ppm\n- R₂C=CH₂：δ 4.5-5.0 ppm\n- 芳香氢：δ 6.5-8.0 ppm（更去屏蔽）\n- 醛氢：δ 9-10 ppm（最去屏蔽）"
+    },
+    {
+      "id": "nmr_q013",
+      "knowledgePointId": "nmr_008",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在自旋系统命名中，A₂B₂表示：",
+      "options": [
+        {
+          "id": "a",
+          "text": "四个核化学位移相同，互相耦合"
+        },
+        {
+          "id": "b",
+          "text": "两组核，每组两个，组内化学等价，组间化学位移不同但存在耦合"
+        },
+        {
+          "id": "c",
+          "text": "四个核化学位移各不相同，但全部耦合在一起"
+        },
+        {
+          "id": "d",
+          "text": "两个A核和两个B核，但A和B之间没有耦合"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "自旋系统命名规则：化学位移相同的核用同一字母表示，下标数字表示核的数目；不同字母表示化学位移不同的核组。自旋系统描述的是相互耦合的核群，不与系统外的核耦合。\nA₂B₂表示：有两个核化学位移为A（组内等价），两个核化学位移为B（组内等价），A与B之间存在耦合（A与A之间、B与B之间由于化学等价无耦合或耦合常数相同）。这是对二取代苯（AA'BB'的简化）的自旋系统。"
+    },
+    {
+      "id": "nmr_q014",
+      "knowledgePointId": "nmr_015",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在¹H NMR中，³J耦合（隔着三个键的耦合）与立体化学的关系是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "³J与两面角无关，始终为常数"
+        },
+        {
+          "id": "b",
+          "text": "反式双面角（约180°）的³J大于顺式（约0°）"
+        },
+        {
+          "id": "c",
+          "text": "³J在所有双键体系中都相同"
+        },
+        {
+          "id": "d",
+          "text": "³J只存在于饱和体系中"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "³J耦合常数（隔着三个键的氢-氢耦合）与两面角（dihedral angle）密切相关，符合Karplus方程：\n- 当两面角≈90°时，³J最小（约2-4 Hz）\n- 当两面角≈0°（顺式）时，³J较大（约8-10 Hz）\n- 当两面角≈180°（反式）时，³J最大（约12-16 Hz）\n这在烯烃和饱和碳链的立体化学分析中非常重要。例如，烯烃的反式耦合常数（约15-17 Hz）远大于顺式（约10 Hz）。在饱和碳链中，邻位交叉构象（dihedral≈60°）的³J小于反式交叉（180°）的³J。"
+    },
+    {
+      "id": "nmr_q015",
+      "knowledgePointId": "nmr_011",
+      "chapterId": "nmr_spectroscopy__integration_and_structure",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "与¹H NMR相比，¹³C NMR的主要特点包括：\n①化学位移范围更宽（0-220 ppm）\n②信号强度更弱\n③需要去耦技术才能简化图谱\n④每个碳都显示为单峰（¹³C-{¹H}去耦）",
+      "options": [
+        {
+          "id": "a",
+          "text": "①②③"
+        },
+        {
+          "id": "b",
+          "text": "①②④"
+        },
+        {
+          "id": "c",
+          "text": "②③④"
+        },
+        {
+          "id": "d",
+          "text": "①②③④"
+        }
+      ],
+      "correctAnswers": [
+        "d"
+      ],
+      "explanation": "¹³C NMR与¹H NMR比较，有以下特点：\n①化学位移范围更宽：¹H NMR约0-15 ppm，¹³C NMR约0-220 ppm，因为碳核的化学环境差异更大\n②信号强度更弱：¹³C天然丰度仅1.1%，¹H丰度99.98%，导致¹³C信号比¹H弱约10000倍，需要累加多次才能获得足够信噪比\n③需要去耦技术：¹³C与¹H的耦合会产生复杂裂分图谱，通常使用¹³C-{¹H}去耦（噪声去耦）使每个碳都变成单峰\n④每个碳显示为单峰：去耦后所有¹H耦合被消除，¹³C信号变成单峰，便于识别和定量\n以上四点都正确。"
+    },
+    {
+      "id": "ms_q001",
+      "knowledgePointId": "ms_003",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "根据氮规则，下列化合物中分子离子峰m/z为奇数的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "苯 (C₆H₆)"
+        },
+        {
+          "id": "b",
+          "text": "吡啶 (C₅H₅N)"
+        },
+        {
+          "id": "c",
+          "text": "乙烷 (C₂H₆)"
+        },
+        {
+          "id": "d",
+          "text": "甲醇 (CH₃OH)"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "氮规则：不含氮或含偶数个氮的化合物，分子离子质荷比为偶数；含奇数个氮的化合物，分子离子质荷比为奇数。\n分析：\nA. 苯C₆H₆：无氮，m/z应为78（偶数）\nB. 吡啶C₅H₅N：含1个氮（奇数），m/z应为79（奇数）✓\nC. 乙烷C₂H₆：无氮，m/z应为30（偶数）\nD. 甲醇CH₃OH：无氮，m/z应为32（偶数）\n因此只有吡啶的分子离子m/z为奇数。"
+    },
+    {
+      "id": "ms_q002",
+      "knowledgePointId": "ms_004",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物含有一个氯原子，其质谱图中M、M+2峰的相对强度比约为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "1:1"
+        },
+        {
+          "id": "b",
+          "text": "3:1"
+        },
+        {
+          "id": "c",
+          "text": "1:3"
+        },
+        {
+          "id": "d",
+          "text": "1:2"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "氯元素有两个主要同位素：³⁵Cl（75.78%）和³⁷Cl（24.22%）。含有一个氯原子的化合物，其M峰（³⁵Cl）和M+2峰（³⁷Cl）的相对强度比约为3:1（M:M+2 ≈ 100:33）。\n溴元素的同位素Br有⁷⁹Br和⁸¹Br，丰度比约为1:1，因此含一个Br的化合物M和M+2峰强度比约为1:1。\n这可用于判断化合物中是否含有Cl、Br等元素。"
+    },
+    {
+      "id": "ms_q003",
+      "knowledgePointId": "ms_001",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在EI电离源中，色谱-质谱联用仪通常采用的电离能量为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "10-15 eV"
+        },
+        {
+          "id": "b",
+          "text": "70 eV"
+        },
+        {
+          "id": "c",
+          "text": "150 eV"
+        },
+        {
+          "id": "d",
+          "text": "1000 eV"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "EI（电子轰击）电离源通常采用70 eV的电子能量。这一能量远高于大多数有机分子的电离能（约10-15 eV），足以将样品分子电离成离子，并进一步碎裂成多种碎片离子。70 eV的标准化条件使得不同实验室的质谱数据具有可比性，是NIST等标准质谱库采用的条件。低于70 eV时电离效率低，碎片少；高于70 eV会进一步电离/碎裂，但不会显著增加信息。"
+    },
+    {
+      "id": "ms_q004",
+      "knowledgePointId": "ms_005",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "酮类化合物在EI条件下最特征的断裂是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "α断裂生成氧鎓离子R-C≡O⁺"
+        },
+        {
+          "id": "b",
+          "text": "β断裂生成烯丙基离子"
+        },
+        {
+          "id": "c",
+          "text": "丢失H₂O生成M-18离子"
+        },
+        {
+          "id": "d",
+          "text": "McLafferty重排丢失烯烃"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "酮类化合物的典型断裂是α断裂（游离基中心诱导断裂）：\n分子离子中的游离基定域在氧上（氧鎓离子），引发相邻C-C键断裂，生成稳定的氧鎓离子R-C≡O⁺（ acylium ion）。\n这是酮类化合物在质谱中的特征断裂，产生m/z 43（CH₃CO⁺）、57（C₂H₅CO⁺）等碎片离子，是鉴定酮类的重要依据。\nβ断裂主要发生在烯烃中；丢失H₂O是醇类特征；McLafferty重排需要有γ-H的酮才能发生。"
+    },
+    {
+      "id": "ms_q005",
+      "knowledgePointId": "ms_010",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "甲苯的EI质谱图中，最强的峰（基峰）是m/z：",
+      "options": [
+        {
+          "id": "a",
+          "text": "92 (M⁺·)"
+        },
+        {
+          "id": "b",
+          "text": "91"
+        },
+        {
+          "id": "c",
+          "text": "65"
+        },
+        {
+          "id": "d",
+          "text": "39"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "甲苯（C₇H₈）的分子离子峰m/z = 92。\n甲苯的断裂模式：\n(1) α断裂（苄基位）：丢失甲基游离基CH₃·，生成苄基离子C₇H₇⁺（m/z 91），这是卓鎓离子（tropylium ion），是一个稳定的环庚三烯基正离子。\n(2) m/z 91进一步丢失乙炔（C₂H₂）生成m/z 65\n(3) m/z 65进一步断裂生成m/z 39等小碎片\n苄基离子（m/z 91）是甲苯的基峰（最强峰），这是因为卓鎓离子特别稳定，是芳香族化合物质谱的特征。"
+    },
+    {
+      "id": "ms_q006",
+      "knowledgePointId": "ms_008",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "具有γ-氢的直链酮在EI质谱中会发生哪种特征重排反应？",
+      "options": [
+        {
+          "id": "a",
+          "text": "丢失H₂O重排"
+        },
+        {
+          "id": "b",
+          "text": "McLafferty重排，丢失中性烯烃碎片"
+        },
+        {
+          "id": "c",
+          "text": "逆Diels-Alder裂解"
+        },
+        {
+          "id": "d",
+          "text": "α断裂生成氧鎓离子"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "McLafferty重排是含有γ-氢的羰基化合物（酮、醛、酯）的特征重排反应：\n条件：羰基化合物，γ位置有可转移的氢（与双键隔着两个碳）\n机理：分子离子中的γ-H重排到羰基氧上，同时发生C-C键断裂，生成一个中性碎片（烯烃）和一个离子碎片（enoli离子或酮的等价离子）\n例如：2-己酮（CH₃-CO-CH₂-CH₂-CH₃）的McLafferty重排生成m/z 58的离子。\nMcLafferty重排是识别羰基化合物的重要依据。"
+    },
+    {
+      "id": "ms_q007",
+      "knowledgePointId": "ms_002",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物分子式为C₈H₁₈，质谱图中出现m/z 114和m/z 115的峰，相对强度约为100:15，这表明：",
+      "options": [
+        {
+          "id": "a",
+          "text": "化合物含有1个氯原子"
+        },
+        {
+          "id": "b",
+          "text": "m/z 114是分子离子峰M⁺·，m/z 115是其同位素峰M+1"
+        },
+        {
+          "id": "c",
+          "text": "化合物含有3个碳原子"
+        },
+        {
+          "id": "d",
+          "text": "m/z 115是基峰"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "C₈H₁₈的分子量MW = 8×12 + 18×1 = 114，所以分子离子峰M⁺·应该是m/z 114。\nM+1峰的强度约为M强度的15%左右，这是因为¹³C的天然丰度约为1.1%，一个碳贡献约1.1%，8个碳贡献约8.8%，再加上H的贡献（约0.01%×18可忽略），M+1/M比值约8-9%。题目中M+1约15%偏高一点，但数量级正确，说明m/z 114是分子离子峰，m/z 115是其同位素峰（M+1）。\n若含有Cl，M+2应有约33%的强度，但这里M+2强度未知。题目给出的相对强度100:15是M和M+1的关系，不是M+2。"
+    },
+    {
+      "id": "ms_q008",
+      "knowledgePointId": "ms_009",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "正构烷烃的质谱图中，m/z 43和m/z 57的碎片离子最可能来自：",
+      "options": [
+        {
+          "id": "a",
+          "text": "C₃H₇⁺和C₄H₉⁺"
+        },
+        {
+          "id": "b",
+          "text": "CH₃CO⁺和C₂H₅CO⁺"
+        },
+        {
+          "id": "c",
+          "text": "苯基离子和苄基离子"
+        },
+        {
+          "id": "d",
+          "text": "NO⁺和H₃O⁺"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "正构烷烃的断裂主要通过σ键断裂实现，倾向于丢失大烷基游离基，生成更稳定的仲碳或叔碳离子。\nm/z 43 = C₃H₇⁺（丙基离子）\nm/z 57 = C₄H₉⁺（丁基离子）\n这些是烷烃质谱中的特征碎片离子系列。烷烃的低质量离子系列规律：m/z 15 (CH₃⁺)、29 (C₂H₅⁺)、43 (C₃H₇⁺)、57 (C₄H₉⁺)、71 (C₅H₁₁⁺)等，差值为CH₂（14）。\n选项B的CH₃CO⁺和C₂H₅CO⁺是酮类的氧鎓离子，不是烷烃的特征。"
+    },
+    {
+      "id": "ms_q009",
+      "knowledgePointId": "ms_011",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "关于马库西规则（偶电子规则）的说法正确的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "所有质谱断裂都遵循马库西规则"
+        },
+        {
+          "id": "b",
+          "text": "离子倾向于断裂生成偶电子离子+中性碎片，而不是两个离子"
+        },
+        {
+          "id": "c",
+          "text": "奇电子离子可以断裂生成两个离子"
+        },
+        {
+          "id": "d",
+          "text": "马库西规则只适用于含氮化合物"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "马库西规则（Marcoux Rule/Even Electron Rule）是质谱断裂的重要经验规则：\n核心内容：偶电子离子（EE⁺）倾向于断裂生成另一个偶电子离子+中性碎片，而不是生成两个带电离子。奇电子离子（OE⁺）倾向于断裂生成一个偶电子离子+一个中性游离基。\n应用：预测断裂产物；解释为什么某些断裂优先发生。例如，醇的M⁺·（奇电子）断裂生成EE⁺（氧鎓离子）+中性·CH₂R，而不是两个离子。"
+    },
+    {
+      "id": "ms_q010",
+      "knowledgePointId": "ms_012",
+      "chapterId": "ms_spectroscopy__organic_fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "醇类化合物在EI质谱中常见的断裂模式包括：\n①α断裂生成氧鎓离子\n②丢失H₂O（分子量-18）\n③McLafferty重排\n④β断裂生成苄基离子",
+      "options": [
+        {
+          "id": "a",
+          "text": "①②③"
+        },
+        {
+          "id": "b",
+          "text": "①②④"
+        },
+        {
+          "id": "c",
+          "text": "②③④"
+        },
+        {
+          "id": "d",
+          "text": "①②③④"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "醇类化合物的质谱断裂：\n①α断裂：分子离子丢失一个烷基游离基，生成氧鎓离子R-C≡O⁺（如m/z 31为CH₂=OH⁺），是醇的特征断裂\n②丢失H₂O：M-18是醇类非常特征的中性丢失，尤其对于能形成稳定六元环过渡态的醇；脱水产物进一步断裂\n③McLafferty重排：对于有γ-H的伯醇或仲醇，可发生McLafferty重排丢失烯烃\n④β断裂不是醇的特征断裂（那是烯烃和芳香族化合物的断裂模式），苄基离子是烷基苯的特征，不是醇的。"
+    },
+    {
+      "id": "ms_q011",
+      "knowledgePointId": "ms_013",
+      "chapterId": "ms_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "质谱图中出现m/z 77、51、39的系列峰，提示化合物可能含有：",
+      "options": [
+        {
+          "id": "a",
+          "text": "丙基"
+        },
+        {
+          "id": "b",
+          "text": "苯基"
+        },
+        {
+          "id": "c",
+          "text": "羟基"
+        },
+        {
+          "id": "d",
+          "text": "硝基"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "m/z 77、51、39是苯环的特征碎片离子系列：\n- m/z 77 = C₆H₅⁺（苯基离子，由分子离子丢失一个H形成）\n- m/z 51 = C₄H₃⁺（苯环进一步丢失乙炔或丙炔的碎片）\n- m/z 39 = C₃H₃⁺（苯环高度重排的碎片）\n苯环的特征离子系列：77 → 51 → 39，是芳香族化合物在EI质谱中的典型碎片模式。\nm/z 77是苯的特征离子；m/z 51和39是芳香环进一步裂解的产物。"
+    },
+    {
+      "id": "ms_q012",
+      "knowledgePointId": "ms_001",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "与EI电离源相比，ESI（电喷雾电离）源的主要特点是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "产生更多碎片离子，适合结构鉴定"
+        },
+        {
+          "id": "b",
+          "text": "主要产生准分子离子[M+H]⁺或[M-H]⁻，碎片少，适合分析极性化合物"
+        },
+        {
+          "id": "c",
+          "text": "只适合分析小分子化合物"
+        },
+        {
+          "id": "d",
+          "text": "需要在高真空条件下工作"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "ESI（电喷雾电离）是一种软电离技术，主要特点：\n1. 主要产生准分子离子[M+H]⁺（正离子模式）或[M-H]⁻（负离子模式），分子量信息明确\n2. 碎片离子很少，谱图简单，易于解释\n3. 适合分析极性化合物（肽、蛋白质、药物代谢物等），是LC-MS联用的首选离子源\n4. 可分析大分子（分子量可达数十万）\n5. 在大气压下工作，不需要高真空\n与EI相比，EI产生丰富碎片（适合结构解析），但需要气化，不适合极性大分子；ESI碎片少但分子量信息明确，适合定量和分子量确定。"
+    },
+    {
+      "id": "ms_q013",
+      "knowledgePointId": "ms_008",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "环己烯在EI质谱中可能发生哪种特征重排裂解？",
+      "options": [
+        {
+          "id": "a",
+          "text": "McLafferty重排"
+        },
+        {
+          "id": "b",
+          "text": "逆Diels-Alder裂解（Retro-Diels-Alder）"
+        },
+        {
+          "id": "c",
+          "text": "α断裂生成氧鎓离子"
+        },
+        {
+          "id": "d",
+          "text": "丢失H₂O重排"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "环状烯烃（如环己烯）在EI质谱中可发生逆Diels-Alder（Retro-Diels-Alder, RDA）裂解：\n环己烯通过RDA断裂，可以生成一个中性二烯碎片（如乙烯）和一个离子碎片（如C₄H₆⁺）。\nRDA是六元环烯烃的特征断裂，产生的碎片离子可以帮助确定环的结构。\nMcLafferty重排需要有羰基才能发生，不是烯烃的特征；α断裂生成氧鎓离子是含氧化合物的断裂；丢失H₂O是醇类特征。"
+    },
+    {
+      "id": "ms_q014",
+      "knowledgePointId": "ms_006",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "烯烃的质谱图中，β断裂的特征产物离子是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "氧鎓离子"
+        },
+        {
+          "id": "b",
+          "text": "烯丙基离子（m/z 41）"
+        },
+        {
+          "id": "c",
+          "text": "苄基离子（m/z 91）"
+        },
+        {
+          "id": "d",
+          "text": "环庚三烯离子（卓鎓离子）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "烯烃的β断裂（游离基诱导断裂）发生在双键的β位（与双键相邻的C-C键），生成稳定的烯丙基离子：\nR-CH=CH-CH₂-R' → R-CH=CH-CH₂⁺（m/z 41，C₃H₅⁺） + R'·\n烯丙基离子（allyl ion，m/z 41）是直链烯烃质谱中的基峰之一。\nm/z 91的苄基离子（卓鎓离子）是芳香族化合物的特征，不是烯烃的；氧鎓离子是含氧化合物的特征断裂；环庚三烯离子是甲苯类化合物的特征。"
+    },
+    {
+      "id": "ms_q015",
+      "knowledgePointId": "ms_002",
+      "chapterId": "ms_spectroscopy__basic_principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物MS数据显示：M⁺· at m/z 136，基峰m/z 77，伴随m/z 51、39等同位素簇。分子式可能为C₈H₈O₂，试分析该化合物最可能含有哪种结构？",
+      "options": [
+        {
+          "id": "a",
+          "text": "长链烷烃"
+        },
+        {
+          "id": "b",
+          "text": "苯甲酸甲酯（methyl benzoate）"
+        },
+        {
+          "id": "c",
+          "text": "正辛醇"
+        },
+        {
+          "id": "d",
+          "text": "苯乙酮"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "分析：\n(1) M⁺· at m/z 136 → 分子量136\n(2) C₈H₈O₂计算：8×12 + 8×1 + 2×16 = 96 + 8 + 32 = 136，与质谱数据一致\n(3) m/z 77、51、39系列 → 苯环特征碎片系列（77=C₆H₅⁺，51=C₄H₃⁺，39=C₃H₃⁺）\n(4) 基峰m/z 77 → 苯基离子是基峰，提示分子可能失去侧链形成苯基离子\n分析选项：\n- 苯甲酸甲酯（methyl benzoate，C₈H₈O₂）：MS中，M⁺·=136，苯甲酰基离子m/z 105 (C₆H₅CO⁺)，进一步丢失CO得m/z 77；符合\n- 苯乙酮（C₈H₈O）：M⁺·=120，不符合136\n- 长链烷烃和正辛醇不含苯环，不符合m/z 77系列\n因此最可能是苯甲酸甲酯。"
+    },
+    {
+      "id": "gc_q001",
+      "knowledgePointId": "gc_002",
+      "chapterId": "chromatography__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "理论塔板数N的计算公式为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "N = 16(t_R/W)"
+        },
+        {
+          "id": "b",
+          "text": "N = 16(t_R/W)²"
+        },
+        {
+          "id": "c",
+          "text": "N = 5.54(t_R/W₁/₂)²"
+        },
+        {
+          "id": "d",
+          "text": "N = L/H"
+        },
+        {
+          "id": "e",
+          "text": "N = t_R/σ"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "理论塔板数N有两种常用计算方式：\n1. N = 16(t_R/W)² （使用峰底宽度W）\n2. N = 5.54(t_R/W₁/₂)² （使用半峰宽W₁/₂）\n其中t_R为保留时间，W为峰底宽度（4σ），W₁/₂为半峰宽。\n塔板高度H = L/N（L为柱长）。\nN值越大，柱效越高，色谱峰越尖锐，分离效果越好。"
+    },
+    {
+      "id": "gc_q002",
+      "knowledgePointId": "gc_003",
+      "chapterId": "chromatography__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在色谱分析中，两相邻色谱峰完全分离的分离度R值应达到：",
+      "options": [
+        {
+          "id": "a",
+          "text": "R > 0.5"
+        },
+        {
+          "id": "b",
+          "text": "R > 1.0"
+        },
+        {
+          "id": "c",
+          "text": "R ≥ 1.5"
+        },
+        {
+          "id": "d",
+          "text": "R ≥ 2.0"
+        },
+        {
+          "id": "e",
+          "text": "R ≥ 3.0"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "分离度R定义：R = 2(t_R₂ - t_R₁)/(W₁ + W₂)\nR值与分离效果的关系：\n- R = 1.0：约98%分离（相邻峰基本分开但有重叠）\n- R = 1.5：约99.7%分离（两峰完全分开，基线分离）\n- R = 2.0：分离效果很好\n通常以R = 1.5作为色谱峰完全分离的标准。"
+    },
+    {
+      "id": "gc_q003",
+      "knowledgePointId": "gc_001",
+      "chapterId": "chromatography__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在色谱分析中，死时间t₀是指：",
+      "options": [
+        {
+          "id": "a",
+          "text": "样品进入色谱柱到出现峰顶的时间"
+        },
+        {
+          "id": "b",
+          "text": "不被固定相保留的组分的保留时间"
+        },
+        {
+          "id": "c",
+          "text": "组分开始移动到检测器响应的时间"
+        },
+        {
+          "id": "d",
+          "text": "流动相通过色谱柱所需的时间"
+        },
+        {
+          "id": "e",
+          "text": "样品注入到开始记录的时间"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "死时间t₀（dead time）是流动相流过色谱柱所需的时间，对于不被固定相保留的组分（如空气、甲烷等），它们的保留时间就是死时间。\n保留时间t_R（retention time）是样品从进样到出现峰顶的时间。\n调整保留时间t_R' = t_R - t₀，是组分实际被固定相保留的时间。\n相对保留值α = t_R₂'/t_R₁'，表示两组分选择性因子。"
+    },
+    {
+      "id": "gc_q004",
+      "knowledgePointId": "gc_005",
+      "chapterId": "chromatography__gc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "范第姆特（Van Deemter）方程中，影响色谱峰展宽的三个因素分别是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "涡流扩散、纵向扩散、传质阻力"
+        },
+        {
+          "id": "b",
+          "text": "吸附平衡、解吸平衡、扩散平衡"
+        },
+        {
+          "id": "c",
+          "text": "流动相流速、固定相填充、检测器响应"
+        },
+        {
+          "id": "d",
+          "text": "进样量、柱温、检测器灵敏度"
+        },
+        {
+          "id": "e",
+          "text": "相比、容量因子、选择性因子"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "范第姆特方程：H = A + B/u + C·u\n- A项（涡流扩散项）：由于流动相通过固定相颗粒时的路径不同造成的峰展宽，与流动相流速无关\n- B项（分子扩散项）：组分在流动相中扩散造成的峰展宽，与流速u成反比\n- C项（传质阻力项）：传质过程阻力造成的峰展宽，与流速u成正比\nH：塔板高度；u：流动相线速度\n通过优化流速可以最小化H，提高柱效。"
+    },
+    {
+      "id": "gc_q005",
+      "knowledgePointId": "gc_007",
+      "chapterId": "chromatography__gc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "氢焰电离检测器（FID）的工作原理是基于：",
+      "options": [
+        {
+          "id": "a",
+          "text": "检测器温度变化导致热敏元件电阻变化"
+        },
+        {
+          "id": "b",
+          "text": "含碳有机物在氢火焰中燃烧生成离子被收集形成电流"
+        },
+        {
+          "id": "c",
+          "text": "载气热导率与组分热导率差异导致热敏元件温度变化"
+        },
+        {
+          "id": "d",
+          "text": "组分吸收紫外光导致电流变化"
+        },
+        {
+          "id": "e",
+          "text": "组分电负性强捕获电子形成负离子"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "FID（Flame Ionization Detector）工作原理：\n1. 氢气和空气在燃烧室内燃烧形成氢火焰（约2100°C）\n2. 含碳有机物从色谱柱流出后进入火焰，在高温下发生裂解和电离\n3. 产生的离子被收集极收集，形成电流信号\n4. 电流大小与进入火焰的有机物量成正比\n特点：\n- 灵敏度高（检测限约10⁻¹² g/s）\n- 对有机物响应好，几乎所有含碳有机物都有响应\n- 对无机物、水、CO₂、CO等无响应或响应极弱\n- 是质量型检测器，响应与单位时间进入检测器的物质量成正比"
+    },
+    {
+      "id": "gc_q006",
+      "knowledgePointId": "gc_009",
+      "chapterId": "chromatography__hplc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "反相高效液相色谱（RP-HPLC）的流动相极性与固定相极性关系是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "流动相极性 < 固定相极性"
+        },
+        {
+          "id": "b",
+          "text": "流动相极性 > 固定相极性"
+        },
+        {
+          "id": "c",
+          "text": "两者极性相等"
+        },
+        {
+          "id": "d",
+          "text": "固定相为水，流动相为有机溶剂"
+        },
+        {
+          "id": "e",
+          "text": "与正相色谱相反"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "反相色谱（Reversed Phase HPLC）：\n- 固定相：非极性（如C₁₈柱，键合在硅胶上的十八烷基）\n- 流动相：极性溶剂（如甲醇-水、乙腈-水）\n- 极性关系：流动相极性 > 固定相极性（与正相色谱相反）\n- 分离机制：疏水相互作用，极性小的组分与固定相作用强，保留时间长；极性大的组分先流出色谱柱\n应用：广泛用于药物分析、环境分析、食品分析等非极性至中等极性化合物的分离。"
+    },
+    {
+      "id": "gc_q007",
+      "knowledgePointId": "gc_011",
+      "chapterId": "chromatography__hplc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在高效液相色谱中，梯度洗脱的目的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "加快分析速度"
+        },
+        {
+          "id": "b",
+          "text": "使流动相组成随时间程序变化，分离极性差异大的多组分样品"
+        },
+        {
+          "id": "c",
+          "text": "降低检测器噪声"
+        },
+        {
+          "id": "d",
+          "text": "延长色谱柱寿命"
+        },
+        {
+          "id": "e",
+          "text": "减少进样量"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "梯度洗脱（Gradient Elution）：\n- 在分析过程中，流动相的组成（如有机溶剂比例）按程序逐渐变化\n- 起始有机相比例低（极性高），逐渐增加有机相比例（极性降低）\n目的：\n1. 分离极性差异大的多组分混合物（等度洗脱对某些组分分离不足）\n2. 缩短分析时间（让强保留组分更快洗脱）\n3. 改善分离度\n应用：药物杂质分析、天然产物分离、环境样品分析等。\n注意：某些检测器（如示差折光检测器）不能用于梯度洗脱，因为流动相组成变化会导致基线漂移。"
+    },
+    {
+      "id": "gc_q008",
+      "knowledgePointId": "gc_013",
+      "chapterId": "chromatography__quantitative_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在气相色谱定量分析中，归一化法的优点是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "不需要准确控制进样量"
+        },
+        {
+          "id": "b",
+          "text": "可以分析未全部出峰的样品"
+        },
+        {
+          "id": "c",
+          "text": "适用于微量杂质分析"
+        },
+        {
+          "id": "d",
+          "text": "需要已知所有组分的校正因子"
+        },
+        {
+          "id": "e",
+          "text": "准确度最高"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "归一化法（Normalization Method）：\n计算公式：组分含量% = (Aᵢ/fᵢ) / Σ(Aⱼ/fⱼ) × 100%\n其中A为峰面积，f为校正因子。\n优点：\n- 进样量不需精确控制（因为是相对比例）\n- 适合多组分同时定量\n缺点：\n- 所有组分必须全部出峰且被检测器检测\n- 需要知道各组分的校正因子（或假设相同）\n- 对微量杂质分析不灵敏（可能检测不到）\n归一化法是一种相对定量方法，适用于组分全部出峰的多组分分析。"
+    },
+    {
+      "id": "gc_q009",
+      "knowledgePointId": "gc_014",
+      "chapterId": "chromatography__quantitative_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "内标法中加入内标物质的目的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "提高检测器灵敏度"
+        },
+        {
+          "id": "b",
+          "text": "消除进样量不精确带来的误差"
+        },
+        {
+          "id": "c",
+          "text": "改变样品在色谱柱中的保留时间"
+        },
+        {
+          "id": "d",
+          "text": "减少组分与固定相的相互作用"
+        },
+        {
+          "id": "e",
+          "text": "加快分析速度"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "内标法（Internal Standard Method）：\n将已知量的内标物（与样品组分性质相似但不同）加入样品溶液中，一起进样分析。\n计算：wᵢ% = (Aᵢ × fᵢ × Wₛ) / (Aₛ × Wₛₐₘₚₗₑ) × 100%\n其中Aᵢ/Aₛ是分析物与内标物的峰面积比，Wₛ是加入的内标物质量，Wₛₐₘₚₗₑ是样品质量。\n优点：\n- 消除进样量不精确带来的误差（因为分析物和内标物在同一针进样，受相同条件影响）\n- 可以补偿基质效应和前处理损失\n- 适合复杂样品分析\n内标物选择原则：与待测物性质相似，保留时间接近，峰不与样品峰重叠。"
+    },
+    {
+      "id": "gc_q010",
+      "knowledgePointId": "gc_015",
+      "chapterId": "chromatography__quantitative_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "外标法（标准曲线法）进行色谱定量时，需要：",
+      "options": [
+        {
+          "id": "a",
+          "text": "样品和标准品在不同仪器上测定"
+        },
+        {
+          "id": "b",
+          "text": "严格控制进样体积相同"
+        },
+        {
+          "id": "c",
+          "text": "使用内标物消除误差"
+        },
+        {
+          "id": "d",
+          "text": "对所有组分都测定校正因子"
+        },
+        {
+          "id": "e",
+          "text": "使用归一化处理数据"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "外标法（External Standard Method / Standard Curve Method）：\n步骤：\n1. 用已知浓度的标准品系列绘制峰面积（或峰高）-浓度曲线\n2. 在相同条件下测定样品，根据峰面积从标准曲线读取浓度\n关键要求：\n- 进样体积必须精确且一致（因为是绝对定量）\n- 标准品和样品必须在完全相同条件下测定\n- 浓度范围应在标准曲线线性范围内\n优点：简单直观，定量准确\n缺点：进样量必须精确，对仪器稳定性要求高"
+    },
+    {
+      "id": "gc_q011",
+      "knowledgePointId": "gc_004",
+      "chapterId": "chromatography__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在色谱分析中，选择性因子α的物理意义是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "两组分保留时间之比"
+        },
+        {
+          "id": "b",
+          "text": "两组分分配系数之比"
+        },
+        {
+          "id": "c",
+          "text": "柱效的倒数"
+        },
+        {
+          "id": "d",
+          "text": "分离度的两倍"
+        },
+        {
+          "id": "e",
+          "text": "峰底宽度之比"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "选择性因子α（Selectivity Factor）：\nα = K₂/K₁ = t_R₂'/t_R₁'\n其中K为分配系数，t_R'为调整保留时间。\n物理意义：\n- 表示两组分在固定相和流动相中分配系数之比\n- 反映色谱柱对两组分的分离能力\n- α > 1，且α越大，两组分越容易分离\n- α = 1时，两组分无法分离（保留时间相同）\n色谱分离基本方程：R = (√N/4) × ((α-1)/α) × (k₂/(1+k₂))\n其中N为理论塔板数，k₂为容量因子。"
+    },
+    {
+      "id": "gc_q012",
+      "knowledgePointId": "gc_006",
+      "chapterId": "chromatography__gc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在气相色谱中，根据“相似相溶”原则，分离非极性化合物应选择：",
+      "options": [
+        {
+          "id": "a",
+          "text": "强极性固定相（如PEG）"
+        },
+        {
+          "id": "b",
+          "text": "非极性固定相（如SE-54）"
+        },
+        {
+          "id": "c",
+          "text": "氢型阳离子交换树脂"
+        },
+        {
+          "id": "d",
+          "text": "硅胶正相色谱"
+        },
+        {
+          "id": "e",
+          "text": "氨基键合相色谱"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "固定相选择原则：\n- 非极性化合物：选择非极性固定相（如SE-54、OV-1、DB-1等），组分与固定相之间的色散力（London力）起作用\n- 中等极性化合物：选择中等极性固定相（如OV-17、DB-17等）\n- 强极性化合物：选择强极性固定相（如聚乙二醇PEG、FFAP等）\n“相似相溶”原理：\n非极性组分在非极性固定相中溶解度大，保留时间长；在极性固定相中溶解度小，先流出色谱柱。\n例如：汽油、柴油等非极性混合物用非极性柱分析。"
+    },
+    {
+      "id": "gc_q013",
+      "knowledgePointId": "gc_010",
+      "chapterId": "chromatography__hplc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "正相色谱中，组分在色谱柱中的保留顺序是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "极性大的组分保留时间短，先流出"
+        },
+        {
+          "id": "b",
+          "text": "极性大的组分保留时间长，后流出"
+        },
+        {
+          "id": "c",
+          "text": "非极性组分先流出"
+        },
+        {
+          "id": "d",
+          "text": "所有组分保留时间相同"
+        },
+        {
+          "id": "e",
+          "text": "与流动相组成无关"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "正相色谱（Normal Phase HPLC）：\n- 固定相：极性（如硅胶、氨基键合相、氰基键合相）\n- 流动相：非极性或弱极性（如正己烷、二氯甲烷、乙醇）\n- 极性关系：固定相极性 > 流动相极性\n保留机制：吸附作用，极性组分与固定相作用强\n洗脱顺序：\n- 极性小的组分：与固定相作用弱，先流出\n- 极性大的组分：与固定相作用强，后流出\n例如：硅胶正相色谱，甲醇比乙腈更晚流出（极性更强）。"
+    },
+    {
+      "id": "gc_q014",
+      "knowledgePointId": "gc_016",
+      "chapterId": "chromatography__qualitative_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "Kovats保留指数的定义中，用于校准的物质是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "苯"
+        },
+        {
+          "id": "b",
+          "text": "正构烷烃系列"
+        },
+        {
+          "id": "c",
+          "text": "醇类化合物"
+        },
+        {
+          "id": "d",
+          "text": "酮类化合物"
+        },
+        {
+          "id": "e",
+          "text": "氯代烷烃"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "Kovats保留指数（Kovats Index，I）：\n定义：在给定柱温下，将组分的保留行为用正构烷烃系列进行校准。\n计算公式：\nIₓ = 100[n + N×(log t'_R(x) - log t'_R(n)) / (log t'_R(n+N) - log t'_R(n))]\n其中n和n+N是正构烷烃的碳数（如n=5表示正戊烷，n+N=6表示正己烷）。\n原理：\n- 正构烷烃的保留指数定义为100×碳数（如正己烷I=600，正庚烷I=700）\n- 通过对比未知组分与正构烷烃的保留时间，计算未知组的保留指数\n- 保留指数与化合物结构有关，是色谱定性的重要参数\n用途：不同实验室、不同色谱柱上的保留指数可对比，是GC定性最重要的参数之一。"
+    },
+    {
+      "id": "uv_q016",
+      "knowledgePointId": "uv_002",
+      "chapterId": "uv_spectroscopy__basic_theory",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "一般紫外-可见分光光度计的测量范围是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "10～200 nm（远紫外区）"
+        },
+        {
+          "id": "b",
+          "text": "200～400 nm（近紫外区）"
+        },
+        {
+          "id": "c",
+          "text": "190～850 nm"
+        },
+        {
+          "id": "d",
+          "text": "400～800 nm（可见光区）"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "一般紫外-可见分光光度计的测量范围为190～850 nm，覆盖了近紫外区（200～400 nm）和可见光区（400～800 nm），并延伸至部分远紫外区域。远紫外区（10～200 nm）因空气中的氧在此区域有强烈吸收，需在真空条件下操作，常规仪器不适用。"
+    },
+    {
+      "id": "uv_q017",
+      "knowledgePointId": "uv_010",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "当混合物中两组分的紫外吸收光谱严重重叠时，最适合的定量分析方法是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "单波长直接测定法"
+        },
+        {
+          "id": "b",
+          "text": "双波长法或导数光谱法"
+        },
+        {
+          "id": "c",
+          "text": "标准曲线法"
+        },
+        {
+          "id": "d",
+          "text": "目视比色法"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "当光谱严重重叠时，单波长法无法区分两组分的贡献。双波长法通过选择两个测定波长（等吸收点或特定波长对），消除干扰组分的吸收贡献；导数光谱法利用导数谱的窄峰宽和高分辨率特性，可有效分离重叠峰，实现多组分同时定量。痕量分析灵敏度可达10^-4～10^-6 g/mL。"
+    },
+    {
+      "id": "uv_q018",
+      "knowledgePointId": "uv_011",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某化合物的摩尔吸光系数ε=2.5×10^4 L·mol⁻¹·cm⁻¹，该吸收属于：",
+      "options": [
+        {
+          "id": "a",
+          "text": "弱吸收"
+        },
+        {
+          "id": "b",
+          "text": "中等吸收"
+        },
+        {
+          "id": "c",
+          "text": "强吸收"
+        },
+        {
+          "id": "d",
+          "text": "无法判断"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "摩尔吸光系数ε的分类标准：ε>10^4为强吸收（常对应π→π*跃迁的K带或E带），ε=10^3～10^4为中等吸收（如B带），ε<10^3为弱吸收（如R带n→π*跃迁）。ε=2.5×10^4>10^4，属于强吸收，可用于估算化合物结构中发色团的个数和类型。"
+    },
+    {
+      "id": "uv_q019",
+      "knowledgePointId": "uv_012",
+      "chapterId": "uv_spectroscopy__spectral_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "使用Beer-Lambert定律进行定量分析时，为获得最小相对误差，吸光度测量值应控制在什么范围？",
+      "options": [
+        {
+          "id": "a",
+          "text": "A < 0.1"
+        },
+        {
+          "id": "b",
+          "text": "A = 0.2～0.8"
+        },
+        {
+          "id": "c",
+          "text": "A > 1.0"
+        },
+        {
+          "id": "d",
+          "text": "A = 1.0～2.0"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "Beer-Lambert定律的适用条件包括：均匀非散射溶液、单色光、溶质无相互作用。吸光度A=0.2～0.8范围内透光率相对误差最小（约0.434ΔT/T）。A<0.1时读数误差过大，A>1.0时可能因偏离比尔定律或仪器杂散光导致非线性。B选项也满足定律适用条件。"
+    },
+    {
+      "id": "ir_q016",
+      "knowledgePointId": "ir_012",
+      "chapterId": "ir_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "测定固体有机样品的红外光谱时，最常用的制样方法是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "液膜法"
+        },
+        {
+          "id": "b",
+          "text": "KBr压片法"
+        },
+        {
+          "id": "c",
+          "text": "气体池法"
+        },
+        {
+          "id": "d",
+          "text": "溶液法（CCl₄为溶剂）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "不同样品形态的常用制样方法：固体样品→KBr压片法（将1～2 mg样品与100～200 mg干燥KBr混合研磨后压片）；液体样品→液膜法（将液体夹于两片NaCl或KBr盐片之间）；气体样品→气体池法（用带NaCl窗片的气体池）；糊剂法（Nujol/矿物油悬浮）也用于固体但会引入C-H吸收干扰。"
+    },
+    {
+      "id": "ir_q017",
+      "knowledgePointId": "ir_013",
+      "chapterId": "ir_spectroscopy__advanced_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列化合物中，C=C伸缩振动频率最低的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "乙烯（CH₂=CH₂，~1625 cm⁻¹）"
+        },
+        {
+          "id": "b",
+          "text": "1,3-丁二烯（共轭二烯，~1597 cm⁻¹）"
+        },
+        {
+          "id": "c",
+          "text": "苯乙烯（与苯环共轭，~1600 cm⁻¹）"
+        },
+        {
+          "id": "d",
+          "text": "1,4-戊二烯（非共轭二烯，~1640 cm⁻¹）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "共轭效应使C=C伸缩振动向低频移动。共轭体系越长，π电子离域程度越大，C=C键级降低越多，频率越低。1,3-丁二烯具有完整的共轭体系（两双键共轭），C=C频率最低。1,4-戊二烯双键被亚甲基隔开，无共轭，频率接近孤立双键（~1640 cm⁻¹）。苯乙烯中C=C与苯环共轭，频率约1600 cm⁻¹。"
+    },
+    {
+      "id": "ir_q018",
+      "knowledgePointId": "ir_015",
+      "chapterId": "ir_spectroscopy__advanced_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "与紫外-可见光谱相比，红外光谱用于定量分析时的特点是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "红外定量比紫外-可见更准确，因为红外吸收峰更尖锐"
+        },
+        {
+          "id": "b",
+          "text": "红外定量更复杂，因为仪器因素和样品处理影响更大"
+        },
+        {
+          "id": "c",
+          "text": "两者定量准确度完全相同"
+        },
+        {
+          "id": "d",
+          "text": "红外光谱不能用于定量分析"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "红外光谱定量分析也遵循Beer-Lambert定律（A=abc），但比紫外-可见定量更复杂，主要原因：(1)仪器因素：红外光谱仪狭缝宽度相对较大、杂散光较多、单色光纯度较低；(2)样品处理：KBr压片的均匀性、厚度难以精确控制；(3)红外吸收峰较窄，受仪器分辨率影响大；(4)溶剂选择有限。因此红外光谱主要用于定性分析，定量应用较少。"
+    },
+    {
+      "id": "nmr_q016",
+      "knowledgePointId": "nmr_006",
+      "chapterId": "nmr_spectroscopy__spin_systems",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在¹H NMR中，满足一级谱（n+1规则）的条件是化学位移差Δν与耦合常数J的比值满足：",
+      "options": [
+        {
+          "id": "a",
+          "text": "Δν/J > 1"
+        },
+        {
+          "id": "b",
+          "text": "Δν/J > 3"
+        },
+        {
+          "id": "c",
+          "text": "Δν/J > 6"
+        },
+        {
+          "id": "d",
+          "text": "Δν/J > 10"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "一级谱（First-order spectrum）条件：Δν/J > 6（或Δδ×仪器频率/J > 6）。满足此条件时：(1)裂分数目=n+1（n为相邻碳上等效氢的个数）；(2)峰强度比符合二项式展开系数（如三重峰1:2:1，四重峰1:3:3:1）；(3)化学位移等于多重峰中心位置。当Δν/J<6时为高级谱（二级谱），需用计算机模拟分析。"
+    },
+    {
+      "id": "nmr_q017",
+      "knowledgePointId": "nmr_012",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "关于二维NMR技术，下列说法正确的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "COSY谱显示直接相连的¹H和¹³C之间的相关性"
+        },
+        {
+          "id": "b",
+          "text": "HSQC谱显示相邻碳上氢原子之间的耦合关系"
+        },
+        {
+          "id": "c",
+          "text": "COSY谱显示相邻碳上氢原子之间的耦合关系"
+        },
+        {
+          "id": "d",
+          "text": "HSQC谱与COSY谱功能完全相同"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "二维NMR主要技术：(1)COSY（Correlation Spectroscopy，同核相关谱）显示相邻碳上氢原子之间的¹H-¹H耦合关系（通过化学键的标量耦合），对角线上的峰为正常一维谱，交叉峰表示两氢核间存在耦合；(2)HSQC（Heteronuclear Single Quantum Coherence，异核单量子相干）显示直接连接的¹H和¹³C之间的单键相关性。HSQC反映的是C-H直接连接关系，COSY反映的是H-H耦合关系。"
+    },
+    {
+      "id": "nmr_q018",
+      "knowledgePointId": "nmr_013",
+      "chapterId": "nmr_spectroscopy__advanced_topics",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "核Overhauser效应（NOE）主要用于判断：",
+      "options": [
+        {
+          "id": "a",
+          "text": "原子核之间的化学键连接顺序"
+        },
+        {
+          "id": "b",
+          "text": "原子核在空间中的距离远近（≤5 Å）"
+        },
+        {
+          "id": "c",
+          "text": "化合物的分子量"
+        },
+        {
+          "id": "d",
+          "text": "原子核的自旋量子数"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "NOE（Nuclear Overhauser Effect，核Overhauser效应）是一种通过空间（through-space）的偶极-偶极相互作用：当照射某一核（饱和），空间上邻近（通常≤5 Å）的另一核信号强度发生变化。NOE效应与核间距离的六次方（r⁻⁶）成反比，对距离极为敏感，因此广泛用于：(1)判断空间邻近关系；(2)确定立体化学构型（顺/反异构、endo/exo）；(3)蛋白质和核酸的三维结构解析。与J耦合不同，NOE不依赖化学键。"
+    },
+    {
+      "id": "ms_q016",
+      "knowledgePointId": "ms_007",
+      "chapterId": "ms_spectroscopy__fragmentation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "在质谱分析中，含杂原子化合物的i断裂（诱导断裂）产生的碎片离子系列通常包括：",
+      "options": [
+        {
+          "id": "a",
+          "text": "m/z 15, 29, 43, 57（烷基离子系列）"
+        },
+        {
+          "id": "b",
+          "text": "m/z 31, 45, 59（含氧碎片离子系列）"
+        },
+        {
+          "id": "c",
+          "text": "m/z 77, 91（芳香族特征离子）"
+        },
+        {
+          "id": "d",
+          "text": "m/z 18, 28, 44（中性丢失系列）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "i断裂（Inductive cleavage，诱导断裂）由电负性大的杂原子（O、N、S、卤素）诱导产生，正电荷留在烷基上。典型含氧碎片离子系列：m/z 31（CH₂=OH⁺）、45（CH₃CH=OH⁺）、59（(CH₃)₂C=OH⁺或C₂H₅CH=OH⁺），相邻差14（CH₂质量单位），可用于判断醇、醚类化合物的结构。"
+    },
+    {
+      "id": "ms_q017",
+      "knowledgePointId": "ms_014",
+      "chapterId": "ms_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "质谱图中出现m/z 43的强峰，最可能来源于哪种结构？",
+      "options": [
+        {
+          "id": "a",
+          "text": "芳香环（苯基m/z 77）"
+        },
+        {
+          "id": "b",
+          "text": "丙基（C₃H₇⁺）或乙酰基（CH₃CO⁺）"
+        },
+        {
+          "id": "c",
+          "text": "甲基（CH₃⁺, m/z 15）"
+        },
+        {
+          "id": "d",
+          "text": "苄基（C₇H₇⁺, m/z 91）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "低质量离子系列是质谱解析的重要依据：m/z 15（CH₃⁺）、29（C₂H₅⁺或CHO⁺）、43（C₃H₇⁺或CH₃CO⁺）、57（C₄H₉⁺或C₂H₅CO⁺）、71（C₅H₁₁⁺或C₃H₇CO⁺）。烷基离子系列之间差14（CH₂），含氧碎片系列也差14但起始位置不同。m/z 43可能是丙基正离子（C₃H₇⁺，烷烃/支链烷烃）或乙酰基正离子（CH₃CO⁺，含羰基化合物）。需结合其他碎片和分子量综合判断。"
+    },
+    {
+      "id": "ms_q018",
+      "knowledgePointId": "ms_015",
+      "chapterId": "ms_spectroscopy__spectral_interpretation",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "关于不同电离方式的质谱特征，下列说法正确的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "EI谱图中碎片离子很少，主要给出分子离子峰"
+        },
+        {
+          "id": "b",
+          "text": "ESI属于硬电离方式，产生大量碎片离子"
+        },
+        {
+          "id": "c",
+          "text": "EI谱图碎片丰富可与标准谱库对比；ESI主要给出[M+H]⁺准分子离子"
+        },
+        {
+          "id": "d",
+          "text": "CI和EI产生的谱图完全相同"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "电离方式对比：(1)EI（电子轰击电离，70 eV）属于硬电离，能量高，产生丰富碎片离子，可与标准谱库（NIST、Wiley）对比鉴定；(2)软电离技术：CI（化学电离）、FAB（快原子轰击）、ESI（电喷雾电离）、MALDI（基质辅助激光解吸电离）——能量低，主要给出准分子离子[M+H]⁺或[M-H]⁻，碎片少，用于测定分子量，适合热不稳定和极性大的化合物。"
+    },
+    {
+      "id": "gc_q016",
+      "knowledgePointId": "gc_008",
+      "chapterId": "chromatography__gc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "气相色谱中，热导检测器（TCD）最常使用的载气是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "N₂（因其最佳柱效）"
+        },
+        {
+          "id": "b",
+          "text": "H₂或He（因其高灵敏度）"
+        },
+        {
+          "id": "c",
+          "text": "Ar（因其化学惰性）"
+        },
+        {
+          "id": "d",
+          "text": "空气（因其经济性）"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "不同检测器对载气的选择：(1)TCD（热导检测器）→用H₂或He，因其热导率远高于有机物蒸气，可获最高灵敏度；(2)FID（火焰离子化检测器）→常用N₂，因最佳柱效在N₂作载气时获得（Van Deemter曲线最低点）；(3)ECD（电子捕获检测器）→用N₂或Ar/CH₄混合气，对电负性化合物高灵敏度。载气流速通过影响柱效进而影响分离度和峰形。"
+    },
+    {
+      "id": "gc_q017",
+      "knowledgePointId": "gc_012",
+      "chapterId": "chromatography__hplc_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "下列HPLC检测器中，属于通用型检测器的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "紫外-可见检测器（UV-VIS）"
+        },
+        {
+          "id": "b",
+          "text": "荧光检测器（FLD）"
+        },
+        {
+          "id": "c",
+          "text": "示差折光检测器（RID）"
+        },
+        {
+          "id": "d",
+          "text": "电化学检测器（ECD）"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "HPLC检测器分类：(1)选择性检测器：UV-VIS检测器（需样品有紫外吸收，使用最广，灵敏度高）、荧光检测器（需样品有荧光，灵敏度极高，比UV-VIS高2～3个数量级）、电化学检测器（需电活性物质）；(2)通用型检测器：示差折光检测器（RID，只要样品与流动相折光率不同即可检测，但灵敏度较低，对温度和流速敏感，不能用于梯度洗脱）。"
+    },
+    {
+      "id": "gc_q018",
+      "knowledgePointId": "gc_017",
+      "chapterId": "chromatography__qualitative_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "目前最有效的色谱定性鉴定手段是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "仅靠保留时间对比标准品"
+        },
+        {
+          "id": "b",
+          "text": "仅靠保留指数（Kovats指数）"
+        },
+        {
+          "id": "c",
+          "text": "色谱-质谱联用（GC-MS）或色谱-红外联用（GC-FTIR）"
+        },
+        {
+          "id": "d",
+          "text": "仅靠双柱定性"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "色谱定性方法：(1)保留时间/保留指数对比——仅提供初步信息，不同化合物可能有相同保留时间；(2)双柱定性——同一组分在不同极性柱上保留行为不同，提供更多信息但仍不够；(3)联用技术——GC-MS（最常用，提供分子量和碎片信息）、GC-FTIR（提供官能团信息）、LC-MS——将色谱的高分离能力与光谱的结构鉴定能力结合，是目前最有效的定性鉴定手段。"
+    },
+    {
+      "id": "gc_q019",
+      "knowledgePointId": "gc_018",
+      "chapterId": "chromatography__qualitative_analysis",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "双柱定性法的基本原理是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "同一化合物在不同极性色谱柱上的保留时间比值是特征值"
+        },
+        {
+          "id": "b",
+          "text": "两根色谱柱串联可以提高分离度"
+        },
+        {
+          "id": "c",
+          "text": "用两根同样的色谱柱重复实验以验证结果"
+        },
+        {
+          "id": "d",
+          "text": "在第一根柱上分离后在第二根柱上检测"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "双柱定性原理：同一化合物在不同极性固定相上的保留行为不同（因与固定相之间的分子间作用力不同），但在特定两根色谱柱上的保留时间比值（或Kovats保留指数差）是该化合物的特征值，可作为定性依据。实际操作：先在非极性柱（如SE-54）上测定，再在极性柱（如PEG-20M）上测定，对比两次的保留数据，可初步鉴别化合物类型。需注意双柱定性仅为辅助手段，确认仍需标准品或质谱验证。"
+    },
+    {
+      "id": "as_q001",
+      "knowledgePointId": "as_001",
+      "chapterId": "atomic_spectroscopy__principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "原子吸收光谱定量分析主要测量的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "激发态原子返回基态时发出的辐射强度"
+        },
+        {
+          "id": "b",
+          "text": "基态原子对元素特征谱线的吸收程度"
+        },
+        {
+          "id": "c",
+          "text": "分子振动能级跃迁产生的吸收峰"
+        },
+        {
+          "id": "d",
+          "text": "分子荧光发射峰的强度"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "原子吸收光谱测量自由基态原子对元素特征辐射的吸收，吸光度在一定范围内与待测元素浓度成正比。原子发射光谱才测量激发态原子发射辐射。"
+    },
+    {
+      "id": "as_q002",
+      "knowledgePointId": "as_002",
+      "chapterId": "atomic_spectroscopy__principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "与火焰原子化相比，石墨炉原子化的主要优点是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "样品消耗少、原子在光路中停留时间长，灵敏度高"
+        },
+        {
+          "id": "b",
+          "text": "完全没有基体干扰"
+        },
+        {
+          "id": "c",
+          "text": "只能用于气体样品分析"
+        },
+        {
+          "id": "d",
+          "text": "不需要背景校正"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "石墨炉原子化将少量样品在石墨管中程序升温，原子云停留时间较长，灵敏度和检出能力优于火焰原子化，但基体干扰通常更突出。"
+    },
+    {
+      "id": "as_q003",
+      "knowledgePointId": "as_003",
+      "chapterId": "atomic_spectroscopy__principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "测定钾、钠等易电离元素时，常加入大量铯盐或钾盐作为电离缓冲剂，其主要目的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "提高火焰温度"
+        },
+        {
+          "id": "b",
+          "text": "抑制待测元素电离，使基态原子数稳定"
+        },
+        {
+          "id": "c",
+          "text": "消除所有光谱重叠干扰"
+        },
+        {
+          "id": "d",
+          "text": "把待测元素转化为分子离子"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "易电离元素在高温火焰中会发生电离，使基态原子数减少。加入更易电离的缓冲剂可提供电子，抑制待测元素电离，提高信号稳定性。"
+    },
+    {
+      "id": "as_q004",
+      "knowledgePointId": "as_004",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "原子吸收光谱仪常用空心阴极灯的原因是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "能发出连续光谱，覆盖所有元素"
+        },
+        {
+          "id": "b",
+          "text": "能提供待测元素的锐线特征辐射"
+        },
+        {
+          "id": "c",
+          "text": "能直接把样品原子化"
+        },
+        {
+          "id": "d",
+          "text": "能消除样品中所有背景吸收"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "AAS吸收线很窄，需要线宽更窄、波长对应待测元素特征线的锐线光源。空心阴极灯正是为特定元素提供特征谱线的常用光源。"
+    },
+    {
+      "id": "as_q005",
+      "knowledgePointId": "as_005",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "ICP-AES相对火焰原子吸收法的典型优势是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "只能测一个元素，但灵敏度一定更低"
+        },
+        {
+          "id": "b",
+          "text": "可多元素同时测定，线性范围较宽"
+        },
+        {
+          "id": "c",
+          "text": "不需要将样品转化为气溶胶"
+        },
+        {
+          "id": "d",
+          "text": "只适用于有机物结构鉴定"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "ICP等离子体温度高、激发能力强，可同时采集多元素发射谱线，线性范围宽，是无机多元素分析的重要手段。"
+    },
+    {
+      "id": "as_q006",
+      "knowledgePointId": "as_006",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "复杂水样中基体明显影响AAS信号，且难以配制完全匹配的标准溶液时，优先采用的定量方法是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "外标法"
+        },
+        {
+          "id": "b",
+          "text": "归一化法"
+        },
+        {
+          "id": "c",
+          "text": "标准加入法"
+        },
+        {
+          "id": "d",
+          "text": "面积归一化法"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "标准加入法把标准物质直接加入样品基体中，样品和加标样受到相近基体影响，适合补偿复杂基体造成的信号偏差。"
+    },
+    {
+      "id": "fl_q001",
+      "knowledgePointId": "fl_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "分子荧光光谱中，Stokes位移指的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "荧光发射波长通常比激发波长更长"
+        },
+        {
+          "id": "b",
+          "text": "荧光发射波长总是比激发波长更短"
+        },
+        {
+          "id": "c",
+          "text": "吸收峰强度随浓度降低"
+        },
+        {
+          "id": "d",
+          "text": "磷光寿命比荧光更短"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "分子吸光后先发生振动弛豫等非辐射过程，再从较低振动能级发射荧光，因此发射光能量较低、波长较长。"
+    },
+    {
+      "id": "fl_q002",
+      "knowledgePointId": "fl_002",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "荧光定量分析中，浓度过高时荧光强度不再与浓度成正比，常见原因是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "自吸收和浓度猝灭增强"
+        },
+        {
+          "id": "b",
+          "text": "所有分子都变为红外非活性"
+        },
+        {
+          "id": "c",
+          "text": "光源完全停止发光"
+        },
+        {
+          "id": "d",
+          "text": "发射波长必然变为零"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "高浓度时内滤效应、自吸收、分子碰撞和缔合等会降低有效荧光强度，使校准曲线偏离线性。"
+    },
+    {
+      "id": "fl_q003",
+      "knowledgePointId": "fl_003",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "关于荧光和磷光，下列说法正确的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "荧光通常寿命较短，磷光通常寿命较长"
+        },
+        {
+          "id": "b",
+          "text": "两者都只能由原子发射产生"
+        },
+        {
+          "id": "c",
+          "text": "磷光一定比荧光波长短"
+        },
+        {
+          "id": "d",
+          "text": "荧光属于三重态到单重态跃迁"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "荧光多为单重态到单重态跃迁，寿命短；磷光涉及三重态，跃迁自旋禁阻，寿命通常较长。"
+    },
+    {
+      "id": "raman_q001",
+      "knowledgePointId": "raman_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某振动在过程中偶极矩不变但极化率发生变化，该振动最可能：",
+      "options": [
+        {
+          "id": "a",
+          "text": "红外活性强，拉曼非活性"
+        },
+        {
+          "id": "b",
+          "text": "拉曼活性，红外可能不活性"
+        },
+        {
+          "id": "c",
+          "text": "既不可能被任何光谱观察到"
+        },
+        {
+          "id": "d",
+          "text": "只能在质谱中观察到"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "拉曼活性要求振动过程中极化率改变；红外活性要求偶极矩改变。因此该振动符合拉曼活性判据。"
+    },
+    {
+      "id": "ec_q001",
+      "knowledgePointId": "ec_001",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "25摄氏度时，一价离子选择电极对离子活度每变化10倍的理论电位响应约为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "5.9 mV"
+        },
+        {
+          "id": "b",
+          "text": "29.6 mV"
+        },
+        {
+          "id": "c",
+          "text": "59.2 mV"
+        },
+        {
+          "id": "d",
+          "text": "118 mV"
+        }
+      ],
+      "correctAnswers": [
+        "c"
+      ],
+      "explanation": "由Nernst方程，25摄氏度时一价离子的斜率约为59.16 mV/decade；二价离子约为29.58 mV/decade。"
+    },
+    {
+      "id": "ec_q002",
+      "knowledgePointId": "ec_002",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "电位分析中，参比电极的核心要求是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "电位稳定且可重复"
+        },
+        {
+          "id": "b",
+          "text": "电位随待测离子浓度剧烈变化"
+        },
+        {
+          "id": "c",
+          "text": "必须由玻璃膜制成"
+        },
+        {
+          "id": "d",
+          "text": "只允许通过交流电测量"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "参比电极提供稳定参考电位，指示电极才随待测离子活度变化。甘汞电极和Ag/AgCl电极是常用参比电极。"
+    },
+    {
+      "id": "ec_q003",
+      "knowledgePointId": "ec_003",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "用玻璃电极测定pH前，通常需要用标准缓冲溶液校准，主要目的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "确定电极实际斜率和定位，减小系统误差"
+        },
+        {
+          "id": "b",
+          "text": "使待测溶液浓度增加"
+        },
+        {
+          "id": "c",
+          "text": "改变玻璃膜的颜色"
+        },
+        {
+          "id": "d",
+          "text": "消除所有温度影响而不需补偿"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "玻璃电极实际响应会受电极状态、温度和液接电位影响，测量前用缓冲溶液校准可确定实际响应斜率和零点。"
+    },
+    {
+      "id": "ec_q004",
+      "knowledgePointId": "ec_004",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "离子选择电极的选择性系数越小，通常表示：",
+      "options": [
+        {
+          "id": "a",
+          "text": "干扰离子影响越小，选择性越好"
+        },
+        {
+          "id": "b",
+          "text": "电极完全不能响应目标离子"
+        },
+        {
+          "id": "c",
+          "text": "电极只能用于气体样品"
+        },
+        {
+          "id": "d",
+          "text": "Nernst响应斜率必为零"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "选择性系数用于表征干扰离子对电极响应的贡献。数值越小，说明同等条件下干扰离子造成的响应越弱。"
+    },
+    {
+      "id": "ec_q005",
+      "knowledgePointId": "ec_005",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "经典极谱法中，用于定量分析的主要参数是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "半波电位"
+        },
+        {
+          "id": "b",
+          "text": "扩散电流"
+        },
+        {
+          "id": "c",
+          "text": "参比电极内阻"
+        },
+        {
+          "id": "d",
+          "text": "溶液颜色"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "极谱扩散电流在受扩散控制时与被测物浓度成正比，主要用于定量；半波电位具有物质特征，主要用于定性。"
+    },
+    {
+      "id": "ec_q006",
+      "knowledgePointId": "ec_006",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "循环伏安图中，氧化峰和还原峰同时出现且峰电流比接近1，通常提示体系可能具有：",
+      "options": [
+        {
+          "id": "a",
+          "text": "较好的电化学可逆性"
+        },
+        {
+          "id": "b",
+          "text": "完全不可发生电子转移"
+        },
+        {
+          "id": "c",
+          "text": "只发生红外吸收"
+        },
+        {
+          "id": "d",
+          "text": "固定相吸附达到饱和"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "可逆电极反应在循环伏安中常表现为成对氧化/还原峰，峰电流比接近1，峰电位差也有特征范围。"
+    },
+    {
+      "id": "ec_q007",
+      "knowledgePointId": "ec_007",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "电导滴定确定终点主要依据：",
+      "options": [
+        {
+          "id": "a",
+          "text": "溶液颜色突变"
+        },
+        {
+          "id": "b",
+          "text": "电导随滴定剂体积变化曲线的折线交点"
+        },
+        {
+          "id": "c",
+          "text": "质谱分子离子峰强度最大"
+        },
+        {
+          "id": "d",
+          "text": "荧光寿命突然变为零"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "滴定过程中离子种类和浓度变化会改变电导，终点附近曲线斜率发生变化，常用折线外推交点确定终点。"
+    },
+    {
+      "id": "ch_q001",
+      "knowledgePointId": "ch_001",
+      "chapterId": "chromatography__expanded_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "离子交换色谱分离的主要依据是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "组分与固定相带电基团之间的可逆离子交换作用"
+        },
+        {
+          "id": "b",
+          "text": "分子在质谱中的碎裂方式"
+        },
+        {
+          "id": "c",
+          "text": "分子是否具有红外活性"
+        },
+        {
+          "id": "d",
+          "text": "组分沸点高低且必须完全汽化"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "离子交换色谱固定相带有可交换离子基团，样品离子因电荷、半径和亲和力不同而保留程度不同。"
+    },
+    {
+      "id": "ch_q002",
+      "knowledgePointId": "ch_002",
+      "chapterId": "chromatography__expanded_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "凝胶渗透色谱中，一般最先流出的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "体积较大的分子"
+        },
+        {
+          "id": "b",
+          "text": "体积最小的分子"
+        },
+        {
+          "id": "c",
+          "text": "所有分子同时流出"
+        },
+        {
+          "id": "d",
+          "text": "只带正电的离子"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "大分子难以进入凝胶孔道，可走较短路径，先流出；小分子进入孔道较多，路径长，后流出。"
+    },
+    {
+      "id": "ch_q003",
+      "knowledgePointId": "ch_003",
+      "chapterId": "chromatography__expanded_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "固相萃取（SPE）的典型步骤顺序是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "活化-上样-淋洗-洗脱"
+        },
+        {
+          "id": "b",
+          "text": "洗脱-活化-淋洗-上样"
+        },
+        {
+          "id": "c",
+          "text": "上样-检测-原子化-电离"
+        },
+        {
+          "id": "d",
+          "text": "裂解-扫描-积分-归一化"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "SPE通常先活化固定相，再上样保留目标物或杂质，随后淋洗除去干扰，最后用合适溶剂洗脱目标物。"
+    },
+    {
+      "id": "qc_q001",
+      "knowledgePointId": "qc_001",
+      "chapterId": "instrumental_analysis__quality_control",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某方法空白标准偏差为0.003，校准曲线斜率为0.150 A/(mg/L)。按3倍空白标准偏差估算，检出限为：",
+      "options": [
+        {
+          "id": "a",
+          "text": "0.020 mg/L"
+        },
+        {
+          "id": "b",
+          "text": "0.060 mg/L"
+        },
+        {
+          "id": "c",
+          "text": "0.150 mg/L"
+        },
+        {
+          "id": "d",
+          "text": "0.450 mg/L"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "LOD=3s/k=3×0.003/0.150=0.060 mg/L。定量限常用10s/k估算。"
+    },
+    {
+      "id": "qc_q002",
+      "knowledgePointId": "qc_002",
+      "chapterId": "instrumental_analysis__quality_control",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "加标回收实验主要用于评价分析方法的：",
+      "options": [
+        {
+          "id": "a",
+          "text": "准确度及基体影响"
+        },
+        {
+          "id": "b",
+          "text": "色谱柱长度"
+        },
+        {
+          "id": "c",
+          "text": "原子发射线宽"
+        },
+        {
+          "id": "d",
+          "text": "质谱真空度"
+        }
+      ],
+      "correctAnswers": [
+        "a"
+      ],
+      "explanation": "加标回收是在真实样品中加入已知量待测物，看能否准确回收，常用于评价准确度和样品基体对测定的影响。"
+    },
+    {
+      "id": "qc_q003",
+      "knowledgePointId": "qc_003",
+      "chapterId": "instrumental_analysis__quality_control",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "建立仪器分析校准曲线时，下列做法最合理的是：",
+      "options": [
+        {
+          "id": "a",
+          "text": "只要相关系数接近1，就无需检查残差和线性范围"
+        },
+        {
+          "id": "b",
+          "text": "标准系列应覆盖样品浓度范围，并检查空白、残差和质控样"
+        },
+        {
+          "id": "c",
+          "text": "所有标准点浓度必须完全相同"
+        },
+        {
+          "id": "d",
+          "text": "校准曲线只能用于定性，不能用于定量"
+        }
+      ],
+      "correctAnswers": [
+        "b"
+      ],
+      "explanation": "可靠校准不仅看相关系数，还要考察浓度覆盖范围、空白、残差分布、线性范围和质控样结果。"
+    }
+  ]
+}

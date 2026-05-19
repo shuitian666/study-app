@@ -14,8 +14,11 @@ import type {
 } from '@/types';
 import { PROFICIENCY_MAP } from '@/types';
 import { MOCK_SUBJECTS, MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS } from '@/data/mock';
-import { saveState, loadState, deepMergeState } from './persistence';
 import { getKnowledgeData, hasKnowledgeData, storeKnowledgeData } from '@/services/indexedDBService';
+import { deleteLearningRecords, fetchLearningBootstrap, importLearningBatch, patchLearningProgress } from '@/services/learningSyncService';
+import type { LearningBootstrapPayload, LearningProgressRecord } from '@/types/learningSync';
+import { buildContentSyncPayload, buildDeleteSyncPayload, buildProgressSyncPayload } from '@/utils/learningSyncPayload';
+import { useUser } from './UserContext';
 
 function buildQuestionExplanationSeeds(
   questions: Question[],
@@ -167,6 +170,7 @@ type LearningAction =
   | { type: 'REDO' }
   | { type: 'RECORD_HISTORY' }
   | { type: 'SET_KNOWLEDGE_DATA'; payload: { subjects: Subject[]; chapters: Chapter[]; knowledgePoints: KnowledgePoint[]; questions: Question[]; importHistory?: ImportHistoryInput } }
+  | { type: 'APPLY_LEARNING_BOOTSTRAP'; payload: LearningBootstrapPayload }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'RECORD_FLASHCARD_STUDY'; payload: { knowledgePointId: string; score: number } }
   | { type: 'RECORD_QUIZ_ANSWER'; payload: { knowledgePointId: string; questionId: string; correct: boolean; score: number } }
@@ -297,59 +301,79 @@ function getActiveLearningState(state: LearningState): LearningState {
   };
 }
 
-function buildLegacyImportHistory(
-  importedStudySession: ImportedStudySession | null | undefined,
+function normalizeImportSource(source?: string): ImportHistoryEntry['source'] {
+  if (source === 'cloud' || source === 'cloud-import') return 'cloud';
+  if (source === 'local' || source === 'local-import') return 'local';
+  return 'manual';
+}
+
+function latestTimestamp(...values: Array<string | null | undefined>): string {
+  return values.filter(Boolean).sort().at(-1) || '';
+}
+
+function itemTimestamp(item: { updatedAt?: string; createdAt?: string }): string {
+  return item.updatedAt || item.createdAt || '';
+}
+
+function mergeById<T extends { id: string }>(
+  current: T[],
+  incoming: T[],
+): T[] {
+  const byId = new Map(current.map(item => [item.id, item]));
+
+  incoming.forEach(item => {
+    const existing = byId.get(item.id);
+    const existingTimestamp = existing ? itemTimestamp(existing as { updatedAt?: string; createdAt?: string }) : '';
+    const incomingTimestamp = itemTimestamp(item as { updatedAt?: string; createdAt?: string });
+    if (!existing || latestTimestamp(existingTimestamp, incomingTimestamp) === incomingTimestamp) {
+      byId.set(item.id, { ...existing, ...item });
+    }
+  });
+
+  return Array.from(byId.values());
+}
+
+function mergeByKey<T>(
+  current: T[],
+  incoming: T[],
+  getKey: (item: T) => string,
+): T[] {
+  const byKey = new Map(current.map(item => [getKey(item), item]));
+
+  incoming.forEach(item => {
+    const key = getKey(item);
+    const existing = byKey.get(key);
+    if (!existing || latestTimestamp(itemTimestamp(existing as { updatedAt?: string; createdAt?: string }), itemTimestamp(item as { updatedAt?: string; createdAt?: string })) === itemTimestamp(item as { updatedAt?: string; createdAt?: string })) {
+      byKey.set(key, { ...existing, ...item });
+    }
+  });
+
+  return Array.from(byKey.values());
+}
+
+function mergeProgressIntoKnowledgePoints(
   knowledgePoints: KnowledgePointExtended[],
-  questions: Question[],
-): ImportHistoryEntry[] {
-  if (importedStudySession?.knowledgePointIds?.length) {
-    const kpIds = importedStudySession.knowledgePointIds.filter(id =>
-      knowledgePoints.some(kp => kp.id === id)
-    );
-    if (kpIds.length === 0) return [];
+  progress: LearningProgressRecord[],
+): KnowledgePointExtended[] {
+  const progressByKpId = new Map(progress.map(record => [record.knowledgePointId, record]));
 
-    const kpIdSet = new Set(kpIds);
-    const questionIds = questions
-      .filter(question => question.knowledgePointId && kpIdSet.has(question.knowledgePointId))
-      .map(question => question.id);
-
-    return [{
-      id: `legacy-${importedStudySession.id}`,
-      source: 'local',
-      createdAt: importedStudySession.createdAt,
-      label: '历史导入',
-      knowledgePointIds: kpIds,
-      questionIds,
-      knowledgeCount: kpIds.length,
-      questionCount: questionIds.length,
-    }];
-  }
-
-  const grouped = new Map<string, string[]>();
-  knowledgePoints.forEach(kp => {
-    if (!isLocalImportedKnowledgePoint(kp)) return;
-    const dateKey = getImportDateKey(kp.createdAt);
-    if (!dateKey) return;
-    grouped.set(dateKey, [...(grouped.get(dateKey) ?? []), kp.id]);
+  return knowledgePoints.map(kp => {
+    const progressRecord = progressByKpId.get(kp.id);
+    if (!progressRecord || progressRecord.deletedAt) return kp;
+    const { id: _progressId, knowledgePointId: _knowledgePointId, ownerUserId: _ownerUserId, sourceType: _sourceType, ...updates } = progressRecord;
+    return { ...kp, ...updates };
   });
+}
 
-  return Array.from(grouped.entries()).map(([dateKey, kpIds]) => {
-    const kpIdSet = new Set(kpIds);
-    const questionIds = questions
-      .filter(question => question.knowledgePointId && kpIdSet.has(question.knowledgePointId))
-      .map(question => question.id);
+function normalizeImportHistory(entries: ImportHistoryEntry[]): ImportHistoryEntry[] {
+  return entries.map(entry => ({
+    ...entry,
+    source: normalizeImportSource(entry.source),
+  }));
+}
 
-    return {
-      id: `legacy-import-${dateKey}`,
-      source: 'local',
-      createdAt: `${dateKey}T00:00:00.000Z`,
-      label: '历史本地导入',
-      knowledgePointIds: kpIds,
-      questionIds,
-      knowledgeCount: kpIds.length,
-      questionCount: questionIds.length,
-    };
-  });
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value);
 }
 
 function learningReducer(state: LearningState, action: LearningAction): LearningState {
@@ -723,6 +747,31 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         importHistory: nextImportHistory,
       };
     }
+    case 'APPLY_LEARNING_BOOTSTRAP': {
+      const payload = action.payload;
+      const mergedSubjects = mergeById(state.subjects, payload.subjects);
+      const mergedChapters = mergeById(state.chapters, payload.chapters);
+      const mergedQuestions = mergeById(state.questions, payload.questions);
+      const mergedKnowledgePoints = mergeProgressIntoKnowledgePoints(
+        mergeById(state.knowledgePoints, payload.knowledgePoints) as KnowledgePointExtended[],
+        payload.progress,
+      );
+      const mergedQuestionExplanations = buildQuestionExplanationSeeds(
+        mergedQuestions,
+        mergeByKey(state.questionExplanations, payload.questionExplanations, item => item.questionId),
+      );
+
+      return removeExpiredDeletedState({
+        ...state,
+        subjects: mergedSubjects,
+        chapters: mergedChapters,
+        knowledgePoints: mergedKnowledgePoints,
+        questions: mergedQuestions,
+        wrongRecords: mergeById(state.wrongRecords, payload.wrongRecords),
+        questionExplanations: mergedQuestionExplanations,
+        importHistory: mergeById(state.importHistory, normalizeImportHistory(payload.importHistory)),
+      });
+    }
     case 'SET_LOADING':
       return {
         ...state,
@@ -845,48 +894,23 @@ interface LearningContextType {
 
 const LearningContext = createContext<LearningContextType | null>(null);
 
-// 加载持久化数据
+// 加载持久化数据?
 function getInitialLearningState(): LearningState {
-  const saved = loadState() as Partial<LearningState> | undefined;
-  if (saved) {
-    // 跨天清理：检查今日复习/新学任务是否过期
-    const today = new Date().toISOString().slice(0, 10);
-    const savedReviewItems = (saved.todayReviewItems as ReviewItem[]) || [];
-    const savedNewItems = (saved.todayNewItems as ReviewItem[]) || [];
-    const todayReviewItems = savedReviewItems.filter(item => item.scheduledAt === today);
-    const todayNewItems = savedNewItems.filter(item => item.scheduledAt === today);
-
-    const savedQuestions = saved.questions ?? initialLearningState.questions;
-    const savedKnowledgePoints = saved.knowledgePoints ?? initialLearningState.knowledgePoints;
-    const savedQuestionExplanations = (saved.questionExplanations ?? initialLearningState.questionExplanations) as QuestionExplanation[];
-    const savedImportedStudySession = (saved.importedStudySession as ImportedStudySession | null | undefined) ?? null;
-    const savedImportHistory = (saved.importHistory as ImportHistoryEntry[] | undefined)
-      ?? buildLegacyImportHistory(savedImportedStudySession, savedKnowledgePoints, savedQuestions);
-
-    return removeExpiredDeletedState({
-      ...initialLearningState,
-      subjects: saved.subjects ?? initialLearningState.subjects,
-      chapters: saved.chapters ?? initialLearningState.chapters,
-      knowledgePoints: savedKnowledgePoints,
-      questions: savedQuestions,
-      quizResults: saved.quizResults ?? initialLearningState.quizResults,
-      wrongRecords: saved.wrongRecords ?? initialLearningState.wrongRecords,
-      todayReviewItems,
-      todayNewItems,
-      questionExplanations: buildQuestionExplanationSeeds(savedQuestions, savedQuestionExplanations),
-      importedStudySession: savedImportedStudySession,
-      importHistory: savedImportHistory,
-    });
-  }
   return removeExpiredDeletedState(initialLearningState);
 }
 
 export function LearningProvider({ children }: { children: ReactNode }) {
   const [learningState, learningDispatch] = useReducer(learningReducer, undefined, getInitialLearningState);
+  const { userState } = useUser();
   const isFirstRender = useRef(true);
   const isIndexedDBLoaded = useRef(false);
+  const cloudBootstrapUserId = useRef<string | null>(null);
+  const cloudBootstrapReadyUserId = useRef<string | null>(null);
+  const lastContentSyncHash = useRef<string>('');
+  const lastProgressSyncHash = useRef<string>('');
+  const lastDeleteSyncHash = useRef<string>('');
 
-  // 加载IndexedDB中的知识库数据
+  // 鍔犺浇IndexedDB涓殑鐭ヨ瘑搴撴暟鎹?
   useEffect(() => {
     let isCancelled = false;
 
@@ -903,7 +927,6 @@ export function LearningProvider({ children }: { children: ReactNode }) {
               type: 'SET_KNOWLEDGE_DATA',
               payload: data
             });
-            console.log('[LearningContext] Loaded from IndexedDB:', data.knowledgePoints.length, 'knowledge points');
           }
         }
       } catch (error) {
@@ -928,61 +951,143 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // 持久化状态到 localStorage - 使用深度合并防止覆盖其他 Context 的数据
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
+    const userId = userState.user?.id;
+    if (!userState.isLoggedIn || !userId) {
+      cloudBootstrapUserId.current = null;
+      cloudBootstrapReadyUserId.current = null;
+      lastContentSyncHash.current = '';
+      lastProgressSyncHash.current = '';
+      lastDeleteSyncHash.current = '';
       return;
     }
-    const currentState = loadState();
-    const mergedState = deepMergeState(currentState || {}, {
-      subjects: learningState.subjects,
-      chapters: learningState.chapters,
-      knowledgePoints: learningState.knowledgePoints,
-      questions: learningState.questions,
-      quizResults: learningState.quizResults,
-      wrongRecords: learningState.wrongRecords,
-      todayReviewItems: learningState.todayReviewItems,
-      todayNewItems: learningState.todayNewItems,
-      questionExplanations: learningState.questionExplanations,
-      importedStudySession: learningState.importedStudySession,
-      importHistory: learningState.importHistory,
-    });
-    saveState(mergedState);
-    console.log('[LearningContext] Saved to localStorage, kp count:', learningState.knowledgePoints.length);
-  }, [learningState]);
+    if (cloudBootstrapUserId.current === userId) return;
 
-  // 同步学习状态到 AppContext（用于 Home 页和签到条件判定）
-  useEffect(() => {
-    if (isFirstRender.current) return;
     let isCancelled = false;
+    cloudBootstrapUserId.current = userId;
+    cloudBootstrapReadyUserId.current = null;
 
-    // 动态导入避免循环依赖
-    import('./syncRegistry').then(({ getAppDispatch }) => {
-      if (isCancelled) return;
-      const appDispatch = getAppDispatch();
-      if (appDispatch) {
-        appDispatch({ type: 'SYNC_QUIZ_RESULTS', payload: learningState.quizResults });
-        appDispatch({ type: 'SYNC_WRONG_RECORDS', payload: learningState.wrongRecords });
-        appDispatch({
-          type: 'SYNC_REVIEW_ITEMS',
-          payload: {
-            review: learningState.todayReviewItems,
-            newItems: learningState.todayNewItems
-          }
-        });
+    const loadCloudBootstrap = async () => {
+      try {
+        learningDispatch({ type: 'SET_LOADING', payload: true });
+        const bootstrap = await fetchLearningBootstrap();
+        if (!isCancelled) {
+          learningDispatch({ type: 'APPLY_LEARNING_BOOTSTRAP', payload: bootstrap });
+        }
+      } catch (error) {
+        if (!isCancelled && (error as Error & { status?: number }).status !== 401) {
+          console.error('Failed to load learning bootstrap:', error);
+        }
+      } finally {
+        if (!isCancelled) {
+          learningDispatch({ type: 'SET_LOADING', payload: false });
+          cloudBootstrapReadyUserId.current = userId;
+        }
       }
-    });
+    };
+
+    loadCloudBootstrap();
 
     return () => {
       isCancelled = true;
     };
+  }, [userState.isLoggedIn, userState.user?.id]);
+
+  useEffect(() => {
+    const userId = userState.user?.id;
+    if (!userState.isLoggedIn || !userId || cloudBootstrapReadyUserId.current !== userId) return;
+
+    const payload = buildContentSyncPayload(learningState);
+    if (!payload) return;
+
+    const hash = stableStringify(payload);
+    if (hash === lastContentSyncHash.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      importLearningBatch(payload)
+        .then(() => {
+          lastContentSyncHash.current = hash;
+        })
+        .catch(error => {
+          if ((error as Error & { status?: number }).status !== 401) {
+            console.error('Failed to sync learning content:', error);
+          }
+        });
+    }, 800);
+
+    return () => window.clearTimeout(timeoutId);
   }, [
-    learningState.quizResults,
-    learningState.wrongRecords,
-    learningState.todayReviewItems,
-    learningState.todayNewItems
+    learningState.subjects,
+    learningState.chapters,
+    learningState.knowledgePoints,
+    learningState.questions,
+    learningState.importHistory,
+    userState.isLoggedIn,
+    userState.user?.id,
   ]);
+
+  useEffect(() => {
+    const userId = userState.user?.id;
+    if (!userState.isLoggedIn || !userId || cloudBootstrapReadyUserId.current !== userId) return;
+
+    const payload = buildProgressSyncPayload(learningState);
+    if (!payload) return;
+
+    const hash = stableStringify(payload);
+    if (hash === lastProgressSyncHash.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      patchLearningProgress(payload)
+        .then(() => {
+          lastProgressSyncHash.current = hash;
+        })
+        .catch(error => {
+          if ((error as Error & { status?: number }).status !== 401) {
+            console.error('Failed to sync learning progress:', error);
+          }
+        });
+    }, 800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    learningState.knowledgePoints,
+    learningState.wrongRecords,
+    learningState.questionExplanations,
+    userState.isLoggedIn,
+    userState.user?.id,
+  ]);
+
+  useEffect(() => {
+    const userId = userState.user?.id;
+    if (!userState.isLoggedIn || !userId || cloudBootstrapReadyUserId.current !== userId) return;
+
+    const payload = buildDeleteSyncPayload(learningState);
+    if (!payload) return;
+
+    const hash = stableStringify(payload);
+    if (hash === lastDeleteSyncHash.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      deleteLearningRecords(payload)
+        .then(() => {
+          lastDeleteSyncHash.current = hash;
+        })
+        .catch(error => {
+          if ((error as Error & { status?: number }).status !== 401) {
+            console.error('Failed to sync learning deletes:', error);
+          }
+        });
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    learningState.knowledgePoints,
+    learningState.questions,
+    learningState.importHistory,
+    userState.isLoggedIn,
+    userState.user?.id,
+  ]);
+
 
   // 当知识库数据变化时，同步到IndexedDB
   useEffect(() => {
@@ -990,17 +1095,12 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
     const saveKnowledgeData = async () => {
       try {
-        const kpCount = learningState.knowledgePoints.length;
-        console.log('[IndexedDB] Saving knowledge data:', { kpCount, subjects: learningState.subjects.length, chapters: learningState.chapters.length });
         await storeKnowledgeData({
           subjects: learningState.subjects,
           chapters: learningState.chapters,
           knowledgePoints: learningState.knowledgePoints,
           questions: learningState.questions,
         });
-        if (!isCancelled) {
-          console.log('[IndexedDB] Save complete, kpCount:', learningState.knowledgePoints.length);
-        }
       } catch (error) {
         if (!isCancelled) {
           console.error('[IndexedDB] Failed to save knowledge data:', error);

@@ -56,6 +56,19 @@ const MailPage = React.lazy(() => import('@/features/gamification/mail'));
 const AvatarEditPage = React.lazy(() => import('@/pages/AvatarEdit'));
 const FlashcardLearningPage = React.lazy(() => import('@/pages/FlashcardLearning'));
 
+type StarParticle = {
+  left: number;
+  top: number;
+  animationDelay: number;
+  opacity: number;
+};
+
+type CherryParticle = {
+  left: number;
+  top: number;
+  animationDelay: number;
+};
+
 // 加载占位组件
 const LoadingFallback = () => (
   <div className="flex min-h-screen flex-col" style={{ backgroundColor: 'var(--color-bg-var)' }}>
@@ -120,21 +133,45 @@ function AppContent() {
   }, [userState.user?.background]);
 
   // 渲染背景装饰图案 - 使用 useCallback 优化
+  const starParticles = useMemo(() => ({
+    stars: Array.from({ length: 20 }, (): StarParticle => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animationDelay: Math.random() * 3,
+      opacity: Math.random() * 0.8 + 0.2,
+    })),
+    galaxy: Array.from({ length: 40 }, (): StarParticle => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animationDelay: Math.random() * 3,
+      opacity: Math.random() * 0.8 + 0.2,
+    })),
+  }), []);
+
+  const cherryParticles = useMemo(() => (
+    Array.from({ length: 12 }, (_, i): CherryParticle => ({
+      left: (i % 4) * 30 + Math.random() * 20,
+      top: Math.floor(i / 4) * 30 + Math.random() * 20,
+      animationDelay: i * 0.8,
+    }))
+  ), []);
+
   const renderBackgroundPattern = useCallback((pattern?: string) => {
     if (!pattern) return null;
 
     if (pattern === 'stars' || pattern === 'galaxy') {
+      const particles = pattern === 'galaxy' ? starParticles.galaxy : starParticles.stars;
       return (
         <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
-          {[...Array(pattern === 'galaxy' ? 40 : 20)].map((_, i) => (
+          {particles.map((particle, i) => (
             <div
               key={i}
               className="absolute w-1 h-1 bg-white rounded-full animate-twinkle"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                opacity: Math.random() * 0.8 + 0.2,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animationDelay: `${particle.animationDelay}s`,
+                opacity: particle.opacity,
               }}
             />
           ))}
@@ -145,14 +182,14 @@ function AppContent() {
     if (pattern === 'cherry') {
       return (
         <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
-          {[...Array(12)].map((_, i) => (
+          {cherryParticles.map((particle, i) => (
             <div
               key={i}
               className="absolute text-5xl animate-float"
               style={{
-                left: `${(i % 4) * 30 + Math.random() * 20}%`,
-                top: `${Math.floor(i / 4) * 30 + Math.random() * 20}%`,
-                animationDelay: `${i * 0.8}s`,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animationDelay: `${particle.animationDelay}s`,
               }}
             >
               🌸
@@ -196,7 +233,7 @@ function AppContent() {
     }
 
     return null;
-  }, []);
+  }, [cherryParticles, starParticles]);
 
   const renderPage = () => {
     switch (userState.currentPage) {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Home Page
  *
  * The default theme uses the cozy notebook direction from the Figma draft.
@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { FloatingAIPanel, TabBar } from '@/components/layout';
 import OnboardingGuide from '@/components/ui/OnboardingGuide';
-import { useApp } from '@/store/AppContext';
 import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -71,7 +70,6 @@ function clampPercent(value: number) {
 }
 
 export default function HomePage({ isActive = true }: HomePageProps) {
-  const { state: appState, dispatch: appDispatch } = useApp();
   const { gameState } = useGame();
   const { learningState, learningDispatch, getLearningStats } = useLearning();
   const { theme } = useTheme();
@@ -116,19 +114,19 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
-    if (appState.dailyEncouragementDate === today) return;
+    if (userState.dailyEncouragementDate === today) return;
 
     getSmartEncouragement(stats, learningState.wrongRecords.length, gameState.checkin.streak)
       .then(text => {
-        appDispatch({ type: 'SET_DAILY_ENCOURAGEMENT', payload: { text, date: today } });
+        userDispatch({ type: 'SET_DAILY_ENCOURAGEMENT', payload: { text, date: today } });
       })
       .catch(() => {});
   }, [
-    appDispatch,
-    appState.dailyEncouragementDate,
     gameState.checkin.streak,
     learningState.wrongRecords.length,
     stats,
+    userDispatch,
+    userState.dailyEncouragementDate,
   ]);
 
   const handleCloseGuide = () => {
@@ -152,7 +150,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const completedNew = learningState.todayNewItems.filter(item => item.completed).length;
   const remainingGoalCount = Math.max(dailyGoal - todayLearningCount, 0);
   const hasCheckedInToday = gameState.checkin.records.some(record => record.date === todayKey);
-  const encouragementText = appState.dailyEncouragement ?? fallbackEncouragement;
+  const encouragementText = userState.dailyEncouragement ?? fallbackEncouragement;
   const isScholar = theme.uiStyle === 'scholar' || theme.isFluidScholar;
   const isDark = isDarkTheme(theme);
   const classicPalette = isDark

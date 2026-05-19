@@ -292,7 +292,6 @@ function userReducer(state: UserState, action: UserAction): UserState {
                 }
               }
               newUser = { ...state.user, totalPoints: state.user.totalPoints + compensation };
-              console.log(`[CLAIM_MAIL] 重复获得 ${attachment.name}，补偿 ${compensation} 星币`);
             } else {
               newInventoryItems.push({
                 id: `inv-${Date.now()}-${attachmentIndex}`,

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useUser } from '@/store/UserContext';
-import { useGame, isValidRedeemCode } from '@/store/GameContext';
+import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Clock, Gift, Sparkles, Star } from 'lucide-react';
 import { LOTTERY_TIERS } from '@/utils/lottery';
@@ -56,12 +56,6 @@ export default function LotteryPage() {
       setTimeout(() => setRedeemMsg(null), 3000);
       return;
     }
-    if (!isValidRedeemCode(code)) {
-      setRedeemMsg({ text: '无效的兑换码', ok: false });
-      setTimeout(() => setRedeemMsg(null), 3000);
-      return;
-    }
-
     setRedeeming(true);
     try {
       applyServerAccountPayload(await accountRedeem(code), userDispatch, gameDispatch);

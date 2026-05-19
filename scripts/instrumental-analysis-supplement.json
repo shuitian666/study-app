@@ -1,0 +1,559 @@
+{
+  "removeQuestionIds": [
+    "uv_q004",
+    "ir_q003",
+    "ir_q009",
+    "ir_q012",
+    "nmr_q003",
+    "nmr_q011",
+    "nmr_q012",
+    "gc_q015"
+  ],
+  "chapters": [
+    {
+      "id": "atomic_spectroscopy__principles",
+      "name": "原子光谱基础与原子化",
+      "order": 21
+    },
+    {
+      "id": "atomic_spectroscopy__aas_aes",
+      "name": "原子吸收与原子发射分析",
+      "order": 22
+    },
+    {
+      "id": "fluorescence_raman__molecular_spectroscopy",
+      "name": "分子荧光、磷光与拉曼光谱",
+      "order": 23
+    },
+    {
+      "id": "electrochemistry__potentiometry",
+      "name": "电位分析与离子选择电极",
+      "order": 24
+    },
+    {
+      "id": "electrochemistry__voltammetry_conductometry",
+      "name": "伏安法、极谱法与电导分析",
+      "order": 25
+    },
+    {
+      "id": "chromatography__expanded_methods",
+      "name": "离子色谱、凝胶色谱与样品前处理",
+      "order": 26
+    },
+    {
+      "id": "instrumental_analysis__quality_control",
+      "name": "仪器分析质量控制与方法学评价",
+      "order": 27
+    }
+  ],
+  "knowledgePoints": [
+    {
+      "id": "as_001",
+      "chapterId": "atomic_spectroscopy__principles",
+      "name": "原子光谱线与能级跃迁",
+      "explanation": "原子光谱来自原子外层电子在不同能级之间的跃迁。原子吸收光谱测量基态原子吸收特征辐射，原子发射光谱测量激发态原子回到低能级时发出的特征辐射。谱线窄、元素特异性强，是元素定性与定量分析的基础。"
+    },
+    {
+      "id": "as_002",
+      "chapterId": "atomic_spectroscopy__principles",
+      "name": "原子化器与原子化效率",
+      "explanation": "原子化器的作用是把试样中的待测元素转化为自由基态原子。火焰原子化操作简便、重现性好，石墨炉原子化灵敏度高、样品用量少但基体干扰更明显；原子化效率直接影响灵敏度和检出限。"
+    },
+    {
+      "id": "as_003",
+      "chapterId": "atomic_spectroscopy__principles",
+      "name": "原子光谱干扰及抑制",
+      "explanation": "原子光谱常见干扰包括光谱干扰、化学干扰、电离干扰和背景吸收。常用抑制方法有选择合适分析线、加入释放剂或保护剂、使用电离缓冲剂、背景校正、基体匹配和标准加入法。"
+    },
+    {
+      "id": "as_004",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "name": "空心阴极灯与锐线光源",
+      "explanation": "原子吸收光谱要求光源发射线宽小于吸收线宽，因此常用待测元素空心阴极灯作为锐线光源。它能提供元素特征谱线，减少非特征辐射造成的误差。"
+    },
+    {
+      "id": "as_005",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "name": "ICP-AES的特点",
+      "explanation": "电感耦合等离子体原子发射光谱（ICP-AES）温度高、原子化和激发能力强，可多元素同时测定，线性范围宽，化学干扰较小，是无机元素分析中的重要方法。"
+    },
+    {
+      "id": "as_006",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "name": "标准加入法",
+      "explanation": "标准加入法是在样品溶液中加入已知量标准物质，通过响应增量推算原始样品浓度。它能补偿复杂基体对信号的影响，适合基体效应明显且难以配制空白基体的样品。"
+    },
+    {
+      "id": "fl_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "荧光产生与Stokes位移",
+      "explanation": "分子吸收光后从激发单重态经振动弛豫再辐射跃迁回基态形成荧光。由于弛豫损失部分能量，荧光发射波长通常长于激发波长，这称为Stokes位移。"
+    },
+    {
+      "id": "fl_002",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "荧光强度影响因素",
+      "explanation": "荧光强度受量子产率、激发光强、浓度、溶剂、pH、温度和猝灭剂影响。低浓度时荧光强度近似与浓度成正比；浓度过高会出现自吸收和浓度猝灭。"
+    },
+    {
+      "id": "fl_003",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "荧光与磷光区别",
+      "explanation": "荧光通常来自单重态到单重态跃迁，寿命短；磷光来自三重态到单重态跃迁，属于自旋禁阻跃迁，寿命较长，常需低温或刚性介质减少非辐射失活。"
+    },
+    {
+      "id": "raman_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "name": "拉曼活性与红外互补",
+      "explanation": "拉曼光谱源于分子对入射光的非弹性散射，振动是否拉曼活性取决于振动过程中分子极化率是否变化；红外活性取决于偶极矩是否变化。中心对称分子中红外和拉曼常表现互斥关系。"
+    },
+    {
+      "id": "ec_001",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "Nernst方程",
+      "explanation": "电极电位与待测离子活度的关系可由Nernst方程描述。25摄氏度时，一价离子电位对活度十倍变化的响应约为59.16 mV，二价离子约为29.58 mV。"
+    },
+    {
+      "id": "ec_002",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "参比电极与指示电极",
+      "explanation": "电位分析中，参比电极提供稳定已知电位，指示电极电位随待测离子活度变化。常见参比电极有甘汞电极和Ag/AgCl电极，常见指示电极有玻璃电极、金属电极和离子选择电极。"
+    },
+    {
+      "id": "ec_003",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "玻璃电极测pH",
+      "explanation": "玻璃电极对H+活度有选择性响应，电位与pH呈线性关系。实际测量前需要用标准缓冲溶液校准，并注意酸差、碱差、温度和液接电位等误差来源。"
+    },
+    {
+      "id": "ec_004",
+      "chapterId": "electrochemistry__potentiometry",
+      "name": "离子选择电极选择性系数",
+      "explanation": "离子选择电极的选择性系数反映干扰离子对电极响应的影响。选择性系数越小，电极对目标离子的选择性越好；多用于水质、临床和环境样品中离子活度测定。"
+    },
+    {
+      "id": "ec_005",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "name": "极谱扩散电流",
+      "explanation": "极谱法中，在滴汞电极上发生电极反应，扩散电流在一定条件下与待测物浓度成正比。半波电位主要用于定性，扩散电流主要用于定量。"
+    },
+    {
+      "id": "ec_006",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "name": "循环伏安法",
+      "explanation": "循环伏安法通过正向和反向扫描电位，观察氧化峰和还原峰，用于研究电极反应的可逆性、反应机理和扩散控制特征。可逆体系的峰电位差和峰电流比具有特征规律。"
+    },
+    {
+      "id": "ec_007",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "name": "电导分析与电导滴定",
+      "explanation": "电导分析测量溶液导电能力，受离子浓度、迁移率和温度影响。电导滴定通过电导随滴定剂体积变化的折线交点确定终点，适合有色或浑浊样品。"
+    },
+    {
+      "id": "ch_001",
+      "chapterId": "chromatography__expanded_methods",
+      "name": "离子交换色谱",
+      "explanation": "离子交换色谱基于样品离子与固定相带电基团之间的可逆交换作用实现分离。保留受离子电荷、离子半径、流动相离子强度和pH影响，常用于无机离子、氨基酸和蛋白质分析。"
+    },
+    {
+      "id": "ch_002",
+      "chapterId": "chromatography__expanded_methods",
+      "name": "凝胶渗透/分子排阻色谱",
+      "explanation": "凝胶渗透色谱或分子排阻色谱按分子尺寸分离。大分子难以进入孔道，先流出；小分子可进入孔道，路径长，后流出。该法常用于高分子相对分子质量及分布测定。"
+    },
+    {
+      "id": "ch_003",
+      "chapterId": "chromatography__expanded_methods",
+      "name": "固相萃取样品前处理",
+      "explanation": "固相萃取利用分析物与吸附剂之间的保留差异进行富集和净化，基本步骤包括活化、上样、淋洗和洗脱，可提高灵敏度并减少基体干扰。"
+    },
+    {
+      "id": "qc_001",
+      "chapterId": "instrumental_analysis__quality_control",
+      "name": "检出限与定量限",
+      "explanation": "检出限表示方法能可靠检出的最低浓度，常按3倍空白标准偏差除以校准曲线斜率估算；定量限表示能准确定量的最低浓度，常按10倍空白标准偏差除以斜率估算。"
+    },
+    {
+      "id": "qc_002",
+      "chapterId": "instrumental_analysis__quality_control",
+      "name": "准确度、精密度与回收率",
+      "explanation": "准确度反映测定值接近真值的程度，精密度反映重复测定的一致性。加标回收率常用于评价样品基体中方法的准确度，平行样相对标准偏差常用于评价精密度。"
+    },
+    {
+      "id": "qc_003",
+      "chapterId": "instrumental_analysis__quality_control",
+      "name": "校准曲线与线性范围",
+      "explanation": "校准曲线建立仪器响应与浓度之间的关系。方法开发时应考察线性范围、相关系数、残差、空白、质控样和标准溶液稳定性，避免仅凭相关系数判断方法可靠性。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "as_q001",
+      "knowledgePointId": "as_001",
+      "chapterId": "atomic_spectroscopy__principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "原子吸收光谱定量分析主要测量的是：",
+      "options": [
+        { "id": "a", "text": "激发态原子返回基态时发出的辐射强度" },
+        { "id": "b", "text": "基态原子对元素特征谱线的吸收程度" },
+        { "id": "c", "text": "分子振动能级跃迁产生的吸收峰" },
+        { "id": "d", "text": "分子荧光发射峰的强度" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "原子吸收光谱测量自由基态原子对元素特征辐射的吸收，吸光度在一定范围内与待测元素浓度成正比。原子发射光谱才测量激发态原子发射辐射。"
+    },
+    {
+      "id": "as_q002",
+      "knowledgePointId": "as_002",
+      "chapterId": "atomic_spectroscopy__principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "与火焰原子化相比，石墨炉原子化的主要优点是：",
+      "options": [
+        { "id": "a", "text": "样品消耗少、原子在光路中停留时间长，灵敏度高" },
+        { "id": "b", "text": "完全没有基体干扰" },
+        { "id": "c", "text": "只能用于气体样品分析" },
+        { "id": "d", "text": "不需要背景校正" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "石墨炉原子化将少量样品在石墨管中程序升温，原子云停留时间较长，灵敏度和检出能力优于火焰原子化，但基体干扰通常更突出。"
+    },
+    {
+      "id": "as_q003",
+      "knowledgePointId": "as_003",
+      "chapterId": "atomic_spectroscopy__principles",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "测定钾、钠等易电离元素时，常加入大量铯盐或钾盐作为电离缓冲剂，其主要目的是：",
+      "options": [
+        { "id": "a", "text": "提高火焰温度" },
+        { "id": "b", "text": "抑制待测元素电离，使基态原子数稳定" },
+        { "id": "c", "text": "消除所有光谱重叠干扰" },
+        { "id": "d", "text": "把待测元素转化为分子离子" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "易电离元素在高温火焰中会发生电离，使基态原子数减少。加入更易电离的缓冲剂可提供电子，抑制待测元素电离，提高信号稳定性。"
+    },
+    {
+      "id": "as_q004",
+      "knowledgePointId": "as_004",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "原子吸收光谱仪常用空心阴极灯的原因是：",
+      "options": [
+        { "id": "a", "text": "能发出连续光谱，覆盖所有元素" },
+        { "id": "b", "text": "能提供待测元素的锐线特征辐射" },
+        { "id": "c", "text": "能直接把样品原子化" },
+        { "id": "d", "text": "能消除样品中所有背景吸收" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "AAS吸收线很窄，需要线宽更窄、波长对应待测元素特征线的锐线光源。空心阴极灯正是为特定元素提供特征谱线的常用光源。"
+    },
+    {
+      "id": "as_q005",
+      "knowledgePointId": "as_005",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "ICP-AES相对火焰原子吸收法的典型优势是：",
+      "options": [
+        { "id": "a", "text": "只能测一个元素，但灵敏度一定更低" },
+        { "id": "b", "text": "可多元素同时测定，线性范围较宽" },
+        { "id": "c", "text": "不需要将样品转化为气溶胶" },
+        { "id": "d", "text": "只适用于有机物结构鉴定" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "ICP等离子体温度高、激发能力强，可同时采集多元素发射谱线，线性范围宽，是无机多元素分析的重要手段。"
+    },
+    {
+      "id": "as_q006",
+      "knowledgePointId": "as_006",
+      "chapterId": "atomic_spectroscopy__aas_aes",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "复杂水样中基体明显影响AAS信号，且难以配制完全匹配的标准溶液时，优先采用的定量方法是：",
+      "options": [
+        { "id": "a", "text": "外标法" },
+        { "id": "b", "text": "归一化法" },
+        { "id": "c", "text": "标准加入法" },
+        { "id": "d", "text": "面积归一化法" }
+      ],
+      "correctAnswers": ["c"],
+      "explanation": "标准加入法把标准物质直接加入样品基体中，样品和加标样受到相近基体影响，适合补偿复杂基体造成的信号偏差。"
+    },
+    {
+      "id": "fl_q001",
+      "knowledgePointId": "fl_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "分子荧光光谱中，Stokes位移指的是：",
+      "options": [
+        { "id": "a", "text": "荧光发射波长通常比激发波长更长" },
+        { "id": "b", "text": "荧光发射波长总是比激发波长更短" },
+        { "id": "c", "text": "吸收峰强度随浓度降低" },
+        { "id": "d", "text": "磷光寿命比荧光更短" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "分子吸光后先发生振动弛豫等非辐射过程，再从较低振动能级发射荧光，因此发射光能量较低、波长较长。"
+    },
+    {
+      "id": "fl_q002",
+      "knowledgePointId": "fl_002",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "荧光定量分析中，浓度过高时荧光强度不再与浓度成正比，常见原因是：",
+      "options": [
+        { "id": "a", "text": "自吸收和浓度猝灭增强" },
+        { "id": "b", "text": "所有分子都变为红外非活性" },
+        { "id": "c", "text": "光源完全停止发光" },
+        { "id": "d", "text": "发射波长必然变为零" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "高浓度时内滤效应、自吸收、分子碰撞和缔合等会降低有效荧光强度，使校准曲线偏离线性。"
+    },
+    {
+      "id": "fl_q003",
+      "knowledgePointId": "fl_003",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "关于荧光和磷光，下列说法正确的是：",
+      "options": [
+        { "id": "a", "text": "荧光通常寿命较短，磷光通常寿命较长" },
+        { "id": "b", "text": "两者都只能由原子发射产生" },
+        { "id": "c", "text": "磷光一定比荧光波长短" },
+        { "id": "d", "text": "荧光属于三重态到单重态跃迁" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "荧光多为单重态到单重态跃迁，寿命短；磷光涉及三重态，跃迁自旋禁阻，寿命通常较长。"
+    },
+    {
+      "id": "raman_q001",
+      "knowledgePointId": "raman_001",
+      "chapterId": "fluorescence_raman__molecular_spectroscopy",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某振动在过程中偶极矩不变但极化率发生变化，该振动最可能：",
+      "options": [
+        { "id": "a", "text": "红外活性强，拉曼非活性" },
+        { "id": "b", "text": "拉曼活性，红外可能不活性" },
+        { "id": "c", "text": "既不可能被任何光谱观察到" },
+        { "id": "d", "text": "只能在质谱中观察到" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "拉曼活性要求振动过程中极化率改变；红外活性要求偶极矩改变。因此该振动符合拉曼活性判据。"
+    },
+    {
+      "id": "ec_q001",
+      "knowledgePointId": "ec_001",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "25摄氏度时，一价离子选择电极对离子活度每变化10倍的理论电位响应约为：",
+      "options": [
+        { "id": "a", "text": "5.9 mV" },
+        { "id": "b", "text": "29.6 mV" },
+        { "id": "c", "text": "59.2 mV" },
+        { "id": "d", "text": "118 mV" }
+      ],
+      "correctAnswers": ["c"],
+      "explanation": "由Nernst方程，25摄氏度时一价离子的斜率约为59.16 mV/decade；二价离子约为29.58 mV/decade。"
+    },
+    {
+      "id": "ec_q002",
+      "knowledgePointId": "ec_002",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "电位分析中，参比电极的核心要求是：",
+      "options": [
+        { "id": "a", "text": "电位稳定且可重复" },
+        { "id": "b", "text": "电位随待测离子浓度剧烈变化" },
+        { "id": "c", "text": "必须由玻璃膜制成" },
+        { "id": "d", "text": "只允许通过交流电测量" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "参比电极提供稳定参考电位，指示电极才随待测离子活度变化。甘汞电极和Ag/AgCl电极是常用参比电极。"
+    },
+    {
+      "id": "ec_q003",
+      "knowledgePointId": "ec_003",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "用玻璃电极测定pH前，通常需要用标准缓冲溶液校准，主要目的是：",
+      "options": [
+        { "id": "a", "text": "确定电极实际斜率和定位，减小系统误差" },
+        { "id": "b", "text": "使待测溶液浓度增加" },
+        { "id": "c", "text": "改变玻璃膜的颜色" },
+        { "id": "d", "text": "消除所有温度影响而不需补偿" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "玻璃电极实际响应会受电极状态、温度和液接电位影响，测量前用缓冲溶液校准可确定实际响应斜率和零点。"
+    },
+    {
+      "id": "ec_q004",
+      "knowledgePointId": "ec_004",
+      "chapterId": "electrochemistry__potentiometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "离子选择电极的选择性系数越小，通常表示：",
+      "options": [
+        { "id": "a", "text": "干扰离子影响越小，选择性越好" },
+        { "id": "b", "text": "电极完全不能响应目标离子" },
+        { "id": "c", "text": "电极只能用于气体样品" },
+        { "id": "d", "text": "Nernst响应斜率必为零" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "选择性系数用于表征干扰离子对电极响应的贡献。数值越小，说明同等条件下干扰离子造成的响应越弱。"
+    },
+    {
+      "id": "ec_q005",
+      "knowledgePointId": "ec_005",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "经典极谱法中，用于定量分析的主要参数是：",
+      "options": [
+        { "id": "a", "text": "半波电位" },
+        { "id": "b", "text": "扩散电流" },
+        { "id": "c", "text": "参比电极内阻" },
+        { "id": "d", "text": "溶液颜色" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "极谱扩散电流在受扩散控制时与被测物浓度成正比，主要用于定量；半波电位具有物质特征，主要用于定性。"
+    },
+    {
+      "id": "ec_q006",
+      "knowledgePointId": "ec_006",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "循环伏安图中，氧化峰和还原峰同时出现且峰电流比接近1，通常提示体系可能具有：",
+      "options": [
+        { "id": "a", "text": "较好的电化学可逆性" },
+        { "id": "b", "text": "完全不可发生电子转移" },
+        { "id": "c", "text": "只发生红外吸收" },
+        { "id": "d", "text": "固定相吸附达到饱和" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "可逆电极反应在循环伏安中常表现为成对氧化/还原峰，峰电流比接近1，峰电位差也有特征范围。"
+    },
+    {
+      "id": "ec_q007",
+      "knowledgePointId": "ec_007",
+      "chapterId": "electrochemistry__voltammetry_conductometry",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "电导滴定确定终点主要依据：",
+      "options": [
+        { "id": "a", "text": "溶液颜色突变" },
+        { "id": "b", "text": "电导随滴定剂体积变化曲线的折线交点" },
+        { "id": "c", "text": "质谱分子离子峰强度最大" },
+        { "id": "d", "text": "荧光寿命突然变为零" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "滴定过程中离子种类和浓度变化会改变电导，终点附近曲线斜率发生变化，常用折线外推交点确定终点。"
+    },
+    {
+      "id": "ch_q001",
+      "knowledgePointId": "ch_001",
+      "chapterId": "chromatography__expanded_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "离子交换色谱分离的主要依据是：",
+      "options": [
+        { "id": "a", "text": "组分与固定相带电基团之间的可逆离子交换作用" },
+        { "id": "b", "text": "分子在质谱中的碎裂方式" },
+        { "id": "c", "text": "分子是否具有红外活性" },
+        { "id": "d", "text": "组分沸点高低且必须完全汽化" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "离子交换色谱固定相带有可交换离子基团，样品离子因电荷、半径和亲和力不同而保留程度不同。"
+    },
+    {
+      "id": "ch_q002",
+      "knowledgePointId": "ch_002",
+      "chapterId": "chromatography__expanded_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "凝胶渗透色谱中，一般最先流出的是：",
+      "options": [
+        { "id": "a", "text": "体积较大的分子" },
+        { "id": "b", "text": "体积最小的分子" },
+        { "id": "c", "text": "所有分子同时流出" },
+        { "id": "d", "text": "只带正电的离子" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "大分子难以进入凝胶孔道，可走较短路径，先流出；小分子进入孔道较多，路径长，后流出。"
+    },
+    {
+      "id": "ch_q003",
+      "knowledgePointId": "ch_003",
+      "chapterId": "chromatography__expanded_methods",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "固相萃取（SPE）的典型步骤顺序是：",
+      "options": [
+        { "id": "a", "text": "活化-上样-淋洗-洗脱" },
+        { "id": "b", "text": "洗脱-活化-淋洗-上样" },
+        { "id": "c", "text": "上样-检测-原子化-电离" },
+        { "id": "d", "text": "裂解-扫描-积分-归一化" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "SPE通常先活化固定相，再上样保留目标物或杂质，随后淋洗除去干扰，最后用合适溶剂洗脱目标物。"
+    },
+    {
+      "id": "qc_q001",
+      "knowledgePointId": "qc_001",
+      "chapterId": "instrumental_analysis__quality_control",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "某方法空白标准偏差为0.003，校准曲线斜率为0.150 A/(mg/L)。按3倍空白标准偏差估算，检出限为：",
+      "options": [
+        { "id": "a", "text": "0.020 mg/L" },
+        { "id": "b", "text": "0.060 mg/L" },
+        { "id": "c", "text": "0.150 mg/L" },
+        { "id": "d", "text": "0.450 mg/L" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "LOD=3s/k=3×0.003/0.150=0.060 mg/L。定量限常用10s/k估算。"
+    },
+    {
+      "id": "qc_q002",
+      "knowledgePointId": "qc_002",
+      "chapterId": "instrumental_analysis__quality_control",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "加标回收实验主要用于评价分析方法的：",
+      "options": [
+        { "id": "a", "text": "准确度及基体影响" },
+        { "id": "b", "text": "色谱柱长度" },
+        { "id": "c", "text": "原子发射线宽" },
+        { "id": "d", "text": "质谱真空度" }
+      ],
+      "correctAnswers": ["a"],
+      "explanation": "加标回收是在真实样品中加入已知量待测物，看能否准确回收，常用于评价准确度和样品基体对测定的影响。"
+    },
+    {
+      "id": "qc_q003",
+      "knowledgePointId": "qc_003",
+      "chapterId": "instrumental_analysis__quality_control",
+      "subjectId": "instrumental_analysis",
+      "type": "single_choice",
+      "stem": "建立仪器分析校准曲线时，下列做法最合理的是：",
+      "options": [
+        { "id": "a", "text": "只要相关系数接近1，就无需检查残差和线性范围" },
+        { "id": "b", "text": "标准系列应覆盖样品浓度范围，并检查空白、残差和质控样" },
+        { "id": "c", "text": "所有标准点浓度必须完全相同" },
+        { "id": "d", "text": "校准曲线只能用于定性，不能用于定量" }
+      ],
+      "correctAnswers": ["b"],
+      "explanation": "可靠校准不仅看相关系数，还要考察浓度覆盖范围、空白、残差分布、线性范围和质控样结果。"
+    }
+  ]
+}

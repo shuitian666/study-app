@@ -130,6 +130,139 @@ CREATE TABLE IF NOT EXISTS user_game_state (
   updated_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS teams (
+  id TEXT PRIMARY KEY,
+  invite_code TEXT NOT NULL UNIQUE,
+  owner_user_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  today_checked_in INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS team_members (
+  id TEXT PRIMARY KEY,
+  team_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  avatar TEXT NOT NULL,
+  is_simulated INTEGER NOT NULL DEFAULT 0,
+  progress_payload TEXT NOT NULL DEFAULT '{}',
+  joined_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(team_id, user_id),
+  FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS team_events (
+  id TEXT PRIMARY KEY,
+  team_id TEXT NOT NULL,
+  user_id TEXT,
+  event_type TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_subjects (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_chapters (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  subject_id TEXT,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_knowledge_points (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  subject_id TEXT,
+  chapter_id TEXT,
+  import_id TEXT,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_questions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  knowledge_point_id TEXT,
+  import_id TEXT,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_learning_progress (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  knowledge_point_id TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  UNIQUE(user_id, knowledge_point_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_wrong_records (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_question_explanations (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  UNIQUE(user_id, question_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_import_history (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'local-import',
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `);
 
 function addColumn(table, columnDef) {

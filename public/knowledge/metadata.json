@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-13T13:21:11.098Z",
+  "lastUpdated": "2026-05-18T13:48:15.843Z",
   "subjects": [
     {
       "id": "micro",
@@ -134,6 +134,250 @@
           "order": 12,
           "id": "ana-c12",
           "name": "电位分析法"
+        }
+      ]
+    },
+    {
+      "id": "instrumental_analysis",
+      "name": "仪器分析",
+      "description": "紫外、红外、核磁、质谱、色谱等仪器分析知识库",
+      "icon": "🔬",
+      "color": "#3b82f6",
+      "kpCount": 98,
+      "qCount": 107,
+      "chapters": [
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 1,
+          "id": "uv_spectroscopy__basic_theory",
+          "name": "电子能级跃迁基础理论"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 2,
+          "id": "uv_spectroscopy__beer_lambert",
+          "name": "Beer-Lambert定量分析"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 3,
+          "id": "uv_spectroscopy__spectral_analysis",
+          "name": "光谱解析与定性定量应用"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 4,
+          "id": "ir_spectroscopy__basic_theory",
+          "name": "分子振动与红外吸收原理"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 5,
+          "id": "ir_spectroscopy__characteristic_frequencies",
+          "name": "特征吸收频率与官能团识别"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 6,
+          "id": "ir_spectroscopy__spectral_interpretation",
+          "name": "红外光谱解析方法"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 7,
+          "id": "ir_spectroscopy__advanced_interpretation",
+          "name": "综合谱图解析"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 8,
+          "id": "nmr_spectroscopy__basic_principles",
+          "name": "核磁共振基本原理"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 9,
+          "id": "nmr_spectroscopy__spin_systems",
+          "name": "自旋系统与高级谱"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 10,
+          "id": "nmr_spectroscopy__integration_and_structure",
+          "name": "积分面积与结构确定"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 11,
+          "id": "nmr_spectroscopy__advanced_topics",
+          "name": "高级核磁技术"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 12,
+          "id": "ms_spectroscopy__basic_principles",
+          "name": "质谱基本原理与离子化方法"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 13,
+          "id": "ms_spectroscopy__fragmentation",
+          "name": "离子断裂规律"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 14,
+          "id": "ms_spectroscopy__organic_fragmentation",
+          "name": "常见有机化合物的特征断裂模式"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 15,
+          "id": "ms_spectroscopy__spectral_interpretation",
+          "name": "质谱图解析"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 16,
+          "id": "chromatography__basic_theory",
+          "name": "色谱分析基础理论"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 17,
+          "id": "chromatography__gc_analysis",
+          "name": "气相色谱法"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 18,
+          "id": "chromatography__hplc_analysis",
+          "name": "高效液相色谱法"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 19,
+          "id": "chromatography__quantitative_methods",
+          "name": "色谱定量方法"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "order": 20,
+          "id": "chromatography__qualitative_analysis",
+          "name": "色谱定性方法"
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "atomic_spectroscopy__principles",
+          "name": "原子光谱基础与原子化",
+          "order": 21
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "atomic_spectroscopy__aas_aes",
+          "name": "原子吸收与原子发射分析",
+          "order": 22
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "fluorescence_raman__molecular_spectroscopy",
+          "name": "分子荧光、磷光与拉曼光谱",
+          "order": 23
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "electrochemistry__potentiometry",
+          "name": "电位分析与离子选择电极",
+          "order": 24
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "electrochemistry__voltammetry_conductometry",
+          "name": "伏安法、极谱法与电导分析",
+          "order": 25
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "chromatography__expanded_methods",
+          "name": "离子色谱、凝胶色谱与样品前处理",
+          "order": 26
+        },
+        {
+          "subjectId": "instrumental_analysis",
+          "id": "instrumental_analysis__quality_control",
+          "name": "仪器分析质量控制与方法学评价",
+          "order": 27
+        }
+      ]
+    },
+    {
+      "id": "english_vocabulary",
+      "name": "英语词汇（考研/六级）",
+      "description": "考研与六级词汇、近义词辨析、固定搭配和语法知识库",
+      "icon": "📘",
+      "color": "#ef4444",
+      "kpCount": 40,
+      "qCount": 0,
+      "chapters": [
+        {
+          "subjectId": "english_vocabulary",
+          "order": 1,
+          "id": "vocabulary__word_root_affix",
+          "name": "词根词缀记忆法"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 2,
+          "id": "vocabulary__fixed_phrase",
+          "name": "固定搭配与短语动词"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 3,
+          "id": "vocabulary__synonym_distinction",
+          "name": "近义词辨析"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 4,
+          "id": "vocabulary__context_usage",
+          "name": "语境运用与完形填空"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 5,
+          "id": "grammar_usage__word_choice",
+          "name": "词语选用"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 6,
+          "id": "grammar_usage__semantic_subtlety",
+          "name": "语义微妙辨析"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 7,
+          "id": "grammar_usage__context_words",
+          "name": "语境词汇"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 8,
+          "id": "phrase_collocation__verb_phrases",
+          "name": "动词短语"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 9,
+          "id": "phrase_collocation__preposition_phrases",
+          "name": "介词短语"
+        },
+        {
+          "subjectId": "english_vocabulary",
+          "order": 10,
+          "id": "phrase_collocation__collocation",
+          "name": "词语搭配"
         }
       ]
     }

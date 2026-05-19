@@ -6,7 +6,6 @@
 
 import { type ReactNode } from 'react';
 import { UserProvider } from './UserContext';
-import { AppProvider } from './AppContext';
 import { LearningProvider } from './LearningContext';
 import { GameProvider } from './GameContext';
 import { AIChatProvider } from './AIChatContext';
@@ -17,16 +16,14 @@ export function RootProvider({ children }: { children: ReactNode }) {
   return (
     <UserProvider>
       <ThemeProvider>
-        <AppProvider>
-          <LearningProvider>
-            <GameProvider>
-              <AIChatProvider>
-                <AchievementWatcher />
-                {children}
-              </AIChatProvider>
-            </GameProvider>
-          </LearningProvider>
-        </AppProvider>
+        <LearningProvider>
+          <GameProvider>
+            <AIChatProvider>
+              <AchievementWatcher />
+              {children}
+            </AIChatProvider>
+          </GameProvider>
+        </LearningProvider>
       </ThemeProvider>
     </UserProvider>
   );

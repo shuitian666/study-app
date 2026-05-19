@@ -80,18 +80,15 @@ export async function getKnowledgeMetadata(
 ): Promise<KnowledgeMetadata | null> {
   const now = Date.now();
   if (!forceRefresh && metadataCache && now - metadataCacheTime < METADATA_CACHE_TTL) {
-    console.log('[CloudStorage] Using cached metadata');
     return metadataCache;
   }
 
   try {
     const url = buildCloudURL('/knowledge/metadata.json');
-    console.log('[CloudStorage] Fetching metadata:', url);
     const response = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.log('[CloudStorage] metadata.json not found, using fallback metadata');
         return getFallbackMetadata();
       }
       throw new Error(`HTTP ${response.status}`);
@@ -128,7 +125,6 @@ export async function downloadKnowledgeFromOSS(
     });
 
     const url = buildCloudURL(`/knowledge/${subjectId}/index.json`);
-    console.log('[CloudStorage] Downloading:', url);
 
     onProgress?.({
       status: 'downloading',

@@ -3,7 +3,6 @@ import { AlertTriangle, Bot, BookOpen, Check, Cloud, KeyRound, Palette, ShieldCh
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
-import { useApp } from '@/store/AppContext';
 import { useTheme } from '@/store/ThemeContext';
 import { fetchAIConfig, saveAIConfig, type ServerAIConfigStatus } from '@/services/aiClient';
 import { clearKnowledgeData } from '@/services/indexedDBService';
@@ -17,7 +16,6 @@ export default function SettingsPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
   const { gameDispatch } = useGame();
-  const { dispatch: appDispatch } = useApp();
   const { theme } = useTheme();
 
   const [aiStatus, setAiStatus] = useState<ServerAIConfigStatus | null>(null);
@@ -121,7 +119,6 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Failed to clear IndexedDB during account destroy:', error);
     }
-    appDispatch({ type: 'RESET_ALL' });
     learningDispatch({ type: 'RESET_ALL' });
     gameDispatch({ type: 'RESET_ALL' });
     userDispatch({ type: 'RESET_ALL' });
