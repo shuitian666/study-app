@@ -143,6 +143,28 @@ export function accountUseInventoryItem(itemId: string): Promise<AuthPayload> {
   return accountRequest('/account/inventory/use', { itemId });
 }
 
+export type AccountProfilePatch = Partial<Omit<User, 'activeTitle' | 'customAvatarUrl' | 'currentBackground'>> & {
+  activeTitle?: string | null;
+  customAvatarUrl?: string | null;
+  currentBackground?: string | null;
+};
+
+export async function accountUpdateProfile(patch: AccountProfilePatch): Promise<AuthPayload> {
+  const res = await fetch(`${API_BASE}/account/profile`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(patch),
+  });
+  if (res.status === 401) {
+    const err = new Error('Session expired');
+    (err as Error & { status?: number }).status = 401;
+    throw err;
+  }
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Profile update failed');
+  return res.json();
+}
+
 export async function checkBackendAvailable(): Promise<boolean> {
   try {
     const res = await fetch(`${API_BASE}/health`);
@@ -181,34 +203,52 @@ export async function saveAIConfig(config: {
 export async function* streamChat(params: {
   messages: { role: string; content: string }[];
   knowledgeContext?: string[];
+  signal?: AbortSignal;
 }): AsyncGenerator<string> {
+  const { signal, ...body } = params;
   const res = await fetch(`${API_BASE}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(params),
+    signal,
+    body: JSON.stringify(body),
   });
 
-  if (!res.ok || !res.body) throw new Error(`Chat request failed: ${res.status}`);
+  if (!res.ok || !res.body) {
+    const error = (await res.json().catch(() => null))?.error;
+    throw new Error(error || `Chat request failed: ${res.status}`);
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith('data: ')) continue;
-      const payload = JSON.parse(trimmed.slice(6));
-      if (payload.done) return;
-      if (payload.error) throw new Error(payload.error);
-      if (payload.content) yield payload.content;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        buffer += decoder.decode();
+        break;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+        let payload: { done?: boolean; error?: string; content?: string };
+        try {
+          payload = JSON.parse(trimmed.slice(6));
+        } catch {
+          continue;
+        }
+        if (payload.done) return;
+        if (payload.error) throw new Error(payload.error);
+        if (payload.content) yield payload.content;
+      }
     }
+  } finally {
+    reader.releaseLock();
   }
 }
 

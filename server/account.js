@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db, getAssets, getGameState, getInventory, getUserById, nowIso, toPublicUser } from './db.js';
+import { db, getAssets, getGameState, getInventory, getUserById, nowIso, toPublicUser, updateUserProfile } from './db.js';
 import { getAiConfigStatus } from './providers.js';
 
 const STREAK_REWARDS = [
@@ -199,6 +199,11 @@ function accountState(userId, extra = {}) {
 }
 
 export function getAccountState(userId) {
+  return accountState(userId);
+}
+
+export function updateAccountProfile(userId, patch) {
+  updateUserProfile(userId, patch || {});
   return accountState(userId);
 }
 

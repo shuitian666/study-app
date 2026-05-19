@@ -9,7 +9,6 @@ import { createTeam, dissolveTeam, joinTeamByCode, pollTeamStatus, updateTeamPro
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { getLocalDateKey } from '@/utils/experience';
 
-const READY_THRESHOLD = 0.8;
 const MINUTES_PER_LEARNING_ITEM = 3;
 
 function formatPercent(value: number) {
@@ -18,7 +17,7 @@ function formatPercent(value: number) {
 
 export default function TeamPage() {
   const { userState, navigate } = useUser();
-  const { learningState, getTaskCompletionRate } = useLearning();
+  const { learningState } = useLearning();
   const { gameState, gameDispatch } = useGame();
   const { theme } = useTheme();
   const user = userState.user;
@@ -32,14 +31,15 @@ export default function TeamPage() {
   const [busy, setBusy] = useState<'create' | 'join' | 'dissolve' | null>(null);
   const [error, setError] = useState('');
   const progressSignatureRef = useRef('');
-  const { rate, done, total } = getTaskCompletionRate();
   const todayLearningCount = useMemo(() => getTodayLearningProgress(learningState).totalCount, [learningState]);
+  const dailyGoal = Math.max(1, user?.dailyGoal ?? 10);
+  const goalProgressRate = Math.min(todayLearningCount / dailyGoal, 1);
   const estimatedStudyMinutes = todayLearningCount * MINUTES_PER_LEARNING_ITEM;
   const selfProgress = useMemo(() => ({
-    taskCompletionRate: Math.round(rate * 100) / 100,
+    taskCompletionRate: Math.round(goalProgressRate * 100) / 100,
     studyMinutes: estimatedStudyMinutes,
-    isReady: rate >= READY_THRESHOLD,
-  }), [estimatedStudyMinutes, rate]);
+    isReady: todayLearningCount >= dailyGoal,
+  }), [dailyGoal, estimatedStudyMinutes, goalProgressRate, todayLearningCount]);
   const bothReady = team?.status === 'active' && team.members.length >= 2 && team.members.every(member => member.progress.isReady);
   const canUpgrade = Boolean(
     team &&
@@ -153,7 +153,7 @@ export default function TeamPage() {
           </div>
 
           <div className="mt-5 grid grid-cols-3 gap-2">
-            <Metric label="今日学习" value={`${done}/${Math.max(total, done)}`} />
+            <Metric label="今日学习" value={`${todayLearningCount}/${dailyGoal}`} />
             <Metric label="估算时长" value={`${estimatedStudyMinutes}m`} />
             <Metric label="奖励" value="+1抽" />
           </div>
@@ -233,9 +233,11 @@ export default function TeamPage() {
                 {activeMembers.map(member => (
                   <div key={member.id} className="rounded-2xl bg-gray-50 p-3">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl ${member.progress.isReady ? 'bg-emerald-100 ring-2 ring-emerald-400' : 'bg-white'}`}>
-                        {member.avatar || '👤'}
-                      </div>
+                      <TeamAvatar
+                        avatar={member.avatar}
+                        avatarFrame={member.avatarFrame}
+                        ready={member.progress.isReady}
+                      />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-text-primary">{member.id === user?.id ? '我' : member.name}</div>
                         <div className="text-xs text-text-muted">{member.progress.studyMinutes} 分钟</div>
@@ -303,6 +305,29 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl bg-white/16 px-3 py-2">
       <div className="text-[11px] text-white/70">{label}</div>
       <div className="mt-0.5 text-sm font-bold">{value}</div>
+    </div>
+  );
+}
+
+function TeamAvatar({ avatar, avatarFrame, ready }: { avatar?: string; avatarFrame?: string; ready: boolean }) {
+  const isImageAvatar = Boolean(avatar?.startsWith('data:') || avatar?.startsWith('http'));
+
+  return (
+    <div
+      className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-xl ${
+        ready ? 'bg-emerald-100 ring-2 ring-emerald-400' : 'bg-white'
+      }`}
+    >
+      {isImageAvatar && avatar ? (
+        <img src={avatar} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span>{avatar || '👤'}</span>
+      )}
+      {avatarFrame && (
+        <span className="pointer-events-none absolute -right-1 -top-1 text-sm drop-shadow-sm">
+          {avatarFrame}
+        </span>
+      )}
     </div>
   );
 }

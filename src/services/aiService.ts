@@ -85,11 +85,15 @@ export async function askQuestionStreaming(
   query: string,
   knowledgePoints: KnowledgePoint[],
   history: ChatMessage[] = [],
+  signal?: AbortSignal,
 ): Promise<StreamingAskResult> {
-  const recentHistory = history.slice(-MAX_CONTEXT_MESSAGES).map(m => ({
-    role: m.role === 'ai' ? 'assistant' : m.role,
-    content: m.content,
-  }));
+  const recentHistory = history
+    .filter(m => m.role !== 'ai' || m.content.trim().length > 0)
+    .slice(-MAX_CONTEXT_MESSAGES)
+    .map(m => ({
+      role: m.role === 'ai' ? 'assistant' : m.role,
+      content: m.content,
+    }));
   recentHistory.push({ role: 'user', content: query });
 
   if (await checkBackendAvailable()) {
@@ -97,6 +101,7 @@ export async function askQuestionStreaming(
       stream: streamChat({
         messages: recentHistory,
         knowledgeContext: knowledgePoints.slice(0, 20).map(kp => kp.name),
+        signal,
       }),
       relatedKpIds: findRelatedKpIds(query, knowledgePoints),
     };

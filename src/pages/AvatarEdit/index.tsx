@@ -16,10 +16,14 @@
 
 import { useState, useRef, useMemo } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Minus, Pencil, Save, Sparkles, Upload, X } from 'lucide-react';
 import { getAdaptiveButton, getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
+import { accountUpdateProfile, type AccountProfilePatch } from '@/services/aiClient';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
+import type { User } from '@/types';
 import {
   allBackgrounds,
   allFrames,
@@ -48,8 +52,14 @@ type CherryParticle = {
 
 const defaultAvatars = ['👤', '🦊', '🐰', '🐼', '🦁', '🐨', '🐯', '🐸', '🦄', '🐲', '🐱', '🐶', '🦋', '🌟', '💎', '🎭'];
 
+function particleValue(seed: number, min = 0, max = 1) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return min + (value - Math.floor(value)) * (max - min);
+}
+
 export default function AvatarEditPage() {
   const { userState, userDispatch, navigate } = useUser();
+  const { gameDispatch } = useGame();
   const { theme } = useTheme();
   const user = userState.user;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,42 +90,53 @@ export default function AvatarEditPage() {
   , [previewTitle, user?.activeTitle]);
 
   const starParticles = useMemo(() => ({
-    stars: Array.from({ length: 20 }, (): StarParticle => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      animationDelay: Math.random() * 3,
-      opacity: Math.random() * 0.8 + 0.2,
+    stars: Array.from({ length: 20 }, (_, i): StarParticle => ({
+      left: particleValue(i + 1, 0, 100),
+      top: particleValue(i + 101, 0, 100),
+      animationDelay: particleValue(i + 201, 0, 3),
+      opacity: particleValue(i + 301, 0.2, 1),
     })),
-    galaxy: Array.from({ length: 40 }, (): StarParticle => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      animationDelay: Math.random() * 3,
-      opacity: Math.random() * 0.8 + 0.2,
+    galaxy: Array.from({ length: 40 }, (_, i): StarParticle => ({
+      left: particleValue(i + 401, 0, 100),
+      top: particleValue(i + 501, 0, 100),
+      animationDelay: particleValue(i + 601, 0, 3),
+      opacity: particleValue(i + 701, 0.2, 1),
     })),
   }), []);
 
   const cherryParticles = useMemo(() => (
     Array.from({ length: 8 }, (_, i): CherryParticle => ({
-      left: (i % 4) * 25 + Math.random() * 15,
-      top: Math.floor(i / 4) * 40 + Math.random() * 20,
+      left: (i % 4) * 25 + particleValue(i + 801, 0, 15),
+      top: Math.floor(i / 4) * 40 + particleValue(i + 901, 0, 20),
       animationDelay: i * 0.8,
     }))
   ), []);
 
+  const persistProfilePatch = (patch: AccountProfilePatch) => {
+    if (!user) return;
+    const localPatch = Object.fromEntries(
+      Object.entries(patch).map(([key, value]) => [key, value === null ? undefined : value])
+    ) as Partial<User>;
+    userDispatch({ type: 'UPDATE_USER', payload: localPatch });
+    accountUpdateProfile(patch)
+      .then(payload => applyServerAccountPayload(payload, userDispatch, gameDispatch))
+      .catch(err => {
+        logoutOnUnauthorized(err, userDispatch);
+        console.warn('Failed to sync profile:', err);
+      });
+  };
+
   const saveNickname = () => {
     const nickname = nameDraft.trim().slice(0, 12);
     if (!user || !nickname) return;
-    userDispatch({ type: 'UPDATE_USER', payload: { nickname } });
+    persistProfilePatch({ nickname });
     setNameDraft(nickname);
     setIsEditingName(false);
   };
 
   const handleSelectAvatar = (avatar: string) => {
     if (!user) return;
-    userDispatch({
-      type: 'UPDATE_USER',
-      payload: { avatar, customAvatarUrl: undefined }
-    });
+    persistProfilePatch({ avatar, customAvatarUrl: null });
     setCropImage(null);
   };
 
@@ -165,10 +186,7 @@ export default function AvatarEditPage() {
       ctx.drawImage(image, dx, dy, displayWidth * renderScale, displayHeight * renderScale);
 
       const customUrl = canvas.toDataURL('image/png');
-      userDispatch({
-        type: 'UPDATE_USER',
-        payload: { avatar: customUrl, customAvatarUrl: customUrl }
-      });
+      persistProfilePatch({ avatar: customUrl, customAvatarUrl: customUrl });
       cancelAvatarCrop();
     };
     image.src = cropImage;
@@ -203,31 +221,22 @@ export default function AvatarEditPage() {
 
   const handleSelectFrame = (frame: FrameConfig | null) => {
     if (!user) return;
-    userDispatch({
-      type: 'UPDATE_USER',
-      payload: { avatarFrame: frame?.icon || null }
-    });
+    persistProfilePatch({ avatarFrame: frame?.icon || null });
     setPreviewFrame(null);
   };
 
   const handleSelectBackground = (bg: BackgroundConfig | null) => {
     if (!user) return;
-    userDispatch({
-      type: 'UPDATE_USER',
-      payload: { 
-        background: bg?.id || null,
-        currentBackground: bg?.gradient || undefined
-      }
+    persistProfilePatch({
+      background: bg?.id || null,
+      currentBackground: bg?.gradient || undefined
     });
     setPreviewBg(null);
   };
 
   const handleSelectTitle = (title: TitleConfig | null) => {
     if (!user) return;
-    userDispatch({
-      type: 'UPDATE_USER',
-      payload: { activeTitle: title?.id || undefined }
-    });
+    persistProfilePatch({ activeTitle: title?.id || null });
     setPreviewTitle(null);
   };
 

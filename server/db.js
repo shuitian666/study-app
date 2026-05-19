@@ -284,6 +284,13 @@ addColumn('user_assets', 'up_tickets INTEGER NOT NULL DEFAULT 0');
 addColumn('user_assets', 'makeup_cards INTEGER NOT NULL DEFAULT 0');
 addColumn('user_assets', 'lottery_pity_sr INTEGER NOT NULL DEFAULT 0');
 addColumn('user_assets', 'lottery_pity_ssr INTEGER NOT NULL DEFAULT 0');
+addColumn('users', 'custom_avatar_url TEXT');
+addColumn('users', 'avatar_frame TEXT');
+addColumn('users', 'ai_skin TEXT');
+addColumn('users', 'background TEXT');
+addColumn("users", "theme_style TEXT NOT NULL DEFAULT 'default'");
+addColumn('users', 'active_title TEXT');
+addColumn('team_members', 'avatar_frame TEXT');
 
 export function nowIso() {
   return new Date().toISOString();
@@ -295,6 +302,51 @@ export function getUserById(id) {
 
 export function getUserByPhone(phone) {
   return db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
+}
+
+export function updateUserProfile(userId, patch) {
+  const allowed = [
+    ['nickname', 'nickname'],
+    ['avatar', 'avatar'],
+    ['customAvatarUrl', 'custom_avatar_url'],
+    ['avatarFrame', 'avatar_frame'],
+    ['aiSkin', 'ai_skin'],
+    ['background', 'background'],
+    ['themeStyle', 'theme_style'],
+    ['activeTitle', 'active_title'],
+  ];
+  const assignments = [];
+  const values = [];
+
+  for (const [inputKey, columnName] of allowed) {
+    if (!Object.prototype.hasOwnProperty.call(patch, inputKey)) continue;
+    let value = patch[inputKey];
+    if (inputKey === 'nickname') {
+      value = String(value || '').trim().slice(0, 12);
+      if (!value) continue;
+    } else if (inputKey === 'themeStyle') {
+      value = value === 'fluidScholar' ? 'fluidScholar' : 'default';
+    } else if (value === undefined || value === '') {
+      value = null;
+    } else if (value !== null) {
+      value = String(value);
+    }
+    assignments.push(`${columnName} = ?`);
+    values.push(value);
+  }
+
+  if (assignments.length === 0) {
+    return getUserById(userId);
+  }
+
+  assignments.push('updated_at = ?');
+  values.push(nowIso(), userId);
+  db.prepare(`
+    UPDATE users
+    SET ${assignments.join(', ')}
+    WHERE id = ?
+  `).run(...values);
+  return getUserById(userId);
 }
 
 export function createUser(phone, passwordHash = null) {
@@ -352,14 +404,16 @@ export function toPublicUser(row, assets) {
     dailyNewGoal: 10,
     todayQuestions: 0,
     goalAchievedToday: false,
-    avatarFrame: null,
-    aiSkin: null,
-    background: null,
+    avatarFrame: row.avatar_frame ?? null,
+    aiSkin: row.ai_skin ?? null,
+    background: row.background ?? null,
     unlockedAvatars: ['user'],
     unlockedFrames: [],
     unlockedAiSkins: [],
     unlockedBackgrounds: [],
-    themeStyle: 'default',
+    customAvatarUrl: row.custom_avatar_url ?? undefined,
+    themeStyle: row.theme_style || 'default',
+    activeTitle: row.active_title ?? undefined,
   };
 }
 

@@ -18,20 +18,18 @@ import { useLearning } from '@/store/LearningContext';
 import { useAIChat } from '@/store/AIChatContext';
 import { PageHeader } from '@/components/ui/Common';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
-import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
+import { checkBackendAvailable, fetchAIConfig, getAIConfig } from '@/services/aiClient';
 import { calculateNewProficiency } from '@/utils/review';
 import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
 import AISettingsModal from '@/components/ui/AISettingsModal';
 
-const PROVIDER_NAMES: Record<string, string> = {
-  ollama: '本地 Ollama',
-  volcengine: '火山引擎',
-  minimax: 'Minimax',
-  douban: '豆包 AI',
-  openclaw: 'OpenClaw (本地)',
-};
+
+const CHAT_REQUEST_TIMEOUT_MS = 90000;
+const EMPTY_AI_RESPONSE = 'AI 没有返回内容，请重试或检查配置';
+const GENERIC_AI_ERROR = 'AI 暂时无法回答，请稍后重试。';
+const TIMEOUT_AI_ERROR = 'AI 请求超时，请稍后重试。';
 
 export default function AIChatPage() {
   const { userState, navigate } = useUser();
@@ -43,6 +41,9 @@ export default function AIChatPage() {
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [backendMode, setBackendMode] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [aiMode, setAiMode] = useState<'platform' | 'custom'>('platform');
+  const activeAbortRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasSentInitialQuestion = useRef(false);
 
   // 解构 aiChat 对象便于使用
@@ -85,6 +86,31 @@ export default function AIChatPage() {
     checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
   }, []);
 
+  const clearActiveRequest = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    activeAbortRef.current = null;
+  }, []);
+
+  const refreshAiMode = useCallback(async () => {
+    try {
+      const status = await fetchAIConfig();
+      setAiMode(status.mode);
+    } catch {
+      setAiMode('platform');
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAiMode();
+    return () => {
+      activeAbortRef.current?.abort();
+      clearActiveRequest();
+    };
+  }, [clearActiveRequest, refreshAiMode]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -95,9 +121,14 @@ export default function AIChatPage() {
 
   const handleSend = useCallback(async () => {
     const query = input.trim();
-    if (!query || isLoading) return;
+    if (!query || isLoading || streamingMsgId) return;
 
     setInput('');
+    activeAbortRef.current?.abort();
+    clearActiveRequest();
+    const abortController = new AbortController();
+    activeAbortRef.current = abortController;
+    timeoutRef.current = setTimeout(() => abortController.abort(), CHAT_REQUEST_TIMEOUT_MS);
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -115,6 +146,7 @@ export default function AIChatPage() {
       timestamp: new Date().toISOString(),
     };
     aiChatDispatch({ type: 'AI_RECEIVE_MESSAGE', payload: aiMsg });
+    aiChatDispatch({ type: 'AI_SET_LOADING', payload: true });
     setStreamingMsgId(aiMsgId);
 
     try {
@@ -122,6 +154,7 @@ export default function AIChatPage() {
         query,
         learningState.knowledgePoints,
         messages,
+        abortController.signal,
       );
 
       let fullContent = '';
@@ -130,8 +163,9 @@ export default function AIChatPage() {
         aiChatDispatch({ type: 'AI_UPDATE_STREAMING_MESSAGE', payload: { id: aiMsgId, content: fullContent } });
       }
 
-      setStreamingMsgId(null);
-      aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
+      if (!fullContent.trim()) {
+        throw new Error(EMPTY_AI_RESPONSE);
+      }
 
       // 豆包模式不需要检测本地后端
       const config = getAIConfig();
@@ -139,6 +173,7 @@ export default function AIChatPage() {
         setBackendMode('online');
       } else {
         checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
+        refreshAiMode();
       }
 
       if (relatedKpIds.length > 0) {
@@ -153,21 +188,24 @@ export default function AIChatPage() {
         }
       }
     } catch (e) {
-      setStreamingMsgId(null);
-      let errorMsg = '抱歉，AI暂时无法回答，请稍后再试。';
+      let errorMsg = GENERIC_AI_ERROR;
       if (e instanceof Error) {
-        errorMsg = `连接豆包API失败：${e.message}`;
-        console.error('豆包API错误:', e);
+        errorMsg = abortController.signal.aborted ? TIMEOUT_AI_ERROR : e.message || GENERIC_AI_ERROR;
+        console.error('AI chat error:', e);
       }
-      // API调用失败时设置为离线状态
       setBackendMode('offline');
       aiChatDispatch({
         type: 'AI_UPDATE_STREAMING_MESSAGE',
         payload: { id: aiMsgId, content: errorMsg },
       });
+    } finally {
+      if (activeAbortRef.current === abortController) {
+        clearActiveRequest();
+      }
+      setStreamingMsgId(null);
       aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
     }
-  }, [input, isLoading, messages, learningState.knowledgePoints, learningState.questions, aiChatDispatch]);
+  }, [input, isLoading, streamingMsgId, messages, learningState.knowledgePoints, learningState.questions, aiChatDispatch, clearActiveRequest, refreshAiMode]);
 
   const handleRequestQuiz = async (aiMessageId: string, content: string) => {
     if (generatedQuestions[aiMessageId]) return;
@@ -242,15 +280,16 @@ export default function AIChatPage() {
   };
 
   const handleClear = () => {
+    activeAbortRef.current?.abort();
+    clearActiveRequest();
     aiChatDispatch({ type: 'AI_CLEAR_CHAT' });
     setGeneratedQuestions({});
     setStreamingMsgId(null);
   };
 
-  const config = getAIConfig();
   const modeLabel = backendMode === 'online'
-    ? PROVIDER_NAMES[config.provider] || config.provider
-    : '离线模式';
+    ? (aiMode === 'custom' ? '自定义 AI' : '平台 AI')
+    : '离线兜底';
 
   return (
     <div className="absolute inset-0 flex flex-col bg-bg">

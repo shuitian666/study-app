@@ -360,7 +360,11 @@ function mergeProgressIntoKnowledgePoints(
   return knowledgePoints.map(kp => {
     const progressRecord = progressByKpId.get(kp.id);
     if (!progressRecord || progressRecord.deletedAt) return kp;
-    const { id: _progressId, knowledgePointId: _knowledgePointId, ownerUserId: _ownerUserId, sourceType: _sourceType, ...updates } = progressRecord;
+    const updates: Partial<LearningProgressRecord> = { ...progressRecord };
+    delete updates.id;
+    delete updates.knowledgePointId;
+    delete updates.ownerUserId;
+    delete updates.sourceType;
     return { ...kp, ...updates };
   });
 }

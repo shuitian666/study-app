@@ -69,6 +69,11 @@ type CherryParticle = {
   animationDelay: number;
 };
 
+function particleValue(seed: number, min = 0, max = 1) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return min + (value - Math.floor(value)) * (max - min);
+}
+
 // 加载占位组件
 const LoadingFallback = () => (
   <div className="flex min-h-screen flex-col" style={{ backgroundColor: 'var(--color-bg-var)' }}>
@@ -134,24 +139,24 @@ function AppContent() {
 
   // 渲染背景装饰图案 - 使用 useCallback 优化
   const starParticles = useMemo(() => ({
-    stars: Array.from({ length: 20 }, (): StarParticle => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      animationDelay: Math.random() * 3,
-      opacity: Math.random() * 0.8 + 0.2,
+    stars: Array.from({ length: 20 }, (_, i): StarParticle => ({
+      left: particleValue(i + 1, 0, 100),
+      top: particleValue(i + 101, 0, 100),
+      animationDelay: particleValue(i + 201, 0, 3),
+      opacity: particleValue(i + 301, 0.2, 1),
     })),
-    galaxy: Array.from({ length: 40 }, (): StarParticle => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      animationDelay: Math.random() * 3,
-      opacity: Math.random() * 0.8 + 0.2,
+    galaxy: Array.from({ length: 40 }, (_, i): StarParticle => ({
+      left: particleValue(i + 401, 0, 100),
+      top: particleValue(i + 501, 0, 100),
+      animationDelay: particleValue(i + 601, 0, 3),
+      opacity: particleValue(i + 701, 0.2, 1),
     })),
   }), []);
 
   const cherryParticles = useMemo(() => (
     Array.from({ length: 12 }, (_, i): CherryParticle => ({
-      left: (i % 4) * 30 + Math.random() * 20,
-      top: Math.floor(i / 4) * 30 + Math.random() * 20,
+      left: (i % 4) * 30 + particleValue(i + 801, 0, 20),
+      top: Math.floor(i / 4) * 30 + particleValue(i + 901, 0, 20),
       animationDelay: i * 0.8,
     }))
   ), []);

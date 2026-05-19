@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db, nowIso } from './db.js';
+import { db, getUserById, nowIso } from './db.js';
 
 function parseJson(value, fallback) {
   try {
@@ -32,6 +32,7 @@ function toMemberPayload(row) {
     id: row.user_id,
     name: row.name,
     avatar: row.avatar,
+    avatarFrame: row.avatar_frame || undefined,
     isSimulated: Boolean(row.is_simulated),
     progress: {
       ...initialProgress(),
@@ -79,21 +80,22 @@ function ensureMember(teamId, user) {
   if (existing) {
     db.prepare(`
       UPDATE team_members
-      SET name = ?, avatar = ?, updated_at = ?
+      SET name = ?, avatar = ?, avatar_frame = ?, updated_at = ?
       WHERE team_id = ? AND user_id = ?
-    `).run(user.nickname, user.avatar, nowIso(), teamId, user.id);
+    `).run(user.nickname, user.avatar, user.avatar_frame || null, nowIso(), teamId, user.id);
     return;
   }
 
   db.prepare(`
-    INSERT INTO team_members (id, team_id, user_id, name, avatar, is_simulated, progress_payload, joined_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
+    INSERT INTO team_members (id, team_id, user_id, name, avatar, avatar_frame, is_simulated, progress_payload, joined_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
   `).run(
     `tm_${crypto.randomUUID()}`,
     teamId,
     user.id,
-    user.nickname || '学习伙伴',
-    user.avatar || '🙂',
+    user.nickname || 'Learning partner',
+    user.avatar || 'user',
+    user.avatar_frame || null,
     JSON.stringify(initialProgress()),
     nowIso(),
     nowIso(),
@@ -155,10 +157,16 @@ export function joinTeamForUser(inviteCode, user) {
   return getTeam(team.id);
 }
 
-export function updateTeamProgressForUser(teamId, userId, progress) {
+export function updateTeamProgressForUser(teamId, userOrId, progress) {
+  const user = typeof userOrId === 'string' ? getUserById(userOrId) : userOrId;
   const team = getTeam(teamId);
   if (!team) {
     const error = new Error('Team not found');
+    error.status = 404;
+    throw error;
+  }
+  if (!user) {
+    const error = new Error('Team member not found');
     error.status = 404;
     throw error;
   }
@@ -167,20 +175,29 @@ export function updateTeamProgressForUser(teamId, userId, progress) {
     SELECT *
     FROM team_members
     WHERE team_id = ? AND user_id = ?
-  `).get(team.id, userId);
+  `).get(team.id, user.id);
   if (!member) {
     const error = new Error('Team member not found');
     error.status = 404;
     throw error;
   }
 
+  const nextProgress = normalizeProgress(progress);
   db.prepare(`
     UPDATE team_members
-    SET progress_payload = ?, updated_at = ?
+    SET name = ?, avatar = ?, avatar_frame = ?, progress_payload = ?, updated_at = ?
     WHERE team_id = ? AND user_id = ?
-  `).run(JSON.stringify(normalizeProgress(progress)), nowIso(), team.id, userId);
+  `).run(
+    user.nickname,
+    user.avatar,
+    user.avatar_frame || null,
+    JSON.stringify(nextProgress),
+    nowIso(),
+    team.id,
+    user.id,
+  );
   db.prepare('UPDATE teams SET updated_at = ? WHERE id = ?').run(nowIso(), team.id);
-  logTeamEvent(team.id, userId, 'progress', normalizeProgress(progress));
+  logTeamEvent(team.id, user.id, 'progress', nextProgress);
   return getTeam(team.id);
 }
 

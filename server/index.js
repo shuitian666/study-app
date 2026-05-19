@@ -11,6 +11,7 @@ import {
   getAccountState,
   performCheckin,
   redeemCode,
+  updateAccountProfile,
   useInventoryItem,
 } from './account.js';
 import { sendVerificationEmail } from './mailer.js';
@@ -180,6 +181,14 @@ app.get('/api/account/state', requireAuth, (req, res) => {
   res.json(getAccountState(req.user.id));
 });
 
+app.patch('/api/account/profile', requireAuth, (req, res) => {
+  try {
+    res.json(updateAccountProfile(req.user.id, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
 app.get('/api/learning/bootstrap', requireAuth, (req, res) => {
   try {
     res.json(getLearningBootstrap(req.user.id));
@@ -297,6 +306,21 @@ app.get('/api/models', authOptional, (_req, res) => {
   res.json({ providers: [{ name: 'server', available: true, models: ['platform', 'custom'] }] });
 });
 
+function extractStreamContent(chunk) {
+  const choice = chunk?.choices?.[0];
+  return choice?.delta?.content
+    || choice?.message?.content
+    || choice?.delta?.reasoning_content
+    || choice?.text
+    || '';
+}
+
+function writeSse(res, payload) {
+  if (!res.writableEnded && !res.destroyed) {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  }
+}
+
 app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
   const { messages = [], knowledgeContext } = req.body;
   const fullMessages = buildChatMessages(CHAT_SYSTEM_PROMPT, knowledgeContext, messages);
@@ -308,6 +332,9 @@ app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
 
   try {
     const response = await chatCompletion(req.user?.id, fullMessages, { stream: true });
+    if (!response.body) {
+      throw new Error('AI upstream did not return a stream');
+    }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -325,18 +352,18 @@ app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
         if (payload === '[DONE]') continue;
         try {
           const chunk = JSON.parse(payload);
-          const content = chunk.choices?.[0]?.delta?.content || '';
-          if (content) res.write(`data: ${JSON.stringify({ content, done: false })}\n\n`);
+          const content = extractStreamContent(chunk);
+          if (content) writeSse(res, { content, done: false });
         } catch {
           // Ignore partial chunks.
         }
       }
     }
-    res.write(`data: ${JSON.stringify({ content: '', done: true })}\n\n`);
+    writeSse(res, { content: '', done: true });
     res.end();
   } catch (err) {
     console.error('Chat error:', sanitizeError(err));
-    res.write(`data: ${JSON.stringify({ error: sanitizeError(err), done: true })}\n\n`);
+    writeSse(res, { error: sanitizeError(err), done: true });
     res.end();
   }
 });
@@ -398,7 +425,7 @@ app.post('/api/team/join', requireAuth, (req, res) => {
 
 app.post('/api/team/progress', requireAuth, (req, res) => {
   try {
-    res.json({ team: updateTeamProgressForUser(req.body.teamId, req.user.id, req.body.progress || {}) });
+    res.json({ team: updateTeamProgressForUser(req.body.teamId, req.user, req.body.progress || {}) });
   } catch (err) {
     res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
