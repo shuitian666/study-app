@@ -322,7 +322,7 @@ export default function QuizResultPage() {
                           onClick={() => {
                             // 打开追问模态框或者跳转到聊天
                             navigate('ai-chat', {
-                              context: `关于这道题：${q.stem}，我对解析还有疑问，请进一步讲解`,
+                              questionContext: `关于这道题：${q.stem}，我对解析还有疑问，请进一步讲解`,
                               subjectId: q.subjectId,
                               ...(q.knowledgePointId && { knowledgePointId: q.knowledgePointId })
                             });

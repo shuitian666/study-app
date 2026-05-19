@@ -44,32 +44,11 @@ export default function AIChatPage() {
   const [aiMode, setAiMode] = useState<'platform' | 'custom'>('platform');
   const activeAbortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasSentInitialQuestion = useRef(false);
+  const handledQuestionContextRef = useRef<string | null>(null);
 
   // 解构 aiChat 对象便于使用
   const { messages, isLoading } = aiChatState.aiChat;
 
-  // 检查是否有题目上下文传入，如果有则自动发送
-  useEffect(() => {
-    const questionContext = userState.pageParams.questionContext;
-    if (questionContext && !hasSentInitialQuestion.current && messages.length === 0) {
-      hasSentInitialQuestion.current = true;
-
-      // 立即发送题目上下文
-      const userMsg: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'user',
-        content: questionContext,
-        timestamp: new Date().toISOString(),
-      };
-      aiChatDispatch({ type: 'AI_SEND_MESSAGE', payload: userMsg });
-
-      // 清空pageParams避免重复发送
-      setTimeout(() => {
-        navigate('ai-chat', {});
-      }, 100);
-    }
-  }, [userState.pageParams, messages.length, aiChatDispatch, navigate]);
 
   useEffect(() => {
     const config = getAIConfig();
@@ -119,11 +98,10 @@ export default function AIChatPage() {
     scrollToBottom();
   }, [messages, isLoading, streamingMsgId]);
 
-  const handleSend = useCallback(async () => {
-    const query = input.trim();
+  const sendMessage = useCallback(async (rawQuery: string) => {
+    const query = rawQuery.trim();
     if (!query || isLoading || streamingMsgId) return;
 
-    setInput('');
     activeAbortRef.current?.abort();
     clearActiveRequest();
     const abortController = new AbortController();
@@ -205,7 +183,28 @@ export default function AIChatPage() {
       setStreamingMsgId(null);
       aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
     }
-  }, [input, isLoading, streamingMsgId, messages, learningState.knowledgePoints, learningState.questions, aiChatDispatch, clearActiveRequest, refreshAiMode]);
+  }, [isLoading, streamingMsgId, messages, learningState.knowledgePoints, learningState.questions, aiChatDispatch, clearActiveRequest, refreshAiMode]);
+
+  useEffect(() => {
+    const questionContext = typeof userState.pageParams.questionContext === 'string'
+      ? userState.pageParams.questionContext.trim()
+      : '';
+    if (!questionContext || handledQuestionContextRef.current === questionContext) return;
+    if (isLoading || streamingMsgId) return;
+
+    handledQuestionContextRef.current = questionContext;
+    void sendMessage(questionContext);
+    setTimeout(() => {
+      navigate('ai-chat', {});
+    }, 100);
+  }, [isLoading, navigate, sendMessage, streamingMsgId, userState.pageParams.questionContext]);
+
+  const handleSend = useCallback(() => {
+    const query = input.trim();
+    if (!query || isLoading || streamingMsgId) return;
+    setInput('');
+    void sendMessage(query);
+  }, [input, isLoading, sendMessage, streamingMsgId]);
 
   const handleRequestQuiz = async (aiMessageId: string, content: string) => {
     if (generatedQuestions[aiMessageId]) return;
