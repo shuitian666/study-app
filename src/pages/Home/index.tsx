@@ -10,15 +10,19 @@ import {
   BookOpen,
   Bot,
   Brain,
+  Bell,
   CalendarCheck,
   CheckCircle,
   CheckCircle2,
   ChevronRight,
   Circle,
+  Cloud,
+  Download,
   Leaf,
   Medal,
   PenLine,
   Play,
+  RefreshCw,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -34,9 +38,16 @@ import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
 import { getSmartEncouragement } from '@/services/aiService';
+import { downloadKnowledgeFromOSS, getAvailableKnowledgeBases, type KnowledgeSubject } from '@/services/ossService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan, getEncouragement, getGreeting } from '@/utils/review';
 import { getAdaptiveButton, getAdaptivePageBackground, isDarkTheme } from '@/utils/adaptiveTheme';
+import { getRecommendedPackages, STUDY_DIRECTIONS, type StudyDirection } from '@/utils/contentPackages';
+import {
+  getReviewReminderSettings,
+  requestReviewReminderPermission,
+  scheduleReviewReminder,
+} from '@/utils/reviewReminder';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 
@@ -71,12 +82,17 @@ function clampPercent(value: number) {
 
 export default function HomePage({ isActive = true }: HomePageProps) {
   const { gameState } = useGame();
-  const { learningState, learningDispatch, getLearningStats } = useLearning();
+  const { learningState, learningDispatch, syncStatus, retryLearningSync, getLearningStats } = useLearning();
   const { theme } = useTheme();
   const { userState, userDispatch, navigate } = useUser();
   const stats = getLearningStats();
   const [fallbackEncouragement] = useState(() => getEncouragement());
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeSubject[]>([]);
+  const [selectedDirection, setSelectedDirection] = useState<StudyDirection>('medical');
+  const [claimingPackageId, setClaimingPackageId] = useState<string | null>(null);
+  const [contentPackageError, setContentPackageError] = useState<string | null>(null);
+  const [reminderEnabled, setReminderEnabled] = useState(() => getReviewReminderSettings().enabled);
 
   useEffect(() => {
     const { review, newItems } = generateTodayReviewPlan(
@@ -134,6 +150,20 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     setIsGuideOpen(false);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    getAvailableKnowledgeBases()
+      .then(items => {
+        if (!cancelled) setKnowledgeBases(items);
+      })
+      .catch(error => {
+        console.error('[Home] failed to load recommended knowledge packages', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const openPrimaryLearning = useCallback(() => {
     navigate('flashcard-learning');
   }, [navigate]);
@@ -169,6 +199,177 @@ export default function HomePage({ isActive = true }: HomePageProps) {
       }
     : paperPalette;
   const masteryCount = stats.masteredCount + stats.normalCount;
+  const recommendedPackages = useMemo(
+    () => getRecommendedPackages(knowledgeBases, selectedDirection),
+    [knowledgeBases, selectedDirection],
+  );
+  const firstRecommendedPackage = recommendedPackages[0] ?? knowledgeBases[0] ?? null;
+
+  useEffect(() => {
+    return scheduleReviewReminder(reviewPending) ?? undefined;
+  }, [reviewPending, reminderEnabled]);
+
+  const claimKnowledgePackage = useCallback(async (subjectId: string) => {
+    if (claimingPackageId) return;
+    setClaimingPackageId(subjectId);
+    setContentPackageError(null);
+    try {
+      const packageInfo = knowledgeBases.find(item => item.id === subjectId);
+      const downloaded = await downloadKnowledgeFromOSS(subjectId);
+      if (!downloaded || downloaded.knowledgePoints.length === 0) {
+        throw new Error('内容包下载失败');
+      }
+      const now = new Date().toISOString();
+      learningDispatch({
+        type: 'SET_KNOWLEDGE_DATA',
+        payload: {
+          subjects: [{
+            id: subjectId,
+            name: packageInfo?.name || subjectId,
+            icon: packageInfo?.icon || '📚',
+            color: packageInfo?.color || theme.primary,
+            knowledgePointCount: downloaded.knowledgePoints.length,
+          }],
+          chapters: downloaded.chapters,
+          knowledgePoints: downloaded.knowledgePoints,
+          questions: downloaded.questions,
+          importHistory: {
+            source: 'local',
+            sourceId: subjectId,
+            label: packageInfo?.name || subjectId,
+            createdAt: now,
+          },
+        },
+      });
+      learningDispatch({
+        type: 'SET_IMPORTED_STUDY_SESSION',
+        payload: {
+          id: `content-package-${subjectId}-${Date.now()}`,
+          source: 'import',
+          knowledgePointIds: downloaded.knowledgePoints.map(kp => kp.id),
+          subjectId,
+          chapterId: downloaded.chapters[0]?.id || downloaded.knowledgePoints[0]?.chapterId || subjectId,
+          importedKnowledgeCount: downloaded.knowledgePoints.length,
+          importedQuestionCount: downloaded.questions.length,
+          skippedQuestionCount: 0,
+          createdAt: now,
+        },
+      });
+      navigate('flashcard-learning');
+    } catch (error) {
+      setContentPackageError(error instanceof Error ? error.message : '内容包领取失败');
+    } finally {
+      setClaimingPackageId(null);
+    }
+  }, [claimingPackageId, knowledgeBases, learningDispatch, navigate, theme.primary]);
+
+  const enableReminder = useCallback(async () => {
+    const granted = await requestReviewReminderPermission();
+    setReminderEnabled(granted || getReviewReminderSettings().enabled);
+  }, []);
+
+  const syncChip = (
+    <button
+      onClick={retryLearningSync}
+      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold"
+      style={{
+        borderColor: syncStatus.state === 'failed' ? '#fecaca' : theme.border,
+        backgroundColor: syncStatus.state === 'failed' ? '#fef2f2' : theme.bgCard,
+        color: syncStatus.state === 'failed' ? '#dc2626' : theme.textSecondary,
+      }}
+      aria-label="同步状态，点击重试"
+    >
+      {syncStatus.state === 'syncing' ? <RefreshCw size={13} className="animate-spin" /> : <Cloud size={13} />}
+      {syncStatus.message}
+    </button>
+  );
+
+  const contentPackagePanel = firstRecommendedPackage ? (
+    <section
+      className="mt-5 rounded-lg border p-4"
+      style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-[16px] font-extrabold" style={{ color: theme.textPrimary }}>开始学习推荐内容</h3>
+          <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+            选择方向，一键加入内容包，直接开始第一张卡。
+          </p>
+        </div>
+        <button
+          onClick={() => claimKnowledgePackage(firstRecommendedPackage.id)}
+          disabled={Boolean(claimingPackageId)}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+          style={{ backgroundColor: theme.primary }}
+        >
+          {claimingPackageId ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+          领取
+        </button>
+      </div>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {STUDY_DIRECTIONS.map(direction => (
+          <button
+            key={direction.id}
+            onClick={() => setSelectedDirection(direction.id)}
+            className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold"
+            style={{
+              borderColor: selectedDirection === direction.id ? theme.primary : theme.border,
+              backgroundColor: selectedDirection === direction.id ? `${theme.primary}12` : theme.bg,
+              color: selectedDirection === direction.id ? theme.primary : theme.textSecondary,
+            }}
+          >
+            {direction.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-3 grid gap-2">
+        {recommendedPackages.slice(0, 2).map(item => (
+          <button
+            key={item.id}
+            onClick={() => claimKnowledgePackage(item.id)}
+            disabled={Boolean(claimingPackageId)}
+            className="flex items-center justify-between rounded-lg border px-3 py-3 text-left disabled:opacity-60"
+            style={{ borderColor: theme.border, backgroundColor: theme.bg }}
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-bold" style={{ color: theme.textPrimary }}>
+                {item.icon || '📚'} {item.name}
+              </span>
+              <span className="mt-0.5 block text-xs" style={{ color: theme.textMuted }}>
+                {item.kpCount ?? 0} 张卡 · {item.qCount ?? 0} 道题
+              </span>
+            </span>
+            <ChevronRight size={16} style={{ color: theme.textMuted }} />
+          </button>
+        ))}
+      </div>
+      {contentPackageError && (
+        <p className="mt-2 text-xs text-red-600">{contentPackageError}</p>
+      )}
+    </section>
+  ) : null;
+
+  const reminderPanel = !reminderEnabled && reviewPending > 0 ? (
+    <section
+      className="mt-5 flex items-center gap-3 rounded-lg border p-4"
+      style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+        <Bell size={17} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold" style={{ color: theme.textPrimary }}>开启复习提醒</p>
+        <p className="mt-0.5 text-xs" style={{ color: theme.textSecondary }}>浏览器会在晚上提醒你清掉到期卡片。</p>
+      </div>
+      <button
+        onClick={enableReminder}
+        className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold text-white"
+        style={{ backgroundColor: theme.primary }}
+      >
+        开启
+      </button>
+    </section>
+  ) : null;
 
   const headline = useMemo(() => {
     if (reviewPending > 0) return `先复习 ${reviewPending} 张到期卡片`;
@@ -177,17 +378,34 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     return '今天的节奏已经稳住了';
   }, [hasCheckedInToday, remainingGoalCount, reviewPending]);
 
+  const isColdStart = todayLearningCount === 0 && masteryCount === 0;
+  const heroPackage = isColdStart ? firstRecommendedPackage : null;
+  const heroTitle = reviewPending > 0
+    ? `复习 ${reviewPending} 张到期卡`
+    : heroPackage
+      ? `从「${heroPackage.name}」开始`
+      : '开始今天的学习';
+  const heroDescription = reviewPending > 0
+    ? '先清掉到期复习，避免记忆曲线断档。'
+    : heroPackage
+      ? '一键加入推荐内容包，马上进入第一张卡。'
+      : '从上次停下的地方接着来，完成后给自己一点休息。';
+
   const mainActionLabel = reviewPending > 0
     ? '继续复习'
+    : heroPackage
+      ? '领取并开始'
     : remainingGoalCount > 0
       ? '开始学习'
       : hasCheckedInToday
         ? '再练一组'
         : '去签到';
 
-  const mainAction = hasCheckedInToday || reviewPending > 0 || remainingGoalCount > 0
-    ? openPrimaryLearning
-    : () => navigate('checkin');
+  const mainAction = heroPackage
+    ? () => claimKnowledgePackage(heroPackage.id)
+    : (hasCheckedInToday || reviewPending > 0 || remainingGoalCount > 0)
+      ? openPrimaryLearning
+      : () => navigate('checkin');
 
   const statusCards = [
     {
@@ -405,14 +623,17 @@ export default function HomePage({ isActive = true }: HomePageProps) {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => navigate('settings')}
-              className="flex h-11 w-11 items-center justify-center rounded-full border shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-transform duration-200 active:scale-[0.97]"
-              style={{ borderColor: theme.border, backgroundColor: theme.bgCard, color: theme.textSecondary }}
-              aria-label="设置"
-            >
-              <Settings size={18} />
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              {syncChip}
+              <button
+                onClick={() => navigate('settings')}
+                className="flex h-11 w-11 items-center justify-center rounded-full border shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition-transform duration-200 active:scale-[0.97]"
+                style={{ borderColor: theme.border, backgroundColor: theme.bgCard, color: theme.textSecondary }}
+                aria-label="设置"
+              >
+                <Settings size={18} />
+              </button>
+            </div>
           </header>
 
           <section className="mb-7 w-full">
@@ -515,6 +736,9 @@ export default function HomePage({ isActive = true }: HomePageProps) {
             </button>
           </section>
 
+          {contentPackagePanel}
+          {reminderPanel}
+
           <section className="mt-7 w-full">
             <div className="mb-4 flex items-center justify-between pr-20">
               <h3
@@ -580,7 +804,15 @@ export default function HomePage({ isActive = true }: HomePageProps) {
             {floatingPanel}
           </div>
         )}
-        <OnboardingGuide open={isGuideOpen} onClose={handleCloseGuide} />
+        <OnboardingGuide
+          open={isGuideOpen}
+          onClose={handleCloseGuide}
+          onClaimPackage={claimKnowledgePackage}
+          onEnableReminder={enableReminder}
+          onSetDailyGoal={goal => userDispatch({ type: 'SET_DAILY_GOAL', payload: goal })}
+          recommendedPackage={firstRecommendedPackage}
+          isClaimingPackage={Boolean(claimingPackageId)}
+        />
       </div>
     );
   }
@@ -621,6 +853,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           </button>
         </header>
 
+        <div className="mt-4 flex justify-end">
+          {syncChip}
+        </div>
+
         <section
           className="relative mt-5 overflow-hidden rounded-lg border p-5 shadow-[0_14px_34px_-28px_rgba(97,71,38,0.7)]"
           style={{
@@ -651,10 +887,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
             </div>
 
             <h2 className="mt-4 text-[24px] font-extrabold leading-[1.2]" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
-              继续复习物理化学
+              {heroTitle}
             </h2>
             <p className="mt-2 text-[13px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
-              从上次停下的章节接着来，完成后给自己一点休息。
+              {heroDescription}
             </p>
 
             <div className="mt-5 max-w-[210px]">
@@ -683,6 +919,9 @@ export default function HomePage({ isActive = true }: HomePageProps) {
             </button>
           </div>
         </section>
+
+        {contentPackagePanel}
+        {reminderPanel}
 
         <section className="mt-4 grid grid-cols-3 gap-2.5">
           {statusCards.map(card => (
@@ -883,7 +1122,15 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           {floatingPanel}
         </div>
       )}
-      <OnboardingGuide open={isGuideOpen} onClose={handleCloseGuide} />
+      <OnboardingGuide
+        open={isGuideOpen}
+        onClose={handleCloseGuide}
+        onClaimPackage={claimKnowledgePackage}
+        onEnableReminder={enableReminder}
+        onSetDailyGoal={goal => userDispatch({ type: 'SET_DAILY_GOAL', payload: goal })}
+        recommendedPackage={firstRecommendedPackage}
+        isClaimingPackage={Boolean(claimingPackageId)}
+      />
     </div>
   );
 }

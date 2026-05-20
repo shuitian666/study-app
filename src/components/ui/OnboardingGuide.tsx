@@ -2,10 +2,16 @@
 import { ArrowRight, BookOpen, CalendarCheck, CheckCircle2, ChevronLeft, Medal, Trophy } from 'lucide-react';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
+import type { KnowledgeSubject } from '@/services/ossService';
 
 interface OnboardingGuideProps {
   open: boolean;
   onClose: () => void;
+  recommendedPackage?: KnowledgeSubject | null;
+  isClaimingPackage?: boolean;
+  onClaimPackage?: (subjectId: string) => void | Promise<void>;
+  onEnableReminder?: () => void | Promise<void>;
+  onSetDailyGoal?: (goal: number) => void;
 }
 
 const STUDY_GOALS = [
@@ -26,19 +32,27 @@ const FAB_MENU_ITEMS = [
   { id: 'ranking', Icon: Medal, color: '#ef4444', label: '排行', angleDeg: 270 },
 ] as const;
 
-export default function OnboardingGuide({ open, onClose }: OnboardingGuideProps) {
+export default function OnboardingGuide({ open, ...props }: OnboardingGuideProps) {
   if (!open) return null;
 
-  return <OnboardingGuideContent onClose={onClose} />;
+  return <OnboardingGuideContent {...props} />;
 }
 
-type OnboardingGuideContentProps = Pick<OnboardingGuideProps, 'onClose'>;
+type OnboardingGuideContentProps = Omit<OnboardingGuideProps, 'open'>;
 
-function OnboardingGuideContent({ onClose }: OnboardingGuideContentProps) {
+function OnboardingGuideContent({
+  onClose,
+  recommendedPackage,
+  isClaimingPackage = false,
+  onClaimPackage,
+  onEnableReminder,
+  onSetDailyGoal,
+}: OnboardingGuideContentProps) {
   const { theme } = useTheme();
   const { navigate } = useUser();
   const [step, setStep] = useState(0);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [dailyGoal, setDailyGoal] = useState(10);
   const [cardFlipped, setCardFlipped] = useState(false);
   const [cardRated, setCardRated] = useState(false);
   const [fabMode, setFabMode] = useState<'idle' | 'tap' | 'hold'>('idle');
@@ -445,14 +459,36 @@ function OnboardingGuideContent({ onClose }: OnboardingGuideContentProps) {
           <h2 className="text-2xl font-extrabold text-white">准备好了！</h2>
           <p className="mt-2 text-sm leading-6 text-white/80">
             {goalObj ? `你选择了「${goalObj.label}」方向` : '你的学习空间已就绪'}
-            <br />先去添加你的第一条知识吧
+            <br />先领取一个内容包，马上开始第一张卡
           </p>
         </div>
         <div className="px-5 pb-8">
           {stepDots(4)}
+          <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: '#0891b210', border: '1px solid #0891b225' }}>
+            <p className="text-sm font-bold" style={{ color: theme.textPrimary }}>每日目标</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[5, 10, 20].map(goal => (
+                <button
+                  key={goal}
+                  onClick={() => {
+                    setDailyGoal(goal);
+                    onSetDailyGoal?.(goal);
+                  }}
+                  className="rounded-2xl py-2.5 text-sm font-bold"
+                  style={{
+                    backgroundColor: dailyGoal === goal ? '#0891b2' : '#ffffff',
+                    color: dailyGoal === goal ? '#ffffff' : theme.textPrimary,
+                    border: `1px solid ${dailyGoal === goal ? '#0891b2' : theme.border}`,
+                  }}
+                >
+                  {goal} 张
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-3">
             {[
-              { emoji: '📥', title: '添加知识', sub: '知识库手动录入，或直接导入文件' },
+              { emoji: '📥', title: '领取内容包', sub: '推荐包会自动加入你的学习库' },
               { emoji: '🃏', title: '每天刷卡', sub: '首页点「开始学习」，几分钟搞定' },
               { emoji: '⏰', title: '坚持打开', sub: '系统会在最佳时机提醒你复习' },
             ].map(tip => (
@@ -470,12 +506,29 @@ function OnboardingGuideContent({ onClose }: OnboardingGuideContentProps) {
             ))}
           </div>
           <button
-            onClick={() => { onClose(); navigate('knowledge'); }}
+            onClick={() => {
+              onSetDailyGoal?.(dailyGoal);
+              if (recommendedPackage && onClaimPackage) {
+                void onClaimPackage(recommendedPackage.id);
+                onClose();
+                return;
+              }
+              onClose();
+              navigate('knowledge');
+            }}
+            disabled={isClaimingPackage}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
             style={{ backgroundColor: '#059669', boxShadow: '0 8px 24px rgba(5,150,105,0.3)' }}
           >
-            去添加第一条知识
+            {recommendedPackage ? `领取「${recommendedPackage.name}」并开始` : '去添加第一条知识'}
             <ArrowRight size={18} />
+          </button>
+          <button
+            onClick={() => { void onEnableReminder?.(); }}
+            className="mt-3 w-full rounded-2xl py-3.5 text-sm font-bold"
+            style={{ color: '#059669', backgroundColor: '#05966912' }}
+          >
+            开启复习提醒
           </button>
           <button
             onClick={onClose}

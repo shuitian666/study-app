@@ -353,3 +353,185 @@ test('learning delete can soft-delete an import batch', () => {
   assert.equal(snapshot.questions[0].deletedAt, '2026-05-19T00:00:00.000Z');
   assert.equal(snapshot.importHistory[0].deletedAt, '2026-05-19T00:00:00.000Z');
 });
+
+test('learning bootstrap restores private import content for a second device', () => {
+  const user = makeUser();
+
+  importLearningBatch(user.id, {
+    importId: 'device-a-import',
+    sourceType: 'local-import',
+    subjects: [{ id: 'subject-private', name: 'Private subject', updatedAt: '2026-05-18T00:00:00.000Z' }],
+    chapters: [{ id: 'chapter-private', subjectId: 'subject-private', name: 'Private chapter', updatedAt: '2026-05-18T00:01:00.000Z' }],
+    knowledgePoints: [{
+      id: 'kp-private',
+      subjectId: 'subject-private',
+      chapterId: 'chapter-private',
+      name: 'Private card',
+      updatedAt: '2026-05-18T00:02:00.000Z',
+    }],
+    questions: [{
+      id: 'q-private',
+      knowledgePointId: 'kp-private',
+      stem: 'Private question',
+      updatedAt: '2026-05-18T00:03:00.000Z',
+    }],
+  });
+
+  const deviceB = getLearningBootstrap(user.id);
+
+  assert.equal(deviceB.subjects[0].id, 'subject-private');
+  assert.equal(deviceB.knowledgePoints[0].name, 'Private card');
+  assert.equal(deviceB.questions[0].stem, 'Private question');
+  assert.equal(deviceB.importHistory[0].id, 'device-a-import');
+});
+
+test('learning progress bootstrap includes FSRS restore fields', () => {
+  const user = makeUser();
+
+  patchLearningProgress(user.id, {
+    progress: [{
+      id: 'progress-kp-fsrs',
+      knowledgePointId: 'kp-fsrs',
+      proficiency: 'normal',
+      reviewCount: 4,
+      lastReviewedAt: '2026-05-19T08:00:00.000Z',
+      nextReviewAt: '2026-05-21T08:00:00.000Z',
+      fsrsState: 'Review',
+      fsrsStability: 2.4,
+      fsrsDifficulty: 5.6,
+      fsrsReps: 4,
+      fsrsLapses: 1,
+      studyRecords: [{ date: '2026-05-19T08:00:00.000Z', type: 'flashcard', score: 80, knowledgePointId: 'kp-fsrs' }],
+      updatedAt: '2026-05-19T08:00:00.000Z',
+    }],
+  });
+
+  const restored = getLearningBootstrap(user.id).progress[0];
+
+  assert.equal(restored.fsrsState, 'Review');
+  assert.equal(restored.fsrsReps, 4);
+  assert.equal(restored.reviewCount, 4);
+  assert.equal(restored.nextReviewAt, '2026-05-21T08:00:00.000Z');
+  assert.equal(restored.studyRecords.length, 1);
+});
+
+test('learning delete by records returns deletedAt for active-state filtering', () => {
+  const user = makeUser();
+
+  importLearningBatch(user.id, {
+    importId: 'record-delete-import',
+    sourceType: 'local-import',
+    importHistory: [{
+      id: 'history-record-delete',
+      label: 'Record delete',
+      knowledgePointIds: ['kp-record-delete'],
+      questionIds: ['q-record-delete'],
+      updatedAt: '2026-05-18T00:00:00.000Z',
+    }],
+    knowledgePoints: [{ id: 'kp-record-delete', importId: 'record-delete-import', updatedAt: '2026-05-18T00:00:00.000Z' }],
+    questions: [{ id: 'q-record-delete', importId: 'record-delete-import', knowledgePointId: 'kp-record-delete', updatedAt: '2026-05-18T00:00:00.000Z' }],
+  });
+
+  const snapshot = deleteLearningRecords(user.id, {
+    deletedAt: '2026-05-20T00:00:00.000Z',
+    records: {
+      knowledgePoints: ['kp-record-delete'],
+      questions: ['q-record-delete'],
+      importHistory: ['history-record-delete'],
+    },
+  });
+
+  assert.equal(snapshot.knowledgePoints[0].deletedAt, '2026-05-20T00:00:00.000Z');
+  assert.equal(snapshot.questions[0].deletedAt, '2026-05-20T00:00:00.000Z');
+  assert.equal(snapshot.importHistory[0].deletedAt, '2026-05-20T00:00:00.000Z');
+});
+
+test('learning content import ignores older updates for the same record', () => {
+  const user = makeUser();
+
+  importLearningBatch(user.id, {
+    importId: 'content-lww',
+    sourceType: 'local-import',
+    knowledgePoints: [{ id: 'kp-lww', name: 'Newer name', updatedAt: '2026-05-19T00:00:00.000Z' }],
+  });
+  importLearningBatch(user.id, {
+    importId: 'content-lww',
+    sourceType: 'local-import',
+    knowledgePoints: [{ id: 'kp-lww', name: 'Older name', updatedAt: '2026-05-18T00:00:00.000Z' }],
+  });
+
+  const snapshot = getLearningBootstrap(user.id);
+  assert.equal(snapshot.knowledgePoints[0].name, 'Newer name');
+});
+
+test('learning sync keeps legacy raw ids compatible', () => {
+  const user = makeUser();
+
+  db.prepare(`
+    INSERT INTO user_knowledge_points (id, user_id, source_type, payload, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    'kp-legacy',
+    user.id,
+    'local-import',
+    JSON.stringify({ id: 'kp-legacy', name: 'Legacy card', updatedAt: '2026-05-18T00:00:00.000Z' }),
+    '2026-05-18T00:00:00.000Z',
+    '2026-05-18T00:00:00.000Z',
+  );
+
+  importLearningBatch(user.id, {
+    importId: 'legacy-import',
+    sourceType: 'local-import',
+    knowledgePoints: [{ id: 'kp-legacy', name: 'Migrated card', updatedAt: '2026-05-19T00:00:00.000Z' }],
+  });
+
+  const storageRows = db.prepare('SELECT id FROM user_knowledge_points WHERE user_id = ?').all(user.id);
+  const snapshot = getLearningBootstrap(user.id);
+
+  assert.equal(storageRows.length, 1);
+  assert.equal(storageRows[0].id, `${user.id}:kp-legacy`);
+  assert.equal(snapshot.knowledgePoints.length, 1);
+  assert.equal(snapshot.knowledgePoints[0].id, 'kp-legacy');
+  assert.equal(snapshot.knowledgePoints[0].name, 'Migrated card');
+
+  const deleted = deleteLearningRecords(user.id, {
+    deletedAt: '2026-05-20T00:00:00.000Z',
+    records: { knowledgePoints: ['kp-legacy'] },
+  });
+
+  assert.equal(deleted.knowledgePoints[0].deletedAt, '2026-05-20T00:00:00.000Z');
+});
+
+test('learning records with the same client ids are isolated per user', () => {
+  const userA = makeUser();
+  const userB = makeUser();
+
+  importLearningBatch(userA.id, {
+    importId: 'shared-import',
+    sourceType: 'local-import',
+    knowledgePoints: [{ id: 'kp-shared', name: 'User A card', updatedAt: '2026-05-19T00:00:00.000Z' }],
+  });
+  importLearningBatch(userB.id, {
+    importId: 'shared-import',
+    sourceType: 'local-import',
+    knowledgePoints: [{ id: 'kp-shared', name: 'User B card', updatedAt: '2026-05-19T00:00:00.000Z' }],
+  });
+  patchLearningProgress(userA.id, {
+    progress: [{ id: 'progress-kp-shared', knowledgePointId: 'kp-shared', currentScore: 80, updatedAt: '2026-05-19T01:00:00.000Z' }],
+  });
+  patchLearningProgress(userB.id, {
+    progress: [{ id: 'progress-kp-shared', knowledgePointId: 'kp-shared', currentScore: 20, updatedAt: '2026-05-19T01:00:00.000Z' }],
+  });
+
+  const snapshotA = getLearningBootstrap(userA.id);
+  const snapshotB = getLearningBootstrap(userB.id);
+
+  assert.equal(snapshotA.knowledgePoints[0].id, 'kp-shared');
+  assert.equal(snapshotB.knowledgePoints[0].id, 'kp-shared');
+  assert.equal(snapshotA.knowledgePoints[0].name, 'User A card');
+  assert.equal(snapshotB.knowledgePoints[0].name, 'User B card');
+  assert.equal(snapshotA.progress[0].id, 'progress-kp-shared');
+  assert.equal(snapshotB.progress[0].id, 'progress-kp-shared');
+  assert.equal(snapshotA.progress[0].currentScore, 80);
+  assert.equal(snapshotB.progress[0].currentScore, 20);
+});

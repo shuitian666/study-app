@@ -54,11 +54,15 @@ function getRecordId(record, prefix) {
   return String(record?.id || `${prefix}_${crypto.randomUUID()}`);
 }
 
+function getStorageId(userId, recordId) {
+  return `${userId}:${recordId}`;
+}
+
 function rowToPayload(row) {
   const payload = safeJson(row.payload);
   return {
     ...payload,
-    id: row.id,
+    id: payload.id || row.id,
     ownerUserId: row.user_id,
     sourceType: row.source_type || payload.sourceType || 'manual',
     updatedAt: row.updated_at,
@@ -67,16 +71,42 @@ function rowToPayload(row) {
 }
 
 function listRecords(userId, table) {
-  return db.prepare(`
+  const records = db.prepare(`
     SELECT * FROM ${table}
     WHERE user_id = ?
     ORDER BY updated_at ASC
   `).all(userId).map(rowToPayload);
+
+  const latestByClientId = new Map();
+  for (const record of records) {
+    const previous = latestByClientId.get(record.id);
+    if (!previous || String(record.updatedAt) >= String(previous.updatedAt)) {
+      latestByClientId.set(record.id, record);
+    }
+  }
+
+  return [...latestByClientId.values()].sort((a, b) => String(a.updatedAt).localeCompare(String(b.updatedAt)));
 }
 
 function shouldApplyIncoming(existing, incomingUpdatedAt) {
   if (!existing) return true;
   return String(incomingUpdatedAt) >= String(existing.updated_at);
+}
+
+function getExistingRecord(userId, table, storageId, legacyId) {
+  return db.prepare(`
+    SELECT * FROM ${table}
+    WHERE user_id = ? AND id IN (?, ?)
+    ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
+    LIMIT 1
+  `).get(userId, storageId, legacyId, storageId);
+}
+
+function migrateLegacyStorageId(userId, table, storageId, legacyId) {
+  if (storageId === legacyId) return;
+  const storageRow = db.prepare(`SELECT id FROM ${table} WHERE user_id = ? AND id = ?`).get(userId, storageId);
+  if (storageRow) return;
+  db.prepare(`UPDATE ${table} SET id = ? WHERE user_id = ? AND id = ?`).run(storageId, userId, legacyId);
 }
 
 function upsertRecord(userId, tableKey, rawRecord, options = {}) {
@@ -91,16 +121,21 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
 
   const timestamp = options.timestamp || nowIso();
   const id = getRecordId(rawRecord, tableKey);
+  const storageId = getStorageId(userId, id);
   const normalizedImportId = rawRecord.importId || rawRecord.import_id || options.importId || null;
   const record = { ...rawRecord, id, ...(normalizedImportId ? { importId: normalizedImportId } : {}) };
   const updatedAt = recordUpdatedAt(record, timestamp);
   const deletedAt = recordDeletedAt(record);
   const sourceType = normalizeSourceType(record.sourceType || record.source_type, tableKey === 'importHistory' ? 'local-import' : options.sourceType || 'manual');
   const payload = makePayload({ ...record, sourceType, updatedAt, deletedAt }, userId, tableKey, timestamp);
-  const existing = db.prepare(`SELECT updated_at FROM ${table} WHERE id = ? AND user_id = ?`).get(id, userId);
+  let existing = getExistingRecord(userId, table, storageId, id);
+  if (existing && existing.id !== storageId) {
+    migrateLegacyStorageId(userId, table, storageId, id);
+    existing = getExistingRecord(userId, table, storageId, id);
+  }
 
   if (!shouldApplyIncoming(existing, updatedAt)) {
-    return db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(id, userId);
+    return getExistingRecord(userId, table, storageId, id);
   }
 
   if (tableKey === 'subjects') {
@@ -113,7 +148,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at
       WHERE user_subjects.user_id = excluded.user_id AND excluded.updated_at >= user_subjects.updated_at
-    `).run(id, userId, sourceType, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
+    `).run(storageId, userId, sourceType, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
   } else if (tableKey === 'chapters') {
     db.prepare(`
       INSERT INTO user_chapters (id, user_id, subject_id, source_type, payload, created_at, updated_at, deleted_at)
@@ -125,7 +160,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at
       WHERE user_chapters.user_id = excluded.user_id AND excluded.updated_at >= user_chapters.updated_at
-    `).run(id, userId, record.subjectId || record.subject_id || null, sourceType, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
+    `).run(storageId, userId, record.subjectId || record.subject_id || null, sourceType, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
   } else if (tableKey === 'knowledgePoints') {
     db.prepare(`
       INSERT INTO user_knowledge_points (id, user_id, subject_id, chapter_id, import_id, source_type, payload, created_at, updated_at, deleted_at)
@@ -140,7 +175,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         deleted_at = excluded.deleted_at
       WHERE user_knowledge_points.user_id = excluded.user_id AND excluded.updated_at >= user_knowledge_points.updated_at
     `).run(
-      id,
+      storageId,
       userId,
       record.subjectId || record.subject_id || null,
       record.chapterId || record.chapter_id || null,
@@ -164,7 +199,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         deleted_at = excluded.deleted_at
       WHERE user_questions.user_id = excluded.user_id AND excluded.updated_at >= user_questions.updated_at
     `).run(
-      id,
+      storageId,
       userId,
       record.knowledgePointId || record.knowledge_point_id || null,
       record.importId || record.import_id || options.importId || null,
@@ -184,7 +219,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at
       WHERE excluded.updated_at >= user_learning_progress.updated_at
-    `).run(id, userId, knowledgePointId, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
+    `).run(storageId, userId, knowledgePointId, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
   } else if (tableKey === 'wrongRecords') {
     db.prepare(`
       INSERT INTO user_wrong_records (id, user_id, question_id, payload, created_at, updated_at, deleted_at)
@@ -195,7 +230,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at
       WHERE user_wrong_records.user_id = excluded.user_id AND excluded.updated_at >= user_wrong_records.updated_at
-    `).run(id, userId, record.questionId || record.question_id || id, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
+    `).run(storageId, userId, record.questionId || record.question_id || id, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
   } else if (tableKey === 'questionExplanations') {
     const questionId = record.questionId || record.question_id || id;
     db.prepare(`
@@ -206,7 +241,7 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at
       WHERE excluded.updated_at >= user_question_explanations.updated_at
-    `).run(id, userId, questionId, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
+    `).run(storageId, userId, questionId, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
   } else if (tableKey === 'importHistory') {
     db.prepare(`
       INSERT INTO user_import_history (id, user_id, source_type, payload, created_at, updated_at, deleted_at)
@@ -217,10 +252,10 @@ function upsertRecord(userId, tableKey, rawRecord, options = {}) {
         updated_at = excluded.updated_at,
         deleted_at = excluded.deleted_at
       WHERE user_import_history.user_id = excluded.user_id AND excluded.updated_at >= user_import_history.updated_at
-    `).run(id, userId, sourceType, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
+    `).run(storageId, userId, sourceType, JSON.stringify(payload), record.createdAt || timestamp, updatedAt, deletedAt);
   }
 
-  return db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(id, userId);
+  return db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(storageId, userId);
 }
 
 function normalizeArray(value) {
@@ -304,12 +339,13 @@ export function patchLearningProgress(userId, patch = {}) {
 function softDeleteById(userId, tableKey, id, deletedAt) {
   const table = ALL_TABLES[tableKey];
   if (!table || !id) return;
+  const storageId = getStorageId(userId, id);
   db.prepare(`
     UPDATE ${table}
     SET deleted_at = ?, updated_at = ?,
       payload = json_set(payload, '$.deletedAt', ?, '$.updatedAt', ?)
-    WHERE user_id = ? AND id = ?
-  `).run(deletedAt, deletedAt, deletedAt, deletedAt, userId, id);
+    WHERE user_id = ? AND id IN (?, ?)
+  `).run(deletedAt, deletedAt, deletedAt, deletedAt, userId, storageId, id);
 }
 
 export function deleteLearningRecords(userId, payload = {}) {

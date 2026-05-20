@@ -7,7 +7,7 @@
  * ============================================================================
  */
 
-import { createContext, useContext, useReducer, useEffect, useRef, useMemo, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useMemo, useCallback, useState, type ReactNode } from 'react';
 import type {
   Subject, Chapter, KnowledgePoint, KnowledgePointExtended, Question, QuizResult, WrongRecord,
   ReviewItem, LearningStats, ProficiencyLevel, QuestionExplanation, StudyRecord, QuizRecord
@@ -91,6 +91,15 @@ interface ImportHistoryInput {
   label: string;
   createdAt?: string;
   sourceId?: string;
+}
+
+export type LearningSyncStateName = 'idle' | 'syncing' | 'synced' | 'offline' | 'failed';
+
+export interface LearningSyncStatus {
+  state: LearningSyncStateName;
+  message: string;
+  lastSyncedAt: string | null;
+  pending: boolean;
 }
 
 const RECYCLE_RETENTION_DAYS = 7;
@@ -887,6 +896,8 @@ export function updateFsrsCard(
 interface LearningContextType {
   learningState: LearningState;
   learningDispatch: React.Dispatch<LearningAction>;
+  syncStatus: LearningSyncStatus;
+  retryLearningSync: () => void;
   getLearningStats: () => LearningStats;
   getTaskCompletionRate: () => { done: number; total: number; rate: number };
   undo: () => void;
@@ -898,6 +909,23 @@ interface LearningContextType {
 
 const LearningContext = createContext<LearningContextType | null>(null);
 
+function getInitialSyncStatus(): LearningSyncStatus {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return {
+      state: 'offline',
+      message: '离线，待同步',
+      lastSyncedAt: null,
+      pending: true,
+    };
+  }
+  return {
+    state: 'idle',
+    message: '等待登录后同步',
+    lastSyncedAt: null,
+    pending: false,
+  };
+}
+
 // 加载持久化数据?
 function getInitialLearningState(): LearningState {
   return removeExpiredDeletedState(initialLearningState);
@@ -905,6 +933,8 @@ function getInitialLearningState(): LearningState {
 
 export function LearningProvider({ children }: { children: ReactNode }) {
   const [learningState, learningDispatch] = useReducer(learningReducer, undefined, getInitialLearningState);
+  const [syncStatus, setSyncStatus] = useState<LearningSyncStatus>(() => getInitialSyncStatus());
+  const [syncRetryNonce, setSyncRetryNonce] = useState(0);
   const { userState } = useUser();
   const isFirstRender = useRef(true);
   const isIndexedDBLoaded = useRef(false);
@@ -913,6 +943,40 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const lastContentSyncHash = useRef<string>('');
   const lastProgressSyncHash = useRef<string>('');
   const lastDeleteSyncHash = useRef<string>('');
+
+  const markSyncing = useCallback((message: string) => {
+    setSyncStatus(current => ({
+      ...current,
+      state: 'syncing',
+      message,
+      pending: true,
+    }));
+  }, []);
+
+  const markSynced = useCallback((message = '已同步') => {
+    setSyncStatus({
+      state: 'synced',
+      message,
+      lastSyncedAt: new Date().toISOString(),
+      pending: false,
+    });
+  }, []);
+
+  const markSyncFailed = useCallback((message: string) => {
+    setSyncStatus(current => ({
+      ...current,
+      state: navigator.onLine ? 'failed' : 'offline',
+      message: navigator.onLine ? message : '离线，待同步',
+      pending: true,
+    }));
+  }, []);
+
+  const retryLearningSync = useCallback(() => {
+    lastContentSyncHash.current = '';
+    lastProgressSyncHash.current = '';
+    lastDeleteSyncHash.current = '';
+    setSyncRetryNonce(value => value + 1);
+  }, []);
 
   // 鍔犺浇IndexedDB涓殑鐭ヨ瘑搴撴暟鎹?
   useEffect(() => {
@@ -963,6 +1027,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       lastContentSyncHash.current = '';
       lastProgressSyncHash.current = '';
       lastDeleteSyncHash.current = '';
+      setSyncStatus(getInitialSyncStatus());
       return;
     }
     if (cloudBootstrapUserId.current === userId) return;
@@ -998,6 +1063,27 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   }, [userState.isLoggedIn, userState.user?.id]);
 
   useEffect(() => {
+    const handleOffline = () => {
+      setSyncStatus(current => ({
+        ...current,
+        state: 'offline',
+        message: '离线，待同步',
+        pending: true,
+      }));
+    };
+    const handleOnline = () => {
+      retryLearningSync();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [retryLearningSync]);
+
+  useEffect(() => {
     const userId = userState.user?.id;
     if (!userState.isLoggedIn || !userId || cloudBootstrapReadyUserId.current !== userId) return;
 
@@ -1007,14 +1093,22 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     const hash = stableStringify(payload);
     if (hash === lastContentSyncHash.current) return;
 
+    if (!navigator.onLine) {
+      markSyncFailed('离线，待同步');
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
+      markSyncing('同步中');
       importLearningBatch(payload)
         .then(() => {
           lastContentSyncHash.current = hash;
+          markSynced();
         })
         .catch(error => {
           if ((error as Error & { status?: number }).status !== 401) {
             console.error('Failed to sync learning content:', error);
+            markSyncFailed('同步失败，点击重试');
           }
         });
     }, 800);
@@ -1028,6 +1122,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     learningState.importHistory,
     userState.isLoggedIn,
     userState.user?.id,
+    syncRetryNonce,
+    markSyncFailed,
+    markSyncing,
+    markSynced,
   ]);
 
   useEffect(() => {
@@ -1040,14 +1138,22 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     const hash = stableStringify(payload);
     if (hash === lastProgressSyncHash.current) return;
 
+    if (!navigator.onLine) {
+      markSyncFailed('离线，待同步');
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
+      markSyncing('同步中');
       patchLearningProgress(payload)
         .then(() => {
           lastProgressSyncHash.current = hash;
+          markSynced();
         })
         .catch(error => {
           if ((error as Error & { status?: number }).status !== 401) {
             console.error('Failed to sync learning progress:', error);
+            markSyncFailed('同步失败，点击重试');
           }
         });
     }, 800);
@@ -1059,6 +1165,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     learningState.questionExplanations,
     userState.isLoggedIn,
     userState.user?.id,
+    syncRetryNonce,
+    markSyncFailed,
+    markSyncing,
+    markSynced,
   ]);
 
   useEffect(() => {
@@ -1071,14 +1181,22 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     const hash = stableStringify(payload);
     if (hash === lastDeleteSyncHash.current) return;
 
+    if (!navigator.onLine) {
+      markSyncFailed('离线，待同步');
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
+      markSyncing('同步中');
       deleteLearningRecords(payload)
         .then(() => {
           lastDeleteSyncHash.current = hash;
+          markSynced();
         })
         .catch(error => {
           if ((error as Error & { status?: number }).status !== 401) {
             console.error('Failed to sync learning deletes:', error);
+            markSyncFailed('同步失败，点击重试');
           }
         });
     }, 300);
@@ -1090,6 +1208,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     learningState.importHistory,
     userState.isLoggedIn,
     userState.user?.id,
+    syncRetryNonce,
+    markSyncFailed,
+    markSyncing,
+    markSynced,
   ]);
 
 
@@ -1188,6 +1310,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const contextValue = useMemo(() => ({
     learningState: publicLearningState,
     learningDispatch,
+    syncStatus,
+    retryLearningSync,
     getLearningStats,
     getTaskCompletionRate,
     undo,
@@ -1198,6 +1322,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   }), [
     publicLearningState,
     learningDispatch,
+    syncStatus,
+    retryLearningSync,
     getLearningStats,
     getTaskCompletionRate,
     undo,

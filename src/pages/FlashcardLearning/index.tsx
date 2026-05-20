@@ -29,6 +29,7 @@ import { Rating } from 'ts-fsrs';
 import type { KnowledgePointExtended, Question, ReviewItem } from '@/types';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan } from '@/utils/review';
+import { getReviewReminderSettings, requestReviewReminderPermission } from '@/utils/reviewReminder';
 
 // 按钮配置
 const RATING_CONFIG = {
@@ -533,6 +534,9 @@ export default function FlashcardLearningPage() {
           score: FLASHCARD_SCORE_MAP[rating],
         },
       });
+      if (!getReviewReminderSettings().prompted) {
+        void requestReviewReminderPermission();
+      }
     }
 
     // 完成当日计划项（复习项或新学项都要标记）
