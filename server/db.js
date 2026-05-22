@@ -290,6 +290,7 @@ addColumn('users', 'ai_skin TEXT');
 addColumn('users', 'background TEXT');
 addColumn("users", "theme_style TEXT NOT NULL DEFAULT 'default'");
 addColumn('users', 'active_title TEXT');
+addColumn('users', "learning_profile TEXT NOT NULL DEFAULT '{}'");
 addColumn('team_members', 'avatar_frame TEXT');
 
 export function nowIso() {
@@ -304,6 +305,38 @@ export function getUserByPhone(phone) {
   return db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);
 }
 
+function parseJson(value, fallback = {}) {
+  try {
+    return JSON.parse(value || '');
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeLearningProfile(input = {}) {
+  const validGoals = new Set(['daily_review', 'exam_cram', 'foundation', 'weakness_fix']);
+  const goals = Array.isArray(input.goals)
+    ? input.goals.map(String).filter(goal => validGoals.has(goal)).slice(0, 3)
+    : [];
+
+  return {
+    goals: goals.length > 0 ? goals : ['daily_review'],
+    studyDirection: ['medical', 'pharmacy', 'nursing', 'english', 'general'].includes(input.studyDirection)
+      ? input.studyDirection
+      : 'general',
+    explanationStyle: ['concise', 'step_by_step', 'analogy', 'exam_oriented'].includes(input.explanationStyle)
+      ? input.explanationStyle
+      : 'step_by_step',
+    preferredDifficulty: ['basic', 'standard', 'challenge'].includes(input.preferredDifficulty)
+      ? input.preferredDifficulty
+      : 'standard',
+    practicePreference: ['explain_then_practice', 'quiz_then_explain', 'wrong_only'].includes(input.practicePreference)
+      ? input.practicePreference
+      : 'explain_then_practice',
+    updatedAt: typeof input.updatedAt === 'string' ? input.updatedAt : nowIso(),
+  };
+}
+
 export function updateUserProfile(userId, patch) {
   const allowed = [
     ['nickname', 'nickname'],
@@ -314,6 +347,7 @@ export function updateUserProfile(userId, patch) {
     ['background', 'background'],
     ['themeStyle', 'theme_style'],
     ['activeTitle', 'active_title'],
+    ['learningProfile', 'learning_profile'],
   ];
   const assignments = [];
   const values = [];
@@ -326,6 +360,8 @@ export function updateUserProfile(userId, patch) {
       if (!value) continue;
     } else if (inputKey === 'themeStyle') {
       value = value === 'fluidScholar' ? 'fluidScholar' : 'default';
+    } else if (inputKey === 'learningProfile') {
+      value = JSON.stringify(normalizeLearningProfile(value && typeof value === 'object' ? value : {}));
     } else if (value === undefined || value === '') {
       value = null;
     } else if (value !== null) {
@@ -414,6 +450,7 @@ export function toPublicUser(row, assets) {
     customAvatarUrl: row.custom_avatar_url ?? undefined,
     themeStyle: row.theme_style || 'default',
     activeTitle: row.active_title ?? undefined,
+    learningProfile: normalizeLearningProfile(parseJson(row.learning_profile, {})),
   };
 }
 

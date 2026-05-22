@@ -20,6 +20,7 @@ import { PageHeader } from '@/components/ui/Common';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
 import { checkBackendAvailable, fetchAIConfig, getAIConfig } from '@/services/aiClient';
 import { calculateNewProficiency } from '@/utils/review';
+import { buildAILearningContext } from '@/utils/aiLearningContext';
 import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
@@ -128,11 +129,23 @@ export default function AIChatPage() {
     setStreamingMsgId(aiMsgId);
 
     try {
+      const learningContext = buildAILearningContext({
+        query,
+        user: userState.user,
+        subjects: learningState.subjects,
+        chapters: learningState.chapters,
+        knowledgePoints: learningState.knowledgePoints,
+        questions: learningState.questions,
+        wrongRecords: learningState.wrongRecords,
+        todayReviewItems: learningState.todayReviewItems,
+        todayNewItems: learningState.todayNewItems,
+      });
       const { stream, relatedKpIds } = await askQuestionStreaming(
         query,
         learningState.knowledgePoints,
         messages,
         abortController.signal,
+        learningContext,
       );
 
       let fullContent = '';
@@ -158,7 +171,8 @@ export default function AIChatPage() {
         const questionResult = await generateQuiz(
           relatedKpIds,
           learningState.knowledgePoints,
-          learningState.questions
+          learningState.questions,
+          learningContext,
         );
         if (questionResult.question) {
           aiChatDispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: questionResult.question });
@@ -183,7 +197,7 @@ export default function AIChatPage() {
       setStreamingMsgId(null);
       aiChatDispatch({ type: 'AI_SET_LOADING', payload: false });
     }
-  }, [isLoading, streamingMsgId, messages, learningState.knowledgePoints, learningState.questions, aiChatDispatch, clearActiveRequest, refreshAiMode]);
+  }, [isLoading, streamingMsgId, messages, userState.user, learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions, learningState.wrongRecords, learningState.todayReviewItems, learningState.todayNewItems, aiChatDispatch, clearActiveRequest, refreshAiMode]);
 
   useEffect(() => {
     const questionContext = typeof userState.pageParams.questionContext === 'string'
@@ -216,7 +230,18 @@ export default function AIChatPage() {
       ? relatedKps.map(kp => kp.id)
       : learningState.knowledgePoints.slice(0, 3).map(kp => kp.id);
 
-    const questionResult = await generateQuiz(kpIds, learningState.knowledgePoints, learningState.questions);
+    const learningContext = buildAILearningContext({
+      query: content,
+      user: userState.user,
+      subjects: learningState.subjects,
+      chapters: learningState.chapters,
+      knowledgePoints: learningState.knowledgePoints,
+      questions: learningState.questions,
+      wrongRecords: learningState.wrongRecords,
+      todayReviewItems: learningState.todayReviewItems,
+      todayNewItems: learningState.todayNewItems,
+    });
+    const questionResult = await generateQuiz(kpIds, learningState.knowledgePoints, learningState.questions, learningContext);
     if (questionResult.question) {
       aiChatDispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: questionResult.question });
       setGeneratedQuestions(prev => ({ ...prev, [aiMessageId]: questionResult }));

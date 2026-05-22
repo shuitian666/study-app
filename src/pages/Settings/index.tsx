@@ -4,13 +4,38 @@ import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
-import { fetchAIConfig, saveAIConfig, type ServerAIConfigStatus } from '@/services/aiClient';
+import { accountUpdateProfile, fetchAIConfig, saveAIConfig, type ServerAIConfigStatus } from '@/services/aiClient';
 import { clearKnowledgeData } from '@/services/indexedDBService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
+import { normalizeLearningProfile } from '@/utils/aiLearningContext';
+import type { ExplanationStyle, LearningGoal, PreferredDifficulty, PracticePreference, UserLearningProfile } from '@/types';
 
 const DEFAULT_AI_MODEL = 'deepseek-chat';
 const DEFAULT_AI_BASE_URL = 'https://api.deepseek.com';
 const ONBOARDING_FORCE_OPEN_KEY = 'study-app:onboarding-force-open:v1';
+const LEARNING_GOAL_OPTIONS: Array<{ id: LearningGoal; label: string }> = [
+  { id: 'daily_review', label: '日常复习' },
+  { id: 'exam_cram', label: '考试冲刺' },
+  { id: 'foundation', label: '打基础' },
+  { id: 'weakness_fix', label: '查漏补缺' },
+];
+const EXPLANATION_STYLE_OPTIONS: Array<{ id: ExplanationStyle; label: string }> = [
+  { id: 'step_by_step', label: '分步骤' },
+  { id: 'concise', label: '简洁' },
+  { id: 'analogy', label: '类比' },
+  { id: 'exam_oriented', label: '考试导向' },
+];
+const DIFFICULTY_OPTIONS: Array<{ id: PreferredDifficulty; label: string }> = [
+  { id: 'basic', label: '基础' },
+  { id: 'standard', label: '标准' },
+  { id: 'challenge', label: '挑战' },
+];
+const PRACTICE_OPTIONS: Array<{ id: PracticePreference; label: string }> = [
+  { id: 'explain_then_practice', label: '先讲后练' },
+  { id: 'quiz_then_explain', label: '先测后讲' },
+  { id: 'wrong_only', label: '只看错题' },
+];
 
 export default function SettingsPage() {
   const { userState, userDispatch, navigate } = useUser();
@@ -33,6 +58,9 @@ export default function SettingsPage() {
   });
   const [goalSaved, setGoalSaved] = useState(false);
   const [themeStyle, setThemeStyle] = useState(() => userState.user?.themeStyle || 'default');
+  const [learningProfile, setLearningProfile] = useState<UserLearningProfile>(() => normalizeLearningProfile(userState.user?.learningProfile));
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
 
@@ -104,6 +132,45 @@ export default function SettingsPage() {
   const handleSaveThemeStyle = (style: string) => {
     userDispatch({ type: 'UPDATE_USER', payload: { themeStyle: style } });
     setThemeStyle(style);
+  };
+
+  const patchLearningProfile = (patch: Partial<UserLearningProfile>) => {
+    setLearningProfile(current => normalizeLearningProfile({
+      ...current,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    }));
+    setProfileSaved(false);
+  };
+
+  const toggleGoal = (goal: LearningGoal) => {
+    const exists = learningProfile.goals.includes(goal);
+    const goals = exists
+      ? learningProfile.goals.filter(item => item !== goal)
+      : [...learningProfile.goals, goal].slice(0, 3);
+    patchLearningProfile({ goals: goals.length > 0 ? goals : ['daily_review'] });
+  };
+
+  const saveLearningProfile = async () => {
+    setSavingProfile(true);
+    setProfileSaved(false);
+    const nextProfile = normalizeLearningProfile({
+      ...learningProfile,
+      updatedAt: new Date().toISOString(),
+    });
+    userDispatch({ type: 'UPDATE_USER', payload: { learningProfile: nextProfile } });
+    try {
+      const payload = await accountUpdateProfile({ learningProfile: nextProfile });
+      applyServerAccountPayload(payload, userDispatch, gameDispatch);
+      setLearningProfile(nextProfile);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 1600);
+    } catch (error) {
+      logoutOnUnauthorized(error, userDispatch);
+      console.warn('Failed to sync learning profile:', error);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleReopenGuide = () => {
@@ -310,6 +377,49 @@ export default function SettingsPage() {
 
       <section className="mt-4 px-4">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Sparkles size={16} className="text-primary" />
+          AI 个性化
+        </h3>
+        <div className="space-y-4 p-4 shadow-sm" style={cardStyle}>
+          <ProfileOptionGroup
+            title="学习目标"
+            options={LEARNING_GOAL_OPTIONS}
+            activeIds={learningProfile.goals}
+            onToggle={toggleGoal}
+          />
+          <ProfileOptionGroup
+            title="讲解风格"
+            options={EXPLANATION_STYLE_OPTIONS}
+            activeIds={[learningProfile.explanationStyle]}
+            onToggle={id => patchLearningProfile({ explanationStyle: id as ExplanationStyle })}
+            single
+          />
+          <ProfileOptionGroup
+            title="练习方式"
+            options={PRACTICE_OPTIONS}
+            activeIds={[learningProfile.practicePreference]}
+            onToggle={id => patchLearningProfile({ practicePreference: id as PracticePreference })}
+            single
+          />
+          <ProfileOptionGroup
+            title="题目难度"
+            options={DIFFICULTY_OPTIONS}
+            activeIds={[learningProfile.preferredDifficulty]}
+            onToggle={id => patchLearningProfile({ preferredDifficulty: id as PreferredDifficulty })}
+            single
+          />
+          <button
+            onClick={saveLearningProfile}
+            disabled={savingProfile}
+            className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80 disabled:opacity-50"
+          >
+            {savingProfile ? '保存中...' : profileSaved ? '已保存' : '保存 AI 个性化'}
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-4 px-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <Palette size={16} className="text-primary" />
           主题风格
         </h3>
@@ -449,5 +559,43 @@ function ThemeButton({
         {active && <Check size={18} className="text-primary" />}
       </div>
     </button>
+  );
+}
+
+function ProfileOptionGroup<T extends string>({
+  title,
+  options,
+  activeIds,
+  onToggle,
+  single = false,
+}: {
+  title: string;
+  options: Array<{ id: T; label: string }>;
+  activeIds: string[];
+  onToggle: (id: T) => void;
+  single?: boolean;
+}) {
+  return (
+    <div>
+      <div className="mb-2 text-xs font-medium text-text-secondary">{title}</div>
+      <div className="flex flex-wrap gap-2">
+        {options.map(option => {
+          const active = activeIds.includes(option.id);
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onToggle(option.id)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white text-text-secondary'
+              }`}
+              aria-pressed={single ? active : undefined}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

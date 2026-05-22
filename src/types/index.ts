@@ -51,6 +51,7 @@ export interface User {
   customAvatarUrl?: string;  // 自定义头像 URL
   currentBackground?: string;  // 当前背景样式（gradient）
   activeTitle?: string;  // 当前使用的称号ID
+  learningProfile?: UserLearningProfile;
 }
 
 export type ExperienceSource =
@@ -512,10 +513,80 @@ export interface MailState {
 }
 
 // ===== AI 相关类型 =====
+export type LearningGoal = 'daily_review' | 'exam_cram' | 'foundation' | 'weakness_fix';
+export type LearningDirection = 'medical' | 'pharmacy' | 'nursing' | 'english' | 'general';
+export type ExplanationStyle = 'concise' | 'step_by_step' | 'analogy' | 'exam_oriented';
+export type PreferredDifficulty = 'basic' | 'standard' | 'challenge';
+export type PracticePreference = 'explain_then_practice' | 'quiz_then_explain' | 'wrong_only';
+
+export interface UserLearningProfile {
+  goals: LearningGoal[];
+  studyDirection: LearningDirection;
+  explanationStyle: ExplanationStyle;
+  preferredDifficulty: PreferredDifficulty;
+  practicePreference: PracticePreference;
+  updatedAt: string;
+}
+
+export interface InferredLearningProfile {
+  weakPatterns: string[];
+  stableWeakAreas: string[];
+}
+
 export interface GenerateSmartQuizResult {
   question: Question | null;
   selectedKnowledgePoint?: string;
   mode: 'random' | 'smart';
+}
+
+export interface AIKnowledgePointContext {
+  id: string;
+  name: string;
+  subjectName?: string;
+  chapterName?: string;
+  explanation?: string;
+  proficiency: ProficiencyLevel;
+  masteryLevel: number;
+  wrongCount: number;
+  reviewCount: number;
+  currentScore?: number;
+  lastReviewedAt: string | null;
+  nextReviewAt: string | null;
+  reason?: string;
+}
+
+export interface AIWrongQuestionContext {
+  id: string;
+  questionId: string;
+  knowledgePointId?: string;
+  knowledgePointName?: string;
+  stem?: string;
+  wrongAnswers: string[];
+  correctAnswers: string[];
+  reviewedCount: number;
+  addedAt: string;
+  lastReviewedAt: string | null;
+}
+
+export interface AILearningContext {
+  profile: {
+    nickname?: string;
+    dailyGoal?: number;
+    dailyNewGoal?: number;
+    learningProfile?: UserLearningProfile;
+    inferredProfile?: InferredLearningProfile;
+  };
+  focusKnowledgePoints: AIKnowledgePointContext[];
+  weakKnowledgePoints: AIKnowledgePointContext[];
+  dueReviews: AIKnowledgePointContext[];
+  recentWrongQuestions: AIWrongQuestionContext[];
+  todayProgress: {
+    reviewDone: number;
+    reviewTotal: number;
+    newDone: number;
+    newTotal: number;
+  };
+  generatedAt: string;
 }
 
 export interface StudyReportParams {

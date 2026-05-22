@@ -1,4 +1,12 @@
-import type { ChatMessage, GenerateSmartQuizResult, KnowledgePoint, LearningStats, Question } from '@/types';
+import type {
+  AILearningContext,
+  ChatMessage,
+  GenerateSmartQuizResult,
+  KnowledgePoint,
+  KnowledgePointExtended,
+  LearningStats,
+  Question,
+} from '@/types';
 import { AI_ANSWER_TEMPLATES, AI_GENERIC_ANSWER, AI_QUIZ_POOL, ENCOURAGEMENT_RULES } from '@/data/ai-mock';
 import { API_BASE, checkBackendAvailable, fetchQuiz, streamChat } from '@/services/aiClient';
 
@@ -29,7 +37,7 @@ function mockAskQuestion(query: string, knowledgePoints: KnowledgePoint[]) {
   const matched = knowledgePoints.find(kp => query.includes(kp.name));
   if (matched) {
     return {
-      answer: `关于「${matched.name}」，核心内容是：\n\n${matched.explanation}\n\n你可以继续追问，也可以让我基于这个知识点出题练习。`,
+      answer: `关于「${matched.name}」，核心内容是：\n\n${matched.explanation}\n\n当前是离线兜底回答。联网 AI 可用后，我会结合你的掌握度、错题和复习计划继续讲解。`,
       relatedKpIds: [matched.id],
     };
   }
@@ -47,7 +55,7 @@ function mockGenerateQuiz(knowledgePointIds: string[], knowledgePoints: Knowledg
     knowledgePointId: kp.id,
     subjectId: kp.subjectId,
     type: 'single_choice',
-    stem: `以下关于「${kp.name}」的说法是否正确？${kp.explanation.slice(0, 50)}...`,
+    stem: `以下关于「${kp.name}」的说法是否正确：${kp.explanation.slice(0, 50)}...`,
     options: [
       { id: 'A', text: '正确' },
       { id: 'B', text: '错误' },
@@ -55,7 +63,7 @@ function mockGenerateQuiz(knowledgePointIds: string[], knowledgePoints: Knowledg
       { id: 'D', text: '以上都不对' },
     ],
     correctAnswers: ['A'],
-    explanation: `${kp.name}：${kp.explanation}`,
+    explanation: `${kp.name}: ${kp.explanation}`,
   };
 }
 
@@ -76,6 +84,20 @@ function mockGetSmartEncouragement(stats: LearningStats, wrongCount: number, che
   return pick(ENCOURAGEMENT_RULES.find(r => r.condition === 'random')!.templates);
 }
 
+function masteryLevelFromKnowledgePoint(kp: KnowledgePoint): number {
+  const extended = kp as Partial<KnowledgePointExtended>;
+  if (typeof extended.currentScore === 'number' && Number.isFinite(extended.currentScore)) {
+    return Math.max(0, Math.min(100, Math.round(extended.currentScore)));
+  }
+  const values: Record<KnowledgePoint['proficiency'], number> = {
+    none: 0,
+    rusty: 35,
+    normal: 70,
+    master: 95,
+  };
+  return values[kp.proficiency];
+}
+
 export interface StreamingAskResult {
   stream: AsyncGenerator<string>;
   relatedKpIds: string[];
@@ -86,24 +108,30 @@ export async function askQuestionStreaming(
   knowledgePoints: KnowledgePoint[],
   history: ChatMessage[] = [],
   signal?: AbortSignal,
+  learningContext?: AILearningContext,
 ): Promise<StreamingAskResult> {
   const recentHistory = history
     .filter(m => m.role !== 'ai' || m.content.trim().length > 0)
     .slice(-MAX_CONTEXT_MESSAGES)
     .map(m => ({
       role: m.role === 'ai' ? 'assistant' : m.role,
-      content: m.content,
+      content: m.content.slice(0, 800),
     }));
   recentHistory.push({ role: 'user', content: query });
 
   if (await checkBackendAvailable()) {
+    const focus = learningContext?.focusKnowledgePoints.length
+      ? learningContext.focusKnowledgePoints
+      : knowledgePoints.slice(0, 6);
+
     return {
       stream: streamChat({
         messages: recentHistory,
-        knowledgeContext: knowledgePoints.slice(0, 20).map(kp => kp.name),
+        knowledgeContext: focus.map(kp => kp.name),
+        learningContext,
         signal,
       }),
-      relatedKpIds: findRelatedKpIds(query, knowledgePoints),
+      relatedKpIds: learningContext?.focusKnowledgePoints.map(kp => kp.id) || findRelatedKpIds(query, knowledgePoints),
     };
   }
 
@@ -124,29 +152,33 @@ export async function generateQuiz(
   knowledgePointIds: string[],
   knowledgePoints: KnowledgePoint[],
   existingQuestions: Question[],
+  learningContext?: AILearningContext,
 ): Promise<GenerateSmartQuizResult> {
   if (await checkBackendAvailable()) {
     try {
       const kps = knowledgePoints.filter(kp => knowledgePointIds.includes(kp.id));
+      const contextById = new Map(learningContext?.focusKnowledgePoints.map(kp => [kp.id, kp]));
       const result = await fetchQuiz({
         knowledgePoints: kps.map(kp => ({
           id: kp.id,
           name: kp.name,
-          masteryLevel: 1,
-          wrongCount: 0,
+          masteryLevel: contextById.get(kp.id)?.masteryLevel ?? masteryLevelFromKnowledgePoint(kp),
+          wrongCount: contextById.get(kp.id)?.wrongCount ?? 0,
           lastReviewedAt: kp.lastReviewedAt || '',
         })),
         knowledgePointNames: kps.map(kp => kp.name),
         subjectName: '',
         mode: 'smart',
+        learningContext,
       });
       if (result.question) {
+        const selectedKp = kps.find(kp => kp.name === result.selectedKnowledgePoint) || kps[0];
         return {
           question: {
             ...result.question,
             id: `ai-q-${Date.now()}`,
-            knowledgePointId: kps[0]?.id || '',
-            subjectId: kps[0]?.subjectId || '',
+            knowledgePointId: selectedKp?.id || '',
+            subjectId: selectedKp?.subjectId || '',
           },
           selectedKnowledgePoint: result.selectedKnowledgePoint,
           mode: 'smart',
@@ -170,6 +202,7 @@ export interface ExplainParams {
   correctAnswer: string[];
   knowledgePoint?: string;
   subjectName?: string;
+  learningContext?: AILearningContext;
 }
 
 export async function generateQuestionExplanation(params: ExplainParams): Promise<string> {
@@ -185,5 +218,5 @@ export async function generateQuestionExplanation(params: ExplainParams): Promis
   } catch {
     // Fallback below.
   }
-  return `正确答案是 ${params.correctAnswer.join('、')}。建议回顾相关知识点，再做一遍同类题。`;
+  return `正确答案是 ${params.correctAnswer.join('、')}。建议回顾相关知识点，再做一道同类题巩固。`;
 }

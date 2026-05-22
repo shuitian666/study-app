@@ -15,7 +15,7 @@ import {
   useInventoryItem,
 } from './account.js';
 import { sendVerificationEmail } from './mailer.js';
-import { CHAT_SYSTEM_PROMPT, QUIZ_SYSTEM_PROMPT, buildChatMessages } from './prompts.js';
+import { CHAT_SYSTEM_PROMPT, buildChatMessages, buildExplainMessages, buildQuizMessages } from './prompts.js';
 import { chatCompletion, extractContent, getAiConfigStatus } from './providers.js';
 import {
   clearSessionCookie,
@@ -322,8 +322,8 @@ function writeSse(res, payload) {
 }
 
 app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
-  const { messages = [], knowledgeContext } = req.body;
-  const fullMessages = buildChatMessages(CHAT_SYSTEM_PROMPT, knowledgeContext, messages);
+  const { messages = [], knowledgeContext, learningContext } = req.body;
+  const fullMessages = buildChatMessages(CHAT_SYSTEM_PROMPT, knowledgeContext, messages, learningContext);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -369,17 +369,23 @@ app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
 });
 
 app.post('/api/quiz', authOptional, aiLimiter, async (req, res) => {
-  const { knowledgePointNames = [], subjectName = '' } = req.body;
-  const messages = [
-    { role: 'system', content: QUIZ_SYSTEM_PROMPT },
-    { role: 'user', content: `Create one multiple-choice question for ${subjectName}. Knowledge points: ${knowledgePointNames.join(', ')}. Return JSON only.` },
-  ];
+  const { knowledgePointNames = [], knowledgePoints = [], subjectName = '', learningContext } = req.body;
+  const candidates = Array.isArray(knowledgePoints) && knowledgePoints.length > 0
+    ? knowledgePoints
+    : knowledgePointNames.map(name => ({ name }));
+  const messages = buildQuizMessages({ subjectName, knowledgePoints: candidates, learningContext });
 
   try {
     const response = await chatCompletion(req.user?.id, messages, { stream: false, temperature: 0.8 });
     const text = await extractContent(response);
     const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-    res.json({ question: JSON.parse(cleaned), mode: 'smart' });
+    const parsed = JSON.parse(cleaned);
+    const question = parsed.question || parsed;
+    const candidateNames = new Set(candidates.map(item => String(item.name || '')).filter(Boolean));
+    const selectedKnowledgePoint = candidateNames.has(parsed.selectedKnowledgePoint)
+      ? parsed.selectedKnowledgePoint
+      : candidates[0]?.name;
+    res.json({ question, selectedKnowledgePoint, mode: 'smart' });
   } catch (err) {
     console.error('Quiz error:', sanitizeError(err));
     res.json({ question: null, error: sanitizeError(err) });
@@ -387,11 +393,7 @@ app.post('/api/quiz', authOptional, aiLimiter, async (req, res) => {
 });
 
 app.post('/api/explain', authOptional, aiLimiter, async (req, res) => {
-  const { question, selectedAnswer, correctAnswer, knowledgePoint, subjectName } = req.body;
-  const messages = [
-    { role: 'system', content: 'You are a concise learning tutor. Explain the answer clearly.' },
-    { role: 'user', content: JSON.stringify({ subjectName, knowledgePoint, question, selectedAnswer, correctAnswer }) },
-  ];
+  const messages = buildExplainMessages(req.body || {});
 
   try {
     const response = await chatCompletion(req.user?.id, messages, { stream: false, temperature: 0.7 });

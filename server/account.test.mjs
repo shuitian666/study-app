@@ -29,6 +29,7 @@ const {
   importLearningBatch,
   patchLearningProgress,
 } = await import('./learning.js');
+const { updateAccountProfile } = await import('./account.js');
 const { setSessionCookie } = await import('./security.js');
 
 function clearDb() {
@@ -236,6 +237,27 @@ test('session cookie secure flag is opt-in for cross-site HTTPS deployments', ()
     if (originalSameSite === undefined) delete process.env.SESSION_COOKIE_SAMESITE;
     else process.env.SESSION_COOKIE_SAMESITE = originalSameSite;
   }
+});
+
+test('account profile persists learning profile with defaults and validation', () => {
+  const user = makeUser();
+
+  const state = updateAccountProfile(user.id, {
+    learningProfile: {
+      goals: ['exam_cram', 'weakness_fix', 'unknown', 'foundation'],
+      studyDirection: 'pharmacy',
+      explanationStyle: 'exam_oriented',
+      preferredDifficulty: 'challenge',
+      practicePreference: 'quiz_then_explain',
+      updatedAt: '2026-05-22T00:00:00.000Z',
+    },
+  });
+
+  assert.deepEqual(state.user.learningProfile.goals, ['exam_cram', 'weakness_fix', 'foundation']);
+  assert.equal(state.user.learningProfile.studyDirection, 'pharmacy');
+  assert.equal(state.user.learningProfile.explanationStyle, 'exam_oriented');
+  assert.equal(state.user.learningProfile.preferredDifficulty, 'challenge');
+  assert.equal(state.user.learningProfile.practicePreference, 'quiz_then_explain');
 });
 
 test('team lifecycle is persisted in sqlite', () => {

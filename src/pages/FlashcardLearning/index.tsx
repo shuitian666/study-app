@@ -717,21 +717,25 @@ export default function FlashcardLearningPage() {
         case '1':
         case 'a':
         case 'A':
+          if (!isFlipped) break;
           handleSelect('again');
           break;
         case '2':
         case 'h':
         case 'H':
+          if (!isFlipped) break;
           handleSelect('hard');
           break;
         case '3':
         case 'g':
         case 'G':
+          if (!isFlipped) break;
           handleSelect('good');
           break;
         case '4':
         case 'e':
         case 'E':
+          if (!isFlipped) break;
           if (currentKp && shouldShowEasy(knowledgePointToCardInput(currentKp))) {
             handleSelect('easy');
           }
@@ -747,7 +751,7 @@ export default function FlashcardLearningPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentKp, exitLearning, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, sessionMode, showQuizResult]);
+  }, [currentKp, exitLearning, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, isFlipped, sessionMode, showQuizResult]);
 
   const desktopStageClassName = 'relative mx-auto flex h-full w-full max-w-[1120px] items-stretch justify-center md:items-center';
   const desktopShellClassName = 'relative z-10 flex h-full w-full flex-col overflow-hidden md:max-h-full md:max-w-[480px] md:rounded-[32px] md:border md:shadow-[0_24px_80px_rgba(15,23,42,0.16)]';
@@ -1011,84 +1015,98 @@ export default function FlashcardLearningPage() {
                 </button>
               </div>
 
-              {/* Rating buttons - 4 buttons horizontal layout */}
+              {/* Rating buttons */}
               <div className="px-4 pb-6">
-                <div className="grid grid-cols-4 gap-2">
-                  {/* Again - 不会 */}
+                {!isFlipped ? (
                   <button
-                    onClick={() => handleSelect('again')}
-                    className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                    onClick={handleFlip}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
                     style={{
-                      backgroundColor: RATING_CONFIG.again.bgColor,
-                      color: RATING_CONFIG.again.textColor,
-                      borderColor: RATING_CONFIG.again.borderColor,
+                      backgroundColor: theme.primary,
+                      boxShadow: `0 14px 26px ${theme.primary}30`,
                     }}
                   >
-                    <div className="text-lg mb-0.5">{RATING_CONFIG.again.emoji}</div>
-                    <div className="text-xs font-medium">{RATING_CONFIG.again.label}</div>
-                    {againPreview && (
-                      <div className="text-[10px] mt-0.5 opacity-70">{againPreview.nextReviewText}</div>
-                    )}
+                    查看答案
+                    <ChevronRight size={18} />
                   </button>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2">
+                    {/* Again - 不会 */}
+                    <button
+                      onClick={() => handleSelect('again')}
+                      className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                      style={{
+                        backgroundColor: RATING_CONFIG.again.bgColor,
+                        color: RATING_CONFIG.again.textColor,
+                        borderColor: RATING_CONFIG.again.borderColor,
+                      }}
+                    >
+                      <div className="text-lg mb-0.5">{RATING_CONFIG.again.emoji}</div>
+                      <div className="text-xs font-medium">{RATING_CONFIG.again.label}</div>
+                      {againPreview && (
+                        <div className="text-[10px] mt-0.5 opacity-70">{againPreview.nextReviewText}</div>
+                      )}
+                    </button>
 
-                  {/* Hard - 困难 */}
-                  <button
-                    onClick={() => handleSelect('hard')}
-                    className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
-                    style={{
-                      backgroundColor: RATING_CONFIG.hard.bgColor,
-                      color: RATING_CONFIG.hard.textColor,
-                      borderColor: RATING_CONFIG.hard.borderColor,
-                    }}
-                  >
-                    <div className="text-lg mb-0.5">{RATING_CONFIG.hard.emoji}</div>
-                    <div className="text-xs font-medium">{RATING_CONFIG.hard.label}</div>
-                    {hardPreview && (
-                      <div className="text-[10px] mt-0.5 opacity-70">{hardPreview.nextReviewText}</div>
-                    )}
-                  </button>
+                    {/* Hard - 困难 */}
+                    <button
+                      onClick={() => handleSelect('hard')}
+                      className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                      style={{
+                        backgroundColor: RATING_CONFIG.hard.bgColor,
+                        color: RATING_CONFIG.hard.textColor,
+                        borderColor: RATING_CONFIG.hard.borderColor,
+                      }}
+                    >
+                      <div className="text-lg mb-0.5">{RATING_CONFIG.hard.emoji}</div>
+                      <div className="text-xs font-medium">{RATING_CONFIG.hard.label}</div>
+                      {hardPreview && (
+                        <div className="text-[10px] mt-0.5 opacity-70">{hardPreview.nextReviewText}</div>
+                      )}
+                    </button>
 
-                  {/* Good - 一般 */}
-                  <button
-                    onClick={() => handleSelect('good')}
-                    className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
-                    style={{
-                      backgroundColor: RATING_CONFIG.good.bgColor,
-                      color: RATING_CONFIG.good.textColor,
-                      borderColor: RATING_CONFIG.good.borderColor,
-                    }}
-                  >
-                    <div className="text-lg mb-0.5">{RATING_CONFIG.good.emoji}</div>
-                    <div className="text-xs font-medium">{RATING_CONFIG.good.label}</div>
-                    {goodPreview && (
-                      <div className="text-[10px] mt-0.5 opacity-70">{goodPreview.nextReviewText}</div>
-                    )}
-                  </button>
+                    {/* Good - 一般 */}
+                    <button
+                      onClick={() => handleSelect('good')}
+                      className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                      style={{
+                        backgroundColor: RATING_CONFIG.good.bgColor,
+                        color: RATING_CONFIG.good.textColor,
+                        borderColor: RATING_CONFIG.good.borderColor,
+                      }}
+                    >
+                      <div className="text-lg mb-0.5">{RATING_CONFIG.good.emoji}</div>
+                      <div className="text-xs font-medium">{RATING_CONFIG.good.label}</div>
+                      {goodPreview && (
+                        <div className="text-[10px] mt-0.5 opacity-70">{goodPreview.nextReviewText}</div>
+                      )}
+                    </button>
 
-                  {/* Easy - 简单 */}
-                  <button
-                    onClick={() => showEasy && handleSelect('easy')}
-                    className={`py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2 ${showEasy ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
-                      }`}
-                    style={{
-                      backgroundColor: RATING_CONFIG.easy.bgColor,
-                      color: RATING_CONFIG.easy.textColor,
-                      borderColor: RATING_CONFIG.easy.borderColor,
-                    }}
-                  >
-                    <div className="text-lg mb-0.5">{RATING_CONFIG.easy.emoji}</div>
-                    <div className="text-xs font-medium">{RATING_CONFIG.easy.label}</div>
-                    {showEasy && easyPreview && (
-                      <div className="text-[10px] mt-0.5 opacity-70">{easyPreview.nextReviewText}</div>
-                    )}
-                    {!showEasy && (
-                      <div className="text-[10px] mt-0.5 opacity-70">-</div>
-                    )}
-                  </button>
-                </div>
+                    {/* Easy - 简单 */}
+                    <button
+                      onClick={() => showEasy && handleSelect('easy')}
+                      className={`py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2 ${showEasy ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                        }`}
+                      style={{
+                        backgroundColor: RATING_CONFIG.easy.bgColor,
+                        color: RATING_CONFIG.easy.textColor,
+                        borderColor: RATING_CONFIG.easy.borderColor,
+                      }}
+                    >
+                      <div className="text-lg mb-0.5">{RATING_CONFIG.easy.emoji}</div>
+                      <div className="text-xs font-medium">{RATING_CONFIG.easy.label}</div>
+                      {showEasy && easyPreview && (
+                        <div className="text-[10px] mt-0.5 opacity-70">{easyPreview.nextReviewText}</div>
+                      )}
+                      {!showEasy && (
+                        <div className="text-[10px] mt-0.5 opacity-70">-</div>
+                      )}
+                    </button>
+                  </div>
+                )}
 
                 {/* Relearning 状态提示 */}
-                {currentPreview && (currentPreview[Rating.Again]?.isRelearning || currentPreview[Rating.Hard]?.isRelearning) && (
+                {isFlipped && currentPreview && (currentPreview[Rating.Again]?.isRelearning || currentPreview[Rating.Hard]?.isRelearning) && (
                   <div className="mt-2 text-xs text-center py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                     🔄 进入重新学习模式
                   </div>
@@ -1096,7 +1114,7 @@ export default function FlashcardLearningPage() {
 
                 {/* Keyboard hints */}
                 <div className="flex justify-center gap-4 mt-3 text-xs" style={{ color: theme.textMuted }}>
-                  <span>1/2/3/4</span>
+                  {isFlipped && <span>1/2/3/4</span>}
                   <span>空格翻转</span>
                 </div>
               </div>

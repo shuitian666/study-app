@@ -1,4 +1,4 @@
-import type { AIConfig, CheckinState, DrawBalance, InventoryItem, LotteryResult, Question, UpPoolResult, User } from '@/types';
+import type { AIConfig, AILearningContext, CheckinState, DrawBalance, InventoryItem, LotteryResult, Question, UpPoolResult, User } from '@/types';
 
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
 export const API_BASE = configuredApiBase || '/api';
@@ -203,6 +203,7 @@ export async function saveAIConfig(config: {
 export async function* streamChat(params: {
   messages: { role: string; content: string }[];
   knowledgeContext?: string[];
+  learningContext?: AILearningContext;
   signal?: AbortSignal;
 }): AsyncGenerator<string> {
   const { signal, ...body } = params;
@@ -257,6 +258,7 @@ export async function fetchQuiz(params: {
   knowledgePoints?: Array<{ id: string; name: string; masteryLevel: number; wrongCount: number; lastReviewedAt: string }>;
   subjectName: string;
   mode?: 'random' | 'smart';
+  learningContext?: AILearningContext;
 }): Promise<{ question: Question | null; selectedKnowledgePoint?: string; mode: 'random' | 'smart' }> {
   const res = await fetch(`${API_BASE}/quiz`, {
     method: 'POST',

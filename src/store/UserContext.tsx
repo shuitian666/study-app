@@ -20,6 +20,7 @@ import {
   normalizeBackgroundUser,
 } from '@/data/backgroundCatalog';
 import { mergeInventoryItem } from '@/utils/rewardGranting';
+import { normalizeLearningProfile } from '@/utils/aiLearningContext';
 import type { AuthPayload } from '@/services/aiClient';
 
 const THEME_STYLE_KEY = 'study-app:theme-style';
@@ -39,6 +40,7 @@ function normalizeUser(user: User): User {
     totalPoints: Number.isFinite(user.totalPoints) ? user.totalPoints : 0,
     bonusExperience: Number.isFinite(user.bonusExperience) ? user.bonusExperience : 0,
     experienceLedger: Array.isArray(user.experienceLedger) ? user.experienceLedger : [],
+    learningProfile: normalizeLearningProfile(user.learningProfile),
   };
 }
 

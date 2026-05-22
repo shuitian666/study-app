@@ -64,10 +64,11 @@ export default function LoginPage() {
   };
 
   const features = [
-    { icon: 'AI', text: '服务端 AI 代理，平台密钥不进前端' },
-    { icon: 'KEY', text: '支持用户自定义 OpenAI 兼容 API' },
-    { icon: 'DB', text: '账号、资产和 AI 配置存服务器' },
+    { icon: '1', text: '选择医考、药考、护考或英语词汇方向' },
+    { icon: '2', text: '一键领取推荐内容包，直接进入第一张卡' },
+    { icon: '3', text: '根据 FSRS 自动安排今日复习' },
   ];
+  const directionTags = ['医考', '药考', '护考', '英语词汇'];
 
   return (
     <div className="min-h-screen overflow-y-auto px-6 py-10" style={getAdaptivePageBackground(theme)}>
@@ -87,8 +88,23 @@ export default function LoginPage() {
           <h1 className="mb-2 text-3xl font-bold" style={{ color: theme.textPrimary }}>智学助手</h1>
           <p className="flex items-center gap-1.5 text-base" style={{ color: theme.textSecondary }}>
             <Sparkles size={16} style={{ color: theme.primary }} />
-            <span>登录后同步你的账号资产和 AI 配置</span>
+            <span>领取内容包，马上开始第一张卡</span>
           </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {directionTags.map(tag => (
+              <span
+                key={tag}
+                className="rounded-full border px-3 py-1 text-xs font-semibold"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: `${theme.primary}10`,
+                  color: theme.primary,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="mb-6 w-full space-y-3">

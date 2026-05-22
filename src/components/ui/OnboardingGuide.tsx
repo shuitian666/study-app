@@ -1,5 +1,5 @@
-﻿import { useState } from 'react';
-import { ArrowRight, BookOpen, CalendarCheck, CheckCircle2, ChevronLeft, Medal, Trophy } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, Bell, BookOpen, CheckCircle2, ChevronLeft, Download, Target } from 'lucide-react';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
 import type { KnowledgeSubject } from '@/services/ossService';
@@ -12,25 +12,24 @@ interface OnboardingGuideProps {
   onClaimPackage?: (subjectId: string) => void | Promise<void>;
   onEnableReminder?: () => void | Promise<void>;
   onSetDailyGoal?: (goal: number) => void;
+  onSetStudyDirection?: (direction: DirectionId) => void;
 }
 
-const STUDY_GOALS = [
-  { id: 'medical', emoji: '🩺', label: '医学考试', sub: '执医 · 护士 · 药师' },
-  { id: 'english', emoji: '📖', label: '语言学习', sub: '四六级 · 雅思 · 托福' },
-  { id: 'tech', emoji: '💻', label: '技术学习', sub: 'JS · Python · 算法' },
-  { id: 'exam', emoji: '🎓', label: '升学考试', sub: '考研 · 高考 · 公考' },
-  { id: 'other', emoji: '✨', label: '自由学习', sub: '什么都能学' },
+type DirectionId = 'medical' | 'pharmacy' | 'nursing' | 'english';
+
+const STUDY_DIRECTIONS: Array<{
+  id: DirectionId;
+  label: string;
+  description: string;
+}> = [
+  { id: 'medical', label: '医考', description: '执医、医学基础、微免复习' },
+  { id: 'pharmacy', label: '药考', description: '药学、分析化学、仪器分析' },
+  { id: 'nursing', label: '护考', description: '护理考试、基础知识巩固' },
+  { id: 'english', label: '英语词汇', description: '考研、六级、固定搭配' },
 ];
 
-const STEP_ACCENTS = ['#4f46e5', '#4338ca', '#0891b2', '#7c3aed', '#059669'];
-
-// 悬浮球菜单项（模拟展示用，角度从右侧扇形展开）
-// 角度从 180°~270° 之间，cos 为负（向左偏），sin 从 0 到 -1（向上偏），结果始终在容器内
-const FAB_MENU_ITEMS = [
-  { id: 'checkin', Icon: CalendarCheck, color: '#10b981', label: '签到', angleDeg: 180 },
-  { id: 'achievement', Icon: Trophy, color: '#f59e0b', label: '成就', angleDeg: 225 },
-  { id: 'ranking', Icon: Medal, color: '#ef4444', label: '排行', angleDeg: 270 },
-] as const;
+const DAILY_GOALS = [5, 10, 20];
+const ACTIVE_GREEN = '#6fa463';
 
 export default function OnboardingGuide({ open, ...props }: OnboardingGuideProps) {
   if (!open) return null;
@@ -40,6 +39,134 @@ export default function OnboardingGuide({ open, ...props }: OnboardingGuideProps
 
 type OnboardingGuideContentProps = Omit<OnboardingGuideProps, 'open'>;
 
+interface StepShellProps {
+  step: number;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onBack?: () => void;
+  onClose: () => void;
+}
+
+function StepShell({ step, title, description, icon, children, onBack, onClose }: StepShellProps) {
+  const { theme } = useTheme();
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 px-5 py-8 backdrop-blur-sm">
+      <div
+        className="max-h-[min(760px,calc(100vh-48px))] w-full max-w-[398px] overflow-y-auto rounded-[24px] border shadow-[0_24px_70px_rgba(15,23,42,0.22)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ backgroundColor: theme.bgCard || '#ffffff', borderColor: theme.border || '#e5e7eb' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="px-5 pb-5 pt-4">
+          <div className="mb-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={!onBack}
+              className="flex h-9 w-9 items-center justify-center rounded-full border transition-opacity disabled:invisible"
+              style={{ borderColor: theme.border || '#e5e7eb', color: theme.textSecondary }}
+              aria-label="返回上一步"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <ProgressDots current={step} />
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full px-3 py-1.5 text-xs font-semibold"
+              style={{ backgroundColor: `${ACTIVE_GREEN}12`, color: ACTIVE_GREEN }}
+            >
+              稍后再说
+            </button>
+          </div>
+
+          <div className="mb-5 flex items-start gap-3">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: `${ACTIVE_GREEN}14`, color: ACTIVE_GREEN }}
+            >
+              {icon}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-[22px] font-extrabold leading-tight" style={{ color: theme.textPrimary }}>
+                {title}
+              </h2>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                {description}
+              </p>
+            </div>
+          </div>
+
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgressDots({ current }: { current: number }) {
+  return (
+    <div className="flex items-center gap-1.5" aria-label={`第 ${current + 1} 步，共 4 步`}>
+      {[0, 1, 2, 3].map(index => (
+        <span
+          key={index}
+          className="h-1.5 rounded-full transition-all"
+          style={{
+            width: index === current ? 24 : 7,
+            backgroundColor: index <= current ? ACTIVE_GREEN : '#dbe4d5',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface OptionButtonProps {
+  selected: boolean;
+  title: string;
+  description: string;
+  onClick: () => void;
+}
+
+function OptionButton({ selected, title, description, onClick }: OptionButtonProps) {
+  const { theme } = useTheme();
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[92px] items-start gap-3 rounded-2xl border p-3.5 text-left transition-transform active:scale-[0.98]"
+      style={{
+        borderColor: selected ? ACTIVE_GREEN : theme.border || '#e5e7eb',
+        backgroundColor: selected ? `${ACTIVE_GREEN}10` : theme.bg || '#ffffff',
+      }}
+    >
+      <span
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+        style={{
+          borderColor: selected ? ACTIVE_GREEN : theme.border || '#d1d5db',
+          backgroundColor: selected ? ACTIVE_GREEN : 'transparent',
+          color: '#ffffff',
+        }}
+      >
+        {selected && <CheckCircle2 size={14} />}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-bold" style={{ color: theme.textPrimary }}>
+          {title}
+        </span>
+        <span className="mt-1 block text-xs leading-5" style={{ color: theme.textSecondary }}>
+          {description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function OnboardingGuideContent({
   onClose,
   recommendedPackage,
@@ -47,498 +174,241 @@ function OnboardingGuideContent({
   onClaimPackage,
   onEnableReminder,
   onSetDailyGoal,
+  onSetStudyDirection,
 }: OnboardingGuideContentProps) {
   const { theme } = useTheme();
   const { navigate } = useUser();
   const [step, setStep] = useState(0);
-  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [selectedDirection, setSelectedDirection] = useState<DirectionId>('medical');
   const [dailyGoal, setDailyGoal] = useState(10);
-  const [cardFlipped, setCardFlipped] = useState(false);
-  const [cardRated, setCardRated] = useState(false);
-  const [fabMode, setFabMode] = useState<'idle' | 'tap' | 'hold'>('idle');
+  const selectedDirectionLabel = STUDY_DIRECTIONS.find(item => item.id === selectedDirection)?.label || '医考';
 
-  const goalObj = STUDY_GOALS.find(g => g.id === selectedGoal);
+  const applyDailyGoal = (goal: number) => {
+    setDailyGoal(goal);
+    onSetDailyGoal?.(goal);
+  };
 
-  const stepDots = (current: number) => (
-    <div className="flex items-center justify-center gap-1.5 py-4">
-      {STEP_ACCENTS.map((accent, i) => (
-        <div
-          key={i}
-          className="rounded-full transition-all duration-300"
-          style={{
-            width: i === current ? 24 : 8,
-            height: 8,
-            backgroundColor: i === current ? accent : (theme.border || '#e2e8f0'),
-          }}
-        />
-      ))}
-    </div>
-  );
+  const startLearning = () => {
+    onSetDailyGoal?.(dailyGoal);
+    if (recommendedPackage && onClaimPackage) {
+      void onClaimPackage(recommendedPackage.id);
+      onClose();
+      return;
+    }
+    onClose();
+    navigate('knowledge');
+  };
 
-  // Step 0: 欢迎
   if (step === 0) {
     return (
-      <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 backdrop-blur-md">
-        <div
-          className="w-full max-w-[430px] overflow-hidden rounded-t-[32px]"
-          style={{ background: 'linear-gradient(160deg, #4f46e5 0%, #7c3aed 100%)' }}
-        >
-          <div className="flex justify-end px-5 pt-5">
-            <button
-              onClick={onClose}
-              className="rounded-full px-3 py-1 text-sm font-medium text-white/60 transition-colors hover:bg-white/10"
-            >
-              跳过
-            </button>
-          </div>
-          <div className="flex flex-col items-center px-6 pb-8 pt-2">
-            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] bg-white/15 text-6xl shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
-              📚
-            </div>
-            <h1 className="text-center text-[32px] font-extrabold leading-tight text-white">
-              嗨，欢迎来到<br />智学助手！
-            </h1>
-            <p className="mt-3 text-center text-base leading-7 text-white/75">
-              用科学方法帮你记得更牢<br />花 30 秒亲自试一试
-            </p>
-            <button
-              onClick={() => setStep(1)}
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-base font-bold transition-transform active:scale-[0.98]"
-              style={{ color: '#4f46e5', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
-            >
-              先认识悬浮球
-              <ArrowRight size={18} />
-            </button>
-            <button
-              onClick={onClose}
-              className="mt-3 w-full py-3.5 text-sm font-medium text-white/50"
-            >
-              我已经熟悉了，直接进入
-            </button>
-          </div>
+      <StepShell
+        step={0}
+        title="先选一个方向"
+        description="我们会用它帮你从推荐内容包开始，而不是让你先找导入入口。"
+        icon={<BookOpen size={24} />}
+        onClose={onClose}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {STUDY_DIRECTIONS.map(direction => (
+            <OptionButton
+              key={direction.id}
+              selected={selectedDirection === direction.id}
+              title={direction.label}
+              description={direction.description}
+              onClick={() => setSelectedDirection(direction.id)}
+            />
+          ))}
         </div>
-      </div>
+        <button
+          type="button"
+          onClick={() => {
+            onSetStudyDirection?.(selectedDirection);
+            setStep(1);
+          }}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
+          style={{ backgroundColor: ACTIVE_GREEN, boxShadow: `0 12px 28px ${ACTIVE_GREEN}33` }}
+        >
+          下一步
+          <ArrowRight size={18} />
+        </button>
+      </StepShell>
     );
   }
 
-  // Step 1: 悬浮球 demo
   if (step === 1) {
-    const showMenu = fabMode === 'hold';
-    // 半径 72px，菜单从右侧向左扇形展开（180°~270°）
-    const radius = 72;
     return (
-      <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 backdrop-blur-md">
-        <div
-          className="w-full max-w-[430px] overflow-hidden rounded-t-[32px]"
-          style={{ backgroundColor: theme.bgCard || '#ffffff' }}
-        >
-          <div
-            className="px-5 pb-5 pt-6"
-            style={{ background: 'linear-gradient(160deg, #4338ca 0%, #6366f1 100%)' }}
-          >
-            <button
-              onClick={() => setStep(0)}
-              className="mb-4 flex items-center gap-1 text-sm text-white/70"
-            >
-              <ChevronLeft size={16} />返回
-            </button>
-            <h2 className="text-2xl font-extrabold text-white">先认识悬浮球</h2>
-            <p className="mt-1 text-sm text-white/75">右下角那个圆按钮，有两个玩法</p>
-          </div>
-          <div className="px-5 pb-6">
-            {stepDots(1)}
-
-            {/* Demo 区域：固定高度，FAB 锚定在右下角，菜单项在其左上方扇出 */}
-            <div
-              className="relative mb-4 overflow-hidden rounded-[24px]"
-              style={{
-                height: 200,
-                background: 'linear-gradient(180deg, #eef2ff 0%, #f8fafc 100%)',
-                border: `1.5px solid ${theme.border || '#e2e8f0'}`,
-              }}
-            >
-              {/* 说明文字 */}
-              <div className="absolute left-4 top-4 right-20">
-                <p className="text-xs font-bold" style={{ color: theme.textPrimary }}>
-                  {fabMode === 'idle' && '点下方按钮体验两种操作'}
-                  {fabMode === 'tap' && '轻点 → 直接开始学习'}
-                  {fabMode === 'hold' && '长按 → 展开快捷菜单'}
-                </p>
-                {fabMode !== 'idle' && (
-                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
-                    {fabMode === 'tap' && '最快进入今天的学习主流程。'}
-                    {fabMode === 'hold' && '从菜单里去签到、成就和排行。'}
-                  </p>
-                )}
-              </div>
-
-              {/* 菜单项：从 FAB 右下角（bottom:16 right:16）向左上扇出 */}
-              {showMenu && FAB_MENU_ITEMS.map(item => {
-                const rad = (item.angleDeg * Math.PI) / 180;
-                // cos(180~270) 均为负（向左），sin(180~270) 均为负（向上），结果始终在 FAB 的左上方
-                const dx = Math.cos(rad) * radius; // 负值 → 向左
-                const dy = Math.sin(rad) * radius; // 负值 → 向上
-                return (
-                  <div
-                    key={item.id}
-                    className="absolute flex flex-col items-center gap-0.5 transition-all duration-300"
-                    style={{
-                      // FAB 中心在 bottom:16+32=48, right:16+32=48
-                      right: 16 + 32 - dx - 20, // 减去icon宽度的一半(20)以居中
-                      bottom: 16 + 32 - dy - 20,
-                    }}
-                  >
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg"
-                      style={{ color: item.color }}
-                    >
-                      <item.Icon size={18} />
-                    </div>
-                    <span className="text-[10px] font-medium" style={{ color: theme.textSecondary }}>
-                      {item.label}
-                    </span>
-                  </div>
-                );
-              })}
-
-              {/* FAB 本体 */}
-              <div
-                className="absolute bottom-4 right-4 flex h-16 w-16 items-center justify-center rounded-full text-white transition-all duration-300"
+      <StepShell
+        step={1}
+        title="设一个轻目标"
+        description="先从容易坚持的数量开始，后面可以随时调整。"
+        icon={<Target size={24} />}
+        onBack={() => setStep(0)}
+        onClose={onClose}
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {DAILY_GOALS.map(goal => {
+            const selected = dailyGoal === goal;
+            return (
+              <button
+                key={goal}
+                type="button"
+                onClick={() => applyDailyGoal(goal)}
+                className="rounded-2xl border py-4 text-center transition-transform active:scale-[0.98]"
                 style={{
-                  background: '#4f46e5',
-                  transform: fabMode === 'tap' ? 'scale(0.92)' : fabMode === 'hold' ? 'scale(1.05)' : 'scale(1)',
-                  boxShadow: fabMode === 'hold'
-                    ? '0 16px 36px rgba(79,70,229,0.4), 0 0 0 12px rgba(79,70,229,0.12)'
-                    : '0 12px 28px rgba(79,70,229,0.35)',
+                  borderColor: selected ? ACTIVE_GREEN : theme.border || '#e5e7eb',
+                  backgroundColor: selected ? `${ACTIVE_GREEN}12` : theme.bg || '#ffffff',
                 }}
               >
-                <BookOpen size={26} strokeWidth={2.2} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setFabMode('tap')}
-                className="rounded-2xl py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: fabMode === 'tap' ? '#4f46e5' : '#4f46e520', color: fabMode === 'tap' ? '#fff' : '#4f46e5' }}
-              >
-                轻点
+                <span className="block text-2xl font-extrabold" style={{ color: selected ? ACTIVE_GREEN : theme.textPrimary }}>
+                  {goal}
+                </span>
+                <span className="mt-1 block text-xs" style={{ color: theme.textSecondary }}>
+                  张/天
+                </span>
               </button>
-              <button
-                onClick={() => setFabMode('hold')}
-                className="rounded-2xl py-3 text-sm font-bold transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: fabMode === 'hold' ? '#4338ca' : '#4338ca15', color: fabMode === 'hold' ? '#fff' : '#4338ca' }}
-              >
-                长按
-              </button>
-            </div>
-
-            <button
-              onClick={() => { setFabMode('idle'); setStep(2); }}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
-              style={{ backgroundColor: '#4338ca' }}
-            >
-              看懂了，继续
-              <ArrowRight size={18} />
-            </button>
-          </div>
+            );
+          })}
         </div>
-      </div>
+        <div
+          className="mt-4 rounded-2xl px-4 py-3 text-sm leading-6"
+          style={{ backgroundColor: `${ACTIVE_GREEN}10`, color: theme.textSecondary }}
+        >
+          推荐先选 10 张：足够形成节奏，也不会让第一天太重。
+        </div>
+        <button
+          type="button"
+          onClick={() => setStep(2)}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
+          style={{ backgroundColor: ACTIVE_GREEN, boxShadow: `0 12px 28px ${ACTIVE_GREEN}33` }}
+        >
+          继续
+          <ArrowRight size={18} />
+        </button>
+      </StepShell>
     );
   }
 
-  // Step 2: 互动闪卡 demo
   if (step === 2) {
     return (
-      <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 backdrop-blur-md">
-        <div
-          className="w-full max-w-[430px] overflow-hidden rounded-t-[32px]"
-          style={{ backgroundColor: theme.bgCard || '#ffffff' }}
-        >
-          <div
-            className="px-5 pb-5 pt-6"
-            style={{ background: 'linear-gradient(160deg, #0891b2 0%, #0369a1 100%)' }}
-          >
-            <button
-              onClick={() => setStep(1)}
-              className="mb-4 flex items-center gap-1 text-sm text-white/70"
-            >
-              <ChevronLeft size={16} />返回
-            </button>
-            <h2 className="text-2xl font-extrabold text-white">来，亲自试一次</h2>
-            <p className="mt-1 text-sm text-white/75">这就是你每天会做的事</p>
-          </div>
-          <div className="px-5 pb-6">
-            {stepDots(2)}
-
-            <div
-              className="mb-4 flex min-h-[130px] flex-col items-center justify-center rounded-3xl p-5 text-center transition-all duration-300"
-              style={{
-                background: cardFlipped
-                  ? 'linear-gradient(135deg, #0891b208, #0891b215)'
-                  : 'linear-gradient(135deg, #4f46e508, #7c3aed15)',
-                border: `2px solid ${cardFlipped ? '#0891b230' : '#7c3aed30'}`,
-              }}
-            >
-              {!cardFlipped ? (
-                <>
-                  <div className="mb-3 text-3xl">🤔</div>
-                  <p className="text-base font-bold" style={{ color: theme.textPrimary }}>
-                    间隔重复是什么？
-                  </p>
-                  <p className="mt-2 text-xs" style={{ color: theme.textSecondary }}>点下方查看答案</p>
-                </>
-              ) : (
-                <>
-                  <div className="mb-3 text-3xl">💡</div>
-                  <p className="text-base font-bold" style={{ color: theme.textPrimary }}>
-                    在快要忘记之前复习
-                  </p>
-                  <p className="mt-1.5 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                    间隔越来越长，记忆越来越牢
-                  </p>
-                </>
-              )}
-            </div>
-
-            {!cardFlipped ? (
-              <button
-                onClick={() => setCardFlipped(true)}
-                className="w-full rounded-2xl py-3.5 text-base font-bold text-white transition-transform active:scale-[0.98]"
-                style={{ backgroundColor: '#7c3aed' }}
-              >
-                查看答案
-              </button>
-            ) : !cardRated ? (
-              <>
-                <p className="mb-3 text-center text-sm font-medium" style={{ color: theme.textSecondary }}>
-                  你记住了多少？
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { label: '忘了', color: '#ef4444', bg: '#ef444410' },
-                    { label: '模糊', color: '#f97316', bg: '#f9731610' },
-                    { label: '记得', color: '#0891b2', bg: '#0891b210' },
-                    { label: '很熟', color: '#059669', bg: '#05966910' },
-                  ].map(btn => (
-                    <button
-                      key={btn.label}
-                      onClick={() => setCardRated(true)}
-                      className="rounded-2xl py-3 text-sm font-bold transition-transform active:scale-[0.97]"
-                      style={{ color: btn.color, backgroundColor: btn.bg, border: `1.5px solid ${btn.color}40` }}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="text-center">
-                <div className="mb-2 text-4xl">✅</div>
-                <p className="text-base font-bold" style={{ color: theme.textPrimary }}>就是这么简单！</p>
-                <p className="mb-5 mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
-                  系统会根据你的评分，自动安排下次复习
-                </p>
-                <button
-                  onClick={() => {
-                    setCardFlipped(false);
-                    setCardRated(false);
-                    setStep(3);
-                  }}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
-                  style={{ backgroundColor: '#0891b2' }}
-                >
-                  明白了，继续
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 3: 选择方向
-  if (step === 3) {
-    return (
-      <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 backdrop-blur-md">
-        <div
-          className="w-full max-w-[430px] overflow-hidden rounded-t-[32px]"
-          style={{ backgroundColor: theme.bgCard || '#ffffff' }}
-        >
-          <div
-            className="px-5 pb-5 pt-6"
-            style={{ background: 'linear-gradient(160deg, #7c3aed 0%, #6d28d9 100%)' }}
-          >
-            <button
-              onClick={() => setStep(2)}
-              className="mb-4 flex items-center gap-1 text-sm text-white/70"
-            >
-              <ChevronLeft size={16} />返回
-            </button>
-            <div className="mb-3 text-4xl">🎯</div>
-            <h2 className="text-2xl font-extrabold text-white">你主要想学什么？</h2>
-            <p className="mt-1 text-sm text-white/75">帮助我们给你更合适的建议</p>
-          </div>
-          <div className="px-5 pb-6">
-            {stepDots(3)}
-            <div className="grid grid-cols-2 gap-3">
-              {STUDY_GOALS.slice(0, 4).map(goal => {
-                const isSelected = selectedGoal === goal.id;
-                return (
-                  <button
-                    key={goal.id}
-                    onClick={() => setSelectedGoal(isSelected ? null : goal.id)}
-                    className="rounded-2xl border-2 p-4 text-left transition-all active:scale-[0.97]"
-                    style={{
-                      borderColor: isSelected ? '#7c3aed' : (theme.border || '#e2e8f0'),
-                      backgroundColor: isSelected ? '#7c3aed10' : 'transparent',
-                    }}
-                  >
-                    <div className="text-2xl">{goal.emoji}</div>
-                    <div className="mt-2 text-sm font-bold" style={{ color: theme.textPrimary }}>{goal.label}</div>
-                    <div className="mt-0.5 text-xs" style={{ color: theme.textSecondary }}>{goal.sub}</div>
-                    {isSelected && (
-                      <div className="mt-2">
-                        <CheckCircle2 size={16} style={{ color: '#7c3aed' }} />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {(() => {
-              const last = STUDY_GOALS[4];
-              const isSelected = selectedGoal === last.id;
-              return (
-                <button
-                  onClick={() => setSelectedGoal(isSelected ? null : last.id)}
-                  className="mt-3 flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all active:scale-[0.98]"
-                  style={{
-                    borderColor: isSelected ? '#7c3aed' : (theme.border || '#e2e8f0'),
-                    backgroundColor: isSelected ? '#7c3aed10' : 'transparent',
-                  }}
-                >
-                  <span className="text-2xl">{last.emoji}</span>
-                  <div className="flex-1">
-                    <div className="text-sm font-bold" style={{ color: theme.textPrimary }}>{last.label}</div>
-                    <div className="text-xs" style={{ color: theme.textSecondary }}>{last.sub}</div>
-                  </div>
-                  {isSelected && <CheckCircle2 size={16} style={{ color: '#7c3aed' }} />}
-                </button>
-              );
-            })()}
-            <button
-              onClick={() => setStep(4)}
-              disabled={!selectedGoal}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ backgroundColor: '#7c3aed' }}
-            >
-              选好了！
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 4: 出发
-  return (
-    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 backdrop-blur-md">
-      <div
-        className="w-full max-w-[430px] overflow-hidden rounded-t-[32px]"
-        style={{ backgroundColor: theme.bgCard || '#ffffff' }}
+      <StepShell
+        step={2}
+        title="领取推荐内容"
+        description={`已按「${selectedDirectionLabel}」准备好第一组学习内容。`}
+        icon={<Download size={24} />}
+        onBack={() => setStep(1)}
+        onClose={onClose}
       >
         <div
-          className="px-5 pb-6 pt-6 text-center"
-          style={{ background: 'linear-gradient(160deg, #059669 0%, #0891b2 100%)' }}
+          className="rounded-2xl border p-4"
+          style={{ borderColor: `${ACTIVE_GREEN}33`, backgroundColor: `${ACTIVE_GREEN}0f` }}
         >
-          <div className="mb-4 text-5xl">🎉</div>
-          <h2 className="text-2xl font-extrabold text-white">准备好了！</h2>
-          <p className="mt-2 text-sm leading-6 text-white/80">
-            {goalObj ? `你选择了「${goalObj.label}」方向` : '你的学习空间已就绪'}
-            <br />先领取一个内容包，马上开始第一张卡
-          </p>
-        </div>
-        <div className="px-5 pb-8">
-          {stepDots(4)}
-          <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: '#0891b210', border: '1px solid #0891b225' }}>
-            <p className="text-sm font-bold" style={{ color: theme.textPrimary }}>每日目标</p>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {[5, 10, 20].map(goal => (
-                <button
-                  key={goal}
-                  onClick={() => {
-                    setDailyGoal(goal);
-                    onSetDailyGoal?.(goal);
-                  }}
-                  className="rounded-2xl py-2.5 text-sm font-bold"
-                  style={{
-                    backgroundColor: dailyGoal === goal ? '#0891b2' : '#ffffff',
-                    color: dailyGoal === goal ? '#ffffff' : theme.textPrimary,
-                    border: `1px solid ${dailyGoal === goal ? '#0891b2' : theme.border}`,
-                  }}
-                >
-                  {goal} 张
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-3">
-            {[
-              { emoji: '📥', title: '领取内容包', sub: '推荐包会自动加入你的学习库' },
-              { emoji: '🃏', title: '每天刷卡', sub: '首页点「开始学习」，几分钟搞定' },
-              { emoji: '⏰', title: '坚持打开', sub: '系统会在最佳时机提醒你复习' },
-            ].map(tip => (
-              <div
-                key={tip.title}
-                className="flex items-center gap-4 rounded-2xl p-4"
-                style={{ backgroundColor: '#05966910', border: '1px solid #05966925' }}
-              >
-                <span className="shrink-0 text-2xl">{tip.emoji}</span>
-                <div>
-                  <p className="text-sm font-bold" style={{ color: theme.textPrimary }}>{tip.title}</p>
-                  <p className="mt-0.5 text-xs leading-5" style={{ color: theme.textSecondary }}>{tip.sub}</p>
+          {recommendedPackage ? (
+            <>
+              <div className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl">
+                  {recommendedPackage.icon || '📚'}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-base font-extrabold" style={{ color: theme.textPrimary }}>
+                    {recommendedPackage.name}
+                  </p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+                    {recommendedPackage.description || '适合作为第一组学习内容。'}
+                  </p>
                 </div>
               </div>
-            ))}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-white/80 px-3 py-2">
+                  <p className="text-lg font-extrabold" style={{ color: ACTIVE_GREEN }}>
+                    {recommendedPackage.kpCount ?? 0}
+                  </p>
+                  <p className="text-xs" style={{ color: theme.textSecondary }}>知识卡</p>
+                </div>
+                <div className="rounded-xl bg-white/80 px-3 py-2">
+                  <p className="text-lg font-extrabold" style={{ color: ACTIVE_GREEN }}>
+                    {recommendedPackage.qCount ?? 0}
+                  </p>
+                  <p className="text-xs" style={{ color: theme.textSecondary }}>练习题</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center">
+              <div className="mb-2 text-3xl">📚</div>
+              <p className="text-base font-bold" style={{ color: theme.textPrimary }}>还没有可领取的推荐包</p>
+              <p className="mt-1 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                可以先去知识库看看已有内容。
+              </p>
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={startLearning}
+          disabled={isClaimingPackage}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
+          style={{ backgroundColor: ACTIVE_GREEN, boxShadow: `0 12px 28px ${ACTIVE_GREEN}33` }}
+        >
+          {recommendedPackage ? '领取并开始' : '去知识库看看'}
+          <ArrowRight size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setStep(3)}
+          className="mt-3 w-full rounded-2xl py-3 text-sm font-semibold"
+          style={{ color: ACTIVE_GREEN, backgroundColor: `${ACTIVE_GREEN}12` }}
+        >
+          先设置提醒
+        </button>
+      </StepShell>
+    );
+  }
+
+  return (
+    <StepShell
+      step={3}
+      title="要不要开启提醒？"
+      description="轻提醒只在本机浏览器生效，后面可以在设置里改。"
+      icon={<Bell size={24} />}
+      onBack={() => setStep(2)}
+      onClose={onClose}
+    >
+      <div
+        className="rounded-2xl border px-4 py-4"
+        style={{ borderColor: theme.border || '#e5e7eb', backgroundColor: theme.bg || '#ffffff' }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+            <Bell size={19} />
+          </span>
+          <div>
+            <p className="text-sm font-bold" style={{ color: theme.textPrimary }}>晚上提醒你清掉到期卡片</p>
+            <p className="mt-1 text-xs leading-5" style={{ color: theme.textSecondary }}>
+              不做服务端推送，只用浏览器通知。
+            </p>
           </div>
-          <button
-            onClick={() => {
-              onSetDailyGoal?.(dailyGoal);
-              if (recommendedPackage && onClaimPackage) {
-                void onClaimPackage(recommendedPackage.id);
-                onClose();
-                return;
-              }
-              onClose();
-              navigate('knowledge');
-            }}
-            disabled={isClaimingPackage}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
-            style={{ backgroundColor: '#059669', boxShadow: '0 8px 24px rgba(5,150,105,0.3)' }}
-          >
-            {recommendedPackage ? `领取「${recommendedPackage.name}」并开始` : '去添加第一条知识'}
-            <ArrowRight size={18} />
-          </button>
-          <button
-            onClick={() => { void onEnableReminder?.(); }}
-            className="mt-3 w-full rounded-2xl py-3.5 text-sm font-bold"
-            style={{ color: '#059669', backgroundColor: '#05966912' }}
-          >
-            开启复习提醒
-          </button>
-          <button
-            onClick={onClose}
-            className="mt-3 w-full rounded-2xl py-3.5 text-sm font-medium"
-            style={{ color: theme.textSecondary, backgroundColor: `${theme.border || '#e2e8f0'}66` }}
-          >
-            先逛一逛
-          </button>
         </div>
       </div>
-    </div>
+      <button
+        type="button"
+        onClick={() => {
+          void onEnableReminder?.();
+          setStep(2);
+        }}
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
+        style={{ backgroundColor: ACTIVE_GREEN, boxShadow: `0 12px 28px ${ACTIVE_GREEN}33` }}
+      >
+        开启提醒
+        <CheckCircle2 size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => setStep(2)}
+        className="mt-3 w-full rounded-2xl py-3 text-sm font-semibold"
+        style={{ color: theme.textSecondary, backgroundColor: `${theme.border || '#e2e8f0'}66` }}
+      >
+        稍后再说
+      </button>
+    </StepShell>
   );
 }

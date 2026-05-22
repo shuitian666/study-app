@@ -37,6 +37,7 @@ import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
+import { accountUpdateProfile } from '@/services/aiClient';
 import { getSmartEncouragement } from '@/services/aiService';
 import { downloadKnowledgeFromOSS, getAvailableKnowledgeBases, type KnowledgeSubject } from '@/services/ossService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
@@ -50,6 +51,7 @@ import {
 } from '@/utils/reviewReminder';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
+import { normalizeLearningProfile } from '@/utils/aiLearningContext';
 
 interface HomePageProps {
   isActive?: boolean;
@@ -267,6 +269,18 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     const granted = await requestReviewReminderPermission();
     setReminderEnabled(granted || getReviewReminderSettings().enabled);
   }, []);
+
+  const setStudyDirectionProfile = useCallback((direction: StudyDirection) => {
+    const learningProfile = normalizeLearningProfile({
+      ...userState.user?.learningProfile,
+      studyDirection: direction,
+      updatedAt: new Date().toISOString(),
+    });
+    userDispatch({ type: 'UPDATE_USER', payload: { learningProfile } });
+    accountUpdateProfile({ learningProfile }).catch(error => {
+      console.warn('Failed to sync study direction:', error);
+    });
+  }, [userDispatch, userState.user?.learningProfile]);
 
   const syncChip = (
     <button
@@ -810,6 +824,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           onClaimPackage={claimKnowledgePackage}
           onEnableReminder={enableReminder}
           onSetDailyGoal={goal => userDispatch({ type: 'SET_DAILY_GOAL', payload: goal })}
+          onSetStudyDirection={setStudyDirectionProfile}
           recommendedPackage={firstRecommendedPackage}
           isClaimingPackage={Boolean(claimingPackageId)}
         />
@@ -1128,6 +1143,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
         onClaimPackage={claimKnowledgePackage}
         onEnableReminder={enableReminder}
         onSetDailyGoal={goal => userDispatch({ type: 'SET_DAILY_GOAL', payload: goal })}
+        onSetStudyDirection={setStudyDirectionProfile}
         recommendedPackage={firstRecommendedPackage}
         isClaimingPackage={Boolean(claimingPackageId)}
       />

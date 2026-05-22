@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useLearning } from '@/store/LearningContext';
 import { generateQuestionExplanation, generateQuiz } from '@/services/aiService';
+import { buildAILearningContext } from '@/utils/aiLearningContext';
 
 /**
  * Hook for pre-generating quiz questions and AI explanations
@@ -37,6 +38,17 @@ export function usePreGenerate() {
           question: { stem: q.stem, options: q.options },
           selectedAnswer: [],
           correctAnswer: [],
+          learningContext: buildAILearningContext({
+            query: q.stem,
+            user: null,
+            subjects: learningState.subjects,
+            chapters: learningState.chapters,
+            knowledgePoints: learningState.knowledgePoints,
+            questions: learningState.questions,
+            wrongRecords: learningState.wrongRecords,
+            todayReviewItems: learningState.todayReviewItems,
+            todayNewItems: learningState.todayNewItems,
+          }),
         });
 
         learningDispatch({
@@ -58,7 +70,17 @@ export function usePreGenerate() {
       // Small delay to avoid overwhelming the API
       await new Promise(resolve => setTimeout(resolve, 200));
     }
-  }, [learningDispatch, getSavedExplanation]);
+  }, [
+    learningDispatch,
+    getSavedExplanation,
+    learningState.subjects,
+    learningState.chapters,
+    learningState.knowledgePoints,
+    learningState.questions,
+    learningState.wrongRecords,
+    learningState.todayReviewItems,
+    learningState.todayNewItems,
+  ]);
 
   /**
    * Generate new questions for the next stage
@@ -79,7 +101,18 @@ export function usePreGenerate() {
         const result = await generateQuiz(
           knowledgePointIds,
           kps,
-          learningState.questions
+          learningState.questions,
+          buildAILearningContext({
+            query: kps.map(kp => kp.name).join(' '),
+            user: null,
+            subjects: learningState.subjects,
+            chapters: learningState.chapters,
+            knowledgePoints: learningState.knowledgePoints,
+            questions: learningState.questions,
+            wrongRecords: learningState.wrongRecords,
+            todayReviewItems: learningState.todayReviewItems,
+            todayNewItems: learningState.todayNewItems,
+          }),
         );
 
         if (result.question) {
@@ -93,6 +126,18 @@ export function usePreGenerate() {
             question: { stem: result.question.stem, options: result.question.options },
             selectedAnswer: [],
             correctAnswer: result.question.correctAnswers,
+            knowledgePoint: result.selectedKnowledgePoint,
+            learningContext: buildAILearningContext({
+              query: result.question.stem,
+              user: null,
+              subjects: learningState.subjects,
+              chapters: learningState.chapters,
+              knowledgePoints: learningState.knowledgePoints,
+              questions: learningState.questions,
+              wrongRecords: learningState.wrongRecords,
+              todayReviewItems: learningState.todayReviewItems,
+              todayNewItems: learningState.todayNewItems,
+            }),
           });
 
           learningDispatch({
@@ -115,7 +160,16 @@ export function usePreGenerate() {
       // Delay between generations
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-  }, [learningState.knowledgePoints, learningState.questions, learningDispatch]);
+  }, [
+    learningState.subjects,
+    learningState.chapters,
+    learningState.knowledgePoints,
+    learningState.questions,
+    learningState.wrongRecords,
+    learningState.todayReviewItems,
+    learningState.todayNewItems,
+    learningDispatch,
+  ]);
 
   /**
    * 按需生成单个题目的解析（用户点击才生成，不预先生成）
@@ -139,6 +193,17 @@ export function usePreGenerate() {
       correctAnswer,
       knowledgePoint: knowledgePointName,
       subjectName,
+      learningContext: buildAILearningContext({
+        query: `${knowledgePointName || ''} ${question.stem}`,
+        user: null,
+        subjects: learningState.subjects,
+        chapters: learningState.chapters,
+        knowledgePoints: learningState.knowledgePoints,
+        questions: learningState.questions,
+        wrongRecords: learningState.wrongRecords,
+        todayReviewItems: learningState.todayReviewItems,
+        todayNewItems: learningState.todayNewItems,
+      }),
     });
 
     learningDispatch({
@@ -153,7 +218,17 @@ export function usePreGenerate() {
     });
 
     return explanation;
-  }, [learningDispatch, getSavedExplanation]);
+  }, [
+    learningDispatch,
+    getSavedExplanation,
+    learningState.subjects,
+    learningState.chapters,
+    learningState.knowledgePoints,
+    learningState.questions,
+    learningState.wrongRecords,
+    learningState.todayReviewItems,
+    learningState.todayNewItems,
+  ]);
 
   return {
     getSavedExplanation,
