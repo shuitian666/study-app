@@ -11,16 +11,18 @@
  * ============================================================================
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Trash2, Sparkles, Settings2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { BookOpen, Check, ChevronDown, History, Lock, MessageCircle, Send, Settings2, Sparkles, Trash2, X } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
+import { useGame } from '@/store/GameContext';
 import { useAIChat } from '@/store/AIChatContext';
 import { PageHeader } from '@/components/ui/Common';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
 import { checkBackendAvailable, fetchAIConfig, getAIConfig } from '@/services/aiClient';
 import { calculateNewProficiency } from '@/utils/review';
 import { buildAILearningContext } from '@/utils/aiLearningContext';
+import { AI_STUDY_UNLOCK_LEVEL, getAIStudyLevelInfo } from '@/utils/aiStudyAccess';
 import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
@@ -32,11 +34,28 @@ const EMPTY_AI_RESPONSE = 'AI 没有返回内容，请重试或检查配置';
 const GENERIC_AI_ERROR = 'AI 暂时无法回答，请稍后重试。';
 const TIMEOUT_AI_ERROR = 'AI 请求超时，请稍后重试。';
 
-export default function AIChatPage() {
+interface AIChatPageProps {
+  embedded?: boolean;
+  embeddedQuestionContext?: {
+    id: string;
+    text: string;
+  } | null;
+  onClose?: () => void;
+}
+
+export default function AIChatPage({
+  embedded = false,
+  embeddedQuestionContext = null,
+  onClose,
+}: AIChatPageProps) {
   const { userState, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
+  const { gameState } = useGame();
   const { aiChatState, aiChatDispatch } = useAIChat();
   const [input, setInput] = useState('');
+  const [activeMode, setActiveMode] = useState<'chat' | 'study'>('chat');
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [studySubjectId, setStudySubjectId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<Record<string, GenerateSmartQuizResult>>({});
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
@@ -49,6 +68,12 @@ export default function AIChatPage() {
 
   // 解构 aiChat 对象便于使用
   const { messages, isLoading } = aiChatState.aiChat;
+  const aiStudyAccess = getAIStudyLevelInfo(userState.user, learningState, gameState.checkin);
+  const studySubjects = useMemo(
+    () => learningState.subjects.filter(subject => learningState.knowledgePoints.some(kp => kp.subjectId === subject.id && !kp.deletedAt)),
+    [learningState.knowledgePoints, learningState.subjects],
+  );
+  const selectedStudySubjectId = studySubjectId || studySubjects[0]?.id || '';
 
 
   useEffect(() => {
@@ -200,25 +225,43 @@ export default function AIChatPage() {
   }, [isLoading, streamingMsgId, messages, userState.user, learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions, learningState.wrongRecords, learningState.todayReviewItems, learningState.todayNewItems, aiChatDispatch, clearActiveRequest, refreshAiMode]);
 
   useEffect(() => {
-    const questionContext = typeof userState.pageParams.questionContext === 'string'
+    const pageQuestionContext = typeof userState.pageParams.questionContext === 'string'
       ? userState.pageParams.questionContext.trim()
       : '';
-    if (!questionContext || handledQuestionContextRef.current === questionContext) return;
+    const questionContext = embedded
+      ? embeddedQuestionContext?.text.trim() || ''
+      : pageQuestionContext;
+    const questionContextId = embedded
+      ? embeddedQuestionContext?.id || ''
+      : questionContext;
+    if (!questionContext || !questionContextId || handledQuestionContextRef.current === questionContextId) return;
     if (isLoading || streamingMsgId) return;
 
-    handledQuestionContextRef.current = questionContext;
+    handledQuestionContextRef.current = questionContextId;
     void sendMessage(questionContext);
-    setTimeout(() => {
-      navigate('ai-chat', {});
-    }, 100);
-  }, [isLoading, navigate, sendMessage, streamingMsgId, userState.pageParams.questionContext]);
+    if (!embedded) {
+      setTimeout(() => {
+        navigate('ai-chat', {});
+      }, 100);
+    }
+  }, [embedded, embeddedQuestionContext, isLoading, navigate, sendMessage, streamingMsgId, userState.pageParams.questionContext]);
 
   const handleSend = useCallback(() => {
     const query = input.trim();
     if (!query || isLoading || streamingMsgId) return;
+    if (!embedded && activeMode === 'study') {
+      if (!aiStudyAccess.unlocked || !selectedStudySubjectId) return;
+      setInput('');
+      navigate('ai-study', {
+        subjectId: selectedStudySubjectId,
+        goal: query,
+        autoGenerate: '1',
+      });
+      return;
+    }
     setInput('');
     void sendMessage(query);
-  }, [input, isLoading, sendMessage, streamingMsgId]);
+  }, [activeMode, aiStudyAccess.unlocked, embedded, input, isLoading, navigate, selectedStudySubjectId, sendMessage, streamingMsgId]);
 
   const handleRequestQuiz = async (aiMessageId: string, content: string) => {
     if (generatedQuestions[aiMessageId]) return;
@@ -316,11 +359,13 @@ export default function AIChatPage() {
     : '离线兜底';
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-bg">
-      <PageHeader
-        title="AI 问答"
-        onBack={() => navigate('home')}
-        rightAction={
+    <div className={embedded ? 'relative flex h-full min-h-0 flex-col bg-bg' : 'absolute inset-0 flex flex-col bg-bg'}>
+      {embedded ? (
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <div className="text-sm font-bold text-text-primary">AI 助手</div>
+            <div className="mt-0.5 text-[11px] text-text-muted">侧边学习问答</div>
+          </div>
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
               <button onClick={handleClear} className="text-text-muted active:opacity-60">
@@ -330,9 +375,31 @@ export default function AIChatPage() {
             <button onClick={() => setShowSettings(true)} className="text-text-muted active:opacity-60">
               <Settings2 size={18} />
             </button>
+            {onClose && (
+              <button onClick={onClose} className="text-text-muted active:opacity-60" aria-label="关闭 AI 侧栏">
+                <X size={19} />
+              </button>
+            )}
           </div>
-        }
-      />
+        </div>
+      ) : (
+        <PageHeader
+          title="AI 问答"
+          onBack={() => navigate('home')}
+          rightAction={
+            <div className="flex items-center gap-2">
+              {messages.length > 0 && (
+                <button onClick={handleClear} className="text-text-muted active:opacity-60">
+                  <Trash2 size={18} />
+                </button>
+              )}
+              <button onClick={() => setShowSettings(true)} className="text-text-muted active:opacity-60">
+                <Settings2 size={18} />
+              </button>
+            </div>
+          }
+        />
+      )}
 
       <div className="px-4 py-1.5 text-center shrink-0">
         <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full ${backendMode === 'online'
@@ -348,7 +415,7 @@ export default function AIChatPage() {
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full px-8 text-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-4">
@@ -397,20 +464,115 @@ export default function AIChatPage() {
         )}
       </div>
 
-      <div className="shrink-0 bg-white border-t border-border px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+      <div className={`relative shrink-0 border-t border-border bg-white px-4 py-3 ${embedded ? '' : 'pb-[calc(12px+env(safe-area-inset-bottom))]'}`}>
+        {!embedded && modeMenuOpen && (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-40 cursor-default"
+              aria-label="关闭模式菜单"
+              onClick={() => setModeMenuOpen(false)}
+            />
+            <div className="absolute bottom-[calc(100%-2px)] left-4 z-50 w-[min(320px,calc(100%-32px))] overflow-hidden rounded-2xl border border-border bg-white p-2 shadow-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMode('chat');
+                  setModeMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                  <MessageCircle size={18} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-text-primary">普通问答</span>
+                  <span className="mt-0.5 block text-xs text-text-muted">自由提问、解释和生成练习</span>
+                </span>
+                {activeMode === 'chat' && <Check size={17} className="text-primary" />}
+              </button>
+              <button
+                type="button"
+                disabled={!aiStudyAccess.unlocked}
+                onClick={() => {
+                  if (!aiStudyAccess.unlocked) return;
+                  setActiveMode('study');
+                  setModeMenuOpen(false);
+                }}
+                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  {aiStudyAccess.unlocked ? <BookOpen size={18} /> : <Lock size={17} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-bold text-text-primary">
+                    学习模式
+                    {!aiStudyAccess.unlocked && <span className="text-[10px] text-text-muted">Lv.{AI_STUDY_UNLOCK_LEVEL}</span>}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-text-muted">规划 → 教学 → 练习 → 复习</span>
+                </span>
+                {activeMode === 'study' && <Check size={17} className="text-primary" />}
+              </button>
+              <div className="my-2 h-px bg-border" />
+              <button
+                type="button"
+                onClick={() => {
+                  setModeMenuOpen(false);
+                  navigate('ai-study-summaries');
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-600 hover:bg-violet-50"
+              >
+                <History size={15} />
+                查看学习总结
+              </button>
+            </div>
+          </>
+        )}
+        {!embedded && (
+          <div className="mb-2 flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setModeMenuOpen(open => !open)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-text-secondary shadow-sm"
+            >
+              {activeMode === 'study' ? <BookOpen size={14} className="text-emerald-600" /> : <MessageCircle size={14} className="text-violet-600" />}
+              {activeMode === 'study' ? '学习模式' : '问答'}
+              <ChevronDown size={13} className={modeMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+            </button>
+            {activeMode === 'study' && (
+              <label className="relative min-w-0">
+                <select
+                  value={selectedStudySubjectId}
+                  onChange={event => setStudySubjectId(event.target.value)}
+                  disabled={studySubjects.length === 0}
+                  className="max-w-[180px] appearance-none truncate rounded-lg border border-border bg-white py-1.5 pl-2.5 pr-7 text-xs font-semibold text-text-secondary outline-none disabled:opacity-50"
+                  aria-label="学习学科"
+                >
+                  {studySubjects.map(subject => (
+                    <option key={subject.id} value={subject.id}>{subject.icon} {subject.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" />
+              </label>
+            )}
+            {activeMode === 'study' && studySubjects.length === 0 && (
+              <span className="truncate text-[11px] text-amber-600">请先添加知识点</span>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="输入你的问题..."
+            placeholder={!embedded && activeMode === 'study' ? '描述这次想学习的内容…' : '输入你的问题...'}
             className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
             disabled={isLoading}
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || (!embedded && activeMode === 'study' && (!aiStudyAccess.unlocked || !selectedStudySubjectId))}
             className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center active:opacity-80 transition-opacity disabled:opacity-40"
           >
             <Send size={18} />

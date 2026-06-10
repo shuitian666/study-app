@@ -71,11 +71,11 @@ export default function LoginPage() {
   const directionTags = ['医考', '药考', '护考', '英语词汇'];
 
   return (
-    <div className="min-h-screen overflow-y-auto px-6 py-10" style={getAdaptivePageBackground(theme)}>
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-sm flex-col justify-center">
-        <div className="mb-8 flex flex-col items-center">
+    <div className="h-full min-h-0 overflow-y-auto px-5 py-5 sm:px-6 sm:py-8" style={getAdaptivePageBackground(theme)}>
+      <div className="mx-auto flex min-h-full w-full max-w-sm flex-col justify-start pb-[calc(24px+env(safe-area-inset-bottom))]">
+        <div className="mb-5 flex flex-col items-center">
           <div
-            className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] shadow-xl"
+            className="mb-4 flex h-20 w-20 items-center justify-center rounded-[24px] shadow-xl sm:h-24 sm:w-24 sm:rounded-[28px]"
             style={{
               background: dark
                 ? `linear-gradient(135deg, ${theme.surfaceContainerHigh || '#263652'} 0%, ${theme.primaryFixed || '#254a74'} 100%)`
@@ -107,10 +107,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mb-6 w-full space-y-3">
+        <div className="mb-4 hidden w-full space-y-2 [@media(min-height:720px)]:block">
           {features.map(feature => (
-            <div key={feature.text} className="flex items-center gap-4 rounded-2xl border px-5 py-4 backdrop-blur-xl" style={getAdaptiveSurface(theme, 'raised')}>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold" style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}>
+            <div key={feature.text} className="flex items-center gap-3 rounded-2xl border px-4 py-3 backdrop-blur-xl" style={getAdaptiveSurface(theme, 'raised')}>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold" style={{ backgroundColor: `${theme.primary}18`, color: theme.primary }}>
                 {feature.icon}
               </div>
               <span className="text-sm font-semibold" style={{ color: theme.textSecondary }}>{feature.text}</span>

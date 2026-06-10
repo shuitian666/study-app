@@ -10,6 +10,7 @@ interface FlashcardCardProps {
   isFlipped: boolean;
   onFlip: () => void;
   swipeDirection?: 'left' | 'right' | 'up' | 'down' | null;
+  size?: 'default' | 'desktop';
 }
 
 export default function FlashcardCard({
@@ -19,6 +20,7 @@ export default function FlashcardCard({
   isFlipped,
   onFlip,
   swipeDirection,
+  size = 'default',
 }: FlashcardCardProps) {
   const { theme } = useTheme();
   const sanitizedExplanation = useMemo(
@@ -32,9 +34,10 @@ export default function FlashcardCard({
     if (swipeDirection === 'up' || swipeDirection === 'down') return 'linear-gradient(to top, rgba(59, 130, 246, 0.2), transparent)';
     return 'none';
   };
+  const isDesktop = size === 'desktop';
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
+    <div className={`relative mx-auto w-full ${isDesktop ? 'max-w-[760px]' : 'max-w-md'}`}>
       {/* Swipe feedback overlay */}
       {swipeDirection && (
         <div
@@ -45,17 +48,16 @@ export default function FlashcardCard({
 
       {/* Card */}
       <motion.div
-        className="w-full min-h-[320px] p-6 rounded-3xl border-2 shadow-lg cursor-pointer flex flex-col items-center justify-center overflow-hidden"
+        className={`flex w-full cursor-pointer flex-col items-center justify-center overflow-hidden border ${isDesktop ? 'min-h-[440px] max-h-[520px] rounded-[32px] p-8' : 'min-h-[300px] rounded-3xl p-6'}`}
         style={{
           backgroundColor: theme.bgCard,
-          borderColor: isFlipped ? theme.primary : theme.border,
+          borderColor: isFlipped ? `${theme.primary}55` : '#c7d2fe',
           boxShadow: isFlipped
-            ? `0 20px 40px -12px ${theme.primary}30`
-            : `0 10px 30px -5px rgba(0,0,0,0.1)`,
+            ? `0 20px 60px rgba(15,23,42,0.10)`
+            : `0 20px 60px rgba(15,23,42,0.08)`,
         }}
         onClick={onFlip}
         whileTap={{ scale: 0.98 }}
-        layout
       >
         <AnimatePresence mode="wait">
           {!isFlipped ? (
@@ -67,13 +69,13 @@ export default function FlashcardCard({
               transition={{ duration: 0.2 }}
               className="text-center"
             >
-              <div className="text-xs uppercase tracking-wider mb-4" style={{ color: theme.textMuted }}>
+              <div className="mb-4 text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textSecondary }}>
                 知识点
               </div>
-              <h2 className="text-2xl font-bold mb-4" style={{ color: theme.textPrimary }}>
+              <h2 className={`${isDesktop ? 'text-3xl' : 'text-2xl'} mb-4 font-extrabold`} style={{ color: theme.textPrimary }}>
                 {name}
               </h2>
-              <div className="flex items-center justify-center gap-2" style={{ color: theme.textMuted }}>
+              <div className="flex items-center justify-center gap-2" style={{ color: theme.textSecondary }}>
                 <span className="text-sm">点击翻转</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M17 1l4 4-4 4"/>
@@ -92,11 +94,11 @@ export default function FlashcardCard({
               transition={{ duration: 0.2 }}
               className="text-center w-full"
             >
-              <div className="text-xs uppercase tracking-wider mb-3" style={{ color: theme.primary }}>
+              <div className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
                 知识解析
               </div>
               <div
-                className="text-base leading-relaxed mb-4"
+                className={`${isDesktop ? 'text-lg' : 'text-base'} mb-4 leading-relaxed`}
                 style={{ color: theme.textPrimary }}
                 dangerouslySetInnerHTML={{ __html: sanitizedExplanation }}
               />
@@ -112,7 +114,7 @@ export default function FlashcardCard({
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-2 mt-4" style={{ color: theme.textMuted }}>
+              <div className="mt-4 flex items-center justify-center gap-2" style={{ color: theme.textSecondary }}>
                 <span className="text-sm">点击翻回</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M17 1l4 4-4 4"/>

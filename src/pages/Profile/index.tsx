@@ -28,7 +28,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 import { allFrames, allTitles, rarityConfig } from '@/data/avatarCatalog';
-import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail } from 'lucide-react';
+import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail, FileText } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
@@ -332,6 +332,14 @@ export default function ProfilePage() {
                 onClick: () => navigate('inventory'),
               },
               {
+                key: 'ai-study-summaries',
+                icon: <FileText size={20} />,
+                iconColor: 'text-indigo-500',
+                label: '学习总结',
+                value: '历史建议',
+                onClick: () => navigate('ai-study-summaries'),
+              },
+              {
                 key: 'mail',
                 icon: <Mail size={20} />,
                 iconColor: 'text-rose-500',
@@ -563,6 +571,7 @@ export default function ProfilePage() {
             { icon: ShoppingBag, label: '星币商城', desc: `${user?.totalPoints ?? 0}星币`, color: 'text-purple-500', page: 'shop' as const },
             { icon: Medal, label: '排行榜', desc: '查看排名', color: 'text-blue-500', page: 'ranking' as const },
             { icon: Backpack, label: '背包', desc: `${userState.inventory.items.length}件物品`, color: 'text-emerald-500', page: 'inventory' as const },
+            { icon: FileText, label: '学习总结', desc: '复盘与建议', color: 'text-indigo-500', page: 'ai-study-summaries' as const },
             { icon: Mail, label: '邮件', desc: `${userState.mail.mails.filter(m => !m.read).length}未读`, color: 'text-rose-500', page: 'mail' as const, badge: userState.mail.mails.filter(m => !m.read).length },
           ]).map((item, i, arr) => {
             const Icon = item.icon;

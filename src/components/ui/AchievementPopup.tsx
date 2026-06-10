@@ -1,7 +1,7 @@
-import { useGame } from '@/store/GameContext';
+import { useCallback, useEffect } from 'react';
 import { Star } from 'lucide-react';
+import { useGame } from '@/store/GameContext';
 
-// Static particle styles for visual effect
 const PARTICLE_STYLES = [
   { width: 15, height: 15, left: 10, top: 20, duration: 2.5, delay: 0.2 },
   { width: 20, height: 20, left: 30, top: 15, duration: 1.8, delay: 0.5 },
@@ -29,33 +29,34 @@ export default function AchievementPopup() {
   const { gameState, gameDispatch } = useGame();
   const popup = gameState.achievementPopup;
 
-  // 如果签到奖励弹窗正在显示，则不显示成就弹窗（等签到弹窗关闭后再显示成就）
-  if (!popup || !popup.show) return null;
+  const handleDismiss = useCallback(() => {
+    gameDispatch({ type: 'DISMISS_ACHIEVEMENT_POPUP' });
+  }, [gameDispatch]);
+
+  useEffect(() => {
+    if (!popup?.show) return;
+    const timer = window.setTimeout(handleDismiss, 4200);
+    return () => window.clearTimeout(timer);
+  }, [handleDismiss, popup?.show]);
+
+  if (!popup?.show) return null;
 
   const isHiddenAchievement = popup.achievement.category === 'hidden';
 
-  // 奖励在解锁时已经发放，弹窗只负责展示。
-  const handleDismiss = () => {
-    gameDispatch({ type: 'DISMISS_ACHIEVEMENT_POPUP' });
-  };
-
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50" onClick={handleDismiss}>
+    <div className="pointer-events-none fixed inset-x-4 top-4 z-[90] flex justify-center sm:inset-x-auto sm:right-5 sm:top-5">
       <div
-        className={`bg-white rounded-3xl p-6 mx-8 text-center shadow-2xl max-w-xs w-full relative overflow-hidden ${
-          isHiddenAchievement
-            ? 'animate-bounce-in'
-            : 'animate-scale-in'
+        className={`pointer-events-auto relative w-full max-w-[320px] overflow-hidden rounded-3xl bg-white p-4 text-left shadow-2xl ring-1 ring-black/5 ${
+          isHiddenAchievement ? 'animate-bounce-in' : 'animate-scale-in'
         }`}
-        onClick={e => e.stopPropagation()}
+        onClick={handleDismiss}
       >
-        {/* 粒子效果容器 */}
         {isHiddenAchievement && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
             {PARTICLE_STYLES.map((style, i) => (
               <div
                 key={i}
-                className="absolute rounded-full bg-primary/30 animate-pulse"
+                className="absolute animate-pulse rounded-full bg-primary/30"
                 style={{
                   width: `${style.width}px`,
                   height: `${style.height}px`,
@@ -69,29 +70,29 @@ export default function AchievementPopup() {
           </div>
         )}
 
-        <div className={`text-5xl mb-3 transition-all duration-500 ${
-          isHiddenAchievement ? 'animate-spin' : ''
-        }`}>
-          {popup.achievement.icon}
-        </div>
+        <div className="relative flex items-start gap-3">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl ${isHiddenAchievement ? 'animate-spin' : ''}`}>
+            {popup.achievement.icon}
+          </div>
 
-        <h3 className={`text-lg font-bold mb-1 ${
-          isHiddenAchievement ? 'text-primary' : ''
-        }`}>
-          {popup.achievement.name}
-        </h3>
-        <p className="text-sm text-text-muted mb-3">
-          {popup.achievement.description}
-        </p>
-
-        <div className="flex items-center justify-center gap-1 text-sm">
-          <Star size={16} className="text-yellow-500 fill-yellow-500" />
-          <span className="text-yellow-600 font-medium">+{popup.achievement.reward.coins}</span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">成就解锁</div>
+            <h3 className={`mt-1 truncate text-base font-bold ${isHiddenAchievement ? 'text-primary' : 'text-text-primary'}`}>
+              {popup.achievement.name}
+            </h3>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-muted">
+              {popup.achievement.description}
+            </p>
+            <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-yellow-50 px-2 py-0.5 text-xs">
+              <Star size={14} className="fill-yellow-500 text-yellow-500" />
+              <span className="font-bold text-yellow-600">+{popup.achievement.reward.coins}</span>
+            </div>
+          </div>
         </div>
 
         <button
           onClick={handleDismiss}
-          className="mt-4 px-4 py-1.5 text-sm bg-primary text-white rounded-full hover:bg-primary/90 transition-colors"
+          className="relative mt-3 w-full rounded-full bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90"
         >
           太棒了！
         </button>

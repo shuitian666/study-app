@@ -42,17 +42,44 @@ import {
   importLearningBatch,
   patchLearningProgress,
 } from './learning.js';
+import {
+  buildChapterSynthesis,
+  buildStudyExplanation,
+  buildStudyPlan,
+  buildStudyPractice,
+  listStudySummaries,
+  saveStudySummary,
+} from './aiStudy.js';
 
 const app = express();
-const defaultDevOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const defaultDevOrigins = [
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
 const configuredOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const allowedOrigins = new Set([
   ...configuredOrigins,
   ...(process.env.NODE_ENV === 'production' ? [] : defaultDevOrigins),
 ]);
+function isPrivateDevOrigin(origin) {
+  if (process.env.NODE_ENV === 'production') return false;
+  try {
+    const url = new URL(origin);
+    const isPrivateHost = /^10\./.test(url.hostname)
+      || /^192\.168\./.test(url.hostname)
+      || /^172\.(1[6-9]|2\d|3[01])\./.test(url.hostname);
+    return url.protocol === 'http:' && isPrivateHost && ['3001', '5173'].includes(url.port);
+  } catch {
+    return false;
+  }
+}
 const corsMiddleware = cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.size === 0 || allowedOrigins.has(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.size === 0 || allowedOrigins.has(origin) || isPrivateDevOrigin(origin)) {
+      return callback(null, true);
+    }
     return callback(new Error('CORS origin denied'));
   },
   credentials: true,
@@ -401,6 +428,54 @@ app.post('/api/explain', authOptional, aiLimiter, async (req, res) => {
   } catch (err) {
     console.error('Explain error:', sanitizeError(err));
     res.json({ explanation: null, error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/ai/study-plan', requireAuth, aiLimiter, (req, res) => {
+  try {
+    res.json({ plan: buildStudyPlan(req.body || {}) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/ai/study-explain', requireAuth, aiLimiter, (req, res) => {
+  try {
+    res.json(buildStudyExplanation(req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/ai/study-practice', requireAuth, aiLimiter, (req, res) => {
+  try {
+    res.json(buildStudyPractice(req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/ai/chapter-synthesis', requireAuth, aiLimiter, (req, res) => {
+  try {
+    res.json(buildChapterSynthesis(req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/ai/study-summary', requireAuth, aiLimiter, (req, res) => {
+  try {
+    res.json({ summary: saveStudySummary(req.user.id, req.body || {}) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.get('/api/ai/study-summaries', requireAuth, (req, res) => {
+  try {
+    res.json({ summaries: listStudySummaries(req.user.id) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
 });
 

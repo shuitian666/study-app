@@ -12,7 +12,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
-import { ArrowLeft, Home, BookOpen, ChevronRight, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
 import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
@@ -73,6 +73,11 @@ const FLASHCARD_SCORE_MAP: Record<RatingOption, number> = {
 const POST_GOAL_GROUP_SIZE = 15;
 
 type SessionPhase = 'import' | 'review' | 'new' | 'free';
+
+interface FlashcardLearningPageProps {
+  embedded?: boolean;
+  onAskAI?: (questionContext: string) => void;
+}
 
 function isGoalRating(rating: RatingOption): boolean {
   return rating === 'good' || rating === 'easy';
@@ -146,7 +151,7 @@ function pickSessionPlan(
   return { phase: 'free', queue: buildSessionQueue(knowledgePoints, targetIds) };
 }
 
-export default function FlashcardLearningPage() {
+export default function FlashcardLearningPage({ embedded = false, onAskAI }: FlashcardLearningPageProps) {
   const { navigate, userState } = useUser();
   const { theme } = useTheme();
   const { learningState, learningDispatch } = useLearning();
@@ -160,18 +165,6 @@ export default function FlashcardLearningPage() {
 
     return new Set(importedStudySession.knowledgePointIds);
   }, [importedStudySession]);
-  const importResultSummary = useMemo(() => {
-    if (!importedStudySession) {
-      return null;
-    }
-
-    return {
-      importedKnowledgeCount: importedStudySession.importedKnowledgeCount,
-      importedQuestionCount: importedStudySession.importedQuestionCount,
-      skippedQuestionCount: importedStudySession.skippedQuestionCount,
-    };
-  }, [importedStudySession]);
-
   // --- 学习范围（章节/科目）选择 ---
   const [selectedCategory, setSelectedCategory] = useState<{ type: 'subject' | 'chapter'; id: string } | null>(() => {
     try {
@@ -237,8 +230,6 @@ export default function FlashcardLearningPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   // 不会的卡片的 ID 集合（用于检测重复）
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
-  // 是否显示知识点预览
-  const [showKnowledge, setShowKnowledge] = useState(false);
   const [sessionMode, setSessionMode] = useState<'flashcard' | 'quiz'>('flashcard');
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
@@ -251,7 +242,6 @@ export default function FlashcardLearningPage() {
   const [isRevealingFailed, setIsRevealingFailed] = useState(false);
   // 是否正在处理评分（用于防抖）
   const [isSelecting, setIsSelecting] = useState(false);
-  const [showImportResult, setShowImportResult] = useState(true);
   // 本次 session 已完成（Good/Easy）的卡片数（不依赖 todayPlan 列表，始终可靠）
   // 使用 ref 存储最新状态，避免闭包陷阱
   const queueRef = useRef(queue);
@@ -270,7 +260,6 @@ export default function FlashcardLearningPage() {
     setCurrentIdx(0);
     setFailedIds(new Set());
     setIsFlipped(false);
-    setShowKnowledge(false);
     setSessionMode('flashcard');
     setCurrentQuizIndex(0);
     setSelectedAnswers([]);
@@ -292,10 +281,6 @@ export default function FlashcardLearningPage() {
     // 只在首次 mount 时运行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    setShowImportResult(Boolean(importResultSummary));
-  }, [importResultSummary]);
 
   useEffect(() => {
     if (!importedStudySession || learningState.isLoading) {
@@ -565,7 +550,6 @@ export default function FlashcardLearningPage() {
     setTimeout(() => {
       setIsFlipped(false);
       setSwipeDirection(null);
-      setShowKnowledge(false);
 
       if (relatedQuestionsForCurrent.length > 0) {
         setCurrentQuizIndex(0);
@@ -753,15 +737,19 @@ export default function FlashcardLearningPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentKp, exitLearning, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, isFlipped, sessionMode, showQuizResult]);
 
-  const desktopStageClassName = 'relative mx-auto flex h-full w-full max-w-[1120px] items-stretch justify-center md:items-center';
-  const desktopShellClassName = 'relative z-10 flex h-full w-full flex-col overflow-hidden md:max-h-full md:max-w-[480px] md:rounded-[32px] md:border md:shadow-[0_24px_80px_rgba(15,23,42,0.16)]';
+  const desktopStageClassName = embedded
+    ? 'relative mx-auto flex h-full w-full items-stretch justify-center'
+    : 'relative mx-auto flex h-full w-full max-w-[1180px] items-stretch justify-center md:items-center';
+  const desktopShellClassName = embedded
+    ? 'relative z-10 flex h-full w-full max-w-[1180px] flex-col overflow-hidden rounded-[28px] border shadow-sm'
+    : 'relative z-10 flex h-full w-full flex-col overflow-hidden md:max-h-full md:max-w-[480px] md:rounded-[32px] md:border md:shadow-[0_24px_80px_rgba(15,23,42,0.16)]';
   const desktopShellStyle = {
-    backgroundColor: theme.bg,
-    borderColor: theme.border,
+    backgroundColor: embedded ? '#ffffff' : theme.bg,
+    borderColor: embedded ? '#e2e8f0' : theme.border,
   } as const;
   const desktopBackdropStyle = {
-    backgroundColor: theme.bg,
-    backgroundImage: `radial-gradient(circle at top, ${theme.primary}16 0%, transparent 38%), linear-gradient(180deg, ${theme.bg} 0%, ${theme.bgCard} 100%)`,
+    backgroundColor: embedded ? 'transparent' : theme.bg,
+    backgroundImage: embedded ? 'none' : `radial-gradient(circle at top, ${theme.primary}16 0%, transparent 38%), linear-gradient(180deg, ${theme.bg} 0%, ${theme.bgCard} 100%)`,
   } as const;
   const desktopGlowStyle = {
     background: `radial-gradient(circle, ${theme.primary}18 0%, transparent 72%)`,
@@ -772,7 +760,7 @@ export default function FlashcardLearningPage() {
   if (!currentKp || queue.length === 0) {
     return (
       <div
-        className="fixed inset-0 z-50 md:p-5 lg:p-6"
+        className={embedded ? 'relative h-full min-h-0 overflow-hidden' : 'fixed inset-0 z-50 md:p-5 lg:p-6'}
         style={desktopBackdropStyle}
       >
         <div className={desktopStageClassName}>
@@ -822,50 +810,41 @@ export default function FlashcardLearningPage() {
 
   return (
     <div
-      className="fixed inset-0 z-50 md:p-5 lg:p-6"
+      className={embedded ? 'relative h-full min-h-0 overflow-hidden' : 'fixed inset-0 z-50 md:p-5 lg:p-6'}
       style={desktopBackdropStyle}
     >
       <div className={desktopStageClassName}>
         <div
-          className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[640px] -translate-y-1/2 md:block"
+          className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[560px] -translate-y-1/2 md:block"
           style={desktopGlowStyle}
         />
         <div className={desktopShellClassName} style={desktopShellStyle}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: theme.bgCard }}>
+          <div className="shrink-0 px-4 py-3 md:px-6 md:py-4" style={{ backgroundColor: theme.bgCard }}>
+            <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={exitLearning}
-              className="p-2 rounded-full active:opacity-70 transition-opacity"
-              style={{ backgroundColor: `${theme.primary}15` }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 active:scale-[0.98]"
+              aria-label="返回"
             >
-              <ArrowLeft size={20} style={{ color: theme.primary }} />
+              <ArrowLeft size={19} />
             </button>
             {/* 分类选择 chip */}
             <button
               onClick={openCategoryPicker}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full active:opacity-70 transition-opacity max-w-[180px]"
-              style={{ backgroundColor: `${theme.primary}12`, border: `1px solid ${theme.primary}28` }}
+              className="flex h-10 min-w-0 max-w-[220px] items-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition-colors hover:bg-indigo-50"
+              style={{ backgroundColor: '#ffffff', borderColor: '#c7d2fe', color: theme.primary }}
             >
-              <span className="text-xs font-medium truncate" style={{ color: theme.primary }}>
+              <span className="truncate">
                 {categoryLabel}
               </span>
-              <ChevronRight size={12} style={{ color: theme.primary, transform: 'rotate(90deg)', flexShrink: 0 }} />
+              <ChevronRight size={14} className="shrink-0 rotate-90" />
             </button>
-            <div className="w-10" />
-          </div>
-
-          {/* 本次 session 进度条 */}
-          {queue.length >= 0 && (
-            <div className="px-4 pt-2 pb-1" style={{ backgroundColor: theme.bgCard }}>
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span style={{ color: theme.textSecondary }}>
-                  {progressLabel}
-                </span>
-                <span style={{ color: hasReachedDailyGoal ? '#10b981' : theme.primary, fontWeight: 600 }}>
-                  {progressValue}
-                </span>
+            <div className="flex min-w-[180px] flex-1 items-center gap-3 md:ml-auto md:max-w-[520px]">
+              <div className="shrink-0 text-sm font-semibold text-slate-600">
+                {progressLabel}
               </div>
-              <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+              <div className="h-2 min-w-[120px] flex-1 overflow-hidden rounded-full bg-slate-200">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -874,127 +853,40 @@ export default function FlashcardLearningPage() {
                   }}
                 />
               </div>
-            </div>
-          )}
-
-          {showImportResult && importResultSummary && (
-            <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
-              <div
-                className="rounded-2xl px-4 py-3 flex items-start justify-between gap-3"
-                style={{ backgroundColor: '#ecfdf5', color: '#166534', border: '1px solid #a7f3d0' }}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">导入成功</div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#d1fae5', color: '#065f46' }}>
-                      知识点 {importResultSummary.importedKnowledgeCount} 个
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#dcfce7', color: '#166534' }}>
-                      题目 {importResultSummary.importedQuestionCount} 道
-                    </span>
-                    {importResultSummary.skippedQuestionCount > 0 && (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                        跳过 {importResultSummary.skippedQuestionCount} 道
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs leading-5 mt-2">
-                    新导入内容已经进入本次学习队列，可直接开始闪记学习。
-                    {importResultSummary.skippedQuestionCount > 0 ? ' 未关联成功的题目没有写入，请回到导入页检查模板结构。' : ''}
-                    {' '}当前今日学习进度已累计 {todayLearningCount} / {dailyGoal}。
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowImportResult(false)}
-                  className="shrink-0 p-1 rounded-lg"
-                  style={{ color: '#166534' }}
-                  aria-label="关闭导入结果提示"
-                >
-                  <X size={14} />
-                </button>
+              <div className="shrink-0 text-sm font-extrabold" style={{ color: hasReachedDailyGoal ? '#10b981' : theme.primary }}>
+                {progressValue}
               </div>
             </div>
-          )}
+            </div>
+          </div>
+
+          {/* 本次 session 进度条 */}
 
           {/* 失败卡重现提示 */}
           {isRevealingFailed && (
-            <div className="px-4 py-2" style={{ backgroundColor: theme.bgCard }}>
+            <div className="px-4 py-2 md:px-6" style={{ backgroundColor: theme.bgCard }}>
               <div className="text-center text-xs py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                 📚 正在重现之前不会的卡片
               </div>
             </div>
           )}
 
-          {/* 知识点预览按钮 - 保持占位稳定，避免翻页后卡片整体上跳 */}
-          {sessionMode === 'flashcard' && (
-            <div className="px-4 pt-2">
-              <button
-                onClick={() => setShowKnowledge(!showKnowledge)}
-                className="w-full rounded-xl p-3 border flex items-center justify-between transition-all"
-                style={{
-                  backgroundColor: showKnowledge ? '#eff6ff' : 'transparent',
-                  borderColor: '#dbeafe'
-                }}
-              >
-                <div className="flex items-center gap-2 text-sm min-w-0" style={{ color: '#1e40af' }}>
-                  <BookOpen size={14} className="shrink-0" />
-                  <span className="truncate">{isFlipped ? '查看关联知识点：' : '先回顾知识点：'}{currentKp.name}</span>
-                </div>
-                <ChevronRight
-                  size={14}
-                  style={{
-                    color: '#60a5fa',
-                    transform: showKnowledge ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s'
-                  }}
-                />
-              </button>
-
-              {showKnowledge && (
-                <div
-                  className="mt-2 rounded-xl p-4 border text-sm"
-                  style={{
-                    backgroundColor: '#eff6ff',
-                    borderColor: '#dbeafe',
-                    color: '#1e40af'
-                  }}
-                >
-                  <p className="leading-relaxed">{currentKp.explanation || '暂无解析'}</p>
-                  {currentKp.memoryTip && (
-                    <p className="mt-2 text-xs" style={{ color: theme.textMuted }}>
-                      💡 记忆提示：{currentKp.memoryTip}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {relatedQuestions.length > 0 && (
-                <div
-                  className="mt-2 rounded-xl p-3 text-xs"
-                  style={{ backgroundColor: '#ecfdf5', color: '#166534', border: '1px solid #a7f3d0' }}
-                >
-                  本知识点关联 {relatedQuestions.length} 道题，完成卡片评分后会自动进入配套练习。
-                </div>
-              )}
-            </div>
-          )}
-
           {sessionMode === 'flashcard' ? (
             <>
               {/* Card area with side navigation */}
-              <div className="flex-1 flex items-center relative">
+              <div className="relative flex min-h-0 flex-1 items-center px-3 py-4 md:px-8 md:py-5">
                 {/* Left button - previous */}
                 <button
                   onClick={goToPrev}
                   disabled={currentIdx === 0}
-                  className="absolute left-2 w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed z-10"
-                  style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+                  className="absolute left-2 z-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 md:left-6"
+                  aria-label="Previous card"
                 >
-                  ‹
+                  <ChevronLeft size={24} />
                 </button>
 
                 {/* Card */}
-                <div className="flex-1 flex items-center justify-center p-4">
+                <div className={`flex min-h-0 flex-1 items-center justify-center ${embedded ? 'px-14 py-2' : 'px-12 py-2'}`}>
                   <FlashcardCard
                     name={currentKp.name}
                     explanation={currentKp.explanation || '暂无解析'}
@@ -1002,35 +894,36 @@ export default function FlashcardLearningPage() {
                     isFlipped={isFlipped}
                     onFlip={handleFlip}
                     swipeDirection={swipeDirection}
+                    size={embedded ? 'desktop' : 'default'}
                   />
                 </div>
 
-                {/* Right button - home */}
+                {/* Right button - flip affordance */}
                 <button
-                  onClick={exitLearning}
-                  className="absolute right-2 w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 z-10"
-                  style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+                  onClick={handleFlip}
+                  className="absolute right-2 z-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 md:right-6"
+                  aria-label="Flip card"
                 >
-                  <Home size={22} />
+                  <ChevronRight size={24} />
                 </button>
               </div>
 
               {/* Rating buttons */}
-              <div className="px-4 pb-6">
+              <div className="min-h-[112px] shrink-0 px-4 pb-4 md:px-8">
                 {!isFlipped ? (
                   <button
                     onClick={handleFlip}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-bold text-white transition-transform active:scale-[0.98]"
+                    className="mx-auto flex h-14 w-full max-w-[520px] items-center justify-center gap-2 rounded-2xl text-base font-bold text-white transition-colors hover:bg-indigo-800 active:scale-[0.98]"
                     style={{
-                      backgroundColor: theme.primary,
-                      boxShadow: `0 14px 26px ${theme.primary}30`,
+                      backgroundColor: '#3730a3',
+                      boxShadow: `0 14px 26px ${theme.primary}22`,
                     }}
                   >
                     查看答案
                     <ChevronRight size={18} />
                   </button>
                 ) : (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="mx-auto grid max-w-[720px] grid-cols-4 gap-2">
                     {/* Again - 不会 */}
                     <button
                       onClick={() => handleSelect('again')}
@@ -1113,7 +1006,7 @@ export default function FlashcardLearningPage() {
                 )}
 
                 {/* Keyboard hints */}
-                <div className="flex justify-center gap-4 mt-3 text-xs" style={{ color: theme.textMuted }}>
+                <div className="mt-3 flex justify-center gap-4 text-xs text-slate-500">
                   {isFlipped && <span>1/2/3/4</span>}
                   <span>空格翻转</span>
                 </div>
@@ -1281,8 +1174,13 @@ export default function FlashcardLearningPage() {
                                 })
                                 .join('、');
 
+                              const questionContext = `题目：${currentQuizQuestion.stem}\n\n选项：\n${optionsText}\n\n正确答案：${correctLabels}\n\n解析：${currentExplanation}\n\n请进一步讲解。`;
+                              if (embedded && onAskAI) {
+                                onAskAI(questionContext);
+                                return;
+                              }
                               navigate('ai-chat', {
-                                questionContext: `题目：${currentQuizQuestion.stem}\n\n选项：\n${optionsText}\n\n正确答案：${correctLabels}\n\n解析：${currentExplanation}\n\n请进一步讲解。`,
+                                questionContext,
                                 subjectId: currentKp.subjectId,
                                 knowledgePointId: currentKp.id,
                               });
@@ -1400,7 +1298,7 @@ export default function FlashcardLearningPage() {
       {/* ===== 分类选择器底部弹层 ===== */}
       {showCategoryPicker && (
         <div
-          className="fixed inset-0 z-[60] flex flex-col justify-end"
+          className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-[60] flex flex-col justify-end`}
           style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowCategoryPicker(false); }}
         >

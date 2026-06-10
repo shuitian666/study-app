@@ -28,7 +28,16 @@ export interface LevelProgress {
   totalExperience: number;
 }
 
-export const LEVEL_BENEFITS: LevelBenefit[] = [];
+export const LEVEL_BENEFITS: LevelBenefit[] = [
+  {
+    id: 'ai-assisted-study',
+    level: 10,
+    type: 'feature',
+    label: 'AI 辅助学习',
+    description: '解锁规划式 AI 学习：自动规划、讲解、渐进练习和学习总结。',
+    enabled: true,
+  },
+];
 
 export function getLocalDateKey(date = new Date()): string {
   const year = date.getFullYear();

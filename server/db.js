@@ -263,6 +263,18 @@ CREATE TABLE IF NOT EXISTS user_import_history (
   deleted_at TEXT,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS ai_study_summaries (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  subject_id TEXT,
+  chapter_ids TEXT NOT NULL DEFAULT '[]',
+  knowledge_point_ids TEXT NOT NULL DEFAULT '[]',
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `);
 
 function addColumn(table, columnDef) {

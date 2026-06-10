@@ -3,8 +3,10 @@ import { PROFICIENCY_MAP } from '@/types';
 import { useTheme } from '@/store/ThemeContext';
 import { getAdaptiveNav } from '@/utils/adaptiveTheme';
 
-export function ProficiencyBadge({ level }: { level: ProficiencyLevel }) {
-  const config = PROFICIENCY_MAP[level];
+export function ProficiencyBadge({ level }: { level: ProficiencyLevel | string | null | undefined }) {
+  const config = level && level in PROFICIENCY_MAP
+    ? PROFICIENCY_MAP[level as ProficiencyLevel]
+    : PROFICIENCY_MAP.none;
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"

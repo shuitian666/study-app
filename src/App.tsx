@@ -1,36 +1,34 @@
-/**
- * ============================================================================
- * 应用主入口 & 路由
- * ============================================================================
- *
- * 【路由机制】自建路由，基于 AppState.currentPage 做 switch 渲染
- * 无需 react-router，navigate() 直接 dispatch NAVIGATE action
- *
- * 【新增页面步骤】
- * 1. 在 src/types/index.ts 的 PageName 联合类型中添加新页面名
- * 2. 在 src/pages/ 下创建页面组件
- * 3. 在此文件 import 并在 renderPage() switch 中添加 case
- * 4. 如需隐藏底部 TabBar → 在 TabBar.tsx 的 hiddenPages 中添加
- * 5. 如需全屏（无 scroll-container 包裹）→ 在 isFullScreen 条件中添加
- *
- * 【优化】使用 React.lazy 进行代码分割，减少首屏加载体积
- * ============================================================================
- */
-
-import React, { Suspense, useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { useUser } from '@/store/UserContext';
-import { useGame } from '@/store/GameContext';
-import { useTheme } from '@/store/ThemeContext';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  BookOpen,
+  Brain,
+  ChevronRight,
+  Home,
+  Map,
+  MessageCircle,
+  PanelRightClose,
+  PanelRightOpen,
+  PenTool,
+  Settings,
+  Sparkles,
+  Trophy,
+  User,
+} from 'lucide-react';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
 import { allBackgrounds } from '@/data/avatarCatalog';
-import { isDarkTheme } from '@/utils/adaptiveTheme';
 import { fetchMe } from '@/services/aiClient';
 import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
+import { useGame } from '@/store/GameContext';
+import { useLearning } from '@/store/LearningContext';
+import { useTheme } from '@/store/ThemeContext';
+import { useUser } from '@/store/UserContext';
+import { isDarkTheme } from '@/utils/adaptiveTheme';
+import { calculateLearningExperience } from '@/utils/achievementProgress';
+import { calculateLevelProgress } from '@/utils/experience';
 
-// 懒加载所有页面组件，减少首屏加载体积
 const LoginPage = React.lazy(() => import('@/pages/Login'));
 const HomePage = React.lazy(() => import('@/pages/Home'));
 const ProfilePage = React.lazy(() => import('@/pages/Profile'));
@@ -50,6 +48,8 @@ const ShopPage = React.lazy(() => import('@/features/gamification/shop'));
 const RankingPage = React.lazy(() => import('@/features/gamification/ranking'));
 const LotteryPage = React.lazy(() => import('@/features/gamification/lottery'));
 const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
+const AIStudyPage = React.lazy(() => import('@/pages/AIStudy'));
+const AIStudySummariesPage = React.lazy(() => import('@/pages/AIStudy/Summaries'));
 const SettingsPage = React.lazy(() => import('@/pages/Settings'));
 const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
 const MailPage = React.lazy(() => import('@/features/gamification/mail'));
@@ -69,12 +69,14 @@ type CherryParticle = {
   animationDelay: number;
 };
 
+type MainTab = 'home' | 'knowledge' | 'quiz' | 'knowledge-map' | 'profile';
+type DesktopSidebarState = 'collapsed' | 'overview' | 'ai';
+
 function particleValue(seed: number, min = 0, max = 1) {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
   return min + (value - Math.floor(value)) * (max - min);
 }
 
-// 加载占位组件
 const LoadingFallback = () => (
   <div className="flex min-h-screen flex-col" style={{ backgroundColor: 'var(--color-bg-var)' }}>
     <div className="flex-1 space-y-4 p-6">
@@ -92,13 +94,31 @@ const LoadingFallback = () => (
 
 function AppContent() {
   const { userState, userDispatch, navigate } = useUser();
-  const { gameDispatch } = useGame();
+  const { gameState, gameDispatch } = useGame();
+  const { learningState } = useLearning();
   const { theme } = useTheme();
+  const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  const [desktopSidebarState, setDesktopSidebarState] = useState<DesktopSidebarState>('collapsed');
+  const [isDesktopAiMounted, setIsDesktopAiMounted] = useState(false);
+  const [desktopQuestionContext, setDesktopQuestionContext] = useState<{ id: string; text: string } | null>(null);
+  const desktopQuestionSequenceRef = useRef(0);
+  const phoneScrollRef = useRef<HTMLDivElement>(null);
+  const desktopContentRef = useRef<HTMLDivElement>(null);
   const isDark = isDarkTheme(theme);
-  const pagePanelStyle = {
-    backgroundColor: isDark ? 'rgba(9, 15, 28, 0.58)' : 'rgba(255, 255, 255, 0.68)',
-    backdropFilter: 'blur(14px)',
-  };
+  const isLargeScreen = viewportWidth > 768;
+  const isWideDesktop = viewportWidth >= 1360;
+
+  const openDesktopAI = useCallback((questionContext?: string) => {
+    setIsDesktopAiMounted(true);
+    setDesktopSidebarState('ai');
+    if (questionContext?.trim()) {
+      desktopQuestionSequenceRef.current += 1;
+      setDesktopQuestionContext({
+        id: `desktop-question-${Date.now()}-${desktopQuestionSequenceRef.current}`,
+        text: questionContext.trim(),
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +141,6 @@ function AppContent() {
     };
   }, [gameDispatch, userDispatch, userState.isLoggedIn]);
 
-  // 获取当前用户选择的背景
   const currentBackground = useMemo(() => {
     const backgroundId = userState.user?.background;
     if (!backgroundId) return 'linear-gradient(180deg, #ffffff, #f9fafb)';
@@ -129,7 +148,6 @@ function AppContent() {
     return bg?.gradient || 'linear-gradient(180deg, #ffffff, #f9fafb)';
   }, [userState.user?.background]);
 
-  // 获取当前背景图案类型
   const currentPattern = useMemo(() => {
     const backgroundId = userState.user?.background;
     if (!backgroundId) return undefined;
@@ -137,7 +155,6 @@ function AppContent() {
     return bg?.pattern;
   }, [userState.user?.background]);
 
-  // 渲染背景装饰图案 - 使用 useCallback 优化
   const starParticles = useMemo(() => ({
     stars: Array.from({ length: 20 }, (_, i): StarParticle => ({
       left: particleValue(i + 1, 0, 100),
@@ -167,11 +184,11 @@ function AppContent() {
     if (pattern === 'stars' || pattern === 'galaxy') {
       const particles = pattern === 'galaxy' ? starParticles.galaxy : starParticles.stars;
       return (
-        <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-30">
           {particles.map((particle, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-white rounded-full animate-twinkle"
+              className="absolute h-1 w-1 animate-twinkle rounded-full bg-white"
               style={{
                 left: `${particle.left}%`,
                 top: `${particle.top}%`,
@@ -186,11 +203,11 @@ function AppContent() {
 
     if (pattern === 'cherry') {
       return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-10">
           {cherryParticles.map((particle, i) => (
             <div
               key={i}
-              className="absolute text-5xl animate-float"
+              className="absolute animate-float text-5xl"
               style={{
                 left: `${particle.left}%`,
                 top: `${particle.top}%`,
@@ -206,8 +223,7 @@ function AppContent() {
 
     if (pattern === 'apple-blur') {
       return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-          {/* 苹果风格磨砂玻璃纹理 - 微妙的噪点效果 */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-30">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <filter id="noiseFilter">
@@ -220,16 +236,15 @@ function AppContent() {
             </defs>
             <rect width="100%" height="100%" filter="url(#noiseFilter)" />
           </svg>
-          {/* 微妙的渐变光晕 */}
-          <div className="absolute top-0 left-1/4 w-1/2 h-32 bg-white/30 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-1/4 w-1/2 h-32 bg-white/20 rounded-full blur-3xl"></div>
+          <div className="absolute left-1/4 top-0 h-32 w-1/2 rounded-full bg-white/30 blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 h-32 w-1/2 rounded-full bg-white/20 blur-3xl" />
         </div>
       );
     }
 
     if (pattern === 'aurora') {
       return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-35">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-35">
           <div className="absolute -left-20 top-8 h-56 w-56 rounded-full bg-cyan-300/35 blur-3xl" />
           <div className="absolute left-1/3 top-1/4 h-64 w-64 rounded-full bg-indigo-300/30 blur-3xl" />
           <div className="absolute -right-16 bottom-16 h-56 w-56 rounded-full bg-fuchsia-300/25 blur-3xl" />
@@ -261,6 +276,8 @@ function AppContent() {
       case 'ranking': return <RankingPage />;
       case 'lottery': return <LotteryPage />;
       case 'ai-chat': return <AIChatPage />;
+      case 'ai-study': return <AIStudyPage />;
+      case 'ai-study-summaries': return <AIStudySummariesPage />;
       case 'settings': return <SettingsPage />;
       case 'inventory': return <InventoryPage />;
       case 'mail': return <MailPage />;
@@ -270,34 +287,59 @@ function AppContent() {
     }
   };
 
-  const isFullScreen = userState.currentPage === 'login' || userState.currentPage === 'quiz-result' || userState.currentPage === 'ai-chat'
-    || userState.currentPage === 'quiz-session' || userState.currentPage === 'knowledge-detail' || userState.currentPage === 'add-knowledge'
-    || userState.currentPage === 'import-knowledge' || userState.currentPage === 'wrong-book'
-    || userState.currentPage === 'flashcard-learning';
-
-  // 五个主页面用于循环滑动切换
-  const mainTabs = ['home', 'knowledge', 'quiz', 'knowledge-map', 'profile'] as const;
-  type MainTab = typeof mainTabs[number];
-  const currentIndex = mainTabs.indexOf(userState.currentPage as MainTab);
-  const isMainTab = currentIndex >= 0;
   const isHomeScreen = userState.currentPage === 'home';
+  const desktopShellPages = [
+    'home',
+    'knowledge',
+    'quiz',
+    'knowledge-map',
+    'profile',
+    'knowledge-detail',
+    'add-knowledge',
+    'import-knowledge',
+    'wrong-book',
+    'settings',
+    'flashcard-learning',
+    'ai-chat',
+    'ai-study',
+    'ai-study-summaries',
+  ];
+  const isImmersivePage = userState.currentPage === 'login'
+    || userState.currentPage === 'quiz-session'
+    || userState.currentPage === 'quiz-result';
+  const isFullScreen = isImmersivePage
+    || userState.currentPage === 'ai-chat'
+    || userState.currentPage === 'ai-study'
+    || userState.currentPage === 'ai-study-summaries'
+    || userState.currentPage === 'flashcard-learning';
+  const shouldUsePhoneShell = !isLargeScreen || isImmersivePage || !desktopShellPages.includes(userState.currentPage);
 
-  // 检测是否为大屏幕（电脑）启用滑动切换，小屏幕（手机）保持原有方式
-  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth > 768);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [offsetX, setOffsetX] = useState(0);
-  const shouldUsePhoneShell = !isLargeScreen || !isMainTab || isFullScreen || isHomeScreen;
-
-  // 监听屏幕尺寸变化
   useEffect(() => {
-    const handleResize = () => setIsLargeScreen(window.innerWidth > 768);
+    const handleResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 恢复大屏幕布局，启用左右换页效果
+  useEffect(() => {
+    if (!isLargeScreen || userState.currentPage !== 'ai-chat') return;
+    const frame = window.requestAnimationFrame(() => {
+      openDesktopAI(userState.pageParams.questionContext);
+      navigate('home', userState.pageParams);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isLargeScreen, navigate, openDesktopAI, userState.currentPage, userState.pageParams]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      phoneScrollRef.current?.scrollTo({ top: 0, left: 0 });
+      desktopContentRef.current?.scrollTo({ top: 0, left: 0 });
+      window.scrollTo({ top: 0, left: 0 });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [userState.currentPage]);
+
   if (shouldUsePhoneShell) {
     return (
       <div
@@ -308,11 +350,11 @@ function AppContent() {
           className={`relative flex w-full max-w-[430px] flex-col overflow-hidden ${isHomeScreen ? 'min-h-dvh bg-[#F8FAFF] md:h-[860px] md:min-h-0 md:w-[430px] md:flex-none md:rounded-[var(--radius-3xl)] md:border md:border-slate-200 md:shadow-[0_30px_80px_rgba(15,23,42,0.12)]' : 'min-h-dvh'}`}
         >
           {!isHomeScreen && renderBackgroundPattern(currentPattern)}
-          <div className={`relative z-10 flex-1 ${isHomeScreen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-            <div className={isHomeScreen ? 'h-full' : 'pb-20 safe-bottom'}>
+          <div ref={phoneScrollRef} className={`relative z-10 flex-1 ${isHomeScreen || isFullScreen ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className={isHomeScreen || isFullScreen ? 'h-full' : 'pb-20 safe-bottom'}>
               <Suspense fallback={<LoadingFallback />}>
                 {isHomeScreen ? renderPage() : isFullScreen ? (
-                  <div key={userState.currentPage} className="page-fade-opacity">
+                  <div key={userState.currentPage} className="h-full page-fade-opacity">
                     {renderPage()}
                   </div>
                 ) : (
@@ -331,221 +373,279 @@ function AppContent() {
     );
   }
 
-  // 大屏幕 + 主页面：铺满屏幕，同时**一直显示三张牌** - 前/中/后，全程都有内容不会空白
-  const prevIndex = currentIndex === 0 ? mainTabs.length - 1 : currentIndex - 1;
-  const nextIndex = currentIndex === mainTabs.length - 1 ? 0 : currentIndex + 1;
+  const desktopTabs: { key: MainTab; label: string; description: string; icon: typeof Home }[] = [
+    { key: 'home', label: '首页', description: '今日学习', icon: Home },
+    { key: 'knowledge', label: '知识库', description: '卡片管理', icon: BookOpen },
+    { key: 'quiz', label: '刷题', description: '练习测验', icon: PenTool },
+    { key: 'knowledge-map', label: '图谱', description: '知识关系', icon: Map },
+    { key: 'profile', label: '我的', description: '账户档案', icon: User },
+  ];
 
-  const renderMainTab = (tabName: string, isActive: boolean) => {
-    switch (tabName) {
-      case 'home': return <HomePage isActive={isActive} />;
-      case 'knowledge': return <KnowledgePage isActive={isActive} />;
-      case 'quiz': return <QuizPage isActive={isActive} />;
+  const renderDesktopPage = () => {
+    switch (userState.currentPage) {
+      case 'home': return <HomePage isActive showBottomNav={false} />;
+      case 'knowledge': return <KnowledgePage isActive />;
+      case 'quiz': return <QuizPage isActive />;
       case 'knowledge-map': return <KnowledgeMapPage />;
       case 'profile': return <ProfilePage />;
-      default: return <HomePage isActive={false} />;
+      case 'knowledge-detail': return <KnowledgeDetailPage />;
+      case 'add-knowledge': return <AddKnowledgePage />;
+      case 'import-knowledge': return <ImportKnowledgePage />;
+      case 'wrong-book': return <WrongBookPage />;
+      case 'settings': return <SettingsPage />;
+      case 'flashcard-learning': return <FlashcardLearningPage embedded onAskAI={openDesktopAI} />;
+      case 'ai-study': return <AIStudyPage />;
+      case 'ai-study-summaries': return <AIStudySummariesPage />;
+      case 'ai-chat': return <HomePage isActive showBottomNav={false} />;
+      default: return <HomePage isActive showBottomNav={false} />;
     }
   };
 
-  // 计算位置：三张均匀分布，全程可见
-  // 每一页宽度 = 屏幕一半，最大 520px
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
-  const pageWidth = Math.min(screenWidth * 0.5, 520);
-  // 计算三个页面的基础位置：都完整可见
-  const leftX = (screenWidth - pageWidth) / 2 - pageWidth; // prev 在 current 左侧，正好一个完整宽度
-  const currX = (screenWidth - pageWidth) / 2;             // current 居中
-  const nextX = (screenWidth - pageWidth) / 2 + pageWidth; // next 在 current 右侧，正好一个完整宽度
-
-  const getTransform = (pageOffset: -1 | 0 | 1) => {
-    const baseX = pageOffset === -1 ? leftX : pageOffset === 0 ? currX : nextX;
-    const scale = pageOffset === 0 ? 1 : 0.92;
-    const rotateY = pageOffset === -1 ? '8deg' : pageOffset === 1 ? '-8deg' : '0deg';
-    const translateZ = pageOffset === 0 ? '30px' : '0px';
-    return `translateX(calc(${baseX}px + ${offsetX * 0.8}px)) scale(${scale}) rotateY(${rotateY}) translateZ(${translateZ})`;
+  const desktopPageTitles: Record<string, string> = {
+    'knowledge-detail': '知识点详情',
+    'add-knowledge': '添加知识',
+    'import-knowledge': '导入知识',
+    'wrong-book': '错题本',
+    settings: '设置',
+    'flashcard-learning': '学习',
+    'ai-chat': 'AI 助手',
   };
-
-  const getOpacity = (pageOffset: -1 | 0 | 1) => {
-    if (pageOffset === 0) return 1;
-    // 未拖动时两边页面完全透明
-    if (!isDragging && offsetX === 0) return 0;
-    // 拖动时根据偏移量计算透明度
-    const baseOpacity = 0.4;
-    if (pageOffset === -1 && offsetX > 0) {
-      // 向右拖动时显示左侧页面
-      return Math.min(baseOpacity, offsetX / (pageWidth * 0.5));
-    } else if (pageOffset === 1 && offsetX < 0) {
-      // 向左拖动时显示右侧页面
-      return Math.min(baseOpacity, Math.abs(offsetX) / (pageWidth * 0.5));
-    }
-    return 0;
-  };
-
-  // 拖动结束处理：超过阈值则切换，否则回弹
-  const finishSwipe = () => {
-    if (!isDragging) return;
-    const threshold = pageWidth * 0.3;
-    if (Math.abs(offsetX) > threshold) {
-      if (offsetX > 0) {
-        goToPrev();
-      } else {
-        goToNext();
-      }
-    } else {
-      // 回弹到原位
-      setOffsetX(0);
-    }
-    setIsDragging(false);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // 检查点击目标是否是可点击元素（按钮、链接等）
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
-      return; // 不启动拖动
-    }
-    setIsDragging(true);
-    setStartX(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setOffsetX(e.clientX - startX);
-  };
-
-  const handleMouseUp = () => finishSwipe();
-  const handleMouseLeave = () => finishSwipe();
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // 检查触摸目标是否是可点击元素（按钮、链接等）
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('select')) {
-      return; // 不启动拖动
-    }
-    setIsDragging(true);
-    setStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    setOffsetX(e.touches[0].clientX - startX);
-  };
-
-  const handleTouchEnd = () => finishSwipe();
-
-  // 按钮点击切换：带动画，滑到位再更新索引
-  const goToPrev = () => {
-    setIsDragging(true);
-    const targetOffset = pageWidth; // 向右滑一个页面宽度
-    setOffsetX(targetOffset);
-    setTimeout(() => {
-      navigate(mainTabs[prevIndex]);
-      setOffsetX(0);
-      setIsDragging(false);
-    }, 400);
-  };
-
-  const goToNext = () => {
-    setIsDragging(true);
-    const targetOffset = -pageWidth; // 向左滑一个页面宽度
-    setOffsetX(targetOffset);
-    setTimeout(() => {
-      navigate(mainTabs[nextIndex]);
-      setOffsetX(0);
-      setIsDragging(false);
-    }, 400);
-  };
+  const pageTitle = desktopTabs.find(tab => tab.key === userState.currentPage)?.label
+    ?? desktopPageTitles[userState.currentPage]
+    ?? '学习';
+  const learningExperience = calculateLearningExperience(learningState, gameState.checkin);
+  const experienceTotal = learningExperience + (userState.user?.bonusExperience ?? 0);
+  const levelProgress = calculateLevelProgress(experienceTotal);
+  const desktopSurface = isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.86)';
+  const desktopMutedSurface = isDark ? 'rgba(30, 41, 59, 0.72)' : 'rgba(248, 250, 252, 0.9)';
+  const desktopBorder = isDark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(148, 163, 184, 0.24)';
+  const desktopText = theme.textPrimary || (isDark ? '#f8fafc' : '#0f172a');
+  const desktopMuted = theme.textSecondary || (isDark ? '#cbd5e1' : '#64748b');
+  const desktopAccent = theme.primary || '#4f46e5';
+  const isStudyWorkspace = userState.currentPage === 'flashcard-learning';
 
   return (
-    <div className="fixed inset-0" style={{ background: currentBackground }}>
+    <div className="fixed inset-0 overflow-hidden" style={{ background: currentBackground }}>
       {renderBackgroundPattern(currentPattern)}
-      <div className="h-full flex flex-col relative group"
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="flex-1 relative overflow-hidden perspective-[1200px]">
-          {/* 前一页 - 始终在左边 */}
-          <div
-            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
-            style={{
-              transform: getTransform(-1),
-              opacity: getOpacity(-1),
-              zIndex: 1
-            }}
-          >
-            <div className="w-full h-full overflow-y-auto pb-[70px]" style={pagePanelStyle}>
-              <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[prevIndex], false)}
-              </Suspense>
+      <div className="relative z-10 flex h-full items-center justify-center p-3 min-[1440px]:p-5">
+        <div
+          className={`relative grid h-full max-h-[940px] w-full max-w-[1720px] gap-3 rounded-[28px] border p-3 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-2xl ${
+            isWideDesktop ? 'grid-cols-[220px_minmax(720px,1fr)_auto]' : 'grid-cols-[220px_minmax(0,1fr)]'
+          }`}
+          style={{ backgroundColor: isDark ? 'rgba(2, 6, 23, 0.52)' : 'rgba(248, 250, 252, 0.76)', borderColor: desktopBorder }}
+        >
+          <aside className="flex min-h-0 flex-col rounded-[24px] border p-4" style={{ backgroundColor: desktopSurface, borderColor: desktopBorder }}>
+            <div className="mb-7 flex items-center gap-3 px-1">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl text-base font-extrabold text-white shadow-[0_12px_26px_rgba(79,70,229,0.28)]" style={{ backgroundColor: desktopAccent }}>
+                S
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[17px] font-extrabold" style={{ color: desktopText }}>Smart Study</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textMuted || desktopMuted }}>Desktop</div>
+              </div>
             </div>
-          </div>
 
-          {/* 当前页 - 始终在中间 */}
-          <div
-            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
-            style={{
-              transform: getTransform(0),
-              opacity: getOpacity(0),
-              zIndex: 2
-            }}
-          >
-            <div className="w-full h-full overflow-y-auto pb-[70px]" style={pagePanelStyle}>
-              <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[currentIndex], true)}
-              </Suspense>
+            <nav className="space-y-2">
+              {desktopTabs.map(tab => {
+                const Icon = tab.icon;
+                const active = userState.currentPage === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => navigate(tab.key)}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all duration-200 hover:-translate-y-0.5"
+                    style={{
+                      backgroundColor: active ? `${desktopAccent}18` : 'transparent',
+                      color: active ? desktopAccent : desktopMuted,
+                    }}
+                  >
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: active ? desktopAccent : desktopMutedSurface, color: active ? '#ffffff' : desktopMuted }}
+                    >
+                      <Icon size={18} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold">{tab.label}</span>
+                      <span className="mt-0.5 block text-xs" style={{ color: active ? desktopAccent : theme.textMuted || desktopMuted }}>{tab.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto space-y-3">
+              <button
+                onClick={() => navigate('flashcard-learning')}
+                className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-white shadow-[0_12px_30px_rgba(79,70,229,0.24)] transition-transform active:scale-[0.98]"
+                style={{ backgroundColor: desktopAccent }}
+              >
+                <span>
+                  <span className="block text-sm font-bold">开始学习</span>
+                  <span className="mt-0.5 block text-xs text-white/72">进入卡片复习</span>
+                </span>
+                <ChevronRight size={18} />
+              </button>
+              <button
+                onClick={() => navigate('settings')}
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold"
+                style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+              >
+                <Settings size={17} />
+                设置
+              </button>
             </div>
-          </div>
+          </aside>
 
-          {/* 后一页 - 始终在右边 */}
-          <div
-            className="absolute top-0 bottom-0 transform-gpu transition-all duration-400 ease-out w-[50%] max-w-[520px]"
-            style={{
-              transform: getTransform(1),
-              opacity: getOpacity(1),
-              zIndex: 1
-            }}
-          >
-            <div className="w-full h-full overflow-y-auto pb-[70px]" style={pagePanelStyle}>
-              <Suspense fallback={<LoadingFallback />}>
-                {renderMainTab(mainTabs[nextIndex], false)}
-              </Suspense>
+          <main className="flex min-h-0 flex-col rounded-[24px] border" style={{ backgroundColor: isDark ? 'rgba(15, 23, 42, 0.42)' : 'rgba(255, 255, 255, 0.48)', borderColor: desktopBorder }}>
+            <div className="shrink-0 border-b px-6 py-4" style={{ borderColor: desktopBorder }}>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: theme.textMuted || desktopMuted }}>Learning workspace</div>
+                <h1 className="mt-1 text-2xl font-extrabold" style={{ color: desktopText }}>{pageTitle}</h1>
+              </div>
             </div>
-          </div>
+            <div className="min-h-0 flex-1 p-4">
+              <div
+                ref={desktopContentRef}
+                className={`desktop-content-stage relative h-full w-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${isStudyWorkspace ? 'rounded-[28px]' : 'rounded-[24px] border shadow-[0_20px_56px_rgba(15,23,42,0.12)]'}`}
+                style={{ backgroundColor: isStudyWorkspace ? '#f7f8fc' : (isDark ? 'rgba(15, 23, 42, 0.78)' : '#f8faff'), borderColor: desktopBorder }}
+              >
+                <div className="h-full min-h-0">
+                  <Suspense fallback={<LoadingFallback />}>
+                    {renderDesktopPage()}
+                  </Suspense>
+                </div>
+              </div>
+            </div>
+          </main>
 
-          {/* 左侧切换按钮 - 透明，鼠标靠近显示 */}
-          <button
-            onClick={goToPrev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center
-              text-white/20 hover:text-white/80 bg-black/5 hover:bg-black/20 rounded-full 
-              transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
+          <aside
+            className={`${isWideDesktop ? 'relative' : 'absolute bottom-3 right-3 top-3 z-40 shadow-[0_24px_70px_rgba(15,23,42,0.2)]'} min-h-0 overflow-hidden rounded-[24px] border transition-[width] duration-300 ${
+              desktopSidebarState === 'ai'
+                ? 'w-[340px]'
+                : desktopSidebarState === 'overview'
+                  ? 'w-[220px]'
+                  : 'w-[64px]'
+            }`}
+            style={{ backgroundColor: desktopSurface, borderColor: desktopBorder }}
           >
-            <span className="text-2xl font-bold">&lt;</span>
-          </button>
+            <div className={desktopSidebarState === 'collapsed' ? 'flex h-full flex-col items-center gap-3 p-2' : 'hidden'}>
+              <button
+                onClick={() => setDesktopSidebarState('overview')}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border"
+                style={{ backgroundColor: desktopMutedSurface, borderColor: desktopBorder, color: desktopMuted }}
+                title="展开侧栏"
+                aria-label="展开侧栏"
+              >
+                <PanelRightOpen size={18} />
+              </button>
+              <button
+                onClick={() => openDesktopAI()}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl transition-colors hover:bg-indigo-50"
+                style={{ backgroundColor: `${desktopAccent}14`, color: desktopAccent }}
+                title="AI 问答"
+                aria-label="打开 AI 问答"
+              >
+                <Brain size={18} />
+              </button>
+              <div
+                className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl"
+                style={{ backgroundColor: desktopMutedSurface, color: desktopText }}
+                title={`Lv.${levelProgress.level} · ${experienceTotal} EXP`}
+              >
+                <span className="text-[9px] font-semibold" style={{ color: desktopMuted }}>LV</span>
+                <span className="text-xs font-extrabold">{levelProgress.level}</span>
+              </div>
+              <div
+                className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl"
+                style={{ backgroundColor: desktopMutedSurface, color: desktopText }}
+                title={`连续签到 ${gameState.checkin.streak} 天`}
+              >
+                <Trophy size={14} style={{ color: desktopAccent }} />
+                <span className="mt-0.5 text-[10px] font-bold">{gameState.checkin.streak}</span>
+              </div>
+            </div>
 
-          {/* 右侧切换按钮 - 透明，鼠标靠近显示 */}
-          <button
-            onClick={goToNext}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center
-              text-white/20 hover:text-white/80 bg-black/5 hover:bg-black/20 rounded-full 
-              transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
-          >
-            <span className="text-2xl font-bold">&gt;</span>
-          </button>
+            <div className={desktopSidebarState === 'overview' ? 'flex h-full flex-col p-3' : 'hidden'}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: theme.textMuted || desktopMuted }}>Overview</div>
+                  <h2 className="mt-1 text-lg font-extrabold" style={{ color: desktopText }}>学习概览</h2>
+                </div>
+                <button
+                  onClick={() => setDesktopSidebarState('collapsed')}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+                  title="收起侧栏"
+                  aria-label="收起侧栏"
+                >
+                  <PanelRightClose size={17} />
+                </button>
+              </div>
+
+              <div className="mt-5 rounded-2xl p-4" style={{ backgroundColor: desktopMutedSurface }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold" style={{ color: desktopMuted }}>当前等级</div>
+                    <div className="mt-1 text-2xl font-extrabold" style={{ color: desktopText }}>Lv.{levelProgress.level}</div>
+                  </div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: `${desktopAccent}16`, color: desktopAccent }}>
+                    <Sparkles size={20} />
+                  </div>
+                </div>
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.border }}>
+                  <div className="h-full rounded-full" style={{ width: `${levelProgress.progressPercent}%`, backgroundColor: desktopAccent }} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[10px] font-semibold" style={{ color: desktopMuted }}>
+                  <span>{experienceTotal.toLocaleString()} EXP</span>
+                  <span>{levelProgress.currentLevelExp}/{levelProgress.nextLevelExp}</span>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center gap-3 rounded-2xl p-4" style={{ backgroundColor: desktopMutedSurface }}>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${desktopAccent}14`, color: desktopAccent }}>
+                  <Trophy size={18} />
+                </span>
+                <div>
+                  <div className="text-xs font-semibold" style={{ color: desktopMuted }}>连续签到</div>
+                  <div className="mt-0.5 text-lg font-extrabold" style={{ color: desktopText }}>{gameState.checkin.streak} 天</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => openDesktopAI()}
+                className="mt-3 flex w-full items-center gap-3 rounded-2xl p-4 text-left text-white shadow-[0_12px_28px_rgba(79,70,229,0.2)] transition-transform active:scale-[0.98]"
+                style={{ backgroundColor: desktopAccent }}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/16">
+                  <MessageCircle size={19} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold">AI 问答</span>
+                  <span className="mt-0.5 block text-[11px] text-white/75">学习时随时提问</span>
+                </span>
+                <ChevronRight size={17} />
+              </button>
+            </div>
+
+            <div className={desktopSidebarState === 'ai' ? 'h-full min-h-0 p-2' : 'pointer-events-none absolute inset-0 invisible'}>
+              {isDesktopAiMounted && (
+                <div className="h-full min-h-0 overflow-hidden rounded-[18px] border" style={{ borderColor: desktopBorder }}>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <AIChatPage
+                      embedded
+                      embeddedQuestionContext={desktopQuestionContext}
+                      onClose={() => setDesktopSidebarState('collapsed')}
+                    />
+                  </Suspense>
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
-
-        {/* 底部导航保持居中 */}
-        {userState.isLoggedIn && (
-          <div className="relative z-10 max-w-[520px] mx-auto">
-            <TabBar />
-          </div>
-        )}
-        <AchievementPopup />
-        <LotteryDrawModal />
       </div>
+      <AchievementPopup />
+      <LotteryDrawModal />
     </div>
   );
 }

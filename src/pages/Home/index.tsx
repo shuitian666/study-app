@@ -41,7 +41,7 @@ import { accountUpdateProfile } from '@/services/aiClient';
 import { getSmartEncouragement } from '@/services/aiService';
 import { downloadKnowledgeFromOSS, getAvailableKnowledgeBases, type KnowledgeSubject } from '@/services/ossService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
-import { generateTodayReviewPlan, getEncouragement, getGreeting } from '@/utils/review';
+import { generateTodayReviewPlan, getGreeting } from '@/utils/review';
 import { getAdaptiveButton, getAdaptivePageBackground, isDarkTheme } from '@/utils/adaptiveTheme';
 import { getRecommendedPackages, STUDY_DIRECTIONS, type StudyDirection } from '@/utils/contentPackages';
 import {
@@ -55,6 +55,7 @@ import { normalizeLearningProfile } from '@/utils/aiLearningContext';
 
 interface HomePageProps {
   isActive?: boolean;
+  showBottomNav?: boolean;
 }
 
 const ONBOARDING_STORAGE_KEY = 'study-app:onboarding-completed:v1';
@@ -82,13 +83,12 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-export default function HomePage({ isActive = true }: HomePageProps) {
+export default function HomePage({ isActive = true, showBottomNav = true }: HomePageProps) {
   const { gameState } = useGame();
   const { learningState, learningDispatch, syncStatus, retryLearningSync, getLearningStats } = useLearning();
   const { theme } = useTheme();
   const { userState, userDispatch, navigate } = useUser();
   const stats = getLearningStats();
-  const [fallbackEncouragement] = useState(() => getEncouragement());
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeSubject[]>([]);
   const [selectedDirection, setSelectedDirection] = useState<StudyDirection>('medical');
@@ -182,7 +182,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
   const completedNew = learningState.todayNewItems.filter(item => item.completed).length;
   const remainingGoalCount = Math.max(dailyGoal - todayLearningCount, 0);
   const hasCheckedInToday = gameState.checkin.records.some(record => record.date === todayKey);
-  const encouragementText = userState.dailyEncouragement ?? fallbackEncouragement;
   const isScholar = theme.uiStyle === 'scholar' || theme.isFluidScholar;
   const isDark = isDarkTheme(theme);
   const classicPalette = isDark
@@ -409,11 +408,11 @@ export default function HomePage({ isActive = true }: HomePageProps) {
     ? '继续复习'
     : heroPackage
       ? '领取并开始'
-    : remainingGoalCount > 0
-      ? '开始学习'
-      : hasCheckedInToday
-        ? '再练一组'
-        : '去签到';
+      : remainingGoalCount > 0
+        ? '开始学习'
+        : hasCheckedInToday
+          ? '再练一组'
+          : '去签到';
 
   const mainAction = heroPackage
     ? () => claimKnowledgePackage(heroPackage.id)
@@ -613,10 +612,10 @@ export default function HomePage({ isActive = true }: HomePageProps) {
 
     return (
       <div
-        className="relative flex h-full max-w-[430px] flex-col overflow-hidden"
+        className={`relative flex h-full flex-col overflow-hidden ${showBottomNav ? 'max-w-[430px]' : 'mx-auto w-full max-w-[1180px]'}`}
         style={getAdaptivePageBackground(theme)}
       >
-        <main className="h-full overflow-y-auto px-6 pb-[132px] pt-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <main className={`h-full overflow-y-auto px-6 pt-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${showBottomNav ? 'pb-[132px]' : 'pb-8'}`}>
           <header className="mb-7 flex h-12 w-full items-center justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <div
@@ -808,7 +807,7 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           </section>
         </main>
 
-        {isActive && (
+        {isActive && showBottomNav && (
           <div className="absolute bottom-0 left-0 right-0 z-40">
             {bottomNav}
           </div>
@@ -935,8 +934,37 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           </div>
         </section>
 
-        {contentPackagePanel}
         {reminderPanel}
+
+        <button
+          onClick={() => navigate('ai-chat')}
+          className="mt-4 flex w-full items-center gap-3 rounded-lg border p-4 text-left shadow-[0_10px_26px_-22px_rgba(97,71,38,0.65)] transition-transform active:scale-[0.99]"
+          style={{
+            background: `linear-gradient(135deg, ${isScholar ? theme.primaryFixed || theme.bgCard : classicPalette.blueSoft}, ${isScholar ? theme.bgCard : classicPalette.card})`,
+            borderColor: isScholar ? `${theme.primary}35` : classicPalette.line,
+          }}
+        >
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+            style={{ backgroundColor: isScholar ? theme.primary : paperPalette.blue }}
+          >
+            <Bot size={21} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-[14px] font-extrabold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
+                AI 问答
+              </span>
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ backgroundColor: `${theme.primary}16`, color: theme.primary }}>
+                已解锁
+              </span>
+            </span>
+            <span className="mt-1 block text-[11px] leading-4" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
+              立即答疑 · 学习模式 Lv.10 解锁
+            </span>
+          </span>
+          <ChevronRight size={17} style={{ color: isScholar ? theme.primary : paperPalette.blue }} />
+        </button>
 
         <section className="mt-4 grid grid-cols-3 gap-2.5">
           {statusCards.map(card => (
@@ -1072,38 +1100,6 @@ export default function HomePage({ isActive = true }: HomePageProps) {
           </div>
         </section>
 
-        <section
-          className="mt-5 rounded-lg border p-4"
-          style={{
-            backgroundColor: isScholar ? theme.bgCard : classicPalette.card,
-            borderColor: isScholar ? theme.border : classicPalette.line,
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-              style={{ backgroundColor: isScholar ? theme.surfaceContainerLow || '#f3f4f5' : classicPalette.blueSoft, color: isScholar ? theme.primary : paperPalette.blue }}
-            >
-              <Bot size={18} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[14px] font-bold" style={{ color: isScholar ? theme.textPrimary : classicPalette.ink }}>
-                AI 学习助手
-              </h3>
-              <p className="mt-1 line-clamp-2 text-[12px] leading-5" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
-                {encouragementText}
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('ai-chat')}
-              className="inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-[12px] font-bold text-white"
-              style={{ backgroundColor: isScholar ? theme.primary : paperPalette.blue }}
-            >
-              询问
-            </button>
-          </div>
-        </section>
-
         {stats.weakSubjects.length > 0 && (
           <section
             className="mt-5 rounded-lg border p-4"
@@ -1127,12 +1123,12 @@ export default function HomePage({ isActive = true }: HomePageProps) {
         )}
       </main>
 
-      {isActive && (
+      {isActive && showBottomNav && (
         <div className="absolute inset-x-0 bottom-0 z-40">
           {bottomNav}
         </div>
       )}
-      {isActive && (
+      {isActive && showBottomNav && (
         <div className="absolute bottom-[70px] right-5 z-[80]">
           {floatingPanel}
         </div>

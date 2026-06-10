@@ -59,6 +59,19 @@ function normalizeDefaultKnowledgePoints(
   }));
 }
 
+function normalizeProficiency(value: unknown): ProficiencyLevel {
+  return typeof value === 'string' && value in PROFICIENCY_MAP
+    ? value as ProficiencyLevel
+    : 'none';
+}
+
+function normalizeKnowledgePointProficiency<T extends KnowledgePoint>(knowledgePoint: T): T {
+  return {
+    ...knowledgePoint,
+    proficiency: normalizeProficiency(knowledgePoint.proficiency),
+  };
+}
+
 interface ImportedStudySession {
   id: string;
   source: 'import';
@@ -630,7 +643,9 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         questionExplanations: state.questionExplanations.filter(e => e.questionId !== action.payload),
       };
     case 'AI_ADD_GENERATED_QUESTION':
-      return { ...state, questions: [...state.questions, action.payload] };
+      return state.questions.some(question => question.id === action.payload.id)
+        ? state
+        : { ...state, questions: [...state.questions, action.payload] };
     case 'RECORD_HISTORY': {
       // Only record certain actions for undo (not navigation, not undo/redo)
       const newHistory = state._history.slice(0, state._historyIndex + 1);
@@ -693,7 +708,7 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
       // 找出下载有但本地没有的（新增的）
       const newOnlyKP = action.payload.knowledgePoints
         .filter(kp => !existingKPIds.has(kp.id))
-        .map(kp => ({
+        .map(kp => normalizeKnowledgePointProficiency({
           ...kp,
           createdAt: kp.createdAt || importCreatedAt,
           source: kp.source ?? 'import',
@@ -703,10 +718,10 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
         ...localOnlyKP,
         ...state.knowledgePoints.filter(kp => newKPIds.has(kp.id) && !isDeleted(kp)).map(existing => {
           const downloaded = action.payload.knowledgePoints.find(kp => kp.id === existing.id);
-          return downloaded ? { ...existing, ...downloaded } as KnowledgePointExtended : existing;
+          return downloaded ? normalizeKnowledgePointProficiency({ ...existing, ...downloaded } as KnowledgePointExtended) : existing;
         }),
         ...newOnlyKP
-      ];
+      ].map(kp => normalizeKnowledgePointProficiency(kp));
 
       // 同样合并 subjects 和 chapters
       const existingSubjectIds = new Set(state.subjects.map(s => s.id));
@@ -768,7 +783,7 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
       const mergedKnowledgePoints = mergeProgressIntoKnowledgePoints(
         mergeById(state.knowledgePoints, payload.knowledgePoints) as KnowledgePointExtended[],
         payload.progress,
-      );
+      ).map(kp => normalizeKnowledgePointProficiency(kp));
       const mergedQuestionExplanations = buildQuestionExplanationSeeds(
         mergedQuestions,
         mergeByKey(state.questionExplanations, payload.questionExplanations, item => item.questionId),
@@ -1263,7 +1278,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     const profValues: Record<ProficiencyLevel, number> = { none: 0, rusty: 1, normal: 2, master: 3 };
     kps.forEach(kp => {
       if (!subjectScores[kp.subjectId]) subjectScores[kp.subjectId] = { total: 0, count: 0 };
-      subjectScores[kp.subjectId].total += profValues[kp.proficiency];
+      subjectScores[kp.subjectId].total += profValues[normalizeProficiency(kp.proficiency)];
       subjectScores[kp.subjectId].count += 1;
     });
 

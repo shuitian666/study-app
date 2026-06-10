@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import type { LucideIcon } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
@@ -81,6 +82,16 @@ function describeSector(startAngle: number, endAngle: number) {
     `A ${INNER_RADIUS} ${INNER_RADIUS} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
     'Z',
   ].join(' ');
+}
+
+function hexToRgb(hex?: string) {
+  if (!hex || !hex.startsWith('#')) return '79, 70, 229';
+  const normalized = hex.length === 4
+    ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+    : hex;
+  const value = Number.parseInt(normalized.slice(1), 16);
+  if (Number.isNaN(value)) return '79, 70, 229';
+  return `${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}`;
 }
 
 export default function FloatingAIPanel({
@@ -400,6 +411,14 @@ export default function FloatingAIPanel({
     return null;
   }
 
+  const fabAccent = theme.isFluidScholar
+    ? (theme.primary || '#24389c')
+    : (theme.secondary || theme.accent || theme.primary || '#d99536');
+  const fabAccentRgb = hexToRgb(fabAccent);
+  const fabSurface = theme.isFluidScholar
+    ? (theme.primaryFixed || `${fabAccent}22`)
+    : (theme.secondaryFixed || theme.primaryFixed || `${fabAccent}1f`);
+
   const panel = (
     <div
       className={placement === 'contained'
@@ -452,10 +471,10 @@ export default function FloatingAIPanel({
                     key={item.id}
                     d={describeSector(sector.start, sector.end)}
                     fill={isActive
-                      ? `${item.accentColor || theme.primary || '#24389c'}34`
+                      ? `${item.accentColor || fabAccent}34`
                       : 'rgba(107,114,128,0.14)'}
                     stroke={isActive
-                      ? item.accentColor || theme.primary || '#24389c'
+                      ? item.accentColor || fabAccent
                       : 'rgba(107,114,128,0.32)'}
                     strokeWidth={isActive ? 1.45 : 1.1}
                     filter="url(#learn-ring-shadow)"
@@ -504,7 +523,7 @@ export default function FloatingAIPanel({
                     width: `${MENU_ITEM_HIT_SIZE}px`,
                     height: `${MENU_ITEM_HIT_SIZE}px`,
                     color: isActive
-                      ? item.accentColor || theme.primary || '#24389c'
+                      ? item.accentColor || fabAccent
                       : (theme.onSurfaceVariant || '#4b5563'),
                     filter: isActive ? 'drop-shadow(0 3px 8px rgba(15,23,42,0.22))' : 'none',
                     transform: isActive ? 'scale(1.16)' : 'scale(1)',
@@ -532,15 +551,17 @@ export default function FloatingAIPanel({
             className="pointer-events-auto flex h-full w-full select-none items-center justify-center rounded-full transition-transform duration-150"
             title={primaryTitle}
             style={{
-              background: '#4f46e5',
-              boxShadow: '0 16px 36px rgba(79,70,229,0.35)',
+              background: theme.isFluidScholar ? fabAccent : `linear-gradient(135deg, ${fabAccent}, ${fabSurface})`,
+              boxShadow: `0 16px 36px rgba(${fabAccentRgb},0.32)`,
+              '--learn-fab-shadow': `rgba(${fabAccentRgb},0.32)`,
+              '--learn-fab-pulse': `rgba(${fabAccentRgb},0.18)`,
               transform: menuOpen ? 'scale(1)' : isPressed ? 'scale(0.94)' : 'scale(1)',
               transformOrigin: 'center center',
               willChange: 'transform',
               animation: menuOpen || pulseSuspended ? 'none' : 'learn-fab-pulse 2.4s infinite',
               touchAction: 'none',
               WebkitTapHighlightColor: 'transparent',
-            }}
+            } as CSSProperties}
           >
             {PrimaryIcon ? (
               <PrimaryIcon size={28} strokeWidth={2.4} color="#ffffff" />
@@ -566,13 +587,13 @@ export default function FloatingAIPanel({
         <style>{`
         @keyframes learn-fab-pulse {
           0% {
-            box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 0 rgba(79,70,229,0.18);
+            box-shadow: 0 16px 36px var(--learn-fab-shadow), 0 0 0 0 var(--learn-fab-pulse);
           }
           70% {
-            box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 18px rgba(79,70,229,0);
+            box-shadow: 0 16px 36px var(--learn-fab-shadow), 0 0 0 18px rgba(${fabAccentRgb},0);
           }
           100% {
-            box-shadow: 0 16px 36px rgba(79,70,229,0.35), 0 0 0 0 rgba(79,70,229,0);
+            box-shadow: 0 16px 36px var(--learn-fab-shadow), 0 0 0 0 rgba(${fabAccentRgb},0);
           }
         }
       `}</style>

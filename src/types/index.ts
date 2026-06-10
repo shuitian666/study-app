@@ -282,6 +282,8 @@ export type PageName =
   | 'ranking'
   | 'lottery'
   | 'ai-chat'
+  | 'ai-study'
+  | 'ai-study-summaries'
   | 'inventory'
   | 'mail'
   | 'avatar-edit'
@@ -537,6 +539,76 @@ export interface GenerateSmartQuizResult {
   question: Question | null;
   selectedKnowledgePoint?: string;
   mode: 'random' | 'smart';
+}
+
+export type AIStudyMode = 'planning' | 'explaining' | 'practice' | 'chapter_review' | 'summary';
+
+export type AIStudyDifficulty = 'basic' | 'standard' | 'challenge';
+
+export interface AIStudyPlanKnowledgePoint {
+  id: string;
+  name: string;
+  goal: string;
+  difficulty: AIStudyDifficulty;
+}
+
+export interface AIStudyPlanChapter {
+  id: string;
+  name: string;
+  goal: string;
+  knowledgePoints: AIStudyPlanKnowledgePoint[];
+}
+
+export interface AIStudyPlan {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  goal?: string;
+  chapters: AIStudyPlanChapter[];
+  createdAt: string;
+}
+
+export interface AIStudyStep {
+  id: string;
+  mode: AIStudyMode;
+  chapterId?: string;
+  knowledgePointId?: string;
+  title: string;
+  content?: string;
+  questions?: Question[];
+  completed: boolean;
+}
+
+export interface AIStudySession {
+  id: string;
+  plan: AIStudyPlan;
+  mode: AIStudyMode;
+  currentChapterIndex: number;
+  currentKnowledgePointIndex: number;
+  currentQuestionIndex: number;
+  correctCount: number;
+  totalQuestions: number;
+  weakKnowledgePointIds: string[];
+  completedKnowledgePointIds: string[];
+  startedAt: string;
+}
+
+export interface AIStudySummary {
+  id: string;
+  sessionId: string;
+  subjectId: string;
+  subjectName: string;
+  chapterIds: string[];
+  chapterNames: string[];
+  knowledgePointIds: string[];
+  knowledgePointNames: string[];
+  correctCount: number;
+  totalQuestions: number;
+  weakPoints: string[];
+  summary: string;
+  advice: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AIKnowledgePointContext {
