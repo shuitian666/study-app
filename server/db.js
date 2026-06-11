@@ -275,6 +275,77 @@ CREATE TABLE IF NOT EXISTS ai_study_summaries (
   updated_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS truth_assets (
+  id TEXT PRIMARY KEY,
+  sha256 TEXT NOT NULL UNIQUE,
+  original_name TEXT NOT NULL,
+  stored_name TEXT NOT NULL,
+  thumbnail_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  batch_code TEXT NOT NULL,
+  animal_id TEXT,
+  species TEXT NOT NULL,
+  strain TEXT,
+  sex TEXT NOT NULL,
+  drug_name TEXT,
+  drug_aliases TEXT NOT NULL DEFAULT '[]',
+  dose_value TEXT,
+  dose_unit TEXT,
+  administration_route TEXT,
+  phase TEXT NOT NULL,
+  time_value REAL,
+  time_unit TEXT,
+  body_part TEXT,
+  observation TEXT,
+  tags TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'draft',
+  uploaded_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  archived_at TEXT,
+  FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_truth_assets_search
+ON truth_assets (status, drug_name, phase, time_value, time_unit, sex);
+
+CREATE INDEX IF NOT EXISTS idx_truth_assets_batch
+ON truth_assets (status, batch_code, animal_id);
+
+CREATE TABLE IF NOT EXISTS truth_drug_aliases (
+  alias_key TEXT PRIMARY KEY,
+  alias TEXT NOT NULL,
+  canonical_name TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_truth_drug_canonical
+ON truth_drug_aliases (canonical_name);
+
+CREATE TABLE IF NOT EXISTS truth_reports (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  query_text TEXT,
+  filter_snapshot TEXT NOT NULL DEFAULT '{}',
+  content TEXT NOT NULL,
+  model_info TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS truth_report_assets (
+  report_id TEXT NOT NULL,
+  asset_id TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  asset_snapshot TEXT NOT NULL,
+  PRIMARY KEY (report_id, asset_id),
+  FOREIGN KEY (report_id) REFERENCES truth_reports(id) ON DELETE CASCADE,
+  FOREIGN KEY (asset_id) REFERENCES truth_assets(id) ON DELETE RESTRICT
+);
 `);
 
 function addColumn(table, columnDef) {

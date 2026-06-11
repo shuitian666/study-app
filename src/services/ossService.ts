@@ -1,13 +1,7 @@
 import type { Chapter, KnowledgePoint, Question } from '@/types';
 
-const configuredKnowledgeBaseUrl = import.meta.env.VITE_KNOWLEDGE_BASE_URL?.trim();
-const KNOWLEDGE_BASE_URL = configuredKnowledgeBaseUrl
-  ? configuredKnowledgeBaseUrl.replace(/\/+$/, '')
-  : '';
-
 const buildCloudURL = (path: string): string => {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${KNOWLEDGE_BASE_URL}${normalizedPath}`;
+  return path.startsWith('/') ? path : `/${path}`;
 };
 
 export interface KnowledgeSubject {

@@ -252,6 +252,7 @@ export interface ChatMessage {
   timestamp: string;
   relatedQuestionId?: string;
   isStreaming?: boolean;
+  truthResult?: TruthSearchResult;
 }
 
 export interface AIChatSession {
@@ -284,6 +285,7 @@ export type PageName =
   | 'ai-chat'
   | 'ai-study'
   | 'ai-study-summaries'
+  | 'truth-admin'
   | 'inventory'
   | 'mail'
   | 'avatar-edit'
@@ -544,17 +546,66 @@ export interface GenerateSmartQuizResult {
 export type AIStudyMode = 'planning' | 'explaining' | 'practice' | 'chapter_review' | 'summary';
 
 export type AIStudyDifficulty = 'basic' | 'standard' | 'challenge';
+export type AIStudyContentSource = 'existing' | 'generated';
+export type AIStudyExplanationSectionType = 'core' | 'intuition' | 'example' | 'pitfall';
+
+export interface AIStudyExplanationSection {
+  type: AIStudyExplanationSectionType;
+  title: string;
+  content: string;
+}
+
+export interface AIStudyExplanation {
+  title: string;
+  overview: string;
+  sections: AIStudyExplanationSection[];
+  memoryTip: string;
+}
+
+export type AIStudyTutorMode = 'explain' | 'question_hint' | 'question_review';
+
+export interface AIStudyTutorContext {
+  threadId: string;
+  requestId?: string;
+  initialPrompt?: string;
+  mode: AIStudyTutorMode;
+  goal: string;
+  chapterName: string;
+  knowledgePointId: string;
+  knowledgePointName: string;
+  sectionTitle?: string;
+  sectionContent?: string;
+  question?: {
+    id: string;
+    stem: string;
+    options: QuestionOption[];
+    selectedAnswers?: string[];
+    correctAnswers?: string[];
+    explanation?: string;
+  };
+}
+
+export interface AIStudyTutorMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
 
 export interface AIStudyPlanKnowledgePoint {
   id: string;
   name: string;
+  source: AIStudyContentSource;
   goal: string;
   difficulty: AIStudyDifficulty;
+  baseExplanation: string;
 }
 
 export interface AIStudyPlanChapter {
   id: string;
   name: string;
+  source: AIStudyContentSource;
+  order: number;
   goal: string;
   knowledgePoints: AIStudyPlanKnowledgePoint[];
 }
@@ -563,6 +614,9 @@ export interface AIStudyPlan {
   id: string;
   subjectId: string;
   subjectName: string;
+  subjectSource: AIStudyContentSource;
+  subjectIcon: string;
+  subjectColor: string;
   goal?: string;
   chapters: AIStudyPlanChapter[];
   createdAt: string;
@@ -607,6 +661,96 @@ export interface AIStudySummary {
   weakPoints: string[];
   summary: string;
   advice: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TruthSex = 'female' | 'male' | 'unknown';
+export type TruthPhase = 'control' | 'dosing' | 'withdrawal';
+export type TruthTimeUnit = 'hour' | 'day';
+export type TruthAssetStatus = 'draft' | 'pending' | 'published' | 'archived';
+
+export interface TruthSearchFilter {
+  batchCode?: string | null;
+  animalId?: string | null;
+  species?: string | null;
+  strain?: string | null;
+  sex?: TruthSex | null;
+  drugName?: string | null;
+  phase?: TruthPhase | null;
+  timeValue?: number | null;
+  timeUnit?: TruthTimeUnit | null;
+  bodyPart?: string | null;
+}
+
+export interface TruthAsset {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  batchCode: string;
+  animalId: string | null;
+  species: string;
+  strain: string | null;
+  sex: TruthSex;
+  drugName: string | null;
+  drugAliases: string[];
+  doseValue: string | null;
+  doseUnit: string | null;
+  administrationRoute: string | null;
+  phase: TruthPhase;
+  timeValue: number | null;
+  timeUnit: TruthTimeUnit | null;
+  bodyPart: string | null;
+  observation: string | null;
+  tags: string[];
+  status: TruthAssetStatus;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+  previewUrl: string;
+  originalUrl: string;
+  downloadUrl: string;
+}
+
+export interface TruthClarification {
+  field: 'phase';
+  message: string;
+  options: Array<{ value: TruthPhase; label: string }>;
+}
+
+export interface TruthSearchResult {
+  query: string;
+  filter: TruthSearchFilter;
+  clarification: TruthClarification | null;
+  assets: TruthAsset[];
+  total: number;
+  availableValues?: {
+    drugNames: string[];
+    phases: TruthPhase[];
+    sexes: TruthSex[];
+    batchCodes: string[];
+    species: string[];
+    strains: string[];
+    bodyParts: string[];
+    timePoints: string[];
+  };
+}
+
+export type TruthReportSnapshot = Omit<
+  TruthAsset,
+  'previewUrl' | 'originalUrl' | 'downloadUrl' | 'status' | 'updatedAt' | 'archivedAt' | 'mimeType' | 'sizeBytes'
+>;
+
+export interface TruthReport {
+  id: string;
+  title: string;
+  queryText: string | null;
+  filter: TruthSearchFilter;
+  content: string;
+  modelInfo: { mode?: string; model?: string };
+  assets: TruthReportSnapshot[];
+  assetCount?: number;
   createdAt: string;
   updatedAt: string;
 }

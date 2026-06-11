@@ -12,7 +12,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { BookOpen, Check, ChevronDown, History, Lock, MessageCircle, Send, Settings2, Sparkles, Trash2, X } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, History, Lock, MessageCircle, ScanSearch, Send, Settings2, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -20,10 +20,11 @@ import { useAIChat } from '@/store/AIChatContext';
 import { PageHeader } from '@/components/ui/Common';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
 import { checkBackendAvailable, fetchAIConfig, getAIConfig } from '@/services/aiClient';
+import { fetchTruthStatus, searchTruth, type TruthStatus } from '@/services/truthService';
 import { calculateNewProficiency } from '@/utils/review';
 import { buildAILearningContext } from '@/utils/aiLearningContext';
 import { AI_STUDY_UNLOCK_LEVEL, getAIStudyLevelInfo } from '@/utils/aiStudyAccess';
-import type { ChatMessage, Question, GenerateSmartQuizResult } from '@/types';
+import type { ChatMessage, Question, GenerateSmartQuizResult, TruthPhase, TruthSearchFilter } from '@/types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
 import AISettingsModal from '@/components/ui/AISettingsModal';
@@ -53,7 +54,7 @@ export default function AIChatPage({
   const { gameState } = useGame();
   const { aiChatState, aiChatDispatch } = useAIChat();
   const [input, setInput] = useState('');
-  const [activeMode, setActiveMode] = useState<'chat' | 'study'>('chat');
+  const [activeMode, setActiveMode] = useState<'chat' | 'study' | 'truth'>('chat');
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [studySubjectId, setStudySubjectId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,7 @@ export default function AIChatPage({
   const [showSettings, setShowSettings] = useState(false);
   const [backendMode, setBackendMode] = useState<'checking' | 'online' | 'offline'>('checking');
   const [aiMode, setAiMode] = useState<'platform' | 'custom'>('platform');
+  const [truthStatus, setTruthStatus] = useState<TruthStatus | null>(null);
   const activeAbortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handledQuestionContextRef = useRef<string | null>(null);
@@ -73,7 +75,6 @@ export default function AIChatPage({
     () => learningState.subjects.filter(subject => learningState.knowledgePoints.some(kp => kp.subjectId === subject.id && !kp.deletedAt)),
     [learningState.knowledgePoints, learningState.subjects],
   );
-  const selectedStudySubjectId = studySubjectId || studySubjects[0]?.id || '';
 
 
   useEffect(() => {
@@ -110,6 +111,7 @@ export default function AIChatPage({
 
   useEffect(() => {
     refreshAiMode();
+    fetchTruthStatus().then(setTruthStatus).catch(() => setTruthStatus(null));
     return () => {
       activeAbortRef.current?.abort();
       clearActiveRequest();
@@ -224,6 +226,49 @@ export default function AIChatPage({
     }
   }, [isLoading, streamingMsgId, messages, userState.user, learningState.subjects, learningState.chapters, learningState.knowledgePoints, learningState.questions, learningState.wrongRecords, learningState.todayReviewItems, learningState.todayNewItems, aiChatDispatch, clearActiveRequest, refreshAiMode]);
 
+  const sendTruthMessage = useCallback(async (rawQuery: string, filter?: TruthSearchFilter) => {
+    const query = rawQuery.trim();
+    if (!query || isLoading || streamingMsgId) return;
+    const timestamp = Date.now();
+    aiChatDispatch({
+      type: 'AI_SEND_MESSAGE',
+      payload: {
+        id: `truth-user-${timestamp}`,
+        role: 'user',
+        content: query,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    try {
+      const result = await searchTruth(query, filter);
+      const content = result.clarification
+        ? '需要确认一个关键条件，确认后系统才会检索图片。'
+        : result.total > 0
+          ? `已从已发布图片库中找到 ${result.total} 张完全匹配的热成像图片。`
+          : '已完成严格检索，但没有找到满足全部条件的图片。';
+      aiChatDispatch({
+        type: 'AI_RECEIVE_MESSAGE',
+        payload: {
+          id: `truth-ai-${timestamp}`,
+          role: 'ai',
+          content,
+          timestamp: new Date().toISOString(),
+          truthResult: result,
+        },
+      });
+    } catch (error) {
+      aiChatDispatch({
+        type: 'AI_RECEIVE_MESSAGE',
+        payload: {
+          id: `truth-error-${timestamp}`,
+          role: 'ai',
+          content: error instanceof Error ? error.message : '求真检索失败，请稍后重试。',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+  }, [aiChatDispatch, isLoading, streamingMsgId]);
+
   useEffect(() => {
     const pageQuestionContext = typeof userState.pageParams.questionContext === 'string'
       ? userState.pageParams.questionContext.trim()
@@ -250,18 +295,23 @@ export default function AIChatPage({
     const query = input.trim();
     if (!query || isLoading || streamingMsgId) return;
     if (!embedded && activeMode === 'study') {
-      if (!aiStudyAccess.unlocked || !selectedStudySubjectId) return;
+      if (!aiStudyAccess.unlocked) return;
       setInput('');
       navigate('ai-study', {
-        subjectId: selectedStudySubjectId,
         goal: query,
         autoGenerate: '1',
+        ...(studySubjectId ? { scopeSubjectId: studySubjectId } : {}),
       });
+      return;
+    }
+    if (activeMode === 'truth') {
+      setInput('');
+      void sendTruthMessage(query);
       return;
     }
     setInput('');
     void sendMessage(query);
-  }, [activeMode, aiStudyAccess.unlocked, embedded, input, isLoading, navigate, selectedStudySubjectId, sendMessage, streamingMsgId]);
+  }, [activeMode, aiStudyAccess.unlocked, embedded, input, isLoading, navigate, studySubjectId, sendMessage, sendTruthMessage, streamingMsgId]);
 
   const handleRequestQuiz = async (aiMessageId: string, content: string) => {
     if (generatedQuestions[aiMessageId]) return;
@@ -430,7 +480,12 @@ export default function AIChatPage({
             </p>
 
             <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点'].map(q => (
+              {(activeMode === 'study'
+                ? ['学习物理化学', '系统掌握抗体与免疫', '从零学习高等数学']
+                : activeMode === 'truth'
+                  ? ['大黄，给药3天，雌鼠', '大黄，停药后1天，雌鼠', '查询给药第5天的热成像图']
+                  : ['核酸的功能是什么？', '什么是细胞的结构？', '圆周的结构特点']
+              ).map(q => (
                 <button
                   key={q}
                   onClick={() => { setInput(q); }}
@@ -455,6 +510,10 @@ export default function AIChatPage({
                 onQuizAnswer={(isCorrect, selectedAnswers) => {
                   const result = generatedQuestions[msg.id];
                   if (result?.question) handleQuizAnswer(result.question, isCorrect, selectedAnswers);
+                }}
+                onTruthClarify={(phase: TruthPhase) => {
+                  if (!msg.truthResult) return;
+                  void sendTruthMessage(msg.truthResult.query, { ...msg.truthResult.filter, phase });
                 }}
               />
             ))}
@@ -491,40 +550,78 @@ export default function AIChatPage({
                 </span>
                 {activeMode === 'chat' && <Check size={17} className="text-primary" />}
               </button>
-              <button
-                type="button"
-                disabled={!aiStudyAccess.unlocked}
-                onClick={() => {
-                  if (!aiStudyAccess.unlocked) return;
-                  setActiveMode('study');
-                  setModeMenuOpen(false);
-                }}
-                className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                  {aiStudyAccess.unlocked ? <BookOpen size={18} /> : <Lock size={17} />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-bold text-text-primary">
-                    学习模式
-                    {!aiStudyAccess.unlocked && <span className="text-[10px] text-text-muted">Lv.{AI_STUDY_UNLOCK_LEVEL}</span>}
+              {!embedded && (
+                <button
+                  type="button"
+                  disabled={!aiStudyAccess.unlocked}
+                  onClick={() => {
+                    if (!aiStudyAccess.unlocked) return;
+                    setActiveMode('study');
+                    setModeMenuOpen(false);
+                  }}
+                  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    {aiStudyAccess.unlocked ? <BookOpen size={18} /> : <Lock size={17} />}
                   </span>
-                  <span className="mt-0.5 block text-xs text-text-muted">规划 → 教学 → 练习 → 复习</span>
-                </span>
-                {activeMode === 'study' && <Check size={17} className="text-primary" />}
-              </button>
-              <div className="my-2 h-px bg-border" />
-              <button
-                type="button"
-                onClick={() => {
-                  setModeMenuOpen(false);
-                  navigate('ai-study-summaries');
-                }}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-600 hover:bg-violet-50"
-              >
-                <History size={15} />
-                查看学习总结
-              </button>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2 text-sm font-bold text-text-primary">
+                      学习模式
+                      {!aiStudyAccess.unlocked && <span className="text-[10px] text-text-muted">Lv.{AI_STUDY_UNLOCK_LEVEL}</span>}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-text-muted">规划 → 教学 → 练习 → 复习</span>
+                  </span>
+                  {activeMode === 'study' && <Check size={17} className="text-primary" />}
+                </button>
+              )}
+              {truthStatus?.enabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveMode('truth');
+                    setModeMenuOpen(false);
+                  }}
+                  className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-cyan-50"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+                    <ScanSearch size={18} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-text-primary">求真模式</span>
+                    <span className="mt-0.5 block text-xs text-text-muted">严格匹配已发布的真实实验图片</span>
+                  </span>
+                  {activeMode === 'truth' && <Check size={17} className="text-primary" />}
+                </button>
+              )}
+              {!embedded && (
+                <>
+                  <div className="my-2 h-px bg-border" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModeMenuOpen(false);
+                      navigate('ai-study-summaries');
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-violet-600 hover:bg-violet-50"
+                  >
+                    <History size={15} />
+                    查看学习总结
+                  </button>
+                </>
+              )}
+              {truthStatus?.isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModeMenuOpen(false);
+                    navigate('truth-admin');
+                  }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-cyan-700 hover:bg-cyan-50"
+                >
+                  <Upload size={15} />
+                  管理求真图片库
+                </button>
+              )}
             </div>
           </>
         )}
@@ -535,28 +632,29 @@ export default function AIChatPage({
               onClick={() => setModeMenuOpen(open => !open)}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs font-bold text-text-secondary shadow-sm"
             >
-              {activeMode === 'study' ? <BookOpen size={14} className="text-emerald-600" /> : <MessageCircle size={14} className="text-violet-600" />}
-              {activeMode === 'study' ? '学习模式' : '问答'}
+              {activeMode === 'study'
+                ? <BookOpen size={14} className="text-emerald-600" />
+                : activeMode === 'truth'
+                  ? <ScanSearch size={14} className="text-cyan-700" />
+                  : <MessageCircle size={14} className="text-violet-600" />}
+              {activeMode === 'study' ? '学习模式' : activeMode === 'truth' ? '求真模式' : '问答'}
               <ChevronDown size={13} className={modeMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
             </button>
-            {activeMode === 'study' && (
+            {!embedded && activeMode === 'study' && (
               <label className="relative min-w-0">
                 <select
-                  value={selectedStudySubjectId}
+                  value={studySubjectId}
                   onChange={event => setStudySubjectId(event.target.value)}
-                  disabled={studySubjects.length === 0}
                   className="max-w-[180px] appearance-none truncate rounded-lg border border-border bg-white py-1.5 pl-2.5 pr-7 text-xs font-semibold text-text-secondary outline-none disabled:opacity-50"
-                  aria-label="学习学科"
+                  aria-label="限定学习范围"
                 >
+                  <option value="">全部知识库</option>
                   {studySubjects.map(subject => (
                     <option key={subject.id} value={subject.id}>{subject.icon} {subject.name}</option>
                   ))}
                 </select>
                 <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" />
               </label>
-            )}
-            {activeMode === 'study' && studySubjects.length === 0 && (
-              <span className="truncate text-[11px] text-amber-600">请先添加知识点</span>
             )}
           </div>
         )}
@@ -566,13 +664,17 @@ export default function AIChatPage({
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={!embedded && activeMode === 'study' ? '描述这次想学习的内容…' : '输入你的问题...'}
+            placeholder={!embedded && activeMode === 'study'
+              ? '描述这次想学习的内容…'
+              : activeMode === 'truth'
+                ? '输入药物、给药/停药阶段、时间和性别...'
+                : '输入你的问题...'}
             className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
             disabled={isLoading}
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isLoading || (!embedded && activeMode === 'study' && (!aiStudyAccess.unlocked || !selectedStudySubjectId))}
+            disabled={!input.trim() || isLoading || (!embedded && activeMode === 'study' && !aiStudyAccess.unlocked)}
             className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center active:opacity-80 transition-opacity disabled:opacity-40"
           >
             <Send size={18} />

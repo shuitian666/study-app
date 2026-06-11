@@ -28,6 +28,7 @@ import { useUser } from '@/store/UserContext';
 import { isDarkTheme } from '@/utils/adaptiveTheme';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
+import type { AIStudyTutorContext } from '@/types';
 
 const LoginPage = React.lazy(() => import('@/pages/Login'));
 const HomePage = React.lazy(() => import('@/pages/Home'));
@@ -49,7 +50,9 @@ const RankingPage = React.lazy(() => import('@/features/gamification/ranking'));
 const LotteryPage = React.lazy(() => import('@/features/gamification/lottery'));
 const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
 const AIStudyPage = React.lazy(() => import('@/pages/AIStudy'));
+const StudyTutorPanel = React.lazy(() => import('@/components/ai/StudyTutorPanel'));
 const AIStudySummariesPage = React.lazy(() => import('@/pages/AIStudy/Summaries'));
+const TruthAdminPage = React.lazy(() => import('@/pages/TruthAdmin'));
 const SettingsPage = React.lazy(() => import('@/pages/Settings'));
 const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
 const MailPage = React.lazy(() => import('@/features/gamification/mail'));
@@ -100,7 +103,9 @@ function AppContent() {
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
   const [desktopSidebarState, setDesktopSidebarState] = useState<DesktopSidebarState>('collapsed');
   const [isDesktopAiMounted, setIsDesktopAiMounted] = useState(false);
+  const [desktopAiMode, setDesktopAiMode] = useState<'chat' | 'tutor'>('chat');
   const [desktopQuestionContext, setDesktopQuestionContext] = useState<{ id: string; text: string } | null>(null);
+  const [desktopTutorContext, setDesktopTutorContext] = useState<AIStudyTutorContext | null>(null);
   const desktopQuestionSequenceRef = useRef(0);
   const phoneScrollRef = useRef<HTMLDivElement>(null);
   const desktopContentRef = useRef<HTMLDivElement>(null);
@@ -110,6 +115,7 @@ function AppContent() {
 
   const openDesktopAI = useCallback((questionContext?: string) => {
     setIsDesktopAiMounted(true);
+    setDesktopAiMode('chat');
     setDesktopSidebarState('ai');
     if (questionContext?.trim()) {
       desktopQuestionSequenceRef.current += 1;
@@ -118,6 +124,13 @@ function AppContent() {
         text: questionContext.trim(),
       });
     }
+  }, []);
+
+  const openDesktopTutor = useCallback((context: AIStudyTutorContext) => {
+    setIsDesktopAiMounted(true);
+    setDesktopTutorContext(context);
+    setDesktopAiMode('tutor');
+    setDesktopSidebarState('ai');
   }, []);
 
   useEffect(() => {
@@ -278,6 +291,7 @@ function AppContent() {
       case 'ai-chat': return <AIChatPage />;
       case 'ai-study': return <AIStudyPage />;
       case 'ai-study-summaries': return <AIStudySummariesPage />;
+      case 'truth-admin': return <TruthAdminPage />;
       case 'settings': return <SettingsPage />;
       case 'inventory': return <InventoryPage />;
       case 'mail': return <MailPage />;
@@ -303,6 +317,7 @@ function AppContent() {
     'ai-chat',
     'ai-study',
     'ai-study-summaries',
+    'truth-admin',
   ];
   const isImmersivePage = userState.currentPage === 'login'
     || userState.currentPage === 'quiz-session'
@@ -319,16 +334,6 @@ function AppContent() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    if (!isLargeScreen || userState.currentPage !== 'ai-chat') return;
-    const frame = window.requestAnimationFrame(() => {
-      openDesktopAI(userState.pageParams.questionContext);
-      navigate('home', userState.pageParams);
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [isLargeScreen, navigate, openDesktopAI, userState.currentPage, userState.pageParams]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -394,9 +399,10 @@ function AppContent() {
       case 'wrong-book': return <WrongBookPage />;
       case 'settings': return <SettingsPage />;
       case 'flashcard-learning': return <FlashcardLearningPage embedded onAskAI={openDesktopAI} />;
-      case 'ai-study': return <AIStudyPage />;
+      case 'ai-study': return <AIStudyPage onOpenTutor={openDesktopTutor} />;
       case 'ai-study-summaries': return <AIStudySummariesPage />;
-      case 'ai-chat': return <HomePage isActive showBottomNav={false} />;
+      case 'truth-admin': return <TruthAdminPage />;
+      case 'ai-chat': return <AIChatPage />;
       default: return <HomePage isActive showBottomNav={false} />;
     }
   };
@@ -409,6 +415,7 @@ function AppContent() {
     settings: '设置',
     'flashcard-learning': '学习',
     'ai-chat': 'AI 助手',
+    'truth-admin': '求真图片库',
   };
   const pageTitle = desktopTabs.find(tab => tab.key === userState.currentPage)?.label
     ?? desktopPageTitles[userState.currentPage]
@@ -632,11 +639,18 @@ function AppContent() {
               {isDesktopAiMounted && (
                 <div className="h-full min-h-0 overflow-hidden rounded-[18px] border" style={{ borderColor: desktopBorder }}>
                   <Suspense fallback={<LoadingFallback />}>
-                    <AIChatPage
-                      embedded
-                      embeddedQuestionContext={desktopQuestionContext}
-                      onClose={() => setDesktopSidebarState('collapsed')}
-                    />
+                    {desktopAiMode === 'tutor' && desktopTutorContext ? (
+                      <StudyTutorPanel
+                        context={desktopTutorContext}
+                        onClose={() => setDesktopSidebarState('collapsed')}
+                      />
+                    ) : (
+                      <AIChatPage
+                        embedded
+                        embeddedQuestionContext={desktopQuestionContext}
+                        onClose={() => setDesktopSidebarState('collapsed')}
+                      />
+                    )}
                   </Suspense>
                 </div>
               )}

@@ -28,6 +28,9 @@ DEEPSEEK_MODEL=deepseek-chat
 AI_CONFIG_ENCRYPTION_KEY=
 SESSION_COOKIE_NAME=study_session
 DATA_DIR=/var/www/smart-study/data
+TRUTH_MODE_ENABLED=true
+TRUTH_ADMIN_EMAILS=3546064605@qq.com
+TRUTH_PDF_FONT_PATH=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
 SMTP_HOST=smtp.qq.com
 SMTP_PORT=465
 SMTP_SECURE=true
@@ -35,6 +38,16 @@ SMTP_USER=
 SMTP_PASS=
 MAIL_FROM=智学助手 <your-email@qq.com>
 ```
+
+Truth-mode images are stored outside the Git checkout:
+
+```text
+/var/www/smart-study/data/truth-images/originals
+/var/www/smart-study/data/truth-images/thumbnails
+```
+
+They survive deployments because `/var/www/smart-study/current` is the only directory
+replaced by Git. Configure an ECS snapshot policy for `/var/www/smart-study/data`.
 
 ## 2. First manual deploy
 

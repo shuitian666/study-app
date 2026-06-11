@@ -31,10 +31,11 @@ const {
 } = await import('./learning.js');
 const { updateAccountProfile } = await import('./account.js');
 const {
-  buildStudyExplanation,
-  buildStudyPlan,
-  buildStudyPractice,
+  buildStudyTutorMessages,
   listStudySummaries,
+  normalizeGeneratedStudyPlan,
+  normalizeStudyExplanation,
+  normalizeStudyPractice,
   saveStudySummary,
 } = await import('./aiStudy.js');
 const { setSessionCookie } = await import('./security.js');
@@ -566,96 +567,125 @@ test('learning records with the same client ids are isolated per user', () => {
   assert.equal(snapshotB.progress[0].currentScore, 20);
 });
 
-test('AI study plan defaults to at most three chapters', () => {
-  const plan = buildStudyPlan({
-    subject: { id: 'subject-ai', name: 'AI Subject' },
-    chapters: [
-      { id: 'c1', name: 'Chapter 1', subjectId: 'subject-ai', order: 1 },
-      { id: 'c2', name: 'Chapter 2', subjectId: 'subject-ai', order: 2 },
-      { id: 'c3', name: 'Chapter 3', subjectId: 'subject-ai', order: 3 },
-      { id: 'c4', name: 'Chapter 4', subjectId: 'subject-ai', order: 4 },
-    ],
+test('AI study plan caps output and keeps a generated physical chemistry plan unrelated to microbiology', () => {
+  const payload = {
+    goal: '学习物理化学',
+    subjects: [{ id: 'microbiology', name: '微生物与免疫学' }],
+    chapters: [{ id: 'micro-chapter', name: '微生物基础', subjectId: 'microbiology', order: 1 }],
     knowledgePoints: [
-      { id: 'kp1', chapterId: 'c1', name: 'Point 1' },
-      { id: 'kp2', chapterId: 'c2', name: 'Point 2' },
-      { id: 'kp3', chapterId: 'c3', name: 'Point 3' },
-      { id: 'kp4', chapterId: 'c4', name: 'Point 4' },
+      { id: 'micro-kp', subjectId: 'microbiology', chapterId: 'micro-chapter', name: '细菌结构' },
     ],
-  });
+  };
+  const raw = {
+    subject: { name: '物理化学', source: 'generated', icon: '⚗️', color: '#2563eb' },
+    chapters: Array.from({ length: 4 }, (_, chapterIndex) => ({
+      name: `物理化学章节 ${chapterIndex + 1}`,
+      source: 'generated',
+      knowledgePoints: Array.from({ length: 5 }, (_, pointIndex) => ({
+        name: `知识点 ${chapterIndex + 1}-${pointIndex + 1}`,
+        source: 'generated',
+        baseExplanation: '物理化学基础解释',
+      })),
+    })),
+  };
 
+  const plan = normalizeGeneratedStudyPlan(payload, raw);
+
+  assert.equal(plan.subjectName, '物理化学');
+  assert.equal(plan.subjectSource, 'generated');
   assert.equal(plan.chapters.length, 3);
-  assert.deepEqual(plan.chapters.map(chapter => chapter.id), ['c1', 'c2', 'c3']);
+  assert.equal(plan.chapters.every(chapter => chapter.knowledgePoints.length === 4), true);
+  assert.equal(JSON.stringify(plan).includes('微生物基础'), false);
 });
 
-test('AI study plan skips empty chapters before applying the three chapter limit', () => {
-  const plan = buildStudyPlan({
-    subject: { id: 'subject-ai', name: 'AI Subject' },
-    chapters: [
-      { id: 'empty-1', name: 'Empty 1', subjectId: 'subject-ai', order: 1 },
-      { id: 'empty-2', name: 'Empty 2', subjectId: 'subject-ai', order: 2 },
-      { id: 'c1', name: 'Chapter 1', subjectId: 'subject-ai', order: 3 },
-      { id: 'c2', name: 'Chapter 2', subjectId: 'subject-ai', order: 4 },
-      { id: 'c3', name: 'Chapter 3', subjectId: 'subject-ai', order: 5 },
-    ],
-    knowledgePoints: [
-      { id: 'kp1', chapterId: 'c1', name: 'Point 1' },
-      { id: 'kp2', chapterId: 'c2', name: 'Point 2' },
-      { id: 'kp3', chapterId: 'c3', name: 'Point 3' },
-    ],
-  });
-
-  assert.deepEqual(plan.chapters.map(chapter => chapter.id), ['c1', 'c2', 'c3']);
-});
-
-test('AI study plan prioritizes chapters and knowledge points related to the learning goal', () => {
-  const plan = buildStudyPlan({
-    subject: { id: 'subject-ai', name: 'AI Subject' },
+test('AI study plan reuses valid existing antibody content', () => {
+  const payload = {
     goal: '重点学习抗体和免疫',
-    chapters: [
-      { id: 'chemistry', name: '基础化学', subjectId: 'subject-ai', order: 1 },
-      { id: 'immunity', name: '免疫系统', subjectId: 'subject-ai', order: 2 },
-    ],
+    subjects: [{ id: 'immunity', name: '免疫学' }],
+    chapters: [{ id: 'antibody-chapter', name: '抗体', subjectId: 'immunity', order: 1 }],
     knowledgePoints: [
-      { id: 'acid', chapterId: 'chemistry', name: '酸碱反应', explanation: '溶液中的酸碱平衡' },
-      { id: 'cell', chapterId: 'immunity', name: '免疫细胞', explanation: '免疫系统的细胞组成' },
-      { id: 'antibody', chapterId: 'immunity', name: '抗体', explanation: '抗体参与体液免疫' },
+      { id: 'antibody-structure', subjectId: 'immunity', chapterId: 'antibody-chapter', name: '抗体结构' },
+      { id: 'antibody-function', subjectId: 'immunity', chapterId: 'antibody-chapter', name: '抗体功能' },
     ],
+  };
+  const plan = normalizeGeneratedStudyPlan(payload, {
+    subject: { id: 'immunity', name: '免疫学', source: 'existing' },
+    chapters: [{
+      id: 'antibody-chapter',
+      name: '抗体',
+      source: 'existing',
+      knowledgePoints: [
+        { id: 'antibody-structure', name: '抗体结构', source: 'existing' },
+        { id: 'antibody-function', name: '抗体功能', source: 'existing' },
+      ],
+    }],
   });
 
-  assert.equal(plan.goal, '重点学习抗体和免疫');
-  assert.equal(plan.chapters[0].id, 'immunity');
-  assert.equal(plan.chapters[0].knowledgePoints[0].id, 'antibody');
+  assert.equal(plan.subjectSource, 'existing');
+  assert.equal(plan.chapters[0].source, 'existing');
+  assert.deepEqual(
+    plan.chapters[0].knowledgePoints.map(point => point.id),
+    ['antibody-structure', 'antibody-function'],
+  );
 });
 
-test('AI study plan gives stronger matches priority over generic goal wording', () => {
-  const plan = buildStudyPlan({
-    subject: { id: 'microbiology', name: '微生物与免疫学' },
-    goal: '重点学习抗体和免疫',
-    chapters: [
-      { id: 'virology', name: '病毒学', subjectId: 'microbiology', order: 1 },
-      { id: 'immunology', name: '免疫学基础', subjectId: 'microbiology', order: 3 },
-    ],
-    knowledgePoints: [
-      { id: 'immune-evasion', chapterId: 'virology', name: '病毒的免疫逃逸' },
-      { id: 'antibody-structure', chapterId: 'immunology', name: '抗体的基本结构' },
-      { id: 'immune-response', chapterId: 'immunology', name: '免疫应答' },
-    ],
+test('AI study plan rejects an invalid empty structure instead of falling back', () => {
+  assert.throws(
+    () => normalizeGeneratedStudyPlan(
+      { goal: '学习物理化学', subjects: [], chapters: [], knowledgePoints: [] },
+      { subject: { name: '物理化学', source: 'generated' }, chapters: [] },
+    ),
+    /未生成可用的学习计划/,
+  );
+});
+
+test('AI study explanation requires model explanation and memory tip', () => {
+  const result = normalizeStudyExplanation(
+    { knowledgePoint: { id: 'kp-ai', name: '抗体' } },
+    {
+      title: '抗体',
+      overview: '抗体参与体液免疫。',
+      sections: [
+        { type: 'core', title: '核心概念', content: '抗体是免疫球蛋白。' },
+        { type: 'intuition', title: '直觉理解', content: '可以把抗体理解成特异性识别工具。' },
+        { type: 'example', title: '具体例子', content: '例如抗体可以识别病毒表面抗原。' },
+        { type: 'pitfall', title: '常见误区', content: '抗体不会直接吞噬病原体。' },
+      ],
+      memoryTip: '结构决定功能。',
+    },
+  );
+
+  assert.equal(result.title, '抗体');
+  assert.match(result.overview, /体液免疫/);
+  assert.equal(result.sections.length, 4);
+  assert.match(result.memoryTip, /结构/);
+});
+
+test('AI study tutor removes answers from pre-submit hint context', () => {
+  const messages = buildStudyTutorMessages({
+    query: '给我一个提示',
+    context: {
+      mode: 'question_hint',
+      knowledgePointName: '热力学第一定律',
+      question: {
+        id: 'q1',
+        stem: '内能如何变化？',
+        options: [{ id: 'a', text: '增加' }, { id: 'b', text: '减少' }],
+        selectedAnswers: ['a'],
+        correctAnswers: ['b'],
+        explanation: '正确答案是 b。',
+      },
+    },
   });
+  const system = messages[0].content;
 
-  assert.equal(plan.chapters[0].id, 'immunology');
-  assert.equal(plan.chapters[0].knowledgePoints[0].id, 'antibody-structure');
+  assert.match(system, /Never identify/);
+  assert.doesNotMatch(system, /selectedAnswers/);
+  assert.doesNotMatch(system, /correctAnswers/);
+  assert.doesNotMatch(system, /正确答案是 b/);
 });
 
-test('AI study explanation includes a flashcard memory tip', () => {
-  const result = buildStudyExplanation({
-    knowledgePoint: { id: 'kp-ai', name: '抗体', explanation: '抗体参与体液免疫。' },
-  });
-
-  assert.match(result.explanation, /抗体/);
-  assert.match(result.memoryTip, /抗体/);
-});
-
-test('AI study practice creates three questions for a knowledge point', () => {
+test('AI study practice normalizes exactly three questions with stable ids', () => {
   const payload = {
     subjectId: 'subject-ai',
     knowledgePoint: {
@@ -665,8 +695,20 @@ test('AI study practice creates three questions for a knowledge point', () => {
       explanation: 'Dose means the amount used.',
     },
   };
-  const result = buildStudyPractice(payload);
-  const retryResult = buildStudyPractice(payload);
+  const raw = {
+    questions: Array.from({ length: 3 }, (_, index) => ({
+      type: 'single_choice',
+      stem: `Question ${index + 1}`,
+      options: [
+        { id: 'a', text: 'Correct' },
+        { id: 'b', text: 'Incorrect' },
+      ],
+      correctAnswers: ['a'],
+      explanation: 'Because a is correct.',
+    })),
+  };
+  const result = normalizeStudyPractice(payload, raw);
+  const retryResult = normalizeStudyPractice(payload, raw);
 
   assert.equal(result.questions.length, 3);
   assert.equal(result.questions[0].knowledgePointId, 'kp-ai');
@@ -675,6 +717,49 @@ test('AI study practice creates three questions for a knowledge point', () => {
     retryResult.questions.map(question => question.id),
     result.questions.map(question => question.id),
   );
+});
+
+test('AI study practice accepts common option and answer formats', () => {
+  const payload = {
+    subjectId: 'subject-ai',
+    knowledgePoint: {
+      id: 'kp-ai',
+      name: 'Thermodynamics',
+    },
+  };
+  const result = normalizeStudyPractice(payload, {
+    questions: [
+      {
+        type: 'multiple_choice',
+        stem: 'Object options',
+        options: [
+          { label: 'A', content: 'First' },
+          { label: 'B', content: 'Second' },
+        ],
+        correctAnswers: ['B'],
+        explanation: 'Second is correct.',
+      },
+      {
+        type: 'multiple_choice',
+        stem: 'String options',
+        options: ['A. First', 'B. Second'],
+        correctAnswers: [1],
+        explanation: 'The second option is correct.',
+      },
+      {
+        stem: 'Generated option ids',
+        options: [{ text: 'First' }, { text: 'Second' }],
+        correctAnswers: ['a'],
+        explanation: 'The first option is correct.',
+      },
+    ],
+  });
+
+  assert.equal(result.questions.length, 3);
+  assert.deepEqual(result.questions[0].options[1], { id: 'B', text: 'Second' });
+  assert.deepEqual(result.questions[0].correctAnswers, ['B']);
+  assert.deepEqual(result.questions[1].correctAnswers, ['b']);
+  assert.deepEqual(result.questions[2].correctAnswers, ['a']);
 });
 
 test('AI study summaries are saved and listed from sqlite', () => {

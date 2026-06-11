@@ -42,15 +42,18 @@ export function buildContentSyncPayload(state: LearningSyncState): LearningImpor
   const privateQuestionIds = new Set(privateHistory.flatMap(entry => entry.questionIds));
 
   state.knowledgePoints.forEach(kp => {
-    if (kp.source === 'manual' || kp.id.startsWith('kp-import-')) {
+    if (kp.source === 'manual' || kp.source === 'ai' || kp.id.startsWith('kp-import-')) {
       privateKpIds.add(kp.id);
     }
   });
 
   state.questions.forEach(question => {
     if (
-      question.knowledgePointId &&
-      privateKpIds.has(question.knowledgePointId) &&
+      (
+        (question.knowledgePointId && privateKpIds.has(question.knowledgePointId))
+        || question.id.startsWith('ai-practice-')
+        || question.id.startsWith('ai-synthesis-')
+      ) &&
       !BUILTIN_QUESTION_IDS.has(question.id)
     ) {
       privateQuestionIds.add(question.id);
@@ -122,7 +125,7 @@ export function buildProgressSyncPayload(state: LearningSyncState): LearningProg
 export function buildDeleteSyncPayload(state: LearningSyncState): LearningDeletePayload | null {
   const privateKpIds = new Set(
     state.knowledgePoints
-      .filter(kp => (kp.source === 'manual' || kp.id.startsWith('kp-import-')) && kp.deletedAt)
+      .filter(kp => (kp.source === 'manual' || kp.source === 'ai' || kp.id.startsWith('kp-import-')) && kp.deletedAt)
       .map(kp => kp.id)
   );
   const privateQuestionIds = new Set(

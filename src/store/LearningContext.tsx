@@ -165,6 +165,15 @@ const initialLearningState: LearningState = {
   isLoading: false,
 };
 
+interface AIStudyCommitPayload {
+  subject: Subject;
+  chapter: Chapter;
+  knowledgePoint: KnowledgePointExtended;
+  questions: Question[];
+  questionExplanations: QuestionExplanation[];
+  wrongRecords: WrongRecord[];
+}
+
 // ---------- Actions ----------
 type LearningAction =
   | { type: 'ADD_SUBJECT'; payload: Subject }
@@ -188,6 +197,7 @@ type LearningAction =
   | { type: 'UPDATE_QUESTION_EXPLANATION'; payload: { questionId: string; explanation: string } }
   | { type: 'DELETE_QUESTION_EXPLANATION'; payload: string }
   | { type: 'AI_ADD_GENERATED_QUESTION'; payload: Question }
+  | { type: 'COMMIT_AI_STUDY_RESULT'; payload: AIStudyCommitPayload }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RECORD_HISTORY' }
@@ -646,6 +656,52 @@ function learningReducer(state: LearningState, action: LearningAction): Learning
       return state.questions.some(question => question.id === action.payload.id)
         ? state
         : { ...state, questions: [...state.questions, action.payload] };
+    case 'COMMIT_AI_STUDY_RESULT': {
+      const payload = action.payload;
+      const hasKnowledgePoint = state.knowledgePoints.some(kp => kp.id === payload.knowledgePoint.id);
+      const subjects = state.subjects.some(subject => subject.id === payload.subject.id)
+        ? state.subjects.map(subject => subject.id === payload.subject.id
+          ? {
+              ...subject,
+              ...payload.subject,
+              knowledgePointCount: hasKnowledgePoint
+                ? subject.knowledgePointCount
+                : subject.knowledgePointCount + 1,
+            }
+          : subject)
+        : [...state.subjects, { ...payload.subject, knowledgePointCount: 1 }];
+      const chapters = state.chapters.some(chapter => chapter.id === payload.chapter.id)
+        ? state.chapters.map(chapter => chapter.id === payload.chapter.id ? { ...chapter, ...payload.chapter } : chapter)
+        : [...state.chapters, payload.chapter];
+      const knowledgePoints = hasKnowledgePoint
+        ? state.knowledgePoints.map(kp => kp.id === payload.knowledgePoint.id ? { ...kp, ...payload.knowledgePoint } : kp)
+        : [...state.knowledgePoints, payload.knowledgePoint];
+      const questionById = new Map(state.questions.map(question => [question.id, question]));
+      payload.questions.forEach(question => questionById.set(question.id, {
+        ...questionById.get(question.id),
+        ...question,
+      }));
+      const explanationByQuestionId = new Map(
+        state.questionExplanations.map(explanation => [explanation.questionId, explanation])
+      );
+      payload.questionExplanations.forEach(explanation => {
+        explanationByQuestionId.set(explanation.questionId, {
+          ...explanationByQuestionId.get(explanation.questionId),
+          ...explanation,
+        });
+      });
+      const wrongRecordById = new Map(state.wrongRecords.map(record => [record.id, record]));
+      payload.wrongRecords.forEach(record => wrongRecordById.set(record.id, record));
+      return {
+        ...state,
+        subjects,
+        chapters,
+        knowledgePoints,
+        questions: Array.from(questionById.values()),
+        questionExplanations: Array.from(explanationByQuestionId.values()),
+        wrongRecords: Array.from(wrongRecordById.values()),
+      };
+    }
     case 'RECORD_HISTORY': {
       // Only record certain actions for undo (not navigation, not undo/redo)
       const newHistory = state._history.slice(0, state._historyIndex + 1);

@@ -8,9 +8,12 @@ BRANCH="${BRANCH:-main}"
 sudo mkdir -p /var/www/smart-study
 sudo mkdir -p /var/www/smart-study/shared
 sudo mkdir -p /var/www/smart-study/data
+sudo mkdir -p /var/www/smart-study/data/truth-images/originals
+sudo mkdir -p /var/www/smart-study/data/truth-images/thumbnails
+sudo mkdir -p /var/www/smart-study/data/truth-images/tmp
 
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git nginx
+sudo apt-get install -y ca-certificates curl fonts-noto-cjk git nginx
 
 if ! node -e "require('node:sqlite')" >/dev/null 2>&1; then
   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -

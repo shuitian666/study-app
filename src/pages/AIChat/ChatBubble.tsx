@@ -1,13 +1,8 @@
-/**
- * 聊天消息气泡组件
- * - user 消息：右对齐蓝色气泡
- * - ai 消息：左对齐白色卡片 + AI 头像 + 操作按钮（巩固一下 / 加入知识库）
- * - 支持 isStreaming 状态：流式时显示闪烁光标，隐藏操作按钮
- */
 import { useState } from 'react';
-import { Bot, Lightbulb, BookPlus } from 'lucide-react';
-import type { ChatMessage, GenerateSmartQuizResult } from '@/types';
+import { BookPlus, Bot, Lightbulb } from 'lucide-react';
+import type { ChatMessage, GenerateSmartQuizResult, TruthPhase } from '@/types';
 import InlineQuizCard from './InlineQuizCard';
+import TruthResultCard from './TruthResultCard';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -16,6 +11,7 @@ interface ChatBubbleProps {
   onRequestQuiz: () => void;
   onAddToKnowledge: () => void;
   onQuizAnswer: (isCorrect: boolean, selectedAnswers: string[]) => void;
+  onTruthClarify: (phase: TruthPhase) => void;
 }
 
 export default function ChatBubble({
@@ -25,6 +21,7 @@ export default function ChatBubble({
   onRequestQuiz,
   onAddToKnowledge,
   onQuizAnswer,
+  onTruthClarify,
 }: ChatBubbleProps) {
   const [showQuiz, setShowQuiz] = useState(false);
   const isUser = message.role === 'user';
@@ -32,8 +29,8 @@ export default function ChatBubble({
   if (isUser) {
     return (
       <div className="flex justify-end px-4 py-1.5">
-        <div className="max-w-[80%] bg-primary text-white rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-white shadow-sm">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
         </div>
       </div>
     );
@@ -41,35 +38,39 @@ export default function ChatBubble({
 
   return (
     <div className="flex items-start gap-2 px-4 py-1.5">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shrink-0">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-white">
         <Bot size={16} />
       </div>
       <div className="max-w-[85%]">
-        <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm border border-border">
-          <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">
+        <div className="rounded-2xl rounded-tl-sm border border-border bg-white px-4 py-3 shadow-sm">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-primary">
             {message.content}
-            {isStreaming && <span className="streaming-cursor">▍</span>}
+            {isStreaming && <span className="streaming-cursor">▌</span>}
           </p>
+          {message.truthResult && (
+            <TruthResultCard result={message.truthResult} onClarify={onTruthClarify} />
+          )}
         </div>
 
-        {/* Action buttons — only show when not streaming and has content */}
-        {!isStreaming && message.content && (
-          <div className="flex items-center gap-2 mt-1.5 ml-1">
+        {!isStreaming && message.content && !message.truthResult && (
+          <div className="ml-1 mt-1.5 flex items-center gap-2">
             {!showQuiz && !message.relatedQuestionId && (
               <button
+                type="button"
                 onClick={() => {
                   setShowQuiz(true);
                   onRequestQuiz();
                 }}
-                className="flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+                className="flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] text-indigo-600 transition-opacity active:opacity-70"
               >
                 <Lightbulb size={12} />
                 巩固一下
               </button>
             )}
             <button
+              type="button"
               onClick={onAddToKnowledge}
-              className="flex items-center gap-1 text-[11px] text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full active:opacity-70 transition-opacity"
+              className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] text-emerald-600 transition-opacity active:opacity-70"
             >
               <BookPlus size={12} />
               加入知识库
@@ -77,7 +78,6 @@ export default function ChatBubble({
           </div>
         )}
 
-        {/* Inline quiz card */}
         {showQuiz && generatedQuestion?.question && (
           <InlineQuizCard question={generatedQuestion.question} onAnswer={onQuizAnswer} />
         )}

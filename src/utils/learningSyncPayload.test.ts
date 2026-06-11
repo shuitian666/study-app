@@ -90,6 +90,54 @@ describe('learning sync payload builders', () => {
     expect(payload?.chapters?.map(item => item.id)).toEqual(['chapter-private']);
   });
 
+  test('content sync includes completed AI-generated knowledge without import history', () => {
+    const subject: Subject = { id: 'subject-ai', name: 'Physical Chemistry', icon: 'P', color: '#4f46e5', knowledgePointCount: 1 };
+    const chapter: Chapter = { id: 'chapter-ai', subjectId: subject.id, name: 'Thermodynamics', order: 1 };
+    const knowledgePoint = privateKnowledgePoint({
+      id: 'kp-ai',
+      subjectId: subject.id,
+      chapterId: chapter.id,
+      source: 'ai',
+    });
+    const question = privateQuestion({
+      id: 'q-ai',
+      knowledgePointId: knowledgePoint.id,
+      subjectId: subject.id,
+      chapterId: chapter.id,
+    });
+    const payload = buildContentSyncPayload(baseState({
+      subjects: [...MOCK_SUBJECTS, subject],
+      chapters: [...MOCK_CHAPTERS, chapter],
+      knowledgePoints: [...MOCK_KNOWLEDGE_POINTS, knowledgePoint],
+      questions: [...MOCK_QUESTIONS, question],
+    }));
+
+    expect(payload?.knowledgePoints?.map(item => item.id)).toEqual(['kp-ai']);
+    expect(payload?.questions?.map(item => item.id)).toEqual(['q-ai']);
+    expect(payload?.subjects?.map(item => item.id)).toEqual(['subject-ai']);
+    expect(payload?.chapters?.map(item => item.id)).toEqual(['chapter-ai']);
+  });
+
+  test('content sync includes AI practice attached to an existing knowledge point', () => {
+    const existingKnowledgePoint = MOCK_KNOWLEDGE_POINTS[0];
+    const payload = buildContentSyncPayload(baseState({
+      questions: [
+        ...MOCK_QUESTIONS,
+        privateQuestion({
+          id: `ai-practice-${existingKnowledgePoint.id}-1`,
+          knowledgePointId: existingKnowledgePoint.id,
+          subjectId: existingKnowledgePoint.subjectId,
+          chapterId: existingKnowledgePoint.chapterId,
+        }),
+      ],
+    }));
+
+    expect(payload?.knowledgePoints).toEqual([]);
+    expect(payload?.questions?.map(item => item.id)).toEqual([
+      `ai-practice-${existingKnowledgePoint.id}-1`,
+    ]);
+  });
+
   test('progress sync includes FSRS fields and user-modified explanations', () => {
     const payload = buildProgressSyncPayload(baseState({
       knowledgePoints: [privateKnowledgePoint({
