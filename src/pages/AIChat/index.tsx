@@ -641,20 +641,32 @@ export default function AIChatPage({
               <ChevronDown size={13} className={modeMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
             </button>
             {!embedded && activeMode === 'study' && (
-              <label className="relative min-w-0">
-                <select
-                  value={studySubjectId}
-                  onChange={event => setStudySubjectId(event.target.value)}
-                  className="max-w-[180px] appearance-none truncate rounded-lg border border-border bg-white py-1.5 pl-2.5 pr-7 text-xs font-semibold text-text-secondary outline-none disabled:opacity-50"
-                  aria-label="限定学习范围"
+              <>
+                <label className="relative min-w-0 flex-1">
+                  <select
+                    value={studySubjectId}
+                    onChange={event => setStudySubjectId(event.target.value)}
+                    className="w-full max-w-[180px] appearance-none truncate rounded-lg border border-border bg-white py-1.5 pl-2.5 pr-7 text-xs font-semibold text-text-secondary outline-none disabled:opacity-50"
+                    aria-label="限定学习范围"
+                  >
+                    <option value="">全部知识库</option>
+                    {studySubjects.map(subject => (
+                      <option key={subject.id} value={subject.id}>{subject.icon} {subject.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate('ai-study')}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700"
+                  aria-label="继续未完成的 AI 学习计划"
                 >
-                  <option value="">全部知识库</option>
-                  {studySubjects.map(subject => (
-                    <option key={subject.id} value={subject.id}>{subject.icon} {subject.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" />
-              </label>
+                  <History size={13} />
+                  <span className="sm:hidden">续学</span>
+                  <span className="hidden sm:inline">继续学习</span>
+                </button>
+              </>
             )}
           </div>
         )}

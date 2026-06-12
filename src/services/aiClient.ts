@@ -57,6 +57,10 @@ export interface AuthPayload {
     allResults: Array<LotteryResult | UpPoolResult>;
     isTenDraw: boolean;
   };
+  experienceReward?: {
+    amount: number;
+    reason: 'knowledge_point_acceleration';
+  };
   aiConfigStatus: ServerAIConfigStatus;
 }
 
@@ -129,6 +133,16 @@ export function accountMakeupCheckin(date: string): Promise<AuthPayload> {
 
 export function accountBuyShopItem(itemId: string): Promise<AuthPayload> {
   return accountRequest('/account/shop/buy', { itemId });
+}
+
+export function accountGrantKnowledgePointExperience(
+  knowledgePointId: string,
+  learningExperience: number,
+): Promise<AuthPayload> {
+  return accountRequest('/account/experience/knowledge-point', {
+    knowledgePointId,
+    learningExperience,
+  });
 }
 
 export function accountRedeem(code: string): Promise<AuthPayload> {

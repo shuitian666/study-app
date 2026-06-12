@@ -635,16 +635,19 @@ export interface AIStudyStep {
 
 export interface AIStudySession {
   id: string;
+  ownerUserId: string;
   plan: AIStudyPlan;
   mode: AIStudyMode;
   currentChapterIndex: number;
   currentKnowledgePointIndex: number;
-  currentQuestionIndex: number;
   correctCount: number;
   totalQuestions: number;
   weakKnowledgePointIds: string[];
   completedKnowledgePointIds: string[];
+  resolvedKnowledgePointIds: Record<string, string>;
+  resolvedChapterIds: Record<string, string>;
   startedAt: string;
+  updatedAt: string;
 }
 
 export interface AIStudySummary {

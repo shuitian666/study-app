@@ -11,6 +11,7 @@ import {
   buyShopItem,
   drawLotteryForUser,
   getAccountState,
+  grantKnowledgePointAcceleration,
   performCheckin,
   redeemCode,
   updateAccountProfile,
@@ -306,6 +307,17 @@ app.post('/api/account/makeup-checkin', requireAuth, (req, res) => {
 app.post('/api/account/shop/buy', requireAuth, (req, res) => {
   try {
     res.json(buyShopItem(req.user.id, String(req.body.itemId || '')));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/experience/knowledge-point', requireAuth, (req, res) => {
+  try {
+    res.json(grantKnowledgePointAcceleration(req.user.id, {
+      knowledgePointId: req.body.knowledgePointId,
+      learningExperience: req.body.learningExperience,
+    }));
   } catch (err) {
     res.status(err.status || 500).json({ error: sanitizeError(err) });
   }

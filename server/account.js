@@ -10,6 +10,10 @@ const STREAK_REWARDS = [
   { days: 30, coins: 50, upDraws: 5, label: '30天' },
 ];
 
+export const PRE_LEVEL_KNOWLEDGE_BONUS = 20;
+const KNOWLEDGE_ACCELERATION_MAX_LEVEL = 10;
+const KNOWLEDGE_REWARD_TIME_ZONE = process.env.APP_TIME_ZONE || 'Asia/Shanghai';
+
 const SHOP_ITEMS = [
   { id: 'item-1', name: '补签卡', description: '可补签1天', icon: '🎟️', type: 'makeup_card', price: 30, rarity: 'R', usable: true },
   { id: 'frame-n-1', name: '简约银框', description: '简约风格银色边框', icon: '⬜', type: 'avatar_frame', price: 30, rarity: 'N' },
@@ -22,10 +26,25 @@ const SHOP_ITEMS = [
   { id: 'frame-r-3', name: '樱花粉框', description: '樱花粉色头像框', icon: '🌸', type: 'avatar_frame', price: 120, rarity: 'R' },
   { id: 'frame-r-4', name: '闪电黑框', description: '闪电风格头像框', icon: '⚡', type: 'avatar_frame', price: 120, rarity: 'R' },
   { id: 'frame-r-5', name: '彩虹缤纷', description: '彩虹头像框', icon: '🌈', type: 'avatar_frame', price: 150, rarity: 'R' },
+  { id: 'frame-sr-1', name: '春日花环', description: '春日樱花花环头像框', icon: '🌸', type: 'avatar_frame', price: 200, rarity: 'SR' },
+  { id: 'frame-sr-2', name: '金桂飘香', description: '金秋桂花装饰头像框', icon: '🌼', type: 'avatar_frame', price: 220, rarity: 'SR' },
+  { id: 'frame-sr-3', name: '紫藤花架', description: '紫色紫藤装饰头像框', icon: '💜', type: 'avatar_frame', price: 220, rarity: 'SR' },
+  { id: 'frame-sr-4', name: '圣诞花环', description: '圣诞节日装饰头像框', icon: '🎄', type: 'avatar_frame', price: 250, rarity: 'SR' },
+  { id: 'frame-sr-5', name: '爱心包围', description: '爱心装饰粉色头像框', icon: '❤️', type: 'avatar_frame', price: 250, rarity: 'SR' },
+  { id: 'frame-ssr-1', name: '星河璀璨', description: 'SSR传说星河特效头像框', icon: '✨', type: 'avatar_frame', price: 500, rarity: 'SSR' },
+  { id: 'frame-ssr-2', name: '永恒钻石', description: 'SSR永恒钻石特效头像框', icon: '💎', type: 'avatar_frame', price: 550, rarity: 'SSR' },
+  { id: 'frame-ssr-3', name: '火焰图腾', description: 'SSR传说火焰特效头像框', icon: '🔥', type: 'avatar_frame', price: 500, rarity: 'SSR' },
+  { id: 'frame-ssr-4', name: '双龙戏珠', description: 'SSR传说双龙特效头像框', icon: '🐲', type: 'avatar_frame', price: 600, rarity: 'SSR' },
   { id: 'item-10', name: '暗夜主题', description: '深色护眼主题', icon: '🌙', type: 'theme', price: 200, rarity: 'R' },
   { id: 'item-11', name: '樱花主题', description: '粉色樱花风格', icon: '🌸', type: 'theme', price: 200, rarity: 'R' },
   { id: 'item-12', name: '猫咪助手', description: 'AI 助手猫咪外观', icon: '🐱', type: 'ai_skin', price: 150, rarity: 'R' },
   { id: 'item-13', name: '机器人助手', description: 'AI 助手机器人外观', icon: '🤖', type: 'ai_skin', price: 150, rarity: 'R' },
+  { id: 'bg-classic-light', name: '晨光白', description: '干净明亮的默认学习背景', icon: '□', type: 'background', price: 30, rarity: 'N' },
+  { id: 'bg-calm-blue', name: '静谧蓝', description: '低饱和冷调背景，适合长时间专注', icon: '◆', type: 'background', price: 40, rarity: 'N' },
+  { id: 'bg-mint-focus', name: '薄荷绿', description: '清新温和的绿色学习背景', icon: '◇', type: 'background', price: 40, rarity: 'N' },
+  { id: 'bg-warm-paper', name: '暖纸米', description: '纸张感暖色护眼背景', icon: '◌', type: 'background', price: 90, rarity: 'R' },
+  { id: 'bg-night-study', name: '夜读蓝', description: '夜间学习用的低亮度护眼背景', icon: '●', type: 'background', price: 220, rarity: 'SR' },
+  { id: 'bg-aurora-night', name: '极光夜', description: '冷调极光夜色背景，适合作为稀有皮肤', icon: '✦', type: 'background', price: 520, rarity: 'SSR' },
 ];
 
 const UP_POOL_ITEMS = [
@@ -143,6 +162,26 @@ function compensationCoins(rarity) {
 
 function ownedKey(item) {
   return `${item.type}:${item.name}`;
+}
+
+function getRequiredTotalExpForLevel(level) {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let current = 1; current < level; current += 1) {
+    total += Math.round(80 + current * 40 + Math.pow(current, 1.35) * 18);
+  }
+  return total;
+}
+
+function getKnowledgeRewardDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: KNOWLEDGE_REWARD_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function accountState(userId, extra = {}) {
@@ -274,6 +313,68 @@ export function buyShopItem(userId, itemId) {
   if (item.type !== 'makeup_card') addInventory(userId, item, 'shop', item.id);
   writeGameState(userId, { shopOwnedIds: Array.from(new Set([...shopOwnedIds, item.id])) });
   return accountState(userId);
+}
+
+export function grantKnowledgePointAcceleration(userId, {
+  knowledgePointId,
+  learningExperience,
+  rewardDate,
+} = {}) {
+  const safeKnowledgePointId = String(knowledgePointId || '').trim();
+  const rewardDateKey = rewardDate instanceof Date
+    ? getKnowledgeRewardDateKey(rewardDate)
+    : getKnowledgeRewardDateKey();
+  const sourceId = `${safeKnowledgePointId}:completed:${rewardDateKey}`;
+  const reportedLearningExperience = Number(learningExperience);
+  if (
+    !safeKnowledgePointId
+    || safeKnowledgePointId.length > 200
+    || !Number.isFinite(reportedLearningExperience)
+    || reportedLearningExperience < 0
+  ) {
+    const error = new Error('Invalid knowledge point reward request');
+    error.status = 400;
+    throw error;
+  }
+
+  const levelTenThreshold = getRequiredTotalExpForLevel(KNOWLEDGE_ACCELERATION_MAX_LEVEL);
+  let grant = 0;
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const assets = getAssets(userId);
+    const effectiveTotalExperience = (assets?.experience ?? 0) + Math.floor(reportedLearningExperience);
+    if (effectiveTotalExperience < levelTenThreshold) {
+      const inserted = db.prepare(`
+        INSERT OR IGNORE INTO asset_ledger
+          (id, user_id, event_type, source_id, experience_delta, metadata, created_at)
+        VALUES (?, ?, 'knowledge_point_acceleration', ?, ?, ?, ?)
+      `).run(
+        `led_${crypto.randomUUID()}`,
+        userId,
+        sourceId,
+        PRE_LEVEL_KNOWLEDGE_BONUS,
+        JSON.stringify({
+          knowledgePointId: safeKnowledgePointId,
+          maxLevel: KNOWLEDGE_ACCELERATION_MAX_LEVEL,
+          rewardDate: rewardDateKey,
+        }),
+        nowIso(),
+      );
+      if (inserted.changes > 0) {
+        db.prepare('UPDATE user_assets SET experience = experience + ?, updated_at = ? WHERE user_id = ?')
+          .run(PRE_LEVEL_KNOWLEDGE_BONUS, nowIso(), userId);
+        grant = PRE_LEVEL_KNOWLEDGE_BONUS;
+      }
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+
+  return accountState(userId, {
+    experienceReward: { amount: grant, reason: 'knowledge_point_acceleration' },
+  });
 }
 
 export function redeemCode(userId, code) {

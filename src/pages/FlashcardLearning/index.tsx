@@ -10,12 +10,14 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
 import { ArrowLeft, ChevronLeft, ChevronRight, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
-import { checkBackendAvailable, getAIConfig } from '@/services/aiClient';
+import { accountGrantKnowledgePointExperience, checkBackendAvailable, getAIConfig } from '@/services/aiClient';
+import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 import {
   knowledgePointToCardInput,
   cardToFsrsFields,
@@ -30,6 +32,7 @@ import type { KnowledgePointExtended, Question, ReviewItem } from '@/types';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan } from '@/utils/review';
 import { getReviewReminderSettings, requestReviewReminderPermission } from '@/utils/reviewReminder';
+import { getAIStudyLevelInfo, AI_STUDY_UNLOCK_LEVEL } from '@/utils/aiStudyAccess';
 
 // 按钮配置
 const RATING_CONFIG = {
@@ -152,9 +155,12 @@ function pickSessionPlan(
 }
 
 export default function FlashcardLearningPage({ embedded = false, onAskAI }: FlashcardLearningPageProps) {
-  const { navigate, userState } = useUser();
+  const { navigate, userState, userDispatch } = useUser();
+  const { gameState, gameDispatch } = useGame();
   const { theme } = useTheme();
   const { learningState, learningDispatch } = useLearning();
+  const { totalExperience, levelProgress } = getAIStudyLevelInfo(userState.user, learningState, gameState.checkin);
+  const learningExperience = Math.max(0, totalExperience - (userState.user?.bonusExperience ?? 0));
   const { getSavedExplanation, generateExplanationOnDemand } = usePreGenerate();
   const importedStudySession = learningState.importedStudySession;
   const importSessionIdsKey = importedStudySession?.knowledgePointIds.join(',') ?? '';
@@ -238,6 +244,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   const [generatingExplanation, setGeneratingExplanation] = useState(false);
   const [aiAssistAvailable, setAiAssistAvailable] = useState(false);
   const [aiAssistHint, setAiAssistHint] = useState('请先在设置里配置 AI');
+  const [experienceNotice, setExperienceNotice] = useState('');
   // 是否正在重现失败卡（用于显示提示）
   const [isRevealingFailed, setIsRevealingFailed] = useState(false);
   // 是否正在处理评分（用于防抖）
@@ -248,12 +255,18 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   const failedIdsRef = useRef(failedIds);
   const currentIdxRef = useRef(currentIdx);
   const importSessionRef = useRef(importedStudySession);
+  const experienceNoticeTimerRef = useRef<number | null>(null);
 
   // 同步 ref
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { failedIdsRef.current = failedIds; }, [failedIds]);
   useEffect(() => { currentIdxRef.current = currentIdx; }, [currentIdx]);
   useEffect(() => { importSessionRef.current = importedStudySession; }, [importedStudySession]);
+  useEffect(() => () => {
+    if (experienceNoticeTimerRef.current !== null) {
+      window.clearTimeout(experienceNoticeTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     setQueue(sessionPlan.queue);
@@ -491,7 +504,9 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
     if (isSelecting || !currentKp) return;
     setIsSelecting(true);
 
-    const cardInput = knowledgePointToCardInput(currentKp);
+    const liveKnowledgePoint = learningState.knowledgePoints.find(kp => kp.id === currentKp.id) ?? currentKp;
+    const nextReviewCount = (liveKnowledgePoint.reviewCount ?? 0) + 1;
+    const cardInput = knowledgePointToCardInput(liveKnowledgePoint);
     const result = reviewCard(cardInput, rating);
     const relatedQuestionsForCurrent = learningState.questions.filter(
       question => question.knowledgePointId === currentKp.id
@@ -505,8 +520,8 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
         knowledgePointId: currentKp.id,
         updates: {
           ...fsrsUpdates,
-          proficiency: result.card.state === 2 ? 'normal' : currentKp.proficiency,
-          reviewCount: (currentKp.reviewCount ?? 0) + 1,
+          proficiency: result.card.state === 2 ? 'normal' : liveKnowledgePoint.proficiency,
+          reviewCount: nextReviewCount,
         },
       },
     });
@@ -521,6 +536,27 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
       });
       if (!getReviewReminderSettings().prompted) {
         void requestReviewReminderPermission();
+      }
+      if (levelProgress.level < AI_STUDY_UNLOCK_LEVEL) {
+        void accountGrantKnowledgePointExperience(currentKp.id, learningExperience)
+          .then(payload => {
+            applyServerAccountPayload(payload, userDispatch, gameDispatch);
+            const amount = payload.experienceReward?.amount ?? 0;
+            if (amount > 0) {
+              setExperienceNotice(`知识点完成，10 级前经验加速 +${amount}`);
+              if (experienceNoticeTimerRef.current !== null) {
+                window.clearTimeout(experienceNoticeTimerRef.current);
+              }
+              experienceNoticeTimerRef.current = window.setTimeout(() => {
+                setExperienceNotice('');
+                experienceNoticeTimerRef.current = null;
+              }, 3000);
+            }
+          })
+          .catch(err => {
+            logoutOnUnauthorized(err, userDispatch);
+            console.warn('Failed to grant knowledge point experience:', err);
+          });
       }
     }
 
@@ -563,7 +599,20 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
 
       setIsSelecting(false);  // 解锁
     }, 200);
-  }, [currentKp, isSelecting, learningDispatch, learningState.questions, learningState.todayReviewItems, learningState.todayNewItems, moveToNext]);
+  }, [
+    currentKp,
+    gameDispatch,
+    isSelecting,
+    learningDispatch,
+    learningState.knowledgePoints,
+    learningState.questions,
+    learningState.todayReviewItems,
+    learningState.todayNewItems,
+    levelProgress.level,
+    learningExperience,
+    moveToNext,
+    userDispatch,
+  ]);
 
   // 上一张卡片
   const goToPrev = useCallback(() => {
@@ -819,6 +868,15 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
           style={desktopGlowStyle}
         />
         <div className={desktopShellClassName} style={desktopShellStyle}>
+          {experienceNotice && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-lg"
+            >
+              {experienceNotice}
+            </div>
+          )}
           {/* Header */}
           <div className="shrink-0 px-4 py-3 md:px-6 md:py-4" style={{ backgroundColor: theme.bgCard }}>
             <div className="flex flex-wrap items-center gap-3">

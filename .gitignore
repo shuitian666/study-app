@@ -45,6 +45,7 @@ knowledge-pipeline/source/*.txt
 get-ip.js
 get-ip.cjs
 .claude/
+.codex/
 .tmp-visual-audit/
 .sakura-trae-frpc.ini
 deploy/*.zip

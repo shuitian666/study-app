@@ -40,6 +40,7 @@ export default function ShopPage() {
   const [tab, setTab] = useState<ShopItemType | 'all' | 'redeem'>('all');
   const [redeemInput, setRedeemInput] = useState('');
   const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [buyMessage, setBuyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
@@ -61,10 +62,26 @@ export default function ShopPage() {
     if (!STACKABLE_SHOP_TYPES.has(item.type) && isOwned(item)) return;
 
     setBuyingItemId(itemId);
+    setBuyMessage(null);
     try {
       applyServerAccountPayload(await accountBuyShopItem(itemId), userDispatch, gameDispatch);
+      setBuyMessage({
+        type: 'success',
+        text: item.type === 'background'
+          ? `已购买“${item.name}”，可在形象编辑中更换背景`
+          : `已购买“${item.name}”`,
+      });
     } catch (err) {
       logoutOnUnauthorized(err, userDispatch);
+      const message = err instanceof Error ? err.message : '';
+      setBuyMessage({
+        type: 'error',
+        text: message === 'Not enough coins'
+          ? '星币不足，暂时无法购买'
+          : message === 'Shop item not found'
+            ? '商品配置异常，请刷新后重试'
+            : message || '购买失败，请重试',
+      });
     } finally {
       setBuyingItemId(null);
     }
@@ -161,35 +178,50 @@ export default function ShopPage() {
           </button>
         </div>
       ) : (
-        <div className="mx-4 mt-3 grid grid-cols-2 gap-3">
-          {filtered.map(item => {
-            const owned = isOwned(item);
-            return (
-              <div key={item.id} className="flex flex-col items-center rounded-2xl border border-border bg-white p-4 shadow-sm">
-                <div className="mb-2 text-4xl">{item.icon}</div>
-                <h4 className="mb-0.5 text-sm font-medium">{item.name}</h4>
-                <p className="mb-3 text-center text-[10px] text-text-muted">{item.description}</p>
+        <div className="mx-4 mt-3">
+          {buyMessage && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`mb-3 rounded-xl border p-3 text-sm ${
+                buyMessage.type === 'success'
+                  ? 'border-green-200 bg-green-50 text-green-700'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              }`}
+            >
+              {buyMessage.text}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            {filtered.map(item => {
+              const owned = isOwned(item);
+              return (
+                <div key={item.id} className="flex flex-col items-center rounded-2xl border border-border bg-white p-4 shadow-sm">
+                  <div className="mb-2 text-4xl">{item.icon}</div>
+                  <h4 className="mb-0.5 text-sm font-medium">{item.name}</h4>
+                  <p className="mb-3 text-center text-[10px] text-text-muted">{item.description}</p>
 
-                {owned ? (
-                  <div className="flex items-center gap-1 text-xs font-medium text-accent">
-                    <Check size={12} />
-                    已拥有
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => void handleBuy(item.id)}
-                    disabled={buyingItemId !== null || coins < item.price}
-                    className={`flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium transition-all ${
-                      coins >= item.price ? 'bg-primary text-white active:scale-[0.97]' : 'cursor-not-allowed bg-gray-100 text-text-muted'
-                    }`}
-                  >
-                    <Star size={10} fill="currentColor" />
-                    {buyingItemId === item.id ? '购买中...' : item.price}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                  {owned ? (
+                    <div className="flex items-center gap-1 text-xs font-medium text-accent">
+                      <Check size={12} />
+                      已拥有
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => void handleBuy(item.id)}
+                      disabled={buyingItemId !== null || coins < item.price}
+                      className={`flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium transition-all ${
+                        coins >= item.price ? 'bg-primary text-white active:scale-[0.97]' : 'cursor-not-allowed bg-gray-100 text-text-muted'
+                      }`}
+                    >
+                      <Star size={10} fill="currentColor" />
+                      {buyingItemId === item.id ? '购买中...' : coins < item.price ? '星币不足' : item.price}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

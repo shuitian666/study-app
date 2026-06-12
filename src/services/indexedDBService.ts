@@ -1,16 +1,18 @@
-import type { Chapter, KnowledgePoint, Question, Subject } from '@/types';
+import type { AIStudySession, Chapter, KnowledgePoint, Question, Subject } from '@/types';
 
 const DB_NAME = 'study-app-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORES = {
   KNOWLEDGE_POINTS: 'knowledgePoints',
   QUESTIONS: 'questions',
   SUBJECTS: 'subjects',
   CHAPTERS: 'chapters',
+  AI_STUDY_SESSIONS: 'aiStudySessions',
 } as const;
 
-type StoreName = typeof STORES[keyof typeof STORES];
+type KnowledgeStoreName = Exclude<typeof STORES[keyof typeof STORES], typeof STORES.AI_STUDY_SESSIONS>;
 type StoredRecord = { id: string };
+type StoredAIStudySession = AIStudySession & { storageKey: string };
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -22,16 +24,26 @@ function openDB(): Promise<IDBDatabase> {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
 
-      Object.values(STORES).forEach(storeName => {
+      [
+        STORES.KNOWLEDGE_POINTS,
+        STORES.QUESTIONS,
+        STORES.SUBJECTS,
+        STORES.CHAPTERS,
+      ].forEach(storeName => {
         if (!db.objectStoreNames.contains(storeName)) {
           db.createObjectStore(storeName, { keyPath: 'id' });
         }
       });
+
+      if (!db.objectStoreNames.contains(STORES.AI_STUDY_SESSIONS)) {
+        const sessionStore = db.createObjectStore(STORES.AI_STUDY_SESSIONS, { keyPath: 'storageKey' });
+        sessionStore.createIndex('ownerUserId', 'ownerUserId', { unique: false });
+      }
     };
   });
 }
 
-async function storeData<T extends StoredRecord>(storeName: StoreName, data: T[]): Promise<void> {
+async function storeData<T extends StoredRecord>(storeName: KnowledgeStoreName, data: T[]): Promise<void> {
   const db = await openDB();
 
   return new Promise((resolve, reject) => {
@@ -71,7 +83,7 @@ async function storeData<T extends StoredRecord>(storeName: StoreName, data: T[]
   });
 }
 
-async function getData<T>(storeName: StoreName): Promise<T[]> {
+async function getData<T>(storeName: KnowledgeStoreName): Promise<T[]> {
   const db = await openDB();
 
   return new Promise((resolve, reject) => {
@@ -84,7 +96,7 @@ async function getData<T>(storeName: StoreName): Promise<T[]> {
   });
 }
 
-async function hasData(storeName: StoreName): Promise<boolean> {
+async function hasData(storeName: KnowledgeStoreName): Promise<boolean> {
   const db = await openDB();
 
   return new Promise((resolve, reject) => {
@@ -130,6 +142,56 @@ export async function hasKnowledgeData(): Promise<boolean> {
   const hasQuestions = await hasData(STORES.QUESTIONS);
 
   return hasSubjects && hasChapters && hasKnowledgePoints && hasQuestions;
+}
+
+export async function saveAIStudySession(session: AIStudySession): Promise<void> {
+  const db = await openDB();
+  const record: StoredAIStudySession = {
+    ...session,
+    storageKey: `${session.ownerUserId}:${session.id}`,
+  };
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.AI_STUDY_SESSIONS, 'readwrite');
+    transaction.objectStore(STORES.AI_STUDY_SESSIONS).put(record);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('AI study session save aborted'));
+  });
+}
+
+export async function getAIStudySessions(ownerUserId: string): Promise<AIStudySession[]> {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.AI_STUDY_SESSIONS, 'readonly');
+    const index = transaction.objectStore(STORES.AI_STUDY_SESSIONS).index('ownerUserId');
+    const request = index.getAll(ownerUserId);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const sessions = (request.result as StoredAIStudySession[])
+        .map(record => {
+          const session = { ...record };
+          delete (session as Partial<StoredAIStudySession>).storageKey;
+          return session as AIStudySession;
+        })
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      resolve(sessions);
+    };
+  });
+}
+
+export async function deleteAIStudySession(ownerUserId: string, sessionId: string): Promise<void> {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.AI_STUDY_SESSIONS, 'readwrite');
+    transaction.objectStore(STORES.AI_STUDY_SESSIONS).delete(`${ownerUserId}:${sessionId}`);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error('AI study session delete aborted'));
+  });
 }
 
 export async function clearKnowledgeData(): Promise<void> {

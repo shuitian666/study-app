@@ -9,9 +9,11 @@ process.env.DATA_DIR = mkdtempSync(path.join(tmpdir(), 'study-account-'));
 
 const { db, createUser, nowIso } = await import('./db.js');
 const {
+  PRE_LEVEL_KNOWLEDGE_BONUS,
   REDEMPTION_CODES,
   buyShopItem,
   drawLotteryForUser,
+  grantKnowledgePointAcceleration,
   performCheckin,
   redeemCode,
   useInventoryItem,
@@ -79,11 +81,12 @@ function setAssets(userId, patch) {
   const current = db.prepare('SELECT * FROM user_assets WHERE user_id = ?').get(userId);
   db.prepare(`
     UPDATE user_assets
-    SET coins = ?, regular_tickets = ?, up_tickets = ?, makeup_cards = ?,
+    SET coins = ?, experience = ?, regular_tickets = ?, up_tickets = ?, makeup_cards = ?,
       lottery_pity_sr = ?, lottery_pity_ssr = ?, updated_at = ?
     WHERE user_id = ?
   `).run(
     patch.coins ?? current.coins,
+    patch.experience ?? current.experience,
     patch.regular_tickets ?? current.regular_tickets,
     patch.up_tickets ?? current.up_tickets,
     patch.makeup_cards ?? current.makeup_cards,
@@ -143,6 +146,77 @@ test('non-stackable shop purchase is not charged twice', () => {
   const inventory = db.prepare('SELECT * FROM inventory_items WHERE user_id = ?').all(user.id);
   assert.equal(assets.coins, 970);
   assert.equal(inventory.length, 1);
+});
+
+test('background shop purchase creates usable ownership data', () => {
+  const user = makeUser();
+  setAssets(user.id, { coins: 1000 });
+
+  const state = buyShopItem(user.id, 'bg-calm-blue');
+
+  assert.equal(state.assets.coins, 960);
+  assert.ok(state.game.shopOwnedIds.includes('bg-calm-blue'));
+  assert.ok(state.inventory.some(item => item.type === 'background' && item.name === '静谧蓝'));
+});
+
+test('high-rarity frontend shop items exist on the server', () => {
+  const user = makeUser();
+  setAssets(user.id, { coins: 1000 });
+
+  const state = buyShopItem(user.id, 'frame-ssr-4');
+
+  assert.equal(state.assets.coins, 400);
+  assert.ok(state.inventory.some(item => item.type === 'avatar_frame' && item.name === '双龙戏珠'));
+});
+
+test('pre-level knowledge acceleration is idempotent per daily completion and rewards later reviews', () => {
+  const user = makeUser();
+
+  const first = grantKnowledgePointAcceleration(user.id, {
+    knowledgePointId: 'kp-1',
+    learningExperience: 0,
+    rewardDate: new Date('2026-06-12T04:00:00.000Z'),
+  });
+  const duplicate = grantKnowledgePointAcceleration(user.id, {
+    knowledgePointId: 'kp-1',
+    learningExperience: 0,
+    rewardDate: new Date('2026-06-12T12:00:00.000Z'),
+  });
+  const laterReview = grantKnowledgePointAcceleration(user.id, {
+    knowledgePointId: 'kp-1',
+    learningExperience: 0,
+    rewardDate: new Date('2026-06-13T04:00:00.000Z'),
+  });
+
+  assert.equal(first.experienceReward.amount, PRE_LEVEL_KNOWLEDGE_BONUS);
+  assert.equal(duplicate.experienceReward.amount, 0);
+  assert.equal(laterReview.experienceReward.amount, PRE_LEVEL_KNOWLEDGE_BONUS);
+  assert.equal(laterReview.assets.experience, PRE_LEVEL_KNOWLEDGE_BONUS * 2);
+});
+
+test('knowledge acceleration stops at level ten', () => {
+  const user = makeUser();
+
+  const state = grantKnowledgePointAcceleration(user.id, {
+    knowledgePointId: 'kp-1',
+    learningExperience: 100000,
+  });
+
+  assert.equal(state.experienceReward.amount, 0);
+  assert.equal(state.assets.experience, 0);
+});
+
+test('knowledge acceleration includes persisted bonus experience in the level cap', () => {
+  const user = makeUser();
+  setAssets(user.id, { experience: 100000 });
+
+  const state = grantKnowledgePointAcceleration(user.id, {
+    knowledgePointId: 'kp-1',
+    learningExperience: 0,
+  });
+
+  assert.equal(state.experienceReward.amount, 0);
+  assert.equal(state.assets.experience, 100000);
 });
 
 test('redemption code cannot be applied twice', () => {

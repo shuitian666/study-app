@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BookOpen, CheckCircle2, ChevronRight, Lightbulb, Loader2, Lock, MessageCircle, Target, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, ChevronRight, History, Lightbulb, Loader2, Lock, MessageCircle, Target, Trash2, X } from 'lucide-react';
 import StudyTutorPanel from '@/components/ai/StudyTutorPanel';
 import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
@@ -10,6 +10,7 @@ import type {
   AIStudyPlanChapter,
   AIStudyPlanKnowledgePoint,
   AIStudyExplanation,
+  AIStudySession,
   AIStudyTutorContext,
   Chapter,
   KnowledgePointExtended,
@@ -25,7 +26,17 @@ import {
   fetchAIStudyPractice,
   saveAIStudySummary,
 } from '@/services/aiStudyService';
+import {
+  deleteAIStudySession,
+  getAIStudySessions,
+  saveAIStudySession,
+} from '@/services/indexedDBService';
 import { getAIStudyLevelInfo, AI_STUDY_UNLOCK_LEVEL } from '@/utils/aiStudyAccess';
+import {
+  checkpointCompletedChapterReview,
+  checkpointCompletedKnowledgePoint,
+  createAIStudySession,
+} from '@/utils/aiStudySession';
 import { generateTodayReviewPlan } from '@/utils/review';
 import StudyRichText from '@/components/ai/StudyRichText';
 
@@ -103,6 +114,13 @@ function getNextKnowledgePointPosition(
   return null;
 }
 
+function formatSessionDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
   const { userState, navigate } = useUser();
   const { gameState } = useGame();
@@ -133,11 +151,20 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
   const [summaryText, setSummaryText] = useState('');
   const [adviceText, setAdviceText] = useState('');
   const [mobileTutorContext, setMobileTutorContext] = useState<AIStudyTutorContext | null>(null);
+  const [studySessions, setStudySessions] = useState<AIStudySession[]>([]);
+  const [activeSession, setActiveSession] = useState<AIStudySession | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState('');
+  const [checkpointSaving, setCheckpointSaving] = useState(false);
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
+  const [resumeTarget, setResumeTarget] = useState<AIStudySession | null>(null);
   const autoGenerateStartedRef = useRef(false);
   const resolvedPointIdsRef = useRef(new Map<string, string>());
   const resolvedChapterIdsRef = useRef(new Map<string, string>());
   const preparedContentRef = useRef(new Map<string, Promise<PreparedStudyContent>>());
   const activeContentRequestRef = useRef(0);
+  const sessionsRequestRef = useRef(0);
+  const ownerUserId = userState.user?.id || '';
 
   const subjectsWithContent = useMemo(
     () => learningState.subjects.filter(subject =>
@@ -157,6 +184,49 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
     ].join('\n\n').replace(/\*\*/g, '');
   }, [studyExplanation]);
 
+  const refreshStudySessions = useCallback(async () => {
+    const requestId = sessionsRequestRef.current + 1;
+    sessionsRequestRef.current = requestId;
+    if (!ownerUserId) {
+      setStudySessions([]);
+      setSessionsLoading(false);
+      return;
+    }
+    setSessionsLoading(true);
+    setSessionsError('');
+    try {
+      const sessions = await getAIStudySessions(ownerUserId);
+      if (sessionsRequestRef.current === requestId) {
+        setStudySessions(sessions);
+      }
+    } catch (err) {
+      if (sessionsRequestRef.current === requestId) {
+        setSessionsError(err instanceof Error ? err.message : '读取未完成学习计划失败。');
+      }
+    } finally {
+      if (sessionsRequestRef.current === requestId) {
+        setSessionsLoading(false);
+      }
+    }
+  }, [ownerUserId]);
+
+  useEffect(() => {
+    void refreshStudySessions();
+  }, [refreshStudySessions]);
+
+  const rememberSession = useCallback((session: AIStudySession) => {
+    setActiveSession(session);
+    setStudySessions(current => [
+      session,
+      ...current.filter(item => item.id !== session.id),
+    ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+  }, []);
+
+  const forgetSession = useCallback((sessionId: string) => {
+    setStudySessions(current => current.filter(item => item.id !== sessionId));
+    setActiveSession(current => current?.id === sessionId ? null : current);
+  }, []);
+
   const buildPlan = useCallback(async () => {
     const trimmedGoal = goal.trim();
     if (!trimmedGoal) {
@@ -174,6 +244,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
         knowledgePoints: learningState.knowledgePoints.filter(kp => !kp.deletedAt),
       });
       setPlan(result.plan);
+      setActiveSession(null);
       setStage('plan');
       resolvedPointIdsRef.current.clear();
       resolvedChapterIdsRef.current.clear();
@@ -354,15 +425,59 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
     if (context) openTutor(context);
   };
 
-  const startSession = () => {
-    if (!plan || plan.chapters.length === 0) return;
+  const startSession = async () => {
+    if (!plan || plan.chapters.length === 0 || !ownerUserId) return;
+    setCheckpointSaving(true);
+    setError('');
+    const session = createAIStudySession(ownerUserId, plan);
+    try {
+      await saveAIStudySession(session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存学习进度失败，请重试。');
+      setCheckpointSaving(false);
+      return;
+    }
+    rememberSession(session);
     preparedContentRef.current.clear();
     setChapterIndex(0);
     setKpIndex(0);
     setCorrectCount(0);
     setTotalQuestions(0);
     setWeakPointIds([]);
+    setCheckpointSaving(false);
     void startKnowledgePointAt(0, 0);
+  };
+
+  const resumeSession = (session: AIStudySession) => {
+    setError('');
+    setGoal(session.plan.goal || '');
+    setScopeSubjectId('');
+    setPlan(session.plan);
+    setChapterIndex(session.currentChapterIndex);
+    setKpIndex(session.currentKnowledgePointIndex);
+    setCorrectCount(session.correctCount);
+    setTotalQuestions(session.totalQuestions);
+    setWeakPointIds(session.weakKnowledgePointIds);
+    setActiveSession(session);
+    resolvedPointIdsRef.current = new Map(Object.entries(session.resolvedKnowledgePointIds));
+    resolvedChapterIdsRef.current = new Map(Object.entries(session.resolvedChapterIds));
+    preparedContentRef.current.clear();
+    setResumeTarget(session);
+  };
+
+  const removeSavedSession = async (sessionId: string) => {
+    if (!ownerUserId) return;
+    setCheckpointSaving(true);
+    setSessionsError('');
+    try {
+      await deleteAIStudySession(ownerUserId, sessionId);
+      forgetSession(sessionId);
+      setPendingDeleteSessionId(null);
+    } catch (err) {
+      setSessionsError(err instanceof Error ? err.message : '删除学习计划失败，请重试。');
+    } finally {
+      setCheckpointSaving(false);
+    }
   };
 
   const submitAnswer = () => {
@@ -378,8 +493,8 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
     else setWeakPointIds(ids => Array.from(new Set([...ids, currentPlanKp.id])));
   };
 
-  const finishKnowledgePoint = () => {
-    if (!plan || !currentPlanChapter || !currentPlanKp) return;
+  const finishKnowledgePoint = async (): Promise<boolean> => {
+    if (!plan || !currentPlanChapter || !currentPlanKp || !activeSession) return false;
     const now = new Date().toISOString();
     const existingSubject = findSubject(plan, learningState.subjects);
     const subjectId = existingSubject?.id || plan.subjectId;
@@ -481,6 +596,27 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       }];
     });
 
+    const nextSession = checkpointCompletedKnowledgePoint(activeSession, {
+      chapterIndex,
+      knowledgePointIndex: kpIndex,
+      resolvedKnowledgePointId: knowledgePointId,
+      resolvedChapterId: chapterId,
+      correctCount,
+      totalQuestions,
+      weakKnowledgePointIds: weakPointIds,
+      now,
+    });
+    setCheckpointSaving(true);
+    setError('');
+    try {
+      await saveAIStudySession(nextSession);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存学习进度失败，请再次点击继续重试。');
+      setCheckpointSaving(false);
+      return false;
+    }
+    rememberSession(nextSession);
+
     learningDispatch({
       type: 'COMMIT_AI_STUDY_RESULT',
       payload: {
@@ -497,9 +633,11 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       : [...learningState.knowledgePoints, knowledgePoint];
     const { review, newItems } = generateTodayReviewPlan(updatedKnowledgePoints, learningState.todayNewItems);
     learningDispatch({ type: 'SET_REVIEW_ITEMS', payload: { review, newItems } });
+    setCheckpointSaving(false);
+    return true;
   };
 
-  const startChapterReview = async (chapter: AIStudyPlanChapter) => {
+  const startChapterReview = useCallback(async (chapter: AIStudyPlanChapter) => {
     if (!plan) return;
     setLoading(true);
     setError('');
@@ -520,7 +658,21 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [plan, studyPointFor]);
+
+  useEffect(() => {
+    if (!resumeTarget || plan?.id !== resumeTarget.plan.id) return;
+    setResumeTarget(null);
+    if (resumeTarget.mode === 'chapter_review') {
+      const chapter = resumeTarget.plan.chapters[resumeTarget.currentChapterIndex];
+      if (chapter) void startChapterReview(chapter);
+      return;
+    }
+    void startKnowledgePointAt(
+      resumeTarget.currentChapterIndex,
+      resumeTarget.currentKnowledgePointIndex,
+    );
+  }, [plan, resumeTarget, startChapterReview, startKnowledgePointAt]);
 
   const goNext = async () => {
     if (!plan) return;
@@ -530,7 +682,8 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       setShowResult(false);
       return;
     }
-    finishKnowledgePoint();
+    const saved = await finishKnowledgePoint();
+    if (!saved) return;
     const chapter = plan.chapters[chapterIndex];
     if (kpIndex < chapter.knowledgePoints.length - 1) {
       const nextKpIndex = kpIndex + 1;
@@ -559,7 +712,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       : '下次可以沿用当前目标继续规划下一轮，同时按复习队列巩固今天的卡片。';
     try {
       const saved = await saveAIStudySummary({
-        sessionId: `ai-session-${plan.id}`,
+        sessionId: activeSession?.id || `ai-session-${plan.id}`,
         subjectId: findSubject(plan, learningState.subjects)?.id || plan.subjectId,
         subjectName: plan.subjectName,
         chapterIds,
@@ -586,7 +739,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
 
   const finishChapterReview = async () => {
     const chapterPlan = plan?.chapters[chapterIndex];
-    if (!plan || !chapterPlan) return;
+    if (!plan || !chapterPlan || !activeSession || !ownerUserId) return;
     const now = new Date().toISOString();
     const subjectId = findSubject(plan, learningState.subjects)?.id || plan.subjectId;
     const chapterId = resolvedChapterIdsRef.current.get(chapterPlan.id) || chapterPlan.id;
@@ -595,6 +748,29 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       .filter((id): id is string => Boolean(id))
       .at(-1);
     const answerByOriginalId = new Map(pendingAnswers.map(answer => [answer.question.id, answer]));
+    const nextSession = checkpointCompletedChapterReview(
+      activeSession,
+      correctCount,
+      totalQuestions,
+      weakPointIds,
+      now,
+    );
+
+    setCheckpointSaving(true);
+    setError('');
+    try {
+      if (nextSession) {
+        await saveAIStudySession(nextSession);
+        rememberSession(nextSession);
+      } else {
+        await deleteAIStudySession(ownerUserId, activeSession.id);
+        forgetSession(activeSession.id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存学习进度失败，请再次点击继续重试。');
+      setCheckpointSaving(false);
+      return;
+    }
 
     practiceQuestions.forEach((question, index) => {
       const remappedQuestion: Question = {
@@ -643,11 +819,14 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       }
     });
 
-    if (chapterIndex < plan.chapters.length - 1) {
-      const nextChapterIndex = chapterIndex + 1;
-      setChapterIndex(nextChapterIndex);
-      setKpIndex(0);
-      void startKnowledgePointAt(nextChapterIndex, 0);
+    setCheckpointSaving(false);
+    if (nextSession) {
+      setChapterIndex(nextSession.currentChapterIndex);
+      setKpIndex(nextSession.currentKnowledgePointIndex);
+      void startKnowledgePointAt(
+        nextSession.currentChapterIndex,
+        nextSession.currentKnowledgePointIndex,
+      );
       return;
     }
     await finishSession();
@@ -715,11 +894,11 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       )}
       <button
         onClick={showResult ? (stage === 'chapter_review' ? finishChapterReview : goNext) : submitAnswer}
-        disabled={!showResult && selectedAnswers.length === 0}
+        disabled={checkpointSaving || (!showResult && selectedAnswers.length === 0)}
         className="min-h-12 w-full rounded-2xl px-4 text-base font-bold text-white disabled:opacity-50"
         style={{ backgroundColor: theme.primary }}
       >
-        {showResult ? '继续' : '提交答案'}
+        {checkpointSaving ? '正在保存进度…' : showResult ? '继续' : '提交答案'}
       </button>
     </div>
   ) : null;
@@ -772,45 +951,153 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
         {error && (
           <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-base text-red-600">
             <span>{error}</span>
-            {(stage === 'setup' || stage === 'plan') && (
+            {((stage === 'setup' && !activeSession) || stage === 'plan') && (
               <button onClick={buildPlan} className="shrink-0 font-bold">重试</button>
             )}
           </div>
         )}
 
         {stage === 'setup' && (
-          <section className="rounded-3xl border p-5" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <label className="text-base font-bold" style={{ color: theme.textPrimary }}>这次想学习什么？</label>
-            <textarea
-              value={goal}
-              onChange={event => setGoal(event.target.value)}
-              rows={4}
-              placeholder="例如：从零学习物理化学，先掌握热力学基础"
-              className="mt-3 w-full resize-none rounded-2xl border bg-transparent p-4 text-base leading-7 outline-none focus:ring-2"
-              style={{ borderColor: theme.border, color: theme.textPrimary }}
-            />
-            <label className="mt-4 block text-base font-bold" style={{ color: theme.textPrimary }}>限定范围（可选）</label>
-            <select
-              value={scopeSubjectId}
-              onChange={event => setScopeSubjectId(event.target.value)}
-              className="mt-2 min-h-12 w-full rounded-2xl border bg-transparent p-3 text-base outline-none"
-              style={{ borderColor: theme.border, color: theme.textPrimary }}
-            >
-              <option value="">全部知识库，缺失内容由 AI 生成</option>
-              {subjectsWithContent.map(subject => (
-                <option key={subject.id} value={subject.id}>{subject.icon} {subject.name}</option>
-              ))}
-            </select>
-            <button
-              onClick={buildPlan}
-              disabled={loading || !goal.trim()}
-              className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-bold text-white disabled:opacity-50"
-              style={{ backgroundColor: theme.primary }}
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
-              生成本轮学习计划
-            </button>
-          </section>
+          <div className="space-y-4">
+            <section className="rounded-3xl border p-5" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+              <div className="mb-4 flex items-center gap-2">
+                <History size={19} style={{ color: theme.primary }} />
+                <h2 className="text-lg font-extrabold" style={{ color: theme.textPrimary }}>继续上次学习</h2>
+              </div>
+
+              {sessionsLoading && (
+                <div role="status" className="flex min-h-20 items-center justify-center gap-2 text-sm" style={{ color: theme.textMuted }}>
+                  <Loader2 size={16} className="animate-spin" /> 正在读取学习进度
+                </div>
+              )}
+              {!sessionsLoading && sessionsError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                  <p>{sessionsError}</p>
+                  <button type="button" onClick={() => void refreshStudySessions()} className="mt-2 min-h-10 font-bold">
+                    重试
+                  </button>
+                </div>
+              )}
+              {!sessionsLoading && !sessionsError && studySessions.length === 0 && (
+                <p className="rounded-2xl p-4 text-sm" style={{ backgroundColor: theme.bg, color: theme.textMuted }}>
+                  暂无未完成计划。开始一轮学习后，会在每个知识点完成时保存进度。
+                </p>
+              )}
+              {!sessionsLoading && !sessionsError && studySessions.length > 0 && (
+                <div className="space-y-3">
+                  {studySessions.map(session => {
+                    const totalPoints = session.plan.chapters.reduce((sum, chapter) => sum + chapter.knowledgePoints.length, 0);
+                    const currentChapter = session.plan.chapters[session.currentChapterIndex];
+                    const progress = totalPoints > 0
+                      ? Math.round((session.completedKnowledgePointIds.length / totalPoints) * 100)
+                      : 0;
+                    const confirmingDelete = pendingDeleteSessionId === session.id;
+                    return (
+                      <article key={session.id} className="rounded-2xl border p-4" style={{ borderColor: theme.border, backgroundColor: theme.bg }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-base font-extrabold" style={{ color: theme.textPrimary }}>
+                              {session.plan.subjectIcon} {session.plan.subjectName}
+                            </h3>
+                            <p className="mt-1 line-clamp-2 text-sm leading-6" style={{ color: theme.textSecondary }}>
+                              {session.plan.goal || '未设置学习目标'}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-xs font-bold" style={{ color: theme.primary }}>{progress}%</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full" style={{ backgroundColor: theme.border }}>
+                          <div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: theme.primary }} />
+                        </div>
+                        <p className="mt-2 text-xs" style={{ color: theme.textMuted }}>
+                          {session.mode === 'chapter_review'
+                            ? `${currentChapter?.name || '当前章节'} · 待完成章节综合题`
+                            : `${currentChapter?.name || '当前章节'} · 下一个知识点`}
+                          {' · '}
+                          {formatSessionDate(session.updatedAt)}
+                        </p>
+                        {confirmingDelete ? (
+                          <div className="mt-3 flex gap-2" role="group" aria-label="确认删除学习计划">
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteSessionId(null)}
+                              disabled={checkpointSaving || loading}
+                              className="min-h-11 flex-1 rounded-xl border px-3 text-sm font-bold"
+                              style={{ borderColor: theme.border, color: theme.textSecondary }}
+                            >
+                              取消
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void removeSavedSession(session.id)}
+                              disabled={checkpointSaving || loading}
+                              className="min-h-11 flex-1 rounded-xl bg-red-600 px-3 text-sm font-bold text-white disabled:opacity-50"
+                            >
+                              确认删除
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => resumeSession(session)}
+                              disabled={checkpointSaving || loading}
+                              className="min-h-11 flex-1 rounded-xl px-3 text-sm font-bold text-white disabled:opacity-50"
+                              style={{ backgroundColor: theme.primary }}
+                            >
+                              继续学习
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteSessionId(session.id)}
+                              disabled={checkpointSaving || loading}
+                              aria-label={`删除 ${session.plan.subjectName} 学习计划`}
+                              className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border text-red-500 disabled:opacity-50"
+                              style={{ borderColor: theme.border }}
+                            >
+                              <Trash2 size={17} />
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border p-5" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+              <label className="text-base font-bold" style={{ color: theme.textPrimary }}>这次想学习什么？</label>
+              <textarea
+                value={goal}
+                onChange={event => setGoal(event.target.value)}
+                rows={4}
+                placeholder="例如：从零学习物理化学，先掌握热力学基础"
+                className="mt-3 w-full resize-none rounded-2xl border bg-transparent p-4 text-base leading-7 outline-none focus:ring-2"
+                style={{ borderColor: theme.border, color: theme.textPrimary }}
+              />
+              <label className="mt-4 block text-base font-bold" style={{ color: theme.textPrimary }}>限定范围（可选）</label>
+              <select
+                value={scopeSubjectId}
+                onChange={event => setScopeSubjectId(event.target.value)}
+                className="mt-2 min-h-12 w-full rounded-2xl border bg-transparent p-3 text-base outline-none"
+                style={{ borderColor: theme.border, color: theme.textPrimary }}
+              >
+                <option value="">全部知识库，缺失内容由 AI 生成</option>
+                {subjectsWithContent.map(subject => (
+                  <option key={subject.id} value={subject.id}>{subject.icon} {subject.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={buildPlan}
+                disabled={loading || !goal.trim()}
+                className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-bold text-white disabled:opacity-50"
+                style={{ backgroundColor: theme.primary }}
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
+                生成本轮学习计划
+              </button>
+            </section>
+          </div>
         )}
 
         {stage === 'plan' && plan && (
@@ -861,12 +1148,12 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
             </div>
             <div className="shrink-0 border-t p-4 backdrop-blur-xl" style={{ borderColor: theme.border, backgroundColor: `${theme.bgCard}ee` }}>
               <button
-                onClick={startSession}
-                disabled={loading || plan.chapters.length === 0}
+                onClick={() => void startSession()}
+                disabled={loading || checkpointSaving || plan.chapters.length === 0}
                 className="min-h-12 w-full rounded-2xl px-4 text-base font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: theme.primary }}
               >
-                确认并开始学习
+                {checkpointSaving ? '正在保存学习计划…' : '确认并开始学习'}
               </button>
             </div>
           </section>
@@ -964,7 +1251,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
         )}
       </div>
 
-      {loading && stage !== 'setup' && (
+      {loading && (stage !== 'setup' || Boolean(activeSession)) && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
           <div role="status" aria-live="polite" className="rounded-2xl bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-xl">
             <Loader2 className="mr-2 inline animate-spin" size={16} /> 正在思考
