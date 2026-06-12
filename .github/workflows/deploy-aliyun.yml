@@ -1,17 +1,31 @@
 name: Deploy to Aliyun
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
   workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Upload release bundle
         uses: appleboy/scp-action@v0.1.7
@@ -32,9 +46,10 @@ jobs:
           key: ${{ secrets.ALIYUN_SSH_KEY }}
           port: ${{ secrets.ALIYUN_PORT }}
           script: |
-            set -e
-            sudo rm -rf /var/www/smart-study/current
-            sudo mkdir -p /var/www/smart-study/current
-            sudo cp -a /tmp/smart-study-release/. /var/www/smart-study/current/
-            cd /var/www/smart-study/current
-            sudo SKIP_GIT_SYNC=1 bash deploy/server-deploy.sh
+            set -eu
+            RELEASE_DIR="/var/www/smart-study/releases/${{ env.DEPLOY_SHA }}"
+            sudo rm -rf "$RELEASE_DIR"
+            sudo mkdir -p "$RELEASE_DIR"
+            sudo cp -a /tmp/smart-study-release/. "$RELEASE_DIR/"
+            cd "$RELEASE_DIR"
+            sudo APP_DIR="$RELEASE_DIR" ACTIVATE_RELEASE=1 SKIP_GIT_SYNC=1 bash deploy/server-deploy.sh
