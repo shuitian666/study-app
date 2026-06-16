@@ -13,8 +13,9 @@ import { useUser } from '@/store/UserContext';
 import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { useLearning } from '@/store/LearningContext';
-import { ArrowLeft, ChevronLeft, ChevronRight, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, CircleHelp, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
 import FlashcardCard from '@/components/ui/FlashcardCard';
+import FlashcardStudyGuide, { FLASHCARD_GUIDE_DISMISSED_KEY } from '@/components/ui/FlashcardStudyGuide';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
 import { accountGrantKnowledgePointExperience, checkBackendAvailable, getAIConfig } from '@/services/aiClient';
 import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
@@ -157,7 +158,7 @@ function pickSessionPlan(
 export default function FlashcardLearningPage({ embedded = false, onAskAI }: FlashcardLearningPageProps) {
   const { navigate, userState, userDispatch } = useUser();
   const { gameState, gameDispatch } = useGame();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { learningState, learningDispatch } = useLearning();
   const { totalExperience, levelProgress } = getAIStudyLevelInfo(userState.user, learningState, gameState.checkin);
   const learningExperience = Math.max(0, totalExperience - (userState.user?.bonusExperience ?? 0));
@@ -181,7 +182,12 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   const [, setSuppressCategoryPicker] = useState(
     () => localStorage.getItem('study-app:suppress-category-picker') === 'true',
   );
+  const [studyGuideState, setStudyGuideState] = useState(() => {
+    const shouldAutoOpen = localStorage.getItem(FLASHCARD_GUIDE_DISMISSED_KEY) !== '1';
+    return { open: shouldAutoOpen, allowPermanentDismiss: shouldAutoOpen };
+  });
   const [showCategoryPicker, setShowCategoryPicker] = useState(() => {
+    if (localStorage.getItem(FLASHCARD_GUIDE_DISMISSED_KEY) !== '1') return false;
     // 首次进入且未设置过分类时自动弹出选择器
     if (localStorage.getItem('study-app:suppress-category-picker') === 'true') return false;
     if (localStorage.getItem('study-app:selected-category')) return false;
@@ -424,6 +430,27 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
     setPendingSuppressInPicker(false);
     setShowCategoryPicker(true);
   }, []);
+
+  const shouldOpenCategoryPickerAutomatically = useCallback(() => {
+    if (localStorage.getItem('study-app:suppress-category-picker') === 'true') return false;
+    if (localStorage.getItem('study-app:selected-category')) return false;
+    if (importSessionRef.current) return false;
+    return true;
+  }, []);
+
+  const openStudyGuide = useCallback(() => {
+    setStudyGuideState({ open: true, allowPermanentDismiss: false });
+  }, []);
+
+  const closeStudyGuide = useCallback((dismissPermanently: boolean) => {
+    if (dismissPermanently) {
+      localStorage.setItem(FLASHCARD_GUIDE_DISMISSED_KEY, '1');
+    }
+    setStudyGuideState({ open: false, allowPermanentDismiss: false });
+    if (studyGuideState.allowPermanentDismiss && shouldOpenCategoryPickerAutomatically()) {
+      window.requestAnimationFrame(() => setShowCategoryPicker(true));
+    }
+  }, [shouldOpenCategoryPickerAutomatically, studyGuideState.allowPermanentDismiss]);
 
   const handleCategoryConfirm = useCallback((category: { type: 'subject' | 'chapter'; id: string } | null) => {
     setSelectedCategory(category);
@@ -728,7 +755,13 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   // 键盘快捷键
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (studyGuideState.open) return;
+      if (
+        e.target instanceof HTMLInputElement
+        || e.target instanceof HTMLTextAreaElement
+        || e.target instanceof HTMLButtonElement
+        || e.target instanceof HTMLSelectElement
+      ) {
         return;
       }
 
@@ -784,27 +817,51 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentKp, exitLearning, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, isFlipped, sessionMode, showQuizResult]);
+  }, [currentKp, exitLearning, goToPrev, handleFinishQuiz, handleSelect, handleSubmitQuiz, isFlipped, sessionMode, showQuizResult, studyGuideState.open]);
 
   const desktopStageClassName = embedded
     ? 'relative mx-auto flex h-full w-full items-stretch justify-center'
     : 'relative mx-auto flex h-full w-full max-w-[1180px] items-stretch justify-center md:items-center';
   const desktopShellClassName = embedded
-    ? 'relative z-10 flex h-full w-full max-w-[1180px] flex-col overflow-hidden rounded-[28px] border shadow-sm'
-    : 'relative z-10 flex h-full w-full flex-col overflow-hidden md:max-h-full md:max-w-[480px] md:rounded-[32px] md:border md:shadow-[0_24px_80px_rgba(15,23,42,0.16)]';
+    ? 'study-workspace relative z-10 flex h-full w-full flex-col overflow-hidden'
+    : 'study-workspace relative z-10 flex h-full w-full flex-col overflow-hidden md:max-h-full md:max-w-[560px] md:rounded-[30px] md:border';
   const desktopShellStyle = {
-    backgroundColor: embedded ? '#ffffff' : theme.bg,
-    borderColor: embedded ? '#e2e8f0' : theme.border,
+    backgroundColor: theme.surface || theme.bg,
+    borderColor: theme.outlineVariant || theme.border,
+    boxShadow: embedded
+      ? '0 8px 28px rgba(81, 68, 48, 0.06)'
+      : (isDark ? '0 24px 80px rgba(0,0,0,0.3)' : '0 24px 80px rgba(81,68,48,0.14)'),
   } as const;
   const desktopBackdropStyle = {
     backgroundColor: embedded ? 'transparent' : theme.bg,
-    backgroundImage: embedded ? 'none' : `radial-gradient(circle at top, ${theme.primary}16 0%, transparent 38%), linear-gradient(180deg, ${theme.bg} 0%, ${theme.bgCard} 100%)`,
+    backgroundImage: embedded
+      ? 'none'
+      : `radial-gradient(circle at top, ${theme.primary}14 0%, transparent 42%), linear-gradient(180deg, ${theme.bg} 0%, ${theme.surface || theme.bgCard} 100%)`,
   } as const;
   const desktopGlowStyle = {
-    background: `radial-gradient(circle, ${theme.primary}18 0%, transparent 72%)`,
+    background: `radial-gradient(circle, ${theme.primary}12 0%, transparent 72%)`,
   } as const;
 
-  // 无卡片时
+  if (learningState.isLoading) {
+    return (
+      <div
+        className={embedded ? 'relative h-full min-h-0 overflow-hidden' : 'fixed inset-0 z-50 md:p-5 lg:p-6'}
+        style={desktopBackdropStyle}
+      >
+        <div className={desktopStageClassName}>
+          <div className={desktopShellClassName} style={desktopShellStyle}>
+            <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center" role="status" aria-live="polite">
+              <Loader2 size={28} className="animate-spin" style={{ color: theme.primary }} />
+              <div>
+                <h2 className="text-lg font-bold" style={{ color: theme.textPrimary }}>正在准备学习内容</h2>
+                <p className="mt-2 text-sm" style={{ color: theme.textSecondary }}>同步卡片与今日复习计划...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentKp || queue.length === 0) {
     return (
@@ -818,26 +875,38 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
             style={desktopGlowStyle}
           />
           <div className={desktopShellClassName} style={desktopShellStyle}>
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center px-6">
-                <div className="text-6xl mb-6">🎉</div>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: theme.textPrimary }}>
+            <div className="flex h-full items-center justify-center p-5 sm:p-8">
+              <div
+                className="study-paper-card w-full max-w-[560px] px-7 py-10 text-center sm:px-10"
+                style={{
+                  backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+                  borderColor: theme.outlineVariant || theme.border,
+                }}
+              >
+                <div
+                  className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+                  style={{ backgroundColor: theme.primaryFixed || `${theme.primary}14` }}
+                  aria-hidden="true"
+                >
+                  ✓
+                </div>
+                <h2 className="mb-3 text-2xl font-bold" style={{ color: theme.textPrimary }}>
                   全部学完了！
                 </h2>
-                <p className="text-base mb-8" style={{ color: theme.textSecondary }}>
+                <p className="mb-8 text-base" style={{ color: theme.textSecondary }}>
                   当前范围的知识点已全部完成
                 </p>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
                   <button
                     onClick={openCategoryPicker}
-                    className="px-8 py-3 rounded-xl font-medium"
-                    style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}
+                    className="min-h-12 rounded-2xl px-7 py-3 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ backgroundColor: theme.primaryFixed || `${theme.primary}15`, color: theme.primary }}
                   >
                     选择其他章节
                   </button>
                   <button
                     onClick={exitLearning}
-                    className="px-8 py-3 rounded-xl font-medium text-white"
+                    className="min-h-12 rounded-2xl px-7 py-3 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                     style={{ backgroundColor: theme.primary }}
                   >
                     返回首页
@@ -877,74 +946,107 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
               {experienceNotice}
             </div>
           )}
-          {/* Header */}
-          <div className="shrink-0 px-4 py-3 md:px-6 md:py-4" style={{ backgroundColor: theme.bgCard }}>
-            <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={exitLearning}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-700 active:scale-[0.98]"
-              aria-label="返回"
-            >
-              <ArrowLeft size={19} />
-            </button>
-            {/* 分类选择 chip */}
-            <button
-              onClick={openCategoryPicker}
-              className="flex h-10 min-w-0 max-w-[220px] items-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition-colors hover:bg-indigo-50"
-              style={{ backgroundColor: '#ffffff', borderColor: '#c7d2fe', color: theme.primary }}
-            >
-              <span className="truncate">
-                {categoryLabel}
-              </span>
-              <ChevronRight size={14} className="shrink-0 rotate-90" />
-            </button>
-            <div className="flex min-w-[180px] flex-1 items-center gap-3 md:ml-auto md:max-w-[520px]">
-              <div className="shrink-0 text-sm font-semibold text-slate-600">
-                {progressLabel}
+          <header
+            className="study-header shrink-0 border-b px-3 py-3 sm:px-5"
+            style={{
+              backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+              borderColor: theme.outlineVariant || theme.border,
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={exitLearning}
+                className="study-icon-button"
+                style={{
+                  backgroundColor: theme.surfaceContainerLow || theme.bg,
+                  borderColor: theme.outlineVariant || theme.border,
+                  color: theme.textSecondary,
+                }}
+                aria-label="退出学习"
+                title="退出学习（Esc）"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <button
+                onClick={openCategoryPicker}
+                className="flex min-h-10 min-w-0 max-w-[240px] items-center gap-2 rounded-xl border px-3 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{
+                  backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+                  borderColor: theme.outlineVariant || theme.border,
+                  color: theme.textPrimary,
+                }}
+                aria-haspopup="dialog"
+                aria-expanded={showCategoryPicker}
+              >
+                <span className="truncate">{categoryLabel}</span>
+                <ChevronRight size={14} className="shrink-0 rotate-90" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={openStudyGuide}
+                className="study-icon-button"
+                style={{
+                  backgroundColor: theme.surfaceContainerLow || theme.bg,
+                  borderColor: theme.outlineVariant || theme.border,
+                  color: theme.textSecondary,
+                }}
+                aria-label="查看闪卡学习说明"
+                title="闪卡学习说明"
+              >
+                <CircleHelp size={18} />
+              </button>
+              <div
+                className="ml-auto shrink-0 rounded-full px-2.5 py-1 text-xs font-bold"
+                style={{ backgroundColor: theme.primaryFixed || `${theme.primary}14`, color: theme.primary }}
+                aria-label={`当前第 ${Math.min(currentIdx + 1, queue.length)} 张，共 ${queue.length} 张`}
+              >
+                {Math.min(currentIdx + 1, queue.length)} / {queue.length}
               </div>
-              <div className="h-2 min-w-[120px] flex-1 overflow-hidden rounded-full bg-slate-200">
+            </div>
+            <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+              <span className="text-xs font-semibold" style={{ color: theme.textSecondary }}>{progressLabel}</span>
+              <div
+                className="h-1.5 min-w-0 overflow-hidden rounded-full"
+                style={{ backgroundColor: theme.surfaceContainerHigh || theme.border }}
+                role="progressbar"
+                aria-label={progressLabel}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={learningProgressPct}
+              >
                 <div
-                  className="h-full rounded-full transition-all duration-500"
+                  className="h-full rounded-full transition-[width] duration-500"
                   style={{
                     width: `${learningProgressPct}%`,
-                    backgroundColor: hasReachedDailyGoal ? '#10b981' : theme.primary,
+                    backgroundColor: hasReachedDailyGoal ? theme.success : theme.primary,
                   }}
                 />
               </div>
-              <div className="shrink-0 text-sm font-extrabold" style={{ color: hasReachedDailyGoal ? '#10b981' : theme.primary }}>
+              <span className="text-xs font-extrabold" style={{ color: hasReachedDailyGoal ? theme.success : theme.primary }}>
                 {progressValue}
-              </div>
+              </span>
             </div>
-            </div>
-          </div>
+          </header>
 
-          {/* 本次 session 进度条 */}
-
-          {/* 失败卡重现提示 */}
           {isRevealingFailed && (
-            <div className="px-4 py-2 md:px-6" style={{ backgroundColor: theme.bgCard }}>
-              <div className="text-center text-xs py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                📚 正在重现之前不会的卡片
-              </div>
+            <div
+              className="shrink-0 border-b px-4 py-2 text-center text-xs font-medium"
+              style={{
+                backgroundColor: theme.secondaryFixed || `${theme.warning}12`,
+                borderColor: theme.outlineVariant || theme.border,
+                color: theme.textSecondary,
+              }}
+              role="status"
+              aria-live="polite"
+            >
+              正在重新学习之前标记为困难的卡片
             </div>
           )}
 
           {sessionMode === 'flashcard' ? (
             <>
-              {/* Card area with side navigation */}
-              <div className="relative flex min-h-0 flex-1 items-center px-3 py-4 md:px-8 md:py-5">
-                {/* Left button - previous */}
-                <button
-                  onClick={goToPrev}
-                  disabled={currentIdx === 0}
-                  className="absolute left-2 z-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 md:left-6"
-                  aria-label="Previous card"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-
-                {/* Card */}
-                <div className={`flex min-h-0 flex-1 items-center justify-center ${embedded ? 'px-14 py-2' : 'px-12 py-2'}`}>
+              <main className="study-card-stage min-h-0 flex-1 px-3 py-3 sm:px-5 sm:py-4">
+                <div className="mx-auto h-full min-h-0 w-full max-w-[1080px]">
                   <FlashcardCard
                     name={currentKp.name}
                     explanation={currentKp.explanation || '暂无解析'}
@@ -955,126 +1057,120 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                     size={embedded ? 'desktop' : 'default'}
                   />
                 </div>
+              </main>
 
-                {/* Right button - flip affordance */}
-                <button
-                  onClick={handleFlip}
-                  className="absolute right-2 z-10 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 shadow-sm transition-all hover:bg-indigo-50 hover:text-indigo-700 active:scale-95 md:right-6"
-                  aria-label="Flip card"
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </div>
-
-              {/* Rating buttons */}
-              <div className="min-h-[112px] shrink-0 px-4 pb-4 md:px-8">
+              <footer
+                className="study-action-dock shrink-0 border-t px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5"
+                style={{
+                  backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+                  borderColor: theme.outlineVariant || theme.border,
+                }}
+              >
                 {!isFlipped ? (
-                  <button
-                    onClick={handleFlip}
-                    className="mx-auto flex h-14 w-full max-w-[520px] items-center justify-center gap-2 rounded-2xl text-base font-bold text-white transition-colors hover:bg-indigo-800 active:scale-[0.98]"
-                    style={{
-                      backgroundColor: '#3730a3',
-                      boxShadow: `0 14px 26px ${theme.primary}22`,
-                    }}
-                  >
-                    查看答案
-                    <ChevronRight size={18} />
-                  </button>
+                  <div className="mx-auto grid max-w-[960px] grid-cols-[52px_1fr] gap-2.5">
+                    <button
+                      onClick={goToPrev}
+                      disabled={currentIdx === 0}
+                      className="study-secondary-button px-0"
+                      style={{
+                        backgroundColor: theme.surfaceContainerLow || theme.bg,
+                        borderColor: theme.outlineVariant || theme.border,
+                        color: theme.textSecondary,
+                      }}
+                      aria-label="上一张卡片"
+                      title="上一张卡片（←）"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      onClick={handleFlip}
+                      className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl px-5 text-base font-bold text-white shadow-sm transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                      style={{ backgroundColor: theme.primary }}
+                    >
+                      查看答案
+                      <ChevronRight size={18} aria-hidden="true" />
+                    </button>
+                  </div>
                 ) : (
-                  <div className="mx-auto grid max-w-[720px] grid-cols-4 gap-2">
-                    {/* Again - 不会 */}
+                  <div className="mx-auto grid max-w-[960px] grid-cols-2 gap-2 sm:grid-cols-4">
                     <button
                       onClick={() => handleSelect('again')}
-                      className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                      disabled={isSelecting}
+                      className="study-rating-button"
                       style={{
-                        backgroundColor: RATING_CONFIG.again.bgColor,
+                        backgroundColor: `color-mix(in srgb, ${RATING_CONFIG.again.textColor} 9%, ${theme.surfaceContainerLowest || theme.bgCard})`,
                         color: RATING_CONFIG.again.textColor,
-                        borderColor: RATING_CONFIG.again.borderColor,
+                        borderColor: `color-mix(in srgb, ${RATING_CONFIG.again.textColor} 30%, ${theme.outlineVariant || theme.border})`,
                       }}
+                      aria-label={`不会，${againPreview?.nextReviewText ?? '稍后重学'}，快捷键 1`}
                     >
-                      <div className="text-lg mb-0.5">{RATING_CONFIG.again.emoji}</div>
-                      <div className="text-xs font-medium">{RATING_CONFIG.again.label}</div>
-                      {againPreview && (
-                        <div className="text-[10px] mt-0.5 opacity-70">{againPreview.nextReviewText}</div>
-                      )}
+                      <span className="study-rating-key">1</span>
+                      <span className="text-sm font-bold">{RATING_CONFIG.again.label}</span>
+                      <span className="text-[11px] opacity-75">{againPreview?.nextReviewText ?? '稍后重学'}</span>
                     </button>
-
-                    {/* Hard - 困难 */}
                     <button
                       onClick={() => handleSelect('hard')}
-                      className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                      disabled={isSelecting}
+                      className="study-rating-button"
                       style={{
-                        backgroundColor: RATING_CONFIG.hard.bgColor,
+                        backgroundColor: `color-mix(in srgb, ${RATING_CONFIG.hard.textColor} 9%, ${theme.surfaceContainerLowest || theme.bgCard})`,
                         color: RATING_CONFIG.hard.textColor,
-                        borderColor: RATING_CONFIG.hard.borderColor,
+                        borderColor: `color-mix(in srgb, ${RATING_CONFIG.hard.textColor} 30%, ${theme.outlineVariant || theme.border})`,
                       }}
+                      aria-label={`困难，${hardPreview?.nextReviewText ?? '短期复习'}，快捷键 2`}
                     >
-                      <div className="text-lg mb-0.5">{RATING_CONFIG.hard.emoji}</div>
-                      <div className="text-xs font-medium">{RATING_CONFIG.hard.label}</div>
-                      {hardPreview && (
-                        <div className="text-[10px] mt-0.5 opacity-70">{hardPreview.nextReviewText}</div>
-                      )}
+                      <span className="study-rating-key">2</span>
+                      <span className="text-sm font-bold">{RATING_CONFIG.hard.label}</span>
+                      <span className="text-[11px] opacity-75">{hardPreview?.nextReviewText ?? '短期复习'}</span>
                     </button>
-
-                    {/* Good - 一般 */}
                     <button
                       onClick={() => handleSelect('good')}
-                      className="py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2"
+                      disabled={isSelecting}
+                      className="study-rating-button"
                       style={{
-                        backgroundColor: RATING_CONFIG.good.bgColor,
+                        backgroundColor: `color-mix(in srgb, ${RATING_CONFIG.good.textColor} 9%, ${theme.surfaceContainerLowest || theme.bgCard})`,
                         color: RATING_CONFIG.good.textColor,
-                        borderColor: RATING_CONFIG.good.borderColor,
+                        borderColor: `color-mix(in srgb, ${RATING_CONFIG.good.textColor} 30%, ${theme.outlineVariant || theme.border})`,
                       }}
+                      aria-label={`一般，${goodPreview?.nextReviewText ?? '按计划复习'}，快捷键 3`}
                     >
-                      <div className="text-lg mb-0.5">{RATING_CONFIG.good.emoji}</div>
-                      <div className="text-xs font-medium">{RATING_CONFIG.good.label}</div>
-                      {goodPreview && (
-                        <div className="text-[10px] mt-0.5 opacity-70">{goodPreview.nextReviewText}</div>
-                      )}
+                      <span className="study-rating-key">3</span>
+                      <span className="text-sm font-bold">{RATING_CONFIG.good.label}</span>
+                      <span className="text-[11px] opacity-75">{goodPreview?.nextReviewText ?? '按计划复习'}</span>
                     </button>
-
-                    {/* Easy - 简单 */}
                     <button
-                      onClick={() => showEasy && handleSelect('easy')}
-                      className={`py-3 px-1 rounded-xl font-medium text-center transition-transform active:scale-95 flex flex-col items-center border-2 ${showEasy ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'
-                        }`}
+                      onClick={() => handleSelect('easy')}
+                      disabled={!showEasy || isSelecting}
+                      className="study-rating-button"
                       style={{
-                        backgroundColor: RATING_CONFIG.easy.bgColor,
+                        backgroundColor: `color-mix(in srgb, ${RATING_CONFIG.easy.textColor} 9%, ${theme.surfaceContainerLowest || theme.bgCard})`,
                         color: RATING_CONFIG.easy.textColor,
-                        borderColor: RATING_CONFIG.easy.borderColor,
+                        borderColor: `color-mix(in srgb, ${RATING_CONFIG.easy.textColor} 30%, ${theme.outlineVariant || theme.border})`,
                       }}
+                      aria-label={showEasy ? `简单，${easyPreview?.nextReviewText ?? '延后复习'}，快捷键 4` : '简单评分暂不可用'}
                     >
-                      <div className="text-lg mb-0.5">{RATING_CONFIG.easy.emoji}</div>
-                      <div className="text-xs font-medium">{RATING_CONFIG.easy.label}</div>
-                      {showEasy && easyPreview && (
-                        <div className="text-[10px] mt-0.5 opacity-70">{easyPreview.nextReviewText}</div>
-                      )}
-                      {!showEasy && (
-                        <div className="text-[10px] mt-0.5 opacity-70">-</div>
-                      )}
+                      <span className="study-rating-key">4</span>
+                      <span className="text-sm font-bold">{RATING_CONFIG.easy.label}</span>
+                      <span className="text-[11px] opacity-75">{showEasy ? (easyPreview?.nextReviewText ?? '延后复习') : '暂不可用'}</span>
                     </button>
                   </div>
                 )}
 
-                {/* Relearning 状态提示 */}
                 {isFlipped && currentPreview && (currentPreview[Rating.Again]?.isRelearning || currentPreview[Rating.Hard]?.isRelearning) && (
-                  <div className="mt-2 text-xs text-center py-1 rounded-lg" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                    🔄 进入重新学习模式
+                  <div className="mt-2 text-center text-[11px]" style={{ color: theme.textSecondary }} role="status">
+                    选择“不会”或“困难”会进入重新学习
                   </div>
                 )}
-
-                {/* Keyboard hints */}
-                <div className="mt-3 flex justify-center gap-4 text-xs text-slate-500">
-                  {isFlipped && <span>1/2/3/4</span>}
-                  <span>空格翻转</span>
-                </div>
-              </div>
+              </footer>
             </>
           ) : currentQuizQuestion ? (
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6">
+            <main className="study-card-stage min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
               <div
-                className="rounded-3xl border p-5 shadow-sm"
-                style={{ borderColor: `${theme.primary}30`, backgroundColor: theme.bgCard }}
+                className="study-paper-card mx-auto max-w-[1080px] p-4 sm:p-6"
+                style={{
+                  borderColor: theme.outlineVariant || theme.border,
+                  backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+                }}
               >
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="text-sm font-medium" style={{ color: theme.textSecondary }}>
@@ -1166,7 +1262,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                         key={option.id}
                         onClick={() => handleSelectAnswer(option.id)}
                         disabled={showQuizResult}
-                        className="w-full text-left rounded-2xl px-4 py-4 border transition-all"
+                        className="w-full min-h-12 rounded-2xl border px-4 py-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{
                           backgroundColor: optionBg,
                           borderColor: optionBorder,
@@ -1266,7 +1362,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                         <button
                           onClick={handleGenerateExplanation}
                           disabled={generatingExplanation || !aiAssistAvailable}
-                          className="w-full py-3.5 rounded-2xl text-base font-medium flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                           style={{
                             backgroundColor: aiAssistAvailable ? '#f3e8ff' : '#e5e7eb',
                             color: aiAssistAvailable ? '#7e22ce' : '#9ca3af',
@@ -1294,7 +1390,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 mt-5">
+                <div className="mt-5 grid grid-cols-2 gap-3">
                   {!showQuizResult ? (
                     <>
                       <button
@@ -1307,7 +1403,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                           setGeneratingExplanation(false);
                           moveToNext();
                         }}
-                        className="py-3.5 rounded-2xl text-base font-medium"
+                        className="min-h-12 rounded-2xl py-3.5 text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{ backgroundColor: theme.border, color: theme.textPrimary }}
                       >
                         跳过练习
@@ -1315,7 +1411,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                       <button
                         onClick={handleSubmitQuiz}
                         disabled={selectedAnswers.length === 0}
-                        className="py-3.5 rounded-2xl text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="min-h-12 rounded-2xl py-3.5 text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         style={{ backgroundColor: theme.primary, color: '#ffffff' }}
                       >
                         提交答案
@@ -1332,14 +1428,14 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                           setCurrentQuizIndex(0);
                           setGeneratingExplanation(false);
                         }}
-                        className="py-3.5 rounded-2xl text-base font-medium"
+                        className="min-h-12 rounded-2xl py-3.5 text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{ backgroundColor: theme.border, color: theme.textPrimary }}
                       >
                         回看卡片
                       </button>
                       <button
                         onClick={handleFinishQuiz}
-                        className="py-3.5 rounded-2xl text-base font-medium"
+                        className="min-h-12 rounded-2xl py-3.5 text-base font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{ backgroundColor: theme.primary, color: '#ffffff' }}
                       >
                         {currentQuizIndex < relatedQuestions.length - 1 ? '下一题' : '下一张'}
@@ -1348,7 +1444,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                   )}
                 </div>
               </div>
-            </div>
+            </main>
           ) : null}
         </div>
       </div>
@@ -1356,21 +1452,28 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
       {/* ===== 分类选择器底部弹层 ===== */}
       {showCategoryPicker && (
         <div
-          className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-[60] flex flex-col justify-end`}
-          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          className={`${embedded ? 'absolute' : 'fixed'} inset-0 z-[60] flex flex-col justify-end bg-black/45 md:items-start md:justify-start md:bg-transparent md:px-4 md:pt-[72px]`}
           onClick={e => { if (e.target === e.currentTarget) setShowCategoryPicker(false); }}
         >
           <div
-            className="rounded-t-3xl max-h-[80vh] flex flex-col"
-            style={{ backgroundColor: theme.bg, boxShadow: '0 -8px 32px rgba(0,0,0,0.18)' }}
+            className="flex max-h-[80vh] flex-col rounded-t-3xl border md:max-h-[calc(100%-88px)] md:w-[420px] md:rounded-3xl"
+            style={{
+              backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+              borderColor: theme.outlineVariant || theme.border,
+              boxShadow: isDark ? '0 20px 50px rgba(0,0,0,0.35)' : '0 20px 50px rgba(81,68,48,0.16)',
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="study-range-title"
           >
             {/* 弹层顶部 */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
-              <h2 className="text-base font-bold" style={{ color: theme.textPrimary }}>选择学习范围</h2>
+              <h2 id="study-range-title" className="text-base font-bold" style={{ color: theme.textPrimary }}>选择学习范围</h2>
               <button
                 onClick={() => setShowCategoryPicker(false)}
-                className="p-1.5 rounded-full"
+                className="flex h-9 w-9 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{ backgroundColor: theme.border, color: theme.textSecondary }}
+                aria-label="关闭学习范围选择"
               >
                 <X size={16} />
               </button>
@@ -1494,6 +1597,11 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
           </div>
         </div>
       )}
+      <FlashcardStudyGuide
+        open={studyGuideState.open}
+        onClose={closeStudyGuide}
+        allowPermanentDismiss={studyGuideState.allowPermanentDismiss}
+      />
     </div>
   );
 }

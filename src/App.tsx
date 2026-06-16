@@ -6,6 +6,7 @@ import {
   Home,
   Map,
   MessageCircle,
+  PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
   PenTool,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Trophy,
   User,
+  X,
 } from 'lucide-react';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
@@ -101,6 +103,7 @@ function AppContent() {
   const { learningState } = useLearning();
   const { theme } = useTheme();
   const [viewportWidth, setViewportWidth] = useState(window.innerWidth);
+  const [isDesktopNavExpanded, setIsDesktopNavExpanded] = useState(false);
   const [desktopSidebarState, setDesktopSidebarState] = useState<DesktopSidebarState>('collapsed');
   const [isDesktopAiMounted, setIsDesktopAiMounted] = useState(false);
   const [desktopAiMode, setDesktopAiMode] = useState<'chat' | 'tutor'>('chat');
@@ -109,11 +112,14 @@ function AppContent() {
   const desktopQuestionSequenceRef = useRef(0);
   const phoneScrollRef = useRef<HTMLDivElement>(null);
   const desktopContentRef = useRef<HTMLDivElement>(null);
+  const desktopNavToggleRef = useRef<HTMLButtonElement>(null);
+  const desktopToolsToggleRef = useRef<HTMLButtonElement>(null);
   const isDark = isDarkTheme(theme);
   const isLargeScreen = viewportWidth > 768;
   const isWideDesktop = viewportWidth >= 1360;
 
   const openDesktopAI = useCallback((questionContext?: string) => {
+    setIsDesktopNavExpanded(false);
     setIsDesktopAiMounted(true);
     setDesktopAiMode('chat');
     setDesktopSidebarState('ai');
@@ -127,6 +133,7 @@ function AppContent() {
   }, []);
 
   const openDesktopTutor = useCallback((context: AIStudyTutorContext) => {
+    setIsDesktopNavExpanded(false);
     setIsDesktopAiMounted(true);
     setDesktopTutorContext(context);
     setDesktopAiMode('tutor');
@@ -302,6 +309,7 @@ function AppContent() {
   };
 
   const isHomeScreen = userState.currentPage === 'home';
+  const isStudyWorkspace = userState.currentPage === 'flashcard-learning';
   const desktopShellPages = [
     'home',
     'knowledge',
@@ -344,6 +352,43 @@ function AppContent() {
 
     return () => window.cancelAnimationFrame(frame);
   }, [userState.currentPage]);
+
+  useEffect(() => {
+    if (!isStudyWorkspace || !isLargeScreen) return;
+
+    const handleStudyWorkspaceEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      if (isDesktopNavExpanded) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setIsDesktopNavExpanded(false);
+        window.requestAnimationFrame(() => desktopNavToggleRef.current?.focus());
+        return;
+      }
+
+      if (desktopSidebarState !== 'collapsed') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setDesktopSidebarState('collapsed');
+        window.requestAnimationFrame(() => desktopToolsToggleRef.current?.focus());
+      }
+    };
+
+    window.addEventListener('keydown', handleStudyWorkspaceEscape, true);
+    return () => window.removeEventListener('keydown', handleStudyWorkspaceEscape, true);
+  }, [desktopSidebarState, isDesktopNavExpanded, isLargeScreen, isStudyWorkspace]);
+
+  useEffect(() => {
+    if (!isStudyWorkspace || !isLargeScreen) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setIsDesktopNavExpanded(false);
+      setDesktopSidebarState('collapsed');
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isLargeScreen, isStudyWorkspace]);
 
   if (shouldUsePhoneShell) {
     return (
@@ -429,7 +474,329 @@ function AppContent() {
   const desktopText = theme.textPrimary || (isDark ? '#f8fafc' : '#0f172a');
   const desktopMuted = theme.textSecondary || (isDark ? '#cbd5e1' : '#64748b');
   const desktopAccent = theme.primary || '#4f46e5';
-  const isStudyWorkspace = userState.currentPage === 'flashcard-learning';
+
+  const closeDesktopNav = () => {
+    setIsDesktopNavExpanded(false);
+    window.requestAnimationFrame(() => desktopNavToggleRef.current?.focus());
+  };
+
+  const closeDesktopTools = () => {
+    setDesktopSidebarState('collapsed');
+    window.requestAnimationFrame(() => desktopToolsToggleRef.current?.focus());
+  };
+
+  const openDesktopNav = () => {
+    setDesktopSidebarState('collapsed');
+    setIsDesktopNavExpanded(true);
+  };
+
+  const openDesktopTools = (state: Exclude<DesktopSidebarState, 'collapsed'>) => {
+    setIsDesktopNavExpanded(false);
+    setDesktopSidebarState(state);
+  };
+
+  const navigateFromDesktopNav = (page: MainTab | 'settings' | 'flashcard-learning') => {
+    setIsDesktopNavExpanded(false);
+    navigate(page);
+  };
+
+  if (isStudyWorkspace) {
+    const hasOpenDesktopDrawer = isDesktopNavExpanded || desktopSidebarState !== 'collapsed';
+
+    return (
+      <div className="fixed inset-0 overflow-hidden" style={{ background: currentBackground }}>
+        {renderBackgroundPattern(currentPattern)}
+        <div className="relative z-10 h-full p-2 min-[1440px]:p-3">
+          <div
+            className="relative grid h-full w-full grid-cols-[64px_minmax(0,1fr)_64px] gap-2 overflow-hidden rounded-[26px] border p-2 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-2xl"
+            style={{
+              backgroundColor: isDark ? 'rgba(2, 6, 23, 0.52)' : 'rgba(248, 250, 252, 0.76)',
+              borderColor: desktopBorder,
+            }}
+          >
+            <aside
+              className="relative z-20 flex min-h-0 flex-col items-center gap-2 rounded-[20px] border px-2 py-3"
+              style={{ backgroundColor: desktopSurface, borderColor: desktopBorder }}
+              aria-label="学习页导航工具栏"
+            >
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-2xl text-base font-extrabold text-white shadow-[0_10px_24px_rgba(79,70,229,0.24)]"
+                style={{ backgroundColor: desktopAccent }}
+                title="Smart Study"
+              >
+                S
+              </div>
+              <button
+                ref={desktopNavToggleRef}
+                onClick={openDesktopNav}
+                className="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ backgroundColor: desktopMutedSurface, borderColor: desktopBorder, color: desktopMuted }}
+                title="展开导航"
+                aria-label="展开导航"
+                aria-expanded={isDesktopNavExpanded}
+                aria-controls="study-desktop-navigation"
+              >
+                <PanelLeftOpen size={18} />
+              </button>
+              <nav className="mt-1 flex min-h-0 flex-1 flex-col items-center gap-2" aria-label="主导航">
+                {desktopTabs.map(tab => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => navigateFromDesktopNav(tab.key)}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                      style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+                      title={tab.label}
+                      aria-label={tab.label}
+                    >
+                      <Icon size={18} />
+                    </button>
+                  );
+                })}
+              </nav>
+              <button
+                onClick={() => navigateFromDesktopNav('settings')}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+                title="设置"
+                aria-label="设置"
+              >
+                <Settings size={18} />
+              </button>
+            </aside>
+
+            <main
+              ref={desktopContentRef}
+              className="relative z-10 min-h-0 min-w-0 overflow-hidden"
+              style={{ backgroundColor: theme.surface || theme.bg }}
+            >
+              <Suspense fallback={<LoadingFallback />}>
+                <FlashcardLearningPage embedded onAskAI={openDesktopAI} />
+              </Suspense>
+            </main>
+
+            <aside
+              className="relative z-20 flex min-h-0 flex-col items-center gap-3 rounded-[20px] border p-2"
+              style={{ backgroundColor: desktopSurface, borderColor: desktopBorder }}
+              aria-label="学习辅助工具栏"
+            >
+              <button
+                ref={desktopToolsToggleRef}
+                onClick={() => openDesktopTools('overview')}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ backgroundColor: desktopMutedSurface, borderColor: desktopBorder, color: desktopMuted }}
+                title="展开学习概览"
+                aria-label="展开学习概览"
+                aria-expanded={desktopSidebarState === 'overview'}
+                aria-controls="study-desktop-tools"
+              >
+                <PanelRightOpen size={18} />
+              </button>
+              <button
+                onClick={() => openDesktopAI()}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                style={{ backgroundColor: `${desktopAccent}14`, color: desktopAccent }}
+                title="AI 问答"
+                aria-label="打开 AI 问答"
+                aria-expanded={desktopSidebarState === 'ai'}
+              >
+                <Brain size={18} />
+              </button>
+              <div
+                className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl"
+                style={{ backgroundColor: desktopMutedSurface, color: desktopText }}
+                title={`Lv.${levelProgress.level} · ${experienceTotal} EXP`}
+              >
+                <span className="text-[9px] font-semibold" style={{ color: desktopMuted }}>LV</span>
+                <span className="text-xs font-extrabold">{levelProgress.level}</span>
+              </div>
+              <div
+                className="flex h-11 w-11 flex-col items-center justify-center rounded-2xl"
+                style={{ backgroundColor: desktopMutedSurface, color: desktopText }}
+                title={`连续签到 ${gameState.checkin.streak} 天`}
+              >
+                <Trophy size={14} style={{ color: desktopAccent }} />
+                <span className="mt-0.5 text-[10px] font-bold">{gameState.checkin.streak}</span>
+              </div>
+            </aside>
+
+            {hasOpenDesktopDrawer && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isDesktopNavExpanded) closeDesktopNav();
+                  if (desktopSidebarState !== 'collapsed') closeDesktopTools();
+                }}
+                className="absolute inset-2 z-30 rounded-[20px] bg-slate-950/10 backdrop-blur-[1px] focus-visible:outline-none"
+                aria-label="关闭已展开的侧栏"
+              />
+            )}
+
+            <aside
+              id="study-desktop-navigation"
+              className={`study-desktop-drawer absolute bottom-2 left-2 top-2 z-40 flex w-[240px] flex-col rounded-[22px] border p-4 shadow-[0_24px_70px_rgba(15,23,42,0.22)] transition-transform duration-200 ${
+                isDesktopNavExpanded ? 'translate-x-0' : 'pointer-events-none -translate-x-[calc(100%+1rem)]'
+              }`}
+              style={{ backgroundColor: desktopSurface, borderColor: desktopBorder }}
+              aria-hidden={!isDesktopNavExpanded}
+              inert={!isDesktopNavExpanded}
+            >
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl text-base font-extrabold text-white" style={{ backgroundColor: desktopAccent }}>
+                  S
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[17px] font-extrabold" style={{ color: desktopText }}>Smart Study</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: theme.textMuted || desktopMuted }}>Desktop</div>
+                </div>
+                <button
+                  onClick={closeDesktopNav}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+                  title="收起导航"
+                  aria-label="收起导航"
+                >
+                  <X size={17} />
+                </button>
+              </div>
+              <nav className="space-y-2" aria-label="展开的主导航">
+                {desktopTabs.map(tab => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => navigateFromDesktopNav(tab.key)}
+                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                      style={{ color: desktopMuted }}
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: desktopMutedSurface }}>
+                        <Icon size={18} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold">{tab.label}</span>
+                        <span className="mt-0.5 block text-xs" style={{ color: theme.textMuted || desktopMuted }}>{tab.description}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="mt-auto space-y-3">
+                <button
+                  onClick={() => navigateFromDesktopNav('flashcard-learning')}
+                  className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ backgroundColor: desktopAccent }}
+                >
+                  <span>
+                    <span className="block text-sm font-bold">继续学习</span>
+                    <span className="mt-0.5 block text-xs text-white/75">返回当前卡片</span>
+                  </span>
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  onClick={() => navigateFromDesktopNav('settings')}
+                  className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+                >
+                  <Settings size={17} />
+                  设置
+                </button>
+              </div>
+            </aside>
+
+            <aside
+              id="study-desktop-tools"
+              className={`study-desktop-drawer absolute bottom-2 right-2 top-2 z-40 overflow-hidden rounded-[22px] border shadow-[0_24px_70px_rgba(15,23,42,0.22)] transition-[width,transform] duration-200 ${
+                desktopSidebarState === 'ai'
+                  ? 'w-[380px] translate-x-0'
+                  : desktopSidebarState === 'overview'
+                    ? 'w-[260px] translate-x-0'
+                    : 'pointer-events-none w-[260px] translate-x-[calc(100%+1rem)]'
+              }`}
+              style={{ backgroundColor: desktopSurface, borderColor: desktopBorder }}
+              aria-hidden={desktopSidebarState === 'collapsed'}
+              inert={desktopSidebarState === 'collapsed'}
+            >
+              <div className={desktopSidebarState === 'overview' ? 'flex h-full flex-col p-4' : 'hidden'}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: theme.textMuted || desktopMuted }}>Overview</div>
+                    <h2 className="mt-1 text-lg font-extrabold" style={{ color: desktopText }}>学习概览</h2>
+                  </div>
+                  <button
+                    onClick={closeDesktopTools}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ backgroundColor: desktopMutedSurface, color: desktopMuted }}
+                    title="收起侧栏"
+                    aria-label="收起侧栏"
+                  >
+                    <PanelRightClose size={17} />
+                  </button>
+                </div>
+                <div className="mt-5 rounded-2xl p-4" style={{ backgroundColor: desktopMutedSurface }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold" style={{ color: desktopMuted }}>当前等级</div>
+                      <div className="mt-1 text-2xl font-extrabold" style={{ color: desktopText }}>Lv.{levelProgress.level}</div>
+                    </div>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: `${desktopAccent}16`, color: desktopAccent }}>
+                      <Sparkles size={20} />
+                    </div>
+                  </div>
+                  <div className="mt-4 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: theme.border }}>
+                    <div className="h-full rounded-full" style={{ width: `${levelProgress.progressPercent}%`, backgroundColor: desktopAccent }} />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[10px] font-semibold" style={{ color: desktopMuted }}>
+                    <span>{experienceTotal.toLocaleString()} EXP</span>
+                    <span>{levelProgress.currentLevelExp}/{levelProgress.nextLevelExp}</span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-3 rounded-2xl p-4" style={{ backgroundColor: desktopMutedSurface }}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${desktopAccent}14`, color: desktopAccent }}>
+                    <Trophy size={18} />
+                  </span>
+                  <div>
+                    <div className="text-xs font-semibold" style={{ color: desktopMuted }}>连续签到</div>
+                    <div className="mt-0.5 text-lg font-extrabold" style={{ color: desktopText }}>{gameState.checkin.streak} 天</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => openDesktopAI()}
+                  className="mt-3 flex w-full items-center gap-3 rounded-2xl p-4 text-left text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                  style={{ backgroundColor: desktopAccent }}
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                    <MessageCircle size={19} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold">AI 问答</span>
+                    <span className="mt-0.5 block text-[11px] text-white/75">学习时随时提问</span>
+                  </span>
+                  <ChevronRight size={17} />
+                </button>
+              </div>
+
+              <div className={desktopSidebarState === 'ai' ? 'h-full min-h-0 p-2' : 'hidden'}>
+                {isDesktopAiMounted && (
+                  <div className="h-full min-h-0 overflow-hidden rounded-[18px] border" style={{ borderColor: desktopBorder }}>
+                    <Suspense fallback={<LoadingFallback />}>
+                      {desktopAiMode === 'tutor' && desktopTutorContext ? (
+                        <StudyTutorPanel context={desktopTutorContext} onClose={closeDesktopTools} />
+                      ) : (
+                        <AIChatPage embedded embeddedQuestionContext={desktopQuestionContext} onClose={closeDesktopTools} />
+                      )}
+                    </Suspense>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
+        </div>
+        <AchievementPopup />
+        <LotteryDrawModal />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 overflow-hidden" style={{ background: currentBackground }}>
@@ -515,7 +882,12 @@ function AppContent() {
               <div
                 ref={desktopContentRef}
                 className={`desktop-content-stage relative h-full w-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${isStudyWorkspace ? 'rounded-[28px]' : 'rounded-[24px] border shadow-[0_20px_56px_rgba(15,23,42,0.12)]'}`}
-                style={{ backgroundColor: isStudyWorkspace ? '#f7f8fc' : (isDark ? 'rgba(15, 23, 42, 0.78)' : '#f8faff'), borderColor: desktopBorder }}
+                style={{
+                  backgroundColor: isStudyWorkspace
+                    ? (theme.surface || theme.bg)
+                    : (isDark ? 'rgba(15, 23, 42, 0.78)' : '#f8faff'),
+                  borderColor: desktopBorder,
+                }}
               >
                 <div className="h-full min-h-0">
                   <Suspense fallback={<LoadingFallback />}>

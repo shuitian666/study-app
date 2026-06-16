@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Bot, BookOpen, Check, Cloud, KeyRound, Palette, ShieldCheck, Sparkles, Target, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bot, BookOpen, Check, CircleHelp, Cloud, KeyRound, Palette, ShieldCheck, Sparkles, Target, Trash2 } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -10,6 +10,7 @@ import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 import { normalizeLearningProfile } from '@/utils/aiLearningContext';
 import type { ExplanationStyle, LearningGoal, PreferredDifficulty, PracticePreference, UserLearningProfile } from '@/types';
+import FlashcardStudyGuide from '@/components/ui/FlashcardStudyGuide';
 
 const DEFAULT_AI_MODEL = 'deepseek-chat';
 const DEFAULT_AI_BASE_URL = 'https://api.deepseek.com';
@@ -63,6 +64,7 @@ export default function SettingsPage() {
   const [profileSaved, setProfileSaved] = useState(false);
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
+  const [showFlashcardGuide, setShowFlashcardGuide] = useState(false);
 
   const todayCompleted = getTodayLearningProgress(learningState).totalCount;
   const goalAchieved = todayCompleted >= dailyGoal;
@@ -446,7 +448,7 @@ export default function SettingsPage() {
           <BookOpen size={16} className="text-primary" />
           使用帮助
         </h3>
-        <div className="p-4 shadow-sm" style={cardStyle}>
+        <div className="space-y-4 p-4 shadow-sm" style={cardStyle}>
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Sparkles size={18} />
@@ -456,9 +458,26 @@ export default function SettingsPage() {
               <p className="mt-1 text-xs leading-5 text-text-muted">重新查看首页、知识库、刷题、AI 助手和激励系统的功能介绍。</p>
             </div>
           </div>
-          <button onClick={handleReopenGuide} className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80">
+          <button onClick={handleReopenGuide} className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80">
             重新查看新手指导
           </button>
+          <div className="border-t pt-4" style={{ borderColor: theme.border }}>
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <CircleHelp size={18} />
+              </div>
+              <div>
+                <div className="text-sm font-medium">闪卡学习说明</div>
+                <p className="mt-1 text-xs leading-5 text-text-muted">查看翻卡、知识解析、评分含义、学习范围和键盘操作。</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowFlashcardGuide(true)}
+              className="mt-4 w-full rounded-xl border border-primary/25 bg-primary/10 py-2.5 text-sm font-medium text-primary active:opacity-80"
+            >
+              查看闪卡学习说明
+            </button>
+          </div>
         </div>
       </section>
 
@@ -522,6 +541,10 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+      <FlashcardStudyGuide
+        open={showFlashcardGuide}
+        onClose={() => setShowFlashcardGuide(false)}
+      />
     </div>
   );
 }

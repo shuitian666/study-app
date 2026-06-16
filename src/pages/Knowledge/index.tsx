@@ -296,6 +296,8 @@ export default function KnowledgePage({ isActive = true }: KnowledgePageProps) {
       menuItems={knowledgeFabMenuItems}
       primaryIcon={Plus}
       primaryTitle="添加知识点"
+      desktopOffsetRight="112px"
+      desktopOffsetBottom="32px"
     />
   );
 

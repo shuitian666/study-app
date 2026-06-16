@@ -41,6 +41,8 @@ interface FloatingAIPanelProps {
   ownerPage?: string;
   hidden?: boolean;
   placement?: 'viewport' | 'contained';
+  desktopOffsetRight?: string;
+  desktopOffsetBottom?: string;
 }
 
 const MENU_SIZE = 232;
@@ -55,6 +57,11 @@ const END_ANGLE = 272;
 const MAGNET_DISTANCE = 52;
 const FAB_BOTTOM_OFFSET = 86;
 const APP_SHELL_MAX_WIDTH = 430;
+const DESKTOP_MEDIA_QUERY = '(min-width: 769px)';
+
+function isDesktopViewport() {
+  return typeof window !== 'undefined' && window.matchMedia(DESKTOP_MEDIA_QUERY).matches;
+}
 
 function toRadians(degrees: number) {
   return (degrees * Math.PI) / 180;
@@ -102,6 +109,8 @@ export default function FloatingAIPanel({
   ownerPage,
   hidden = false,
   placement = 'viewport',
+  desktopOffsetRight,
+  desktopOffsetBottom = '28px',
 }: FloatingAIPanelProps) {
   const { navigate, userState } = useUser();
   const { theme } = useTheme();
@@ -116,10 +125,12 @@ export default function FloatingAIPanel({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const pulseResumeTimer = useRef<number | null>(null);
   const triggeredItemRef = useRef(false);
+  const [usesDesktopViewport, setUsesDesktopViewport] = useState(isDesktopViewport);
 
   const resolvedItems = useMemo(() => menuItems.slice(0, 5), [menuItems]);
   const hasMenuItems = resolvedItems.length > 0;
   const shouldHide = hidden || (ownerPage ? userState.currentPage !== ownerPage : false);
+  const hasDesktopViewportDock = placement === 'viewport' && usesDesktopViewport && Boolean(desktopOffsetRight);
   const sectorAngles = useMemo(() => {
     if (resolvedItems.length === 0) return [] as Array<{ start: number; end: number; mid: number }>;
 
@@ -142,6 +153,16 @@ export default function FloatingAIPanel({
         window.clearTimeout(pulseResumeTimer.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const query = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const updateViewportMode = () => setUsesDesktopViewport(query.matches);
+    updateViewportMode();
+    query.addEventListener('change', updateViewportMode);
+    return () => query.removeEventListener('change', updateViewportMode);
   }, []);
 
   const clearLongPress = useCallback(() => {
@@ -421,18 +442,26 @@ export default function FloatingAIPanel({
 
   const panel = (
     <div
-      className={placement === 'contained'
+      className={placement === 'contained' || hasDesktopViewportDock
         ? 'pointer-events-none relative z-40 h-16 w-16 overflow-visible'
         : 'pointer-events-none fixed bottom-0 left-1/2 z-40 h-[320px] w-[min(100vw,430px)] -translate-x-1/2'}
       style={{
-        ...(placement === 'contained' ? {} : { width: `min(100vw, ${APP_SHELL_MAX_WIDTH}px)` }),
+        ...(hasDesktopViewportDock
+          ? {
+            position: 'fixed',
+            right: desktopOffsetRight,
+            bottom: desktopOffsetBottom,
+          }
+          : placement === 'contained'
+            ? {}
+            : { width: `min(100vw, ${APP_SHELL_MAX_WIDTH}px)` }),
       }}
     >
       <div
         ref={wrapperRef}
         className="absolute h-[232px] w-[232px] overflow-visible"
         style={{
-          bottom: placement === 'contained' ? '0px' : `${FAB_BOTTOM_OFFSET}px`,
+          bottom: placement === 'contained' || hasDesktopViewportDock ? '0px' : `${FAB_BOTTOM_OFFSET}px`,
           right: '0px',
         }}
       >
@@ -538,7 +567,7 @@ export default function FloatingAIPanel({
           </div>
         )}
 
-        <div className={`absolute z-30 h-16 w-16 ${placement === 'contained' ? 'bottom-0 right-0' : 'bottom-4 right-4'}`}>
+        <div className={`absolute z-30 h-16 w-16 ${placement === 'contained' || hasDesktopViewportDock ? 'bottom-0 right-0' : 'bottom-4 right-4'}`}>
           <button
             ref={buttonRef}
             onMouseDown={event => startPress(event.clientX, event.clientY)}

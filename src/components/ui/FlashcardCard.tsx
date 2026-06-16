@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { useTheme } from '@/store/ThemeContext';
 
@@ -22,111 +22,118 @@ export default function FlashcardCard({
   swipeDirection,
   size = 'default',
 }: FlashcardCardProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const reduceMotion = useReducedMotion();
   const sanitizedExplanation = useMemo(
     () => DOMPurify.sanitize(explanation),
-    [explanation]
+    [explanation],
   );
-
-  const getSwipeGradient = () => {
-    if (swipeDirection === 'left') return 'linear-gradient(to right, rgba(239, 68, 68, 0.3), transparent)';
-    if (swipeDirection === 'right') return 'linear-gradient(to left, rgba(16, 185, 129, 0.3), transparent)';
-    if (swipeDirection === 'up' || swipeDirection === 'down') return 'linear-gradient(to top, rgba(59, 130, 246, 0.2), transparent)';
-    return 'none';
-  };
   const isDesktop = size === 'desktop';
 
+  const swipeColor = swipeDirection === 'left'
+    ? 'rgba(239, 68, 68, 0.14)'
+    : swipeDirection === 'right'
+      ? 'rgba(16, 185, 129, 0.14)'
+      : swipeDirection
+        ? 'rgba(59, 130, 246, 0.12)'
+        : 'transparent';
+
+  const transition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.18, ease: 'easeOut' as const };
+
   return (
-    <div className={`relative mx-auto w-full ${isDesktop ? 'max-w-[760px]' : 'max-w-md'}`}>
-      {/* Swipe feedback overlay */}
-      {swipeDirection && (
-        <div
-          className="absolute inset-0 rounded-3xl pointer-events-none z-10"
-          style={{ background: getSwipeGradient() }}
-        />
-      )}
-
-      {/* Card */}
-      <motion.div
-        className={`flex w-full cursor-pointer flex-col items-center justify-center overflow-hidden border ${isDesktop ? 'min-h-[440px] max-h-[520px] rounded-[32px] p-8' : 'min-h-[300px] rounded-3xl p-6'}`}
-        style={{
-          backgroundColor: theme.bgCard,
-          borderColor: isFlipped ? `${theme.primary}55` : '#c7d2fe',
-          boxShadow: isFlipped
-            ? `0 20px 60px rgba(15,23,42,0.10)`
-            : `0 20px 60px rgba(15,23,42,0.08)`,
-        }}
+    <div className={`relative mx-auto h-full min-h-0 w-full ${isDesktop ? 'max-w-[1080px]' : 'max-w-[560px]'}`}>
+      <motion.button
+        type="button"
         onClick={onFlip}
-        whileTap={{ scale: 0.98 }}
+        aria-label={isFlipped ? '翻回知识点正面' : '查看知识点解析'}
+        aria-pressed={isFlipped}
+        whileTap={reduceMotion ? undefined : { scale: 0.992 }}
+        className="study-paper-card group relative flex h-full min-h-[220px] w-full overflow-hidden text-left focus-visible:outline-none"
+        style={{
+          backgroundColor: theme.surfaceContainerLowest || theme.bgCard,
+          borderColor: theme.outlineVariant || theme.border,
+          boxShadow: isDark
+            ? '0 18px 48px rgba(0, 0, 0, 0.22)'
+            : '0 18px 48px rgba(81, 68, 48, 0.09)',
+        }}
       >
-        <AnimatePresence mode="wait">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 transition-colors duration-200"
+          style={{ backgroundColor: swipeColor }}
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-80"
+          style={{ backgroundColor: theme.primaryLight }}
+        />
+
+        <AnimatePresence initial={false} mode="wait">
           {!isFlipped ? (
-            <motion.div
+            <motion.span
               key="front"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.2 }}
-              className="text-center"
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={transition}
+              className="flex h-full w-full flex-col items-center justify-center px-7 py-8 text-center sm:px-10"
             >
-              <div className="mb-4 text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textSecondary }}>
+              <span
+                className="mb-5 rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.16em]"
+                style={{ backgroundColor: theme.primaryFixed || `${theme.primary}14`, color: theme.primary }}
+              >
                 知识点
-              </div>
-              <h2 className={`${isDesktop ? 'text-3xl' : 'text-2xl'} mb-4 font-extrabold`} style={{ color: theme.textPrimary }}>
-                {name}
-              </h2>
-              <div className="flex items-center justify-center gap-2" style={{ color: theme.textSecondary }}>
-                <span className="text-sm">点击翻转</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17 1l4 4-4 4"/>
-                  <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                  <path d="M7 23l-4-4 4-4"/>
-                  <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                </svg>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="back"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.2 }}
-              className="text-center w-full"
-            >
-              <div className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: theme.primary }}>
-                知识解析
-              </div>
-              <div
-                className={`${isDesktop ? 'text-lg' : 'text-base'} mb-4 leading-relaxed`}
+              </span>
+              <span
+                className={`${isDesktop ? 'text-[clamp(1.75rem,3vw,2.5rem)]' : 'text-2xl'} max-w-[680px] font-extrabold leading-tight`}
                 style={{ color: theme.textPrimary }}
-                dangerouslySetInnerHTML={{ __html: sanitizedExplanation }}
-              />
-
-              {/* Memory tip if exists */}
-              {memoryTip && (
-                <div
-                  className="mt-4 p-3 rounded-xl flex items-start gap-2 text-left"
-                  style={{ backgroundColor: `${theme.warning}15` }}
-                >
-                  <span className="text-sm" style={{ color: theme.warning }}>💡</span>
-                  <span className="text-sm" style={{ color: theme.warning }}>{memoryTip}</span>
-                </div>
-              )}
-
-              <div className="mt-4 flex items-center justify-center gap-2" style={{ color: theme.textSecondary }}>
-                <span className="text-sm">点击翻回</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17 1l4 4-4 4"/>
-                  <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                  <path d="M7 23l-4-4 4-4"/>
-                  <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                </svg>
-              </div>
-            </motion.div>
+              >
+                {name}
+              </span>
+            </motion.span>
+          ) : (
+            <motion.span
+              key="back"
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={transition}
+              className="flex h-full min-h-0 w-full"
+            >
+              <span className="study-card-scroll flex min-h-0 w-full flex-1 overflow-y-auto px-6 sm:px-9">
+                <span className="mx-auto my-auto block w-full max-w-[680px] py-7 sm:py-9">
+                  <span
+                    className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.14em]"
+                    style={{ backgroundColor: theme.primaryFixed || `${theme.primary}14`, color: theme.primary }}
+                  >
+                    知识解析
+                  </span>
+                  <span
+                    className={`${isDesktop ? 'text-[17px] leading-8' : 'text-base leading-7'} study-explanation mt-5 block`}
+                    style={{ color: theme.textPrimary }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedExplanation }}
+                  />
+                  {memoryTip && (
+                    <span
+                      className="mt-6 block rounded-2xl border px-4 py-3 text-sm leading-6"
+                      style={{
+                        backgroundColor: theme.secondaryFixed || `${theme.warning}12`,
+                        borderColor: theme.outlineVariant || theme.border,
+                        color: theme.textSecondary,
+                      }}
+                    >
+                      <strong className="mb-1 block text-xs" style={{ color: theme.warning }}>记忆提示</strong>
+                      {memoryTip}
+                    </span>
+                  )}
+                </span>
+              </span>
+            </motion.span>
           )}
         </AnimatePresence>
-      </motion.div>
+      </motion.button>
     </div>
   );
 }
