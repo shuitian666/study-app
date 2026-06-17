@@ -17,6 +17,7 @@ import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
 import { calculateNewProficiency } from '@/utils/review';
+import { notifyStudyExperienceEarned } from '@/utils/levelRewards';
 import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Loader2, MessageSquare } from 'lucide-react';
 import type { Question, QuizAnswer } from '@/types';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
@@ -217,6 +218,7 @@ export default function QuizSessionPage() {
           completedAt: new Date().toISOString(),
         },
       });
+      notifyStudyExperienceEarned('quiz');
       
       // 传递所有题目结果用于最终解析显示
       const resultId = `qr-${Date.now()}`;

@@ -11,6 +11,7 @@ import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { getLocalDateKey } from '@/utils/experience';
 import { accountCheckin, accountMakeupCheckin } from '@/services/aiClient';
 import { applyServerAccountPayload, isUnauthorizedError } from '@/store/accountSync';
+import { notifyStudyExperienceEarned } from '@/utils/levelRewards';
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -114,6 +115,7 @@ export default function CheckinPage() {
     setAccountError('');
     try {
       applyServerAccountPayload(await accountCheckin(today), userDispatch, gameDispatch);
+      notifyStudyExperienceEarned('checkin');
     } catch (err) {
       handleAccountError(err);
     } finally {
@@ -138,6 +140,7 @@ export default function CheckinPage() {
     setAccountError('');
     try {
       applyServerAccountPayload(await accountMakeupCheckin(date), userDispatch, gameDispatch);
+      notifyStudyExperienceEarned('makeup_checkin');
       setPendingMakeupDate(null);
     } catch (err) {
       handleAccountError(err);

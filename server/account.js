@@ -13,6 +13,20 @@ const STREAK_REWARDS = [
 export const PRE_LEVEL_KNOWLEDGE_BONUS = 20;
 const KNOWLEDGE_ACCELERATION_MAX_LEVEL = 10;
 const KNOWLEDGE_REWARD_TIME_ZONE = process.env.APP_TIME_ZONE || 'Asia/Shanghai';
+export const LEVEL_REWARDS = [
+  {
+    level: 10,
+    item: {
+      id: 'level-10-ai-title',
+      name: 'AI 学习探索者',
+      description: '达到 Lv.10 后解锁的里程碑称号',
+      icon: '✦',
+      type: 'title',
+      rarity: 'SR',
+      usable: false,
+    },
+  },
+];
 
 const SHOP_ITEMS = [
   { id: 'item-1', name: '补签卡', description: '可补签1天', icon: '🎟️', type: 'makeup_card', price: 30, rarity: 'R', usable: true },
@@ -375,6 +389,71 @@ export function grantKnowledgePointAcceleration(userId, {
   return accountState(userId, {
     experienceReward: { amount: grant, reason: 'knowledge_point_acceleration' },
   });
+}
+
+export function claimLevelReward(userId, { level, learningExperience } = {}) {
+  const safeLevel = Number(level);
+  const reportedLearningExperience = Number(learningExperience ?? 0);
+  const reward = LEVEL_REWARDS.find(entry => entry.level === safeLevel);
+  if (
+    !Number.isInteger(safeLevel)
+    || !reward
+    || !Number.isFinite(reportedLearningExperience)
+    || reportedLearningExperience < 0
+  ) {
+    const error = new Error('Invalid level reward request');
+    error.status = 400;
+    throw error;
+  }
+
+  const requiredExperience = getRequiredTotalExpForLevel(reward.level);
+  let claimed = false;
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const assets = getAssets(userId);
+    const effectiveTotalExperience = (assets?.experience ?? 0) + Math.floor(reportedLearningExperience);
+    if (effectiveTotalExperience < requiredExperience) {
+      const error = new Error('Level reward is not unlocked');
+      error.status = 400;
+      throw error;
+    }
+
+    const sourceId = `level:${reward.level}`;
+    const inserted = db.prepare(`
+      INSERT OR IGNORE INTO asset_ledger (id, user_id, event_type, source_id, metadata, created_at)
+      VALUES (?, ?, 'level_reward', ?, ?, ?)
+    `).run(
+      `led_${crypto.randomUUID()}`,
+      userId,
+      sourceId,
+      JSON.stringify({
+        level: reward.level,
+        itemType: reward.item.type,
+        itemName: reward.item.name,
+      }),
+      nowIso(),
+    );
+
+    if (inserted.changes > 0) {
+      addInventory(userId, reward.item, 'level_reward', sourceId);
+      claimed = true;
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+
+  const state = accountState(userId);
+  const item = state.inventory.find(entry => entry.type === reward.item.type && entry.name === reward.item.name);
+  return {
+    ...state,
+    levelReward: {
+      level: reward.level,
+      claimed,
+      item,
+    },
+  };
 }
 
 export function redeemCode(userId, code) {

@@ -34,6 +34,7 @@ import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan } from '@/utils/review';
 import { getReviewReminderSettings, requestReviewReminderPermission } from '@/utils/reviewReminder';
 import { getAIStudyLevelInfo, AI_STUDY_UNLOCK_LEVEL } from '@/utils/aiStudyAccess';
+import { notifyStudyExperienceEarned } from '@/utils/levelRewards';
 
 // 按钮配置
 const RATING_CONFIG = {
@@ -561,6 +562,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
           score: FLASHCARD_SCORE_MAP[rating],
         },
       });
+      notifyStudyExperienceEarned('flashcard');
       if (!getReviewReminderSettings().prompted) {
         void requestReviewReminderPermission();
       }

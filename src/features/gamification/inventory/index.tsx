@@ -159,6 +159,7 @@ export default function InventoryPage() {
                 lottery: { label: '抽签奖励', icon: Gift, color: 'text-amber-500' },
                 mail: { label: '邮件附件', icon: Ticket, color: 'text-blue-500' },
                 achievement: { label: '成就奖励', icon: Sparkles, color: 'text-purple-500' },
+                level_reward: { label: '等级奖励', icon: Sparkles, color: 'text-indigo-500' },
                 shop: { label: '商店购买', icon: Crown, color: 'text-yellow-500' },
                 manual: { label: '手动添加', icon: Package, color: 'text-gray-500' },
               };

@@ -61,6 +61,11 @@ export interface AuthPayload {
     amount: number;
     reason: 'knowledge_point_acceleration';
   };
+  levelReward?: {
+    level: number;
+    claimed: boolean;
+    item?: InventoryItem;
+  };
   aiConfigStatus: ServerAIConfigStatus;
 }
 
@@ -103,6 +108,15 @@ export async function fetchMe(): Promise<AuthPayload | null> {
   return res.json();
 }
 
+export async function accountLogout(): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (res.status === 401) return;
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Logout failed');
+}
+
 async function accountRequest(path: string, body?: unknown): Promise<AuthPayload> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
@@ -141,6 +155,13 @@ export function accountGrantKnowledgePointExperience(
 ): Promise<AuthPayload> {
   return accountRequest('/account/experience/knowledge-point', {
     knowledgePointId,
+    learningExperience,
+  });
+}
+
+export function accountClaimLevelReward(level: number, learningExperience: number): Promise<AuthPayload> {
+  return accountRequest('/account/level-rewards/claim', {
+    level,
     learningExperience,
   });
 }

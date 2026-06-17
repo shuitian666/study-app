@@ -33,6 +33,7 @@ import { TopAppBar, SettingsList } from '@/components/layout';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
 import { getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
+import { accountLogout } from '@/services/aiClient';
 
 export default function ProfilePage() {
   const { userState, userDispatch, navigate } = useUser();
@@ -58,6 +59,16 @@ export default function ProfilePage() {
   const currentTitle = activeTitle && userState.inventory.items.some(item => item.type === 'title' && item.name === activeTitle.name)
     ? activeTitle
     : null;
+
+  const handleLogout = async () => {
+    try {
+      await accountLogout();
+    } catch (err) {
+      console.warn('Failed to clear server session:', err);
+    } finally {
+      userDispatch({ type: 'LOGOUT' });
+    }
+  };
 
   const profData: { level: ProficiencyLevel; count: number }[] = [
     { level: 'master', count: stats.masteredCount },
@@ -352,7 +363,7 @@ export default function ProfilePage() {
 
           {/* Logout */}
           <button
-            onClick={() => userDispatch({ type: 'LOGOUT' })}
+            onClick={() => { void handleLogout(); }}
             className="w-full py-3.5 text-center rounded-2xl font-semibold text-sm transition-colors"
             style={{
               backgroundColor: `${theme.error || '#ba1a1a'}10`,
@@ -607,7 +618,7 @@ export default function ProfilePage() {
       {/* Logout */}
       <div className={`px-4 mt-4 mb-4 ${getAnimationClass(4)}`}>
         <button
-          onClick={() => userDispatch({ type: 'LOGOUT' })}
+          onClick={() => { void handleLogout(); }}
           className="w-full rounded-2xl border shadow-sm p-4 flex items-center justify-center gap-2 text-sm"
           style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: '#ef4444' }}
         >

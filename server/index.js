@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { db, createUser, getUserByPhone, getUserById, nowIso } from './db.js';
 import {
   buyShopItem,
+  claimLevelReward,
   drawLotteryForUser,
   getAccountState,
   grantKnowledgePointAcceleration,
@@ -316,6 +317,17 @@ app.post('/api/account/experience/knowledge-point', requireAuth, (req, res) => {
   try {
     res.json(grantKnowledgePointAcceleration(req.user.id, {
       knowledgePointId: req.body.knowledgePointId,
+      learningExperience: req.body.learningExperience,
+    }));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/level-rewards/claim', requireAuth, (req, res) => {
+  try {
+    res.json(claimLevelReward(req.user.id, {
+      level: req.body.level,
       learningExperience: req.body.learningExperience,
     }));
   } catch (err) {

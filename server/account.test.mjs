@@ -12,6 +12,7 @@ const {
   PRE_LEVEL_KNOWLEDGE_BONUS,
   REDEMPTION_CODES,
   buyShopItem,
+  claimLevelReward,
   drawLotteryForUser,
   grantKnowledgePointAcceleration,
   performCheckin,
@@ -217,6 +218,46 @@ test('knowledge acceleration includes persisted bonus experience in the level ca
 
   assert.equal(state.experienceReward.amount, 0);
   assert.equal(state.assets.experience, 100000);
+});
+
+test('level reward cannot be claimed before level ten', () => {
+  const user = makeUser();
+
+  assert.throws(
+    () => claimLevelReward(user.id, { level: 10, learningExperience: 0 }),
+    err => err.status === 400 && err.message === 'Level reward is not unlocked',
+  );
+});
+
+test('level ten reward grants a title inventory item', () => {
+  const user = makeUser();
+
+  const state = claimLevelReward(user.id, { level: 10, learningExperience: 100000 });
+
+  assert.equal(state.levelReward.level, 10);
+  assert.equal(state.levelReward.claimed, true);
+  assert.equal(state.levelReward.item.name, 'AI 学习探索者');
+  assert.equal(state.levelReward.item.type, 'title');
+  assert.equal(state.levelReward.item.source, 'level_reward');
+  assert.equal(state.inventory.filter(item => item.name === 'AI 学习探索者').length, 1);
+});
+
+test('level reward is idempotent per user and level', () => {
+  const user = makeUser();
+
+  const first = claimLevelReward(user.id, { level: 10, learningExperience: 100000 });
+  const second = claimLevelReward(user.id, { level: 10, learningExperience: 100000 });
+
+  const inventory = db.prepare('SELECT * FROM inventory_items WHERE user_id = ? AND name = ?').all(user.id, 'AI 学习探索者');
+  const ledger = db.prepare(`
+    SELECT * FROM asset_ledger
+    WHERE user_id = ? AND event_type = 'level_reward' AND source_id = 'level:10'
+  `).all(user.id);
+
+  assert.equal(first.levelReward.claimed, true);
+  assert.equal(second.levelReward.claimed, false);
+  assert.equal(inventory.length, 1);
+  assert.equal(ledger.length, 1);
 });
 
 test('redemption code cannot be applied twice', () => {

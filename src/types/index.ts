@@ -475,7 +475,7 @@ export interface InventoryItem {
   rarity: 'N' | 'R' | 'SR' | 'SSR';
   quantity: number;
   obtainedAt: string;
-  source: 'lottery' | 'mail' | 'achievement' | 'shop' | 'manual';
+  source: 'lottery' | 'mail' | 'achievement' | 'shop' | 'manual' | 'level_reward';
   usable: boolean;  // 是否可以使用
   expiresAt?: string;  // 过期时间
 }

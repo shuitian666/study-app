@@ -62,5 +62,5 @@ export const allTitles: TitleConfig[] = [
   { id: 'title-r-2', name: '半夜还在看', icon: '🌙', rarity: 'R', gradient: 'linear-gradient(135deg, #e0e7ff, #818cf8)', textColor: '#3730a3' },
   { id: 'title-sr-1', name: '风里有笔记', icon: '🍃', rarity: 'SR', gradient: 'linear-gradient(135deg, #d1fae5, #6ee7b7)', textColor: '#065f46' },
   { id: 'title-sr-2', name: '把书读薄了', icon: '⭐', rarity: 'SR', gradient: 'linear-gradient(135deg, #fce7f3, #f472b6)', textColor: '#9d174d' },
+  { id: 'title-sr-ai-explorer', name: 'AI 学习探索者', icon: '✦', rarity: 'SR', gradient: 'linear-gradient(135deg, #e0f2fe, #c4b5fd)', textColor: '#3730a3' },
 ];
-

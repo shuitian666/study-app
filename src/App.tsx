@@ -18,10 +18,11 @@ import {
 } from 'lucide-react';
 import TabBar from '@/components/layout/TabBar';
 import AchievementPopup from '@/components/ui/AchievementPopup';
+import LevelUpCelebration from '@/components/ui/LevelUpCelebration';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
 import { ThemeStyles } from '@/components/ui/ThemeStyles';
 import { allBackgrounds } from '@/data/avatarCatalog';
-import { fetchMe } from '@/services/aiClient';
+import { accountClaimLevelReward, fetchMe } from '@/services/aiClient';
 import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 import { useGame } from '@/store/GameContext';
 import { useLearning } from '@/store/LearningContext';
@@ -30,6 +31,11 @@ import { useUser } from '@/store/UserContext';
 import { isDarkTheme } from '@/utils/adaptiveTheme';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
+import {
+  detectLevelUpTransition,
+  STUDY_EXPERIENCE_EVENT,
+  type LevelUpTransition,
+} from '@/utils/levelRewards';
 import type { AIStudyTutorContext } from '@/types';
 
 const LoginPage = React.lazy(() => import('@/pages/Login'));
@@ -109,11 +115,20 @@ function AppContent() {
   const [desktopAiMode, setDesktopAiMode] = useState<'chat' | 'tutor'>('chat');
   const [desktopQuestionContext, setDesktopQuestionContext] = useState<{ id: string; text: string } | null>(null);
   const [desktopTutorContext, setDesktopTutorContext] = useState<AIStudyTutorContext | null>(null);
+  const [levelUpState, setLevelUpState] = useState<(LevelUpTransition & {
+    userId: string;
+    claimingReward: boolean;
+    rewardClaimed: boolean;
+    rewardError: string;
+  }) | null>(null);
   const desktopQuestionSequenceRef = useRef(0);
   const phoneScrollRef = useRef<HTMLDivElement>(null);
   const desktopContentRef = useRef<HTMLDivElement>(null);
   const desktopNavToggleRef = useRef<HTMLButtonElement>(null);
   const desktopToolsToggleRef = useRef<HTMLButtonElement>(null);
+  const previousExperienceTotalRef = useRef<number | null>(null);
+  const studyEventExpiresAtRef = useRef(0);
+  const claimedRewardLevelsRef = useRef(new Set<number>());
   const isDark = isDarkTheme(theme);
   const isLargeScreen = viewportWidth > 768;
   const isWideDesktop = viewportWidth >= 1360;
@@ -160,6 +175,14 @@ function AppContent() {
       cancelled = true;
     };
   }, [gameDispatch, userDispatch, userState.isLoggedIn]);
+
+  useEffect(() => {
+    const handleStudyExperience = () => {
+      studyEventExpiresAtRef.current = Date.now() + 5000;
+    };
+    window.addEventListener(STUDY_EXPERIENCE_EVENT, handleStudyExperience);
+    return () => window.removeEventListener(STUDY_EXPERIENCE_EVENT, handleStudyExperience);
+  }, []);
 
   const currentBackground = useMemo(() => {
     const backgroundId = userState.user?.background;
@@ -336,6 +359,9 @@ function AppContent() {
     || userState.currentPage === 'ai-study-summaries'
     || userState.currentPage === 'flashcard-learning';
   const shouldUsePhoneShell = !isLargeScreen || isImmersivePage || !desktopShellPages.includes(userState.currentPage);
+  const learningExperience = calculateLearningExperience(learningState, gameState.checkin);
+  const experienceTotal = learningExperience + (userState.user?.bonusExperience ?? 0);
+  const levelProgress = calculateLevelProgress(experienceTotal);
 
   useEffect(() => {
     const handleResize = () => setViewportWidth(window.innerWidth);
@@ -390,6 +416,100 @@ function AppContent() {
     return () => window.cancelAnimationFrame(frame);
   }, [isLargeScreen, isStudyWorkspace]);
 
+  const closeLevelUpCelebration = useCallback(() => {
+    setLevelUpState(null);
+  }, []);
+
+  const viewLevelUpReward = useCallback(() => {
+    setLevelUpState(null);
+    navigate('inventory');
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!userState.isLoggedIn) {
+      previousExperienceTotalRef.current = null;
+      studyEventExpiresAtRef.current = 0;
+      claimedRewardLevelsRef.current.clear();
+      return;
+    }
+
+    const previousExperienceTotal = previousExperienceTotalRef.current;
+    if (previousExperienceTotal === null) {
+      previousExperienceTotalRef.current = experienceTotal;
+      return;
+    }
+
+    if (experienceTotal === previousExperienceTotal) return;
+
+    const isStudyTriggered = studyEventExpiresAtRef.current > Date.now();
+    const transition = isStudyTriggered
+      ? detectLevelUpTransition(previousExperienceTotal, experienceTotal)
+      : null;
+
+    previousExperienceTotalRef.current = experienceTotal;
+    if (!transition) return;
+
+    studyEventExpiresAtRef.current = 0;
+    const userId = userState.user?.id ?? '';
+    const timer = window.setTimeout(() => {
+      setLevelUpState({
+        ...transition,
+        userId,
+        claimingReward: transition.rewards.length > 0,
+        rewardClaimed: false,
+        rewardError: '',
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [experienceTotal, userState.isLoggedIn, userState.user?.id]);
+
+  useEffect(() => {
+    const reward = levelUpState?.rewards[0];
+    if (!reward || !userState.isLoggedIn || claimedRewardLevelsRef.current.has(reward.level)) return;
+
+    claimedRewardLevelsRef.current.add(reward.level);
+    let cancelled = false;
+    accountClaimLevelReward(reward.level, learningExperience)
+      .then(payload => {
+        if (cancelled) return;
+        applyServerAccountPayload(payload, userDispatch, gameDispatch);
+        setLevelUpState(current => current ? {
+          ...current,
+          claimingReward: false,
+          rewardClaimed: true,
+          rewardError: '',
+        } : current);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        logoutOnUnauthorized(err, userDispatch);
+        setLevelUpState(current => current ? {
+          ...current,
+          claimingReward: false,
+          rewardClaimed: false,
+          rewardError: err instanceof Error ? err.message : '奖励发放失败，稍后可重新学习后同步。',
+        } : current);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gameDispatch, learningExperience, levelUpState?.rewards, userDispatch, userState.isLoggedIn]);
+
+  const levelUpCelebration = (
+    <LevelUpCelebration
+      open={Boolean(levelUpState && levelUpState.userId === userState.user?.id)}
+      previousLevel={levelUpState?.previousLevel ?? 1}
+      nextLevel={levelUpState?.nextLevel ?? 1}
+      rewards={levelUpState?.rewards ?? []}
+      claimingReward={Boolean(levelUpState?.claimingReward)}
+      rewardClaimed={Boolean(levelUpState?.rewardClaimed)}
+      rewardError={levelUpState?.rewardError}
+      onClose={closeLevelUpCelebration}
+      onViewReward={viewLevelUpReward}
+    />
+  );
+
   if (shouldUsePhoneShell) {
     return (
       <div
@@ -417,6 +537,7 @@ function AppContent() {
           </div>
           {userState.isLoggedIn && !isFullScreen && !isHomeScreen && <TabBar />}
           <AchievementPopup />
+          {levelUpCelebration}
           <LotteryDrawModal />
         </div>
       </div>
@@ -465,9 +586,6 @@ function AppContent() {
   const pageTitle = desktopTabs.find(tab => tab.key === userState.currentPage)?.label
     ?? desktopPageTitles[userState.currentPage]
     ?? '学习';
-  const learningExperience = calculateLearningExperience(learningState, gameState.checkin);
-  const experienceTotal = learningExperience + (userState.user?.bonusExperience ?? 0);
-  const levelProgress = calculateLevelProgress(experienceTotal);
   const desktopSurface = isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.86)';
   const desktopMutedSurface = isDark ? 'rgba(30, 41, 59, 0.72)' : 'rgba(248, 250, 252, 0.9)';
   const desktopBorder = isDark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(148, 163, 184, 0.24)';
@@ -793,6 +911,7 @@ function AppContent() {
           </div>
         </div>
         <AchievementPopup />
+        {levelUpCelebration}
         <LotteryDrawModal />
       </div>
     );
@@ -1031,6 +1150,7 @@ function AppContent() {
         </div>
       </div>
       <AchievementPopup />
+      {levelUpCelebration}
       <LotteryDrawModal />
     </div>
   );
