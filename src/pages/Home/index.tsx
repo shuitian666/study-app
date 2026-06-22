@@ -526,14 +526,17 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
   ], [navigate, openPrimaryLearning, theme.bgCard, theme.primary]);
 
   const bottomNav = <TabBar placement="contained" />;
+  const usesDesktopFloatingPanel = !showBottomNav;
   const floatingPanel = (
     <FloatingAIPanel
       menuItems={homeFabMenuItems}
-      placement="contained"
+      placement={usesDesktopFloatingPanel ? 'viewport' : 'contained'}
       ownerPage="home"
       primaryIcon={Sparkles}
       primaryTitle="开始学习"
       onPrimaryAction={openPrimaryLearning}
+      desktopOffsetRight={usesDesktopFloatingPanel ? '112px' : undefined}
+      desktopOffsetBottom={usesDesktopFloatingPanel ? '32px' : undefined}
     />
   );
   if (isScholar) {
@@ -813,9 +816,11 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
           </div>
         )}
         {isActive && (
-          <div className="absolute bottom-[82px] right-6 z-50">
-            {floatingPanel}
-          </div>
+          usesDesktopFloatingPanel ? floatingPanel : (
+            <div className="absolute bottom-[82px] right-6 z-50">
+              {floatingPanel}
+            </div>
+          )
         )}
         <OnboardingGuide
           open={isGuideOpen}
@@ -1128,10 +1133,12 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
           {bottomNav}
         </div>
       )}
-      {isActive && showBottomNav && (
-        <div className="absolute bottom-[70px] right-5 z-[80]">
-          {floatingPanel}
-        </div>
+      {isActive && (
+        usesDesktopFloatingPanel ? floatingPanel : (
+          <div className="absolute bottom-[70px] right-5 z-[80]">
+            {floatingPanel}
+          </div>
+        )
       )}
       <OnboardingGuide
         open={isGuideOpen}

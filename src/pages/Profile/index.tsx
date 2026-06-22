@@ -21,19 +21,95 @@
  * ============================================================================
  */
 
+import type { CSSProperties } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
 import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
-import type { ProficiencyLevel } from '@/types';
+import type { ProficiencyLevel, ThemeConfig } from '@/types';
 import { allFrames, allTitles, rarityConfig } from '@/data/avatarCatalog';
 import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail, FileText } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
-import { getAdaptivePageBackground, getAdaptiveSurface } from '@/utils/adaptiveTheme';
+import { getAdaptivePageBackground, getAdaptiveSurface, isDarkTheme } from '@/utils/adaptiveTheme';
 import { accountLogout } from '@/services/aiClient';
+
+function colorWithAlpha(color: string | undefined, opacity: number, fallback: string) {
+  if (!color) return fallback;
+
+  const hex = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)?.[1];
+  if (hex) {
+    const normalized = hex.length === 3
+      ? hex.split('').map(char => char + char).join('')
+      : hex;
+    const value = Number.parseInt(normalized, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+
+  const rgba = color.trim().match(/^rgba\(([^)]+)\)$/i);
+  if (rgba) {
+    const parts = rgba[1].split(',').map(part => part.trim());
+    if (parts.length >= 3) return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${opacity})`;
+  }
+
+  const rgb = color.trim().match(/^rgb\(([^)]+)\)$/i);
+  if (rgb) {
+    return `rgba(${rgb[1]}, ${opacity})`;
+  }
+
+  return fallback;
+}
+
+function getProfilePageBackground(theme: ThemeConfig): CSSProperties {
+  const dark = isDarkTheme(theme);
+  const base = getAdaptivePageBackground(theme);
+  const topGlow = colorWithAlpha(theme.primaryFixed || theme.primary, dark ? 0.32 : 0.28, 'rgba(255, 255, 255, 0.28)');
+  const topWash = colorWithAlpha(theme.surfaceContainerLow || theme.bg, dark ? 0.62 : 0.78, theme.bg);
+
+  return {
+    ...base,
+    background: dark
+      ? `radial-gradient(circle at 50% -12%, ${topGlow} 0%, transparent 38%), linear-gradient(180deg, ${topWash} 0%, ${theme.bg} 48%, ${theme.bg} 100%)`
+      : `linear-gradient(180deg, ${topGlow} 0%, ${topWash} 34%, ${theme.bg} 100%)`,
+  };
+}
+
+function getProfilePanelStyle(theme: ThemeConfig, level: 'primary' | 'raised' = 'raised'): CSSProperties {
+  const dark = isDarkTheme(theme);
+  const fallbackSurface = dark ? 'rgba(17, 27, 45, 0.74)' : 'rgba(255, 255, 255, 0.72)';
+  const backgroundColor = colorWithAlpha(
+    level === 'primary' ? theme.bgCard : theme.surfaceContainerLowest || theme.bgCard,
+    dark ? 0.72 : 0.76,
+    fallbackSurface,
+  );
+
+  return {
+    backgroundColor,
+    borderColor: colorWithAlpha(theme.border, dark ? 0.34 : 0.42, dark ? 'rgba(148, 163, 184, 0.28)' : 'rgba(148, 163, 184, 0.30)'),
+    backdropFilter: 'blur(18px)',
+    WebkitBackdropFilter: 'blur(18px)',
+  };
+}
+
+function getProfileInsetStyle(theme: ThemeConfig): CSSProperties {
+  const dark = isDarkTheme(theme);
+  return {
+    backgroundColor: colorWithAlpha(theme.surfaceContainerLow || theme.bgCard, dark ? 0.68 : 0.62, dark ? 'rgba(30, 41, 59, 0.58)' : 'rgba(248, 250, 252, 0.62)'),
+    borderColor: colorWithAlpha(theme.border, dark ? 0.28 : 0.34, dark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(148, 163, 184, 0.24)'),
+  };
+}
+
+function getProfileHeroBackground(theme: ThemeConfig): string {
+  const dark = isDarkTheme(theme);
+  const glow = colorWithAlpha(theme.primaryFixed || theme.primary, dark ? 0.30 : 0.34, 'rgba(222, 224, 255, 0.34)');
+  const fade = colorWithAlpha(theme.bg, dark ? 0.58 : 0.74, theme.bg);
+  return `linear-gradient(180deg, ${glow} 0%, ${fade} 78%, transparent 100%)`;
+}
 
 export default function ProfilePage() {
   const { userState, userDispatch, navigate } = useUser();
@@ -48,6 +124,11 @@ export default function ProfilePage() {
 
   const uiStyle = theme.uiStyle || 'playful';
   const layoutConfig = UILAYOUT_CONFIGS[uiStyle];
+  const profilePageStyle = getProfilePageBackground(theme);
+  const profilePrimaryPanelStyle = getProfilePanelStyle(theme, 'primary');
+  const profileRaisedPanelStyle = getProfilePanelStyle(theme);
+  const profileInsetStyle = getProfileInsetStyle(theme);
+  const profileSoftDivider = colorWithAlpha(theme.border, isDarkTheme(theme) ? 0.30 : 0.38, theme.border);
 
   const getAnimationClass = (delay: number) => {
     if (layoutConfig.animationStyle === 'simple') return '';
@@ -80,14 +161,14 @@ export default function ProfilePage() {
   // ===== Scholar 风格渲染 =====
   if (uiStyle === 'scholar') {
     return (
-      <div className="page-scroll" style={getAdaptivePageBackground(theme)}>
+      <div className="page-scroll" style={profilePageStyle}>
         <TopAppBar />
 
         {/* ── Hero Banner ── */}
         <div
           className="relative overflow-hidden px-6 pt-5 pb-8"
           style={{
-            background: `linear-gradient(180deg, ${theme.primaryFixed || '#dee0ff'}bb 0%, ${theme.bg || '#f8f9fa'} 100%)`,
+            background: getProfileHeroBackground(theme),
           }}
         >
           <div className="flex flex-col items-center text-center gap-3">
@@ -122,8 +203,8 @@ export default function ProfilePage() {
                 <div
                   className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden border-[3px] shadow-lg"
                   style={{
-                    backgroundColor: theme.surfaceContainerHigh || '#e7e8e9',
-                    borderColor: `${theme.primaryFixed || '#dee0ff'}cc`,
+                    backgroundColor: profileInsetStyle.backgroundColor,
+                    borderColor: colorWithAlpha(theme.primaryFixed || theme.border, 0.46, `${theme.primaryFixed || '#dee0ff'}cc`),
                   }}
                 >
                   {isCustomAvatar && user?.avatar ? (
@@ -198,8 +279,8 @@ export default function ProfilePage() {
             <div
               className="flex items-center w-full max-w-xs rounded-2xl overflow-hidden"
               style={{
-                backgroundColor: theme.surfaceContainerHigh || theme.bgCard,
-                border: `1px solid ${theme.outlineVariant || '#c5c5d4'}44`,
+                backgroundColor: profilePrimaryPanelStyle.backgroundColor,
+                border: `1px solid ${colorWithAlpha(theme.outlineVariant || theme.border, 0.34, `${theme.outlineVariant || '#c5c5d4'}44`)}`,
                 backdropFilter: 'blur(8px)',
               }}
             >
@@ -212,7 +293,7 @@ export default function ProfilePage() {
                 </p>
                 <p className="text-[10px] mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>连续天数</p>
               </div>
-              <div className="w-px self-stretch my-2" style={{ backgroundColor: theme.outlineVariant || '#c5c5d4' }} />
+              <div className="w-px self-stretch my-2" style={{ backgroundColor: profileSoftDivider }} />
               <div className="flex-1 text-center py-3">
                 <p
                   className="text-lg font-extrabold leading-none"
@@ -222,7 +303,7 @@ export default function ProfilePage() {
                 </p>
                 <p className="text-[10px] mt-1" style={{ color: theme.onSurfaceVariant || '#454652' }}>知识点</p>
               </div>
-              <div className="w-px self-stretch my-2" style={{ backgroundColor: theme.outlineVariant || '#c5c5d4' }} />
+              <div className="w-px self-stretch my-2" style={{ backgroundColor: profileSoftDivider }} />
               <div className="flex-1 text-center py-3">
                 <p
                   className="text-lg font-extrabold leading-none"
@@ -243,8 +324,8 @@ export default function ProfilePage() {
           <div
             className="p-5 rounded-2xl"
             style={{
-              backgroundColor: theme.surfaceContainerLowest || '#ffffff',
-              border: `1px solid ${theme.outlineVariant || '#c5c5d4'}30`,
+              ...profileRaisedPanelStyle,
+              border: `1px solid ${profileRaisedPanelStyle.borderColor}`,
             }}
           >
             <div className="flex items-center justify-between mb-3">
@@ -379,12 +460,11 @@ export default function ProfilePage() {
 
   // ===== Playful 风格渲染（保持原有样式）=====
   return (
-    <div className="page-scroll pb-4" style={getAdaptivePageBackground(theme)}>
+    <div className="page-scroll pb-4 pt-2" style={profilePageStyle}>
       <div
-        className="mx-4 mt-4 rounded-2xl border px-5 pt-5 pb-5 shadow-sm"
+        className="mx-4 mt-2 rounded-2xl border px-5 pt-5 pb-5 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.45)] backdrop-blur-xl"
         style={{
-          backgroundColor: theme.bgCard,
-          borderColor: theme.border,
+          ...profilePrimaryPanelStyle,
         }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -420,7 +500,7 @@ export default function ProfilePage() {
               ) : (
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
-                  style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}
+                  style={{ ...profileInsetStyle, border: `1px solid ${profileInsetStyle.borderColor}` }}
                 >
                   {isCustomAvatar && user?.avatar ? (
                     <img src={user.avatar} alt="头像" className="w-full h-full object-cover rounded-full" />
@@ -475,7 +555,7 @@ export default function ProfilePage() {
           <button
             onClick={() => navigate('settings')}
             className="rounded-full p-2 transition-colors active:opacity-70"
-            style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}
+            style={{ ...profileInsetStyle, border: `1px solid ${profileInsetStyle.borderColor}` }}
           >
             <Settings size={18} style={{ color: theme.textSecondary }} />
           </button>
@@ -483,15 +563,15 @@ export default function ProfilePage() {
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}>
+          <div className="rounded-xl p-3 text-center" style={{ ...profileInsetStyle, border: `1px solid ${profileInsetStyle.borderColor}` }}>
             <div className="text-xl font-bold" style={{ color: theme.primary }}>{stats.totalKnowledgePoints}</div>
             <div className="text-[10px]" style={{ color: theme.textSecondary }}>知识点</div>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}>
+          <div className="rounded-xl p-3 text-center" style={{ ...profileInsetStyle, border: `1px solid ${profileInsetStyle.borderColor}` }}>
             <div className="text-xl font-bold" style={{ color: theme.primary }}>{stats.streakDays}</div>
             <div className="text-[10px]" style={{ color: theme.textSecondary }}>学习天数</div>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#f8fafc', border: `1px solid ${theme.border}` }}>
+          <div className="rounded-xl p-3 text-center" style={{ ...profileInsetStyle, border: `1px solid ${profileInsetStyle.borderColor}` }}>
             <div className="text-xl font-bold" style={{ color: theme.secondary }}>{user?.totalPoints ?? 0}</div>
             <div className="text-[10px]" style={{ color: theme.textSecondary }}>星币</div>
           </div>
@@ -501,13 +581,13 @@ export default function ProfilePage() {
       {/* Learning Profile */}
       <div className={`px-4 mt-4 ${getAnimationClass(1)}`}>
         <h3 className="font-semibold text-sm mb-3" style={{ color: theme.textPrimary }}>学习档案</h3>
-        <div className="rounded-2xl p-4 border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+        <div className="rounded-2xl p-4 border shadow-sm backdrop-blur-xl" style={profileRaisedPanelStyle}>
           <div className="flex items-center justify-between text-xs mb-3" style={{ color: theme.textSecondary }}>
             <span>掌握度分布</span>
             <span>共 {stats.totalKnowledgePoints} 个知识点</span>
           </div>
 
-          <div className="w-full h-4 rounded-full overflow-hidden flex" style={{ backgroundColor: theme.border }}>
+          <div className="w-full h-4 rounded-full overflow-hidden flex" style={{ backgroundColor: profileSoftDivider }}>
             {profData.map(d => {
               const pct = stats.totalKnowledgePoints > 0 ? (d.count / stats.totalKnowledgePoints) * 100 : 0;
               if (pct === 0) return null;
@@ -531,7 +611,7 @@ export default function ProfilePage() {
           </div>
 
           {stats.weakSubjects.length > 0 && (
-            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${theme.border}` }}>
+            <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${profileSoftDivider}` }}>
               <div className="text-xs mb-1.5" style={{ color: theme.textSecondary }}>薄弱学科</div>
               <div className="flex flex-wrap gap-1.5">
                 {stats.weakSubjects.map(s => (
@@ -545,7 +625,7 @@ export default function ProfilePage() {
 
       {/* Menu */}
       <div className={`px-4 mt-4 ${getAnimationClass(3)}`}>
-        <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+        <div className="rounded-2xl border shadow-sm overflow-hidden backdrop-blur-xl" style={profileRaisedPanelStyle}>
           {([
             { icon: BookOpen, label: '我的学科', value: `${learningState.subjects.length}个`, color: 'text-blue-500' },
             { icon: Award, label: '测试记录', value: `${stats.totalQuizzes}次`, color: 'text-orange-500' },
@@ -556,7 +636,7 @@ export default function ProfilePage() {
               <div
                 key={i}
                 className={`flex items-center justify-between p-4`}
-                style={{ borderBottom: i < arr.length - 1 ? `1px solid ${theme.border}` : 'none' }}
+                style={{ borderBottom: i < arr.length - 1 ? `1px solid ${profileSoftDivider}` : 'none' }}
               >
                 <div className="flex items-center gap-3">
                   <Icon size={18} className={item.color} />
@@ -575,7 +655,7 @@ export default function ProfilePage() {
       {/* Incentive Menu */}
       <div className={`px-4 mt-4 ${getAnimationClass(3)}`}>
         <h3 className="font-semibold text-sm mb-3" style={{ color: theme.textPrimary }}>激励中心</h3>
-        <div className="rounded-2xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+        <div className="rounded-2xl border shadow-sm overflow-hidden backdrop-blur-xl" style={profileRaisedPanelStyle}>
           {([
             { icon: CalendarCheck, label: '每日签到', desc: `连续${gameState.checkin.streak}天`, color: 'text-orange-500', page: 'checkin' as const },
             { icon: Trophy, label: '我的成就', desc: `${gameState.achievements.filter(a => a.unlocked).length}/${gameState.achievements.length}`, color: 'text-yellow-500', page: 'achievements' as const },
@@ -592,10 +672,10 @@ export default function ProfilePage() {
                 onClick={() => navigate(item.page)}
                 className={`w-full flex items-center justify-between p-4 transition-colors`}
                 style={{
-                  borderBottom: i < arr.length - 1 ? `1px solid ${theme.border}` : 'none',
+                  borderBottom: i < arr.length - 1 ? `1px solid ${profileSoftDivider}` : 'none',
                   backgroundColor: 'transparent'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.bgCard}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colorWithAlpha(theme.bgCard, isDarkTheme(theme) ? 0.54 : 0.58, theme.bgCard)}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <div className="flex items-center gap-3">
@@ -619,8 +699,8 @@ export default function ProfilePage() {
       <div className={`px-4 mt-4 mb-4 ${getAnimationClass(4)}`}>
         <button
           onClick={() => { void handleLogout(); }}
-          className="w-full rounded-2xl border shadow-sm p-4 flex items-center justify-center gap-2 text-sm"
-          style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: '#ef4444' }}
+          className="w-full rounded-2xl border shadow-sm p-4 flex items-center justify-center gap-2 text-sm backdrop-blur-xl"
+          style={{ ...profileRaisedPanelStyle, color: '#ef4444' }}
         >
           <LogOut size={16} />
           退出登录

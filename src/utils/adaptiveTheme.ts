@@ -75,7 +75,7 @@ export function getAdaptiveButton(theme: ThemeConfig, variant: 'primary' | 'seco
 export function getAdaptiveNav(theme: ThemeConfig): CSSProperties {
   const dark = isDarkTheme(theme);
   return {
-    backgroundColor: dark ? 'rgba(11,17,32,0.86)' : 'rgba(255,255,255,0.86)',
+    backgroundColor: dark ? 'rgba(11,17,32,0.86)' : 'rgba(255,255,255,0.68)',
     borderColor: dark ? 'rgba(148,163,184,0.18)' : theme.border,
     color: dark ? theme.textPrimary : theme.textPrimary,
     boxShadow: dark ? '0 -12px 32px rgba(0,0,0,0.24)' : '0 -8px 24px -4px rgba(15,23,42,0.08)',
