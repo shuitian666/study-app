@@ -25,10 +25,24 @@ export const PROFICIENCY_MAP: Record<ProficiencyLevel, ProficiencyConfig> = {
 };
 
 // User
+export type UserRole = 'user' | 'sub_admin' | 'admin' | 'super_admin';
+export type AdminPermission =
+  | 'admin.roles.manage'
+  | 'admin.users.view'
+  | 'mail.send'
+  | 'reward.grant'
+  | 'truth.assets.upload'
+  | 'truth.assets.edit'
+  | 'truth.assets.submit'
+  | 'truth.assets.publish'
+  | 'truth.assets.archive';
+
 export interface User {
   id: string;
   nickname: string;
   avatar: string;
+  role?: UserRole;
+  permissions?: AdminPermission[];
   learningDays: number;
   totalStudyMinutes?: number;
   totalPoints: number;
@@ -269,6 +283,7 @@ export type PageName =
   | 'knowledge-map'
   | 'profile'
   | 'settings'
+  | 'admin'
   | 'login'
   | 'knowledge-detail'
   | 'quiz-session'
@@ -485,9 +500,10 @@ export interface InventoryState {
 }
 
 // ===== Mail / 邮件系统 =====
-export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'background' | 'title' | 'coin' | 'experience' | 'vip';
+export type MailAttachmentType = 'makeup_card' | 'avatar_frame' | 'background' | 'theme' | 'title' | 'coin' | 'experience' | 'regular_ticket' | 'up_ticket' | 'vip';
 
 export interface MailAttachment {
+  id?: string;
   type: MailAttachmentType;
   name: string;
   description?: string;

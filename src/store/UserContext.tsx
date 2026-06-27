@@ -41,6 +41,8 @@ function normalizeUser(user: User): User {
     bonusExperience: Number.isFinite(user.bonusExperience) ? user.bonusExperience : 0,
     experienceLedger: Array.isArray(user.experienceLedger) ? user.experienceLedger : [],
     learningProfile: normalizeLearningProfile(user.learningProfile),
+    role: user.role ?? 'user',
+    permissions: Array.isArray(user.permissions) ? user.permissions : [],
   };
 }
 
@@ -115,11 +117,14 @@ function userReducer(state: UserState, action: UserAction): UserState {
         ...state,
         user: normalizeUser({
           ...action.payload.user,
+          role: action.payload.admin.role,
+          permissions: action.payload.admin.permissions,
           totalPoints: action.payload.assets.coins,
           bonusExperience: action.payload.assets.experience,
           themeStyle: preservedThemeStyle,
         }),
         inventory: normalizeBackgroundInventory({ items: action.payload.inventory }),
+        mail: normalizeMailTitles(action.payload.mail ?? initialUserState.mail),
         isLoggedIn: true,
         currentPage: state.currentPage === 'login' ? 'home' : state.currentPage,
       };

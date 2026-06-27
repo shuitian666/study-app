@@ -131,6 +131,70 @@ CREATE TABLE IF NOT EXISTS user_game_state (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id TEXT PRIMARY KEY,
+  role TEXT NOT NULL,
+  granted_by TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS system_mails (
+  id TEXT PRIMARY KEY,
+  sender_user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  audience_type TEXT NOT NULL,
+  audience_payload TEXT NOT NULL DEFAULT '{}',
+  claim_deadline TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  system_mail INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS mail_recipients (
+  id TEXT PRIMARY KEY,
+  mail_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  read_at TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(mail_id, user_id),
+  FOREIGN KEY (mail_id) REFERENCES system_mails(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mail_attachments (
+  id TEXT PRIMARY KEY,
+  mail_id TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  reward_type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  rarity TEXT,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  UNIQUE(mail_id, position),
+  FOREIGN KEY (mail_id) REFERENCES system_mails(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mail_claims (
+  id TEXT PRIMARY KEY,
+  mail_id TEXT NOT NULL,
+  attachment_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, attachment_id),
+  FOREIGN KEY (mail_id) REFERENCES system_mails(id) ON DELETE CASCADE,
+  FOREIGN KEY (attachment_id) REFERENCES mail_attachments(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS teams (
   id TEXT PRIMARY KEY,
   invite_code TEXT NOT NULL UNIQUE,

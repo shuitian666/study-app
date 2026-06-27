@@ -29,7 +29,7 @@ import { useTheme } from '@/store/ThemeContext';
 import { PROFICIENCY_MAP, UILAYOUT_CONFIGS } from '@/types';
 import type { ProficiencyLevel, ThemeConfig } from '@/types';
 import { allFrames, allTitles, rarityConfig } from '@/data/avatarCatalog';
-import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail, FileText } from 'lucide-react';
+import { Settings, ChevronRight, BookOpen, Award, Star, LogOut, CalendarCheck, Trophy, ShoppingBag, Medal, Backpack, Mail, FileText, ShieldCheck } from 'lucide-react';
 import { TopAppBar, SettingsList } from '@/components/layout';
 import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
@@ -439,6 +439,14 @@ export default function ProfilePage() {
                 badge: userState.mail.mails.filter(m => !m.read).length,
                 onClick: () => navigate('mail'),
               },
+              ...((userState.user?.permissions?.length ?? 0) > 0 ? [{
+                key: 'admin',
+                icon: <ShieldCheck size={20} />,
+                iconColor: 'text-cyan-600',
+                label: '管理员中心',
+                value: userState.user?.role === 'sub_admin' ? '内容协助' : '权限与邮件',
+                onClick: () => navigate('admin'),
+              }] : []),
             ]}
           />
 
@@ -664,6 +672,7 @@ export default function ProfilePage() {
             { icon: Backpack, label: '背包', desc: `${userState.inventory.items.length}件物品`, color: 'text-emerald-500', page: 'inventory' as const },
             { icon: FileText, label: '学习总结', desc: '复盘与建议', color: 'text-indigo-500', page: 'ai-study-summaries' as const },
             { icon: Mail, label: '邮件', desc: `${userState.mail.mails.filter(m => !m.read).length}未读`, color: 'text-rose-500', page: 'mail' as const, badge: userState.mail.mails.filter(m => !m.read).length },
+            ...((userState.user?.permissions?.length ?? 0) > 0 ? [{ icon: ShieldCheck, label: '管理员中心', desc: userState.user?.role === 'sub_admin' ? '内容协助' : '权限与邮件', color: 'text-cyan-600', page: 'admin' as const }] : []),
           ]).map((item, i, arr) => {
             const Icon = item.icon;
             return (

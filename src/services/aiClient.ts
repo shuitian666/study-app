@@ -1,4 +1,17 @@
-import type { AIConfig, AILearningContext, CheckinState, DrawBalance, InventoryItem, LotteryResult, Question, UpPoolResult, User } from '@/types';
+import type {
+  AIConfig,
+  AILearningContext,
+  CheckinState,
+  DrawBalance,
+  InventoryItem,
+  LotteryResult,
+  MailAttachment,
+  MailItem,
+  MailState,
+  Question,
+  UpPoolResult,
+  User,
+} from '@/types';
 
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '');
 export const API_BASE = configuredApiBase || '/api';
@@ -25,6 +38,14 @@ export interface ServerAIConfigStatus {
   platformConfigured: boolean;
 }
 
+export interface AdminStatus {
+  role: User['role'];
+  permissions: NonNullable<User['permissions']>;
+  isSuperAdmin: boolean;
+  isAdmin: boolean;
+  isSubAdmin: boolean;
+}
+
 export interface AuthPayload {
   user: User;
   assets: {
@@ -39,6 +60,8 @@ export interface AuthPayload {
   checkin: CheckinState;
   drawBalance: DrawBalance;
   inventory: InventoryItem[];
+  mail: MailState;
+  admin: AdminStatus;
   game: {
     redeemedCodes: string[];
     shopOwnedIds: string[];
@@ -176,6 +199,75 @@ export function accountDrawLottery(pool: 'regular' | 'up', count: 1 | 10): Promi
 
 export function accountUseInventoryItem(itemId: string): Promise<AuthPayload> {
   return accountRequest('/account/inventory/use', { itemId });
+}
+
+export function accountMarkMailRead(mailId: string): Promise<{ mail: MailState }> {
+  return accountRequest(`/account/mail/${encodeURIComponent(mailId)}/read`, {}) as unknown as Promise<{ mail: MailState }>;
+}
+
+export function accountClaimMailAttachment(mailId: string, attachmentIdOrIndex: string | number): Promise<AuthPayload> {
+  return accountRequest(`/account/mail/${encodeURIComponent(mailId)}/attachments/${encodeURIComponent(String(attachmentIdOrIndex))}/claim`, {});
+}
+
+export async function fetchAdminStatus(): Promise<AdminStatus> {
+  const res = await fetch(`${API_BASE}/admin/status`, { credentials: 'include' });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to load admin status');
+  return res.json();
+}
+
+export async function adminSendMail(input: {
+  title: string;
+  content: string;
+  audience?: { type: 'all' } | { type: 'users'; userIds: string[] };
+  claimDeadline?: string;
+  attachments?: MailAttachment[];
+}): Promise<{ mail: MailItem; recipientCount: number }> {
+  const res = await fetch(`${API_BASE}/admin/mail`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to send mail');
+  return res.json();
+}
+
+export interface AdminUserSummary {
+  id: string;
+  phone: string;
+  nickname: string;
+  avatar: string;
+  role: User['role'];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function adminSearchUsers(query: string): Promise<{ users: AdminUserSummary[] }> {
+  const res = await fetch(`${API_BASE}/admin/users?query=${encodeURIComponent(query)}`, { credentials: 'include' });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to search users');
+  return res.json();
+}
+
+export async function adminGrantRole(userId: string, role: Exclude<User['role'], undefined>): Promise<{ user: AdminUserSummary }> {
+  const res = await fetch(`${API_BASE}/admin/roles/grant`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ userId, role }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to grant role');
+  return res.json();
+}
+
+export async function adminRevokeRole(userId: string): Promise<{ user: AdminUserSummary }> {
+  const res = await fetch(`${API_BASE}/admin/roles/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ userId }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to revoke role');
+  return res.json();
 }
 
 export type AccountProfilePatch = Partial<Omit<User, 'activeTitle' | 'customAvatarUrl' | 'currentBackground'>> & {

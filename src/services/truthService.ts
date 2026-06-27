@@ -25,6 +25,8 @@ async function truthRequest<T>(path: string, options: RequestInit = {}): Promise
 export interface TruthStatus {
   enabled: boolean;
   isAdmin: boolean;
+  role?: 'user' | 'sub_admin' | 'admin' | 'super_admin';
+  permissions?: string[];
   limits: {
     maxFiles: number;
     maxFileBytes: number;
@@ -98,6 +100,11 @@ export async function updateTruthAsset(id: string, patch: Partial<TruthAsset>): 
 
 export async function publishTruthAsset(id: string): Promise<{ asset: TruthAsset }> {
   const result = await truthRequest<{ asset: TruthAsset }>(`/truth/assets/${id}/publish`, { method: 'POST' });
+  return { asset: resolveAsset(result.asset) };
+}
+
+export async function submitTruthAsset(id: string): Promise<{ asset: TruthAsset }> {
+  const result = await truthRequest<{ asset: TruthAsset }>(`/truth/assets/${id}/submit`, { method: 'POST' });
   return { asset: resolveAsset(result.asset) };
 }
 

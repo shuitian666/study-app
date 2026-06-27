@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import { db, getAssets, getGameState, getInventory, getUserById, nowIso, toPublicUser, updateUserProfile } from './db.js';
 import { getAiConfigStatus } from './providers.js';
+import { getAdminStatus } from './admin.js';
+import { getMailState } from './mail.js';
 
 const STREAK_REWARDS = [
   { days: 1, coins: 5, upDraws: 0, label: '1天' },
@@ -246,6 +248,8 @@ function accountState(userId, extra = {}) {
       shopOwnedIds,
       upPoolOwnedIds,
     },
+    mail: getMailState(userId),
+    admin: getAdminStatus(user),
     aiConfigStatus: getAiConfigStatus(userId),
     ...extra,
   };

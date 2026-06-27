@@ -580,7 +580,10 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
       });
       notifyStudyExperienceEarned('flashcard');
       const dailyGoal = Math.max(1, userState.user?.dailyGoal ?? 10);
-      const todayProgressBefore = getTodayLearningProgress(learningState);
+      const todayProgressBefore = getTodayLearningProgress({
+        knowledgePoints: learningState.knowledgePoints,
+        quizResults: learningState.quizResults,
+      });
       const alreadyCheckedIn = gameState.checkin.records.some(record => record.date === todayProgressBefore.todayKey);
       const alreadyCountedToday = (liveKnowledgePoint.studyRecords || []).some(record =>
         getLocalDateKey(record.date) === todayProgressBefore.todayKey && record.score >= 80
@@ -662,6 +665,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
     learningDispatch,
     learningState.knowledgePoints,
     learningState.questions,
+    learningState.quizResults,
     learningState.todayReviewItems,
     learningState.todayNewItems,
     levelProgress.level,

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useUser } from '@/store/UserContext';
+import { useGame } from '@/store/GameContext';
 import { PageHeader } from '@/components/ui/Common';
 import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle, Sparkles } from 'lucide-react';
+import { accountClaimMailAttachment, accountMarkMailRead } from '@/services/aiClient';
+import { applyServerAccountPayload, isUnauthorizedError, logoutOnUnauthorized } from '@/store/accountSync';
 
 type MailFilter = 'all' | 'unread' | 'claimable';
 
@@ -10,38 +13,68 @@ const attachmentIcons: Record<string, React.ReactNode> = {
   avatar_frame: <Crown size={14} className="text-purple-500" />,
   coin: <Coins size={14} className="text-amber-500" />,
   experience: <Sparkles size={14} className="text-indigo-500" />,
+  regular_ticket: <Ticket size={14} className="text-emerald-500" />,
+  up_ticket: <Ticket size={14} className="text-purple-500" />,
   vip: <Crown size={14} className="text-yellow-500" />,
 };
 
 export default function MailPage() {
   const { userState, userDispatch, navigate } = useUser();
+  const { gameDispatch } = useGame();
   const [selectedMail, setSelectedMail] = useState<string | null>(null);
   const [filter, setFilter] = useState<MailFilter>('all');
+  const [claimingKey, setClaimingKey] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState('');
 
   const mails = userState.mail.mails;
   const currentVersion = userState.mail.currentVersion;
+  const isExpired = (deadline: string) => new Date(deadline) < new Date();
+  const isClaimable = (mail: typeof mails[number]) => (
+    !isExpired(mail.claimDeadline) && !mail.claimed && mail.attachments.some(attachment => !attachment.claimed)
+  );
 
   const filteredMails = mails.filter(mail => {
     if (filter === 'unread') return !mail.read;
-    if (filter === 'claimable') return !mail.claimed && mail.attachments.some(a => !a.claimed);
+    if (filter === 'claimable') return isClaimable(mail);
     return true;
   });
 
   const unreadCount = mails.filter(m => !m.read).length;
-  const claimableCount = mails.filter(m => !m.claimed && m.attachments.some(a => !a.claimed)).length;
+  const claimableCount = mails.filter(isClaimable).length;
 
-  const handleOpenMail = (mailId: string) => {
+  const handleOpenMail = async (mailId: string) => {
+    setClaimError('');
     if (!mails.find(m => m.id === mailId)?.read) {
       userDispatch({ type: 'MARK_MAIL_READ', payload: mailId });
+      try {
+        const response = await accountMarkMailRead(mailId);
+        userDispatch({ type: 'SET_MAILS', payload: response.mail.mails });
+      } catch (err) {
+        logoutOnUnauthorized(err, userDispatch);
+      }
     }
     setSelectedMail(mailId);
   };
 
-  const handleClaimAttachment = (mailId: string, attachmentIndex: number) => {
-    userDispatch({ type: 'CLAIM_MAIL_ATTACHMENT', payload: { mailId, attachmentIndex } });
+  const handleClaimAttachment = async (mailId: string, attachmentIndex: number) => {
+    if (claimingKey) return;
+    const mail = mails.find(item => item.id === mailId);
+    const attachment = mail?.attachments[attachmentIndex];
+    const attachmentKey = attachment?.id ?? attachmentIndex;
+    setClaimingKey(`${mailId}:${attachmentKey}`);
+    setClaimError('');
+    try {
+      const payload = await accountClaimMailAttachment(mailId, attachmentKey);
+      applyServerAccountPayload(payload, userDispatch, gameDispatch);
+    } catch (err) {
+      logoutOnUnauthorized(err, userDispatch);
+      if (!isUnauthorizedError(err)) {
+        setClaimError(err instanceof Error ? err.message : '领取失败，请稍后重试');
+      }
+    } finally {
+      setClaimingKey(null);
+    }
   };
-
-  const isExpired = (deadline: string) => new Date(deadline) < new Date();
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -132,7 +165,7 @@ export default function MailPage() {
               return (
                 <div
                   key={mail.id}
-                  onClick={() => handleOpenMail(mail.id)}
+                  onClick={() => void handleOpenMail(mail.id)}
                   className={`bg-white rounded-xl p-4 border ${
                     !mail.read ? 'border-primary/50 shadow-sm' : 'border-gray-100'
                   } ${expired? 'opacity-60' : ''}`}
@@ -239,6 +272,9 @@ export default function MailPage() {
                 <div className="bg-gray-50 rounded-xl p-3 mb-4">
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{mail.content}</p>
                 </div>
+                {claimError && (
+                  <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{claimError}</p>
+                )}
                 
                 {/* Attachments */}
                 {mail.attachments.length > 0 && (
@@ -249,7 +285,7 @@ export default function MailPage() {
                     
                     {mail.attachments.map((att, idx) => (
                       <div 
-                        key={idx}
+                        key={att.id ?? idx}
                         className={`flex items-center justify-between p-3 rounded-xl border ${
                           att.claimed ? 'border-gray-200 bg-gray-50' : 
                           expired ? 'border-red-200 bg-red-50' :
@@ -274,8 +310,9 @@ export default function MailPage() {
                           </span>
                         ) : (
                           <button
-                            onClick={() => handleClaimAttachment(mail.id, idx)}
-                            className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg font-medium"
+                            onClick={() => void handleClaimAttachment(mail.id, idx)}
+                            disabled={claimingKey !== null}
+                            className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg font-medium disabled:opacity-50"
                           >
                             领取
                           </button>

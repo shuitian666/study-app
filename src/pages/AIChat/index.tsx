@@ -609,7 +609,7 @@ export default function AIChatPage({
                   </button>
                 </>
               )}
-              {truthStatus?.isAdmin && (
+              {truthStatus?.permissions?.includes('truth.assets.upload') && (
                 <button
                   type="button"
                   onClick={() => {

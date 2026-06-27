@@ -5,6 +5,7 @@ import PDFDocument from 'pdfkit';
 import sharp from 'sharp';
 import { db, nowIso } from './db.js';
 import { chatCompletion, extractContent, getAiConfigStatus } from './providers.js';
+import { getAdminStatus, hasPermission } from './admin.js';
 
 const dataDir = process.env.DATA_DIR || path.resolve(process.cwd(), 'data');
 export const truthImageDir = path.join(dataDir, 'truth-images');
@@ -69,24 +70,17 @@ export function truthModeEnabled() {
   return process.env.TRUTH_MODE_ENABLED !== 'false';
 }
 
-export function truthAdminEmails() {
-  return new Set(
-    String(process.env.TRUTH_ADMIN_EMAILS || '')
-      .split(',')
-      .map(value => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-}
-
 export function isTruthAdmin(user) {
-  if (!user) return false;
-  return truthAdminEmails().has(String(user.phone || '').trim().toLowerCase());
+  return hasPermission(user, 'truth.assets.edit');
 }
 
 export function getTruthStatus(user) {
+  const admin = getAdminStatus(user);
   return {
     enabled: truthModeEnabled(),
-    isAdmin: isTruthAdmin(user),
+    isAdmin: hasPermission(user, 'truth.assets.edit'),
+    role: admin.role,
+    permissions: admin.permissions,
     limits: {
       maxFiles: 100,
       maxFileBytes: 20 * 1024 * 1024,
@@ -489,7 +483,7 @@ export function getTruthAssetFile(id, variant, user) {
         WHERE ra.asset_id = ? AND r.user_id = ? LIMIT 1
       `).get(id, user.id)
     : null;
-  if (row.status !== 'published' && !isTruthAdmin(user) && !reportAccess) {
+  if (row.status !== 'published' && !hasPermission(user, 'truth.assets.edit') && !reportAccess) {
     throw httpError(404, '图片不存在');
   }
   const thumbnail = variant === 'preview';

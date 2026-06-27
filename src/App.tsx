@@ -61,6 +61,7 @@ const AIStudyPage = React.lazy(() => import('@/pages/AIStudy'));
 const StudyTutorPanel = React.lazy(() => import('@/components/ai/StudyTutorPanel'));
 const AIStudySummariesPage = React.lazy(() => import('@/pages/AIStudy/Summaries'));
 const TruthAdminPage = React.lazy(() => import('@/pages/TruthAdmin'));
+const AdminPage = React.lazy(() => import('@/pages/Admin'));
 const SettingsPage = React.lazy(() => import('@/pages/Settings'));
 const InventoryPage = React.lazy(() => import('@/features/gamification/inventory'));
 const MailPage = React.lazy(() => import('@/features/gamification/mail'));
@@ -322,6 +323,7 @@ function AppContent() {
       case 'ai-study': return <AIStudyPage />;
       case 'ai-study-summaries': return <AIStudySummariesPage />;
       case 'truth-admin': return <TruthAdminPage />;
+      case 'admin': return <AdminPage />;
       case 'settings': return <SettingsPage />;
       case 'inventory': return <InventoryPage />;
       case 'mail': return <MailPage />;
@@ -349,6 +351,7 @@ function AppContent() {
     'ai-study',
     'ai-study-summaries',
     'truth-admin',
+    'admin',
   ];
   const isImmersivePage = userState.currentPage === 'login'
     || userState.currentPage === 'quiz-session'
@@ -568,6 +571,7 @@ function AppContent() {
       case 'ai-study': return <AIStudyPage onOpenTutor={openDesktopTutor} />;
       case 'ai-study-summaries': return <AIStudySummariesPage />;
       case 'truth-admin': return <TruthAdminPage />;
+      case 'admin': return <AdminPage />;
       case 'ai-chat': return <AIChatPage />;
       default: return <HomePage isActive showBottomNav={false} />;
     }
@@ -582,6 +586,7 @@ function AppContent() {
     'flashcard-learning': '学习',
     'ai-chat': 'AI 助手',
     'truth-admin': '求真图片库',
+    admin: '管理后台',
   };
   const pageTitle = desktopTabs.find(tab => tab.key === userState.currentPage)?.label
     ?? desktopPageTitles[userState.currentPage]

@@ -8,6 +8,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { db, createUser, getUserByPhone, getUserById, nowIso } from './db.js';
 import {
+  getAdminStatus,
+  grantRole,
+  requirePermission,
+  revokeRole,
+  searchAdminUsers,
+} from './admin.js';
+import {
   buyShopItem,
   claimLevelReward,
   drawLotteryForUser,
@@ -61,7 +68,6 @@ import {
   getTruthAssetFile,
   getTruthReport,
   getTruthStatus,
-  isTruthAdmin,
   listTruthAssets,
   listTruthReports,
   searchTruthAssets,
@@ -71,6 +77,12 @@ import {
   truthTempDir,
   updateTruthAsset,
 } from './truth.js';
+import {
+  claimMailAttachment,
+  createSystemMail,
+  listAdminMails,
+  markMailRead,
+} from './mail.js';
 import {
   deletePushSubscription,
   getReminderPreferences,
@@ -158,11 +170,6 @@ function requireAuth(req, res, next) {
 
 function requireTruthEnabled(_req, res, next) {
   if (!truthModeEnabled()) return res.status(404).json({ error: 'Truth mode is disabled' });
-  return next();
-}
-
-function requireTruthAdmin(req, res, next) {
-  if (!isTruthAdmin(req.user)) return res.status(403).json({ error: 'Administrator permission required' });
   return next();
 }
 
@@ -257,9 +264,74 @@ app.get('/api/account/state', requireAuth, (req, res) => {
   res.json(getAccountState(req.user.id));
 });
 
+app.get('/api/account/mail', requireAuth, (req, res) => {
+  res.json({ mail: getAccountState(req.user.id).mail });
+});
+
+app.post('/api/account/mail/:id/read', requireAuth, (req, res) => {
+  try {
+    res.json({ mail: markMailRead(req.user.id, req.params.id) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/account/mail/:id/attachments/:attachment/claim', requireAuth, (req, res) => {
+  try {
+    const result = claimMailAttachment(req.user.id, req.params.id, req.params.attachment);
+    res.json({ ...getAccountState(req.user.id), mailClaim: { claimed: result.claimed } });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
 app.patch('/api/account/profile', requireAuth, (req, res) => {
   try {
     res.json(updateAccountProfile(req.user.id, req.body || {}));
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.get('/api/admin/status', requireAuth, (req, res) => {
+  res.json(getAdminStatus(req.user));
+});
+
+app.get('/api/admin/users', requireAuth, requirePermission('admin.users.view'), (req, res) => {
+  try {
+    res.json({ users: searchAdminUsers(req.query.query || req.query.q || '', req.query.limit) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/admin/roles/grant', requireAuth, requirePermission('admin.roles.manage'), (req, res) => {
+  try {
+    res.json({ user: grantRole(req.user, req.body?.userId, req.body?.role) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/admin/roles/revoke', requireAuth, requirePermission('admin.roles.manage'), (req, res) => {
+  try {
+    res.json({ user: revokeRole(req.user, req.body?.userId) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.get('/api/admin/mail', requireAuth, requirePermission('mail.send'), (req, res) => {
+  try {
+    res.json({ mails: listAdminMails(req.user, req.query.limit) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/admin/mail', requireAuth, requirePermission('mail.send'), (req, res) => {
+  try {
+    res.json(createSystemMail(req.user, req.body || {}));
   } catch (err) {
     res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
@@ -641,7 +713,7 @@ app.post('/api/truth/search', requireAuth, requireTruthEnabled, (req, res) => {
   }
 });
 
-app.get('/api/truth/assets', requireAuth, requireTruthEnabled, requireTruthAdmin, (req, res) => {
+app.get('/api/truth/assets', requireAuth, requireTruthEnabled, requirePermission('truth.assets.edit'), (req, res) => {
   try {
     res.json({
       assets: listTruthAssets({
@@ -659,7 +731,7 @@ app.post(
   '/api/truth/assets/upload',
   requireAuth,
   requireTruthEnabled,
-  requireTruthAdmin,
+  requirePermission('truth.assets.upload'),
   truthUpload.array('images', 100),
   async (req, res) => {
     try {
@@ -678,7 +750,7 @@ app.post(
   },
 );
 
-app.patch('/api/truth/assets/:id', requireAuth, requireTruthEnabled, requireTruthAdmin, (req, res) => {
+app.patch('/api/truth/assets/:id', requireAuth, requireTruthEnabled, requirePermission('truth.assets.edit'), (req, res) => {
   try {
     res.json({ asset: updateTruthAsset(req.params.id, req.body || {}) });
   } catch (err) {
@@ -686,7 +758,15 @@ app.patch('/api/truth/assets/:id', requireAuth, requireTruthEnabled, requireTrut
   }
 });
 
-app.post('/api/truth/assets/:id/publish', requireAuth, requireTruthEnabled, requireTruthAdmin, (req, res) => {
+app.post('/api/truth/assets/:id/submit', requireAuth, requireTruthEnabled, requirePermission('truth.assets.submit'), (req, res) => {
+  try {
+    res.json({ asset: setTruthAssetStatus(req.params.id, 'pending') });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/truth/assets/:id/publish', requireAuth, requireTruthEnabled, requirePermission('truth.assets.publish'), (req, res) => {
   try {
     res.json({ asset: setTruthAssetStatus(req.params.id, 'published') });
   } catch (err) {
@@ -694,7 +774,7 @@ app.post('/api/truth/assets/:id/publish', requireAuth, requireTruthEnabled, requ
   }
 });
 
-app.post('/api/truth/assets/:id/archive', requireAuth, requireTruthEnabled, requireTruthAdmin, (req, res) => {
+app.post('/api/truth/assets/:id/archive', requireAuth, requireTruthEnabled, requirePermission('truth.assets.archive'), (req, res) => {
   try {
     res.json({ asset: setTruthAssetStatus(req.params.id, 'archived') });
   } catch (err) {

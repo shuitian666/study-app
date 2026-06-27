@@ -6,6 +6,7 @@ import {
   fetchTruthAssets,
   fetchTruthStatus,
   publishTruthAsset,
+  submitTruthAsset,
   updateTruthAsset,
   uploadTruthAssets,
 } from '@/services/truthService';
@@ -70,6 +71,7 @@ function statusText(status: TruthAsset['status']) {
 export default function TruthAdminPage() {
   const { navigate } = useUser();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [form, setForm] = useState<CommonForm>(initialForm);
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [assets, setAssets] = useState<TruthAsset[]>([]);
@@ -86,6 +88,9 @@ export default function TruthAdminPage() {
       && (form.phase === 'control' || Number(form.timeValue) >= 0),
     [files.length, form.batchCode, form.phase, form.species, form.timeValue],
   );
+  const canPublish = permissions.includes('truth.assets.publish');
+  const canArchive = permissions.includes('truth.assets.archive');
+  const canSubmit = permissions.includes('truth.assets.submit');
 
   const loadAssets = async () => {
     setLoadingAssets(true);
@@ -102,8 +107,11 @@ export default function TruthAdminPage() {
   useEffect(() => {
     fetchTruthStatus()
       .then(status => {
-        setAuthorized(status.enabled && status.isAdmin);
-        if (status.enabled && status.isAdmin) void loadAssets();
+        const nextPermissions = status.permissions ?? [];
+        const hasContentAccess = nextPermissions.includes('truth.assets.edit') || nextPermissions.includes('truth.assets.upload');
+        setPermissions(nextPermissions);
+        setAuthorized(status.enabled && hasContentAccess);
+        if (status.enabled && hasContentAccess) void loadAssets();
       })
       .catch(() => setAuthorized(false));
   }, []);
@@ -169,12 +177,14 @@ export default function TruthAdminPage() {
     }
   };
 
-  const changeStatus = async (asset: TruthAsset, next: 'published' | 'archived') => {
+  const changeStatus = async (asset: TruthAsset, next: 'pending' | 'published' | 'archived') => {
     setError('');
     try {
-      const response = next === 'published'
-        ? await publishTruthAsset(asset.id)
-        : await archiveTruthAsset(asset.id);
+      const response = next === 'pending'
+        ? await submitTruthAsset(asset.id)
+        : next === 'published'
+          ? await publishTruthAsset(asset.id)
+          : await archiveTruthAsset(asset.id);
       setAssets(current => current.map(item => item.id === response.asset.id ? response.asset : item));
     } catch (statusError) {
       setError(statusError instanceof Error ? statusError.message : '状态更新失败');
@@ -354,10 +364,13 @@ export default function TruthAdminPage() {
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button type="button" onClick={() => setEditing(asset)} className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700"><Edit3 size={12} />编辑</button>
-                    {asset.status !== 'published' && asset.status !== 'archived' && (
+                    {canSubmit && asset.status === 'draft' && (
+                      <button type="button" onClick={() => void changeStatus(asset, 'pending')} className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-700"><CheckCircle2 size={12} />提交审核</button>
+                    )}
+                    {canPublish && asset.status !== 'published' && asset.status !== 'archived' && (
                       <button type="button" onClick={() => void changeStatus(asset, 'published')} className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700"><CheckCircle2 size={12} />发布</button>
                     )}
-                    {asset.status !== 'archived' && (
+                    {canArchive && asset.status !== 'archived' && (
                       <button type="button" onClick={() => void changeStatus(asset, 'archived')} className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] font-bold text-amber-700"><Archive size={12} />归档</button>
                     )}
                   </div>
