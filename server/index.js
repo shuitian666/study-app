@@ -71,6 +71,14 @@ import {
   truthTempDir,
   updateTruthAsset,
 } from './truth.js';
+import {
+  deletePushSubscription,
+  getReminderPreferences,
+  getVapidPublicKey,
+  savePushSubscription,
+  startReminderScheduler,
+  updateReminderPreferences,
+} from './reminders.js';
 
 const app = express();
 const defaultDevOrigins = [
@@ -390,6 +398,39 @@ app.put('/api/ai/config', requireAuth, (req, res) => {
   `).run(req.user.id, mode, mode === 'custom' ? baseUrl : null, mode === 'custom' ? model : null, mode === 'custom' ? encrypted : null, nowIso());
 
   res.json(getAiConfigStatus(req.user.id));
+});
+
+app.get('/api/reminders/preferences', requireAuth, (req, res) => {
+  res.json({
+    preferences: getReminderPreferences(req.user.id),
+    vapidPublicKey: getVapidPublicKey(),
+  });
+});
+
+app.patch('/api/reminders/preferences', requireAuth, (req, res) => {
+  try {
+    res.json({ preferences: updateReminderPreferences(req.user.id, req.body || {}) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.post('/api/reminders/push-subscription', requireAuth, (req, res) => {
+  try {
+    res.json({
+      preferences: savePushSubscription(req.user.id, req.body?.subscription, req.get('user-agent') || ''),
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.delete('/api/reminders/push-subscription', requireAuth, (req, res) => {
+  try {
+    res.json({ preferences: deletePushSubscription(req.user.id, String(req.body?.endpoint || '')) });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
 });
 
 app.get('/api/models', authOptional, (_req, res) => {
@@ -778,3 +819,4 @@ app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+startReminderScheduler();

@@ -30,7 +30,7 @@ import {
 } from '@/utils/fsrsScheduler';
 import { Rating } from 'ts-fsrs';
 import type { KnowledgePointExtended, Question, ReviewItem } from '@/types';
-import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
+import { getLocalDateKey, getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan } from '@/utils/review';
 import { getReviewReminderSettings, requestReviewReminderPermission } from '@/utils/reviewReminder';
 import { getAIStudyLevelInfo, AI_STUDY_UNLOCK_LEVEL } from '@/utils/aiStudyAccess';
@@ -252,6 +252,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   const [aiAssistAvailable, setAiAssistAvailable] = useState(false);
   const [aiAssistHint, setAiAssistHint] = useState('请先在设置里配置 AI');
   const [experienceNotice, setExperienceNotice] = useState('');
+  const [checkinNotice, setCheckinNotice] = useState(false);
   // 是否正在重现失败卡（用于显示提示）
   const [isRevealingFailed, setIsRevealingFailed] = useState(false);
   // 是否正在处理评分（用于防抖）
@@ -263,6 +264,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   const currentIdxRef = useRef(currentIdx);
   const importSessionRef = useRef(importedStudySession);
   const experienceNoticeTimerRef = useRef<number | null>(null);
+  const checkinNoticeTimerRef = useRef<number | null>(null);
 
   // 同步 ref
   useEffect(() => { queueRef.current = queue; }, [queue]);
@@ -273,6 +275,20 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
     if (experienceNoticeTimerRef.current !== null) {
       window.clearTimeout(experienceNoticeTimerRef.current);
     }
+    if (checkinNoticeTimerRef.current !== null) {
+      window.clearTimeout(checkinNoticeTimerRef.current);
+    }
+  }, []);
+
+  const showCheckinReminder = useCallback(() => {
+    setCheckinNotice(true);
+    if (checkinNoticeTimerRef.current !== null) {
+      window.clearTimeout(checkinNoticeTimerRef.current);
+    }
+    checkinNoticeTimerRef.current = window.setTimeout(() => {
+      setCheckinNotice(false);
+      checkinNoticeTimerRef.current = null;
+    }, 6000);
   }, []);
 
   useEffect(() => {
@@ -563,6 +579,16 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
         },
       });
       notifyStudyExperienceEarned('flashcard');
+      const dailyGoal = Math.max(1, userState.user?.dailyGoal ?? 10);
+      const todayProgressBefore = getTodayLearningProgress(learningState);
+      const alreadyCheckedIn = gameState.checkin.records.some(record => record.date === todayProgressBefore.todayKey);
+      const alreadyCountedToday = (liveKnowledgePoint.studyRecords || []).some(record =>
+        getLocalDateKey(record.date) === todayProgressBefore.todayKey && record.score >= 80
+      );
+      const todayProgressAfter = todayProgressBefore.totalCount + (alreadyCountedToday ? 0 : 1);
+      if (todayProgressBefore.totalCount < dailyGoal && todayProgressAfter >= dailyGoal && !alreadyCheckedIn) {
+        showCheckinReminder();
+      }
       if (!getReviewReminderSettings().prompted) {
         void requestReviewReminderPermission();
       }
@@ -631,6 +657,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
   }, [
     currentKp,
     gameDispatch,
+    gameState.checkin.records,
     isSelecting,
     learningDispatch,
     learningState.knowledgePoints,
@@ -640,7 +667,9 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
     levelProgress.level,
     learningExperience,
     moveToNext,
+    showCheckinReminder,
     userDispatch,
+    userState.user?.dailyGoal,
   ]);
 
   // 上一张卡片
@@ -946,6 +975,25 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
               className="absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-lg"
             >
               {experienceNotice}
+            </div>
+          )}
+          {checkinNotice && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="absolute bottom-5 left-1/2 z-30 flex w-[min(92%,360px)] -translate-x-1/2 items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm shadow-xl"
+            >
+              <span className="min-w-0 font-medium text-text-primary">今日学习目标已完成，可以签到领奖励。</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCheckinNotice(false);
+                  navigate('checkin');
+                }}
+                className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white"
+              >
+                去签到
+              </button>
             </div>
           )}
           <header

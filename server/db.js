@@ -346,6 +346,43 @@ CREATE TABLE IF NOT EXISTS truth_report_assets (
   FOREIGN KEY (report_id) REFERENCES truth_reports(id) ON DELETE CASCADE,
   FOREIGN KEY (asset_id) REFERENCES truth_assets(id) ON DELETE RESTRICT
 );
+
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id TEXT PRIMARY KEY,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  reminder_time TEXT NOT NULL DEFAULT '20:00',
+  timezone TEXT NOT NULL DEFAULT 'Asia/Shanghai',
+  push_enabled INTEGER NOT NULL DEFAULT 0,
+  email_fallback_enabled INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  subscription_json TEXT NOT NULL,
+  user_agent TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(user_id, endpoint),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS notification_log (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  date_key TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  status TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  UNIQUE(user_id, date_key, kind, channel),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 `);
 
 function addColumn(table, columnDef) {
@@ -374,6 +411,7 @@ addColumn('users', 'background TEXT');
 addColumn("users", "theme_style TEXT NOT NULL DEFAULT 'default'");
 addColumn('users', 'active_title TEXT');
 addColumn('users', "learning_profile TEXT NOT NULL DEFAULT '{}'");
+addColumn('users', 'daily_goal INTEGER NOT NULL DEFAULT 10');
 addColumn('team_members', 'avatar_frame TEXT');
 
 export function nowIso() {
@@ -431,6 +469,7 @@ export function updateUserProfile(userId, patch) {
     ['themeStyle', 'theme_style'],
     ['activeTitle', 'active_title'],
     ['learningProfile', 'learning_profile'],
+    ['dailyGoal', 'daily_goal'],
   ];
   const assignments = [];
   const values = [];
@@ -445,6 +484,8 @@ export function updateUserProfile(userId, patch) {
       value = value === 'fluidScholar' ? 'fluidScholar' : 'default';
     } else if (inputKey === 'learningProfile') {
       value = JSON.stringify(normalizeLearningProfile(value && typeof value === 'object' ? value : {}));
+    } else if (inputKey === 'dailyGoal') {
+      value = Math.max(1, Math.min(200, Math.round(Number(value) || 10)));
     } else if (value === undefined || value === '') {
       value = null;
     } else if (value !== null) {
@@ -519,8 +560,8 @@ export function toPublicUser(row, assets) {
     bonusExperience: assets?.experience ?? 0,
     experienceLedger: [],
     createdAt: row.created_at,
-    dailyGoal: 10,
-    dailyNewGoal: 10,
+    dailyGoal: Number.isFinite(row.daily_goal) && row.daily_goal > 0 ? row.daily_goal : 10,
+    dailyNewGoal: Number.isFinite(row.daily_goal) && row.daily_goal > 0 ? row.daily_goal : 10,
     todayQuestions: 0,
     goalAchievedToday: false,
     avatarFrame: row.avatar_frame ?? null,

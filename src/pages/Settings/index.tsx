@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Bot, BookOpen, Check, CircleHelp, Cloud, KeyRound, Palette, ShieldCheck, Sparkles, Target, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bell, Bot, BookOpen, Check, CircleHelp, Clock, Cloud, KeyRound, Mail, Palette, ShieldCheck, Smartphone, Sparkles, Target, Trash2 } from 'lucide-react';
 import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useGame } from '@/store/GameContext';
@@ -9,6 +9,14 @@ import { clearKnowledgeData } from '@/services/indexedDBService';
 import { getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 import { normalizeLearningProfile } from '@/utils/aiLearningContext';
+import {
+  canUsePushNotifications,
+  fetchReminderPreferences,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  updateReminderPreferences,
+  type ServerReminderPreferences,
+} from '@/utils/studyReminder';
 import type { ExplanationStyle, LearningGoal, PreferredDifficulty, PracticePreference, UserLearningProfile } from '@/types';
 import FlashcardStudyGuide from '@/components/ui/FlashcardStudyGuide';
 
@@ -38,6 +46,14 @@ const PRACTICE_OPTIONS: Array<{ id: PracticePreference; label: string }> = [
   { id: 'wrong_only', label: '只看错题' },
 ];
 
+const DEFAULT_REMINDER_PREFS: ServerReminderPreferences = {
+  enabled: false,
+  reminderTime: '20:00',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai',
+  pushEnabled: false,
+  emailFallbackEnabled: true,
+};
+
 export default function SettingsPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { learningState, learningDispatch } = useLearning();
@@ -65,6 +81,14 @@ export default function SettingsPage() {
   const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
   const [destroyConfirmText, setDestroyConfirmText] = useState('');
   const [showFlashcardGuide, setShowFlashcardGuide] = useState(false);
+  const [reminderPrefs, setReminderPrefs] = useState<ServerReminderPreferences>(DEFAULT_REMINDER_PREFS);
+  const [vapidPublicKey, setVapidPublicKey] = useState('');
+  const [savingReminder, setSavingReminder] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState(() => (
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+  ));
 
   const todayCompleted = getTodayLearningProgress(learningState).totalCount;
   const goalAchieved = todayCompleted >= dailyGoal;
@@ -80,6 +104,29 @@ export default function SettingsPage() {
       .catch(() => {
         setAiMessage({ type: 'error', text: '无法读取 AI 配置，请确认已登录。' });
       });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchReminderPreferences()
+      .then(data => {
+        if (cancelled) return;
+        setReminderPrefs({
+          ...DEFAULT_REMINDER_PREFS,
+          ...data.preferences,
+          timezone: data.preferences.timezone || DEFAULT_REMINDER_PREFS.timezone,
+        });
+        setVapidPublicKey(data.vapidPublicKey || '');
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setReminderMessage({ type: 'error', text: '无法读取提醒设置，请确认已登录。' });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getBorderRadius = (size: 'small' | 'medium' | 'large' = 'medium') => {
@@ -123,12 +170,72 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveGoal = () => {
+  const handleSaveGoal = async () => {
     localStorage.setItem('daily-goal', String(dailyGoal));
     localStorage.removeItem('daily-question-goal');
     userDispatch({ type: 'SET_DAILY_GOAL', payload: dailyGoal });
+    try {
+      const payload = await accountUpdateProfile({ dailyGoal });
+      applyServerAccountPayload(payload, userDispatch, gameDispatch);
+    } catch (error) {
+      logoutOnUnauthorized(error, userDispatch);
+      console.warn('Failed to sync daily goal:', error);
+    }
     setGoalSaved(true);
     setTimeout(() => setGoalSaved(false), 1600);
+  };
+
+  const patchReminderPrefs = (patch: Partial<ServerReminderPreferences>) => {
+    setReminderPrefs(current => ({ ...current, ...patch }));
+    setReminderMessage(null);
+  };
+
+  const saveReminderPrefs = async () => {
+    setSavingReminder(true);
+    setReminderMessage(null);
+    try {
+      const saved = await updateReminderPreferences({
+        ...reminderPrefs,
+        timezone: reminderPrefs.timezone || DEFAULT_REMINDER_PREFS.timezone,
+      });
+      setReminderPrefs(saved);
+      setReminderMessage({ type: 'success', text: '提醒设置已保存。' });
+    } catch (error) {
+      logoutOnUnauthorized(error, userDispatch);
+      setReminderMessage({ type: 'error', text: error instanceof Error ? error.message : '保存提醒设置失败。' });
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  const enablePushReminder = async () => {
+    setPushBusy(true);
+    setReminderMessage(null);
+    try {
+      const saved = await subscribeToPushNotifications(vapidPublicKey);
+      setReminderPrefs(saved);
+      setNotificationPermission(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+      setReminderMessage({ type: 'success', text: '系统通知已开启。' });
+    } catch (error) {
+      setNotificationPermission(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+      setReminderMessage({ type: 'error', text: error instanceof Error ? error.message : '开启系统通知失败。' });
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const disablePushReminder = async () => {
+    setPushBusy(true);
+    setReminderMessage(null);
+    try {
+      const saved = await unsubscribeFromPushNotifications();
+      if (saved) setReminderPrefs(saved);
+      setReminderMessage({ type: 'success', text: '系统通知已关闭，邮件兜底仍可保留。' });
+    } catch (error) {
+      setReminderMessage({ type: 'error', text: error instanceof Error ? error.message : '关闭系统通知失败。' });
+    } finally {
+      setPushBusy(false);
+    }
   };
 
   const handleSaveThemeStyle = (style: string) => {
@@ -373,6 +480,121 @@ export default function SettingsPage() {
 
           <button onClick={handleSaveGoal} className="mt-4 w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80">
             {goalSaved ? '已保存' : '保存目标'}
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-4 px-4">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Bell size={16} className="text-primary" />
+          学习提醒
+        </h3>
+        <div className="space-y-4 p-4 shadow-sm" style={cardStyle}>
+          <button
+            type="button"
+            onClick={() => patchReminderPrefs({ enabled: !reminderPrefs.enabled })}
+            className={`flex w-full items-center justify-between rounded-xl border-2 p-4 text-left transition-all ${
+              reminderPrefs.enabled ? 'border-primary bg-primary/5' : 'border-border bg-white'
+            }`}
+            aria-pressed={reminderPrefs.enabled}
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Bell size={19} />
+              </span>
+              <span>
+                <span className="block text-sm font-medium">今日任务提醒</span>
+                <span className="mt-0.5 block text-xs text-text-muted">学习未达标优先提醒，达标后只提醒未签到。</span>
+              </span>
+            </span>
+            {reminderPrefs.enabled && <Check size={18} className="text-primary" />}
+          </button>
+
+          <label className="block">
+            <span className="mb-1.5 flex items-center gap-1.5 text-xs text-text-secondary">
+              <Clock size={13} />
+              每日提醒时间
+            </span>
+            <input
+              type="time"
+              value={reminderPrefs.reminderTime}
+              onChange={event => patchReminderPrefs({ reminderTime: event.target.value })}
+              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+            <span className="mt-1 block text-[10px] text-text-muted">默认 20:00，按当前时区 {reminderPrefs.timezone} 发送。</span>
+          </label>
+
+          <button
+            type="button"
+            onClick={() => patchReminderPrefs({ emailFallbackEnabled: !reminderPrefs.emailFallbackEnabled })}
+            className="flex w-full items-center justify-between rounded-xl border border-border bg-white p-4 text-left"
+            aria-pressed={reminderPrefs.emailFallbackEnabled}
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                <Mail size={18} />
+              </span>
+              <span>
+                <span className="block text-sm font-medium">邮件兜底</span>
+                <span className="mt-0.5 block text-xs text-text-muted">系统通知不可用或发送失败时，用登录邮箱提醒。</span>
+              </span>
+            </span>
+            {reminderPrefs.emailFallbackEnabled && <Check size={18} className="text-primary" />}
+          </button>
+
+          <div className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                <Smartphone size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">PWA 系统通知</div>
+                <p className="mt-1 text-xs leading-5 text-text-muted">
+                  {canUsePushNotifications()
+                    ? notificationPermission === 'granted'
+                      ? '当前浏览器支持系统通知。'
+                      : '需要授权通知权限；手机端建议添加到主屏幕后使用。'
+                    : '当前浏览器不支持 Web Push，将使用邮件和应用内提醒。'}
+                </p>
+                {!vapidPublicKey && (
+                  <p className="mt-1 text-xs text-amber-600">服务端尚未配置 VAPID 推送密钥，暂时只能使用邮件兜底。</p>
+                )}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={enablePushReminder}
+                    disabled={pushBusy || reminderPrefs.pushEnabled || !canUsePushNotifications() || !vapidPublicKey}
+                    className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {reminderPrefs.pushEnabled ? '已开启通知' : pushBusy ? '处理中...' : '开启系统通知'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={disablePushReminder}
+                    disabled={pushBusy || !reminderPrefs.pushEnabled}
+                    className="rounded-xl border border-border px-4 py-2.5 text-xs font-medium text-text-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    关闭
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {reminderMessage && (
+            <div className={`rounded-xl border px-3 py-2 text-xs ${
+              reminderMessage.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'
+            }`}>
+              {reminderMessage.text}
+            </div>
+          )}
+
+          <button
+            onClick={saveReminderPrefs}
+            disabled={savingReminder}
+            className="w-full rounded-xl bg-primary py-2.5 text-sm font-medium text-white active:opacity-80 disabled:opacity-50"
+          >
+            {savingReminder ? '保存中...' : '保存提醒设置'}
           </button>
         </div>
       </section>

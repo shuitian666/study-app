@@ -1,12 +1,13 @@
 import { MOCK_CHAPTERS, MOCK_KNOWLEDGE_POINTS, MOCK_QUESTIONS, MOCK_SUBJECTS } from '@/data/mock';
-import type { Chapter, KnowledgePointExtended, Question, QuestionExplanation, Subject, WrongRecord } from '@/types';
-import type { LearningDeletePayload, LearningImportBatchPayload, LearningProgressPatch } from '@/types/learningSync';
+import type { Chapter, KnowledgePointExtended, Question, QuestionExplanation, QuizResult, Subject, WrongRecord } from '@/types';
+import type { LearningDeletePayload, LearningImportBatchPayload, LearningProgressPatch, LearningProgressRecord } from '@/types/learningSync';
 
 export interface LearningSyncState {
   subjects: Subject[];
   chapters: Chapter[];
   knowledgePoints: KnowledgePointExtended[];
   questions: Question[];
+  quizResults: QuizResult[];
   wrongRecords: WrongRecord[];
   questionExplanations: QuestionExplanation[];
   importHistory: Array<{
@@ -84,7 +85,7 @@ export function buildContentSyncPayload(state: LearningSyncState): LearningImpor
 }
 
 export function buildProgressSyncPayload(state: LearningSyncState): LearningProgressPatch | null {
-  const progress = state.knowledgePoints.map(kp => {
+  const progress: LearningProgressRecord[] = state.knowledgePoints.map(kp => {
     const latestStudyRecord = kp.studyRecords?.at(-1)?.date;
     const latestQuizRecord = kp.quizRecords?.at(-1)?.date;
     const updatedAt = latestTimestamp(kp.lastReviewedAt, latestStudyRecord, latestQuizRecord, kp.createdAt) || new Date(0).toISOString();
@@ -109,6 +110,21 @@ export function buildProgressSyncPayload(state: LearningSyncState): LearningProg
       deletedAt: kp.deletedAt,
     };
   });
+  const quizSessions = (state.quizResults || [])
+    .filter(result => result.completedAt && result.totalQuestions > 0)
+    .map(result => ({
+      id: result.id,
+      totalQuestions: result.totalQuestions,
+      completedAt: result.completedAt,
+    }));
+  if (quizSessions.length > 0) {
+    progress.push({
+      id: 'progress-quiz-sessions',
+      knowledgePointId: '__quiz_sessions__',
+      quizSessions,
+      updatedAt: latestTimestamp(...quizSessions.map(session => session.completedAt)) || new Date(0).toISOString(),
+    });
+  }
 
   const questionExplanations = state.questionExplanations.filter(explanation => explanation.isUserModified);
   if (progress.length === 0 && state.wrongRecords.length === 0 && questionExplanations.length === 0) {

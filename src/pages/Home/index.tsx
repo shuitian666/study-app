@@ -182,6 +182,7 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
   const completedNew = learningState.todayNewItems.filter(item => item.completed).length;
   const remainingGoalCount = Math.max(dailyGoal - todayLearningCount, 0);
   const hasCheckedInToday = gameState.checkin.records.some(record => record.date === todayKey);
+  const canCheckinToday = dailyGoalCompleted && !hasCheckedInToday;
   const isScholar = theme.uiStyle === 'scholar' || theme.isFluidScholar;
   const isDark = isDarkTheme(theme);
   const classicPalette = isDark
@@ -207,8 +208,11 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
   const firstRecommendedPackage = recommendedPackages[0] ?? knowledgeBases[0] ?? null;
 
   useEffect(() => {
-    return scheduleReviewReminder(reviewPending) ?? undefined;
-  }, [reviewPending, reminderEnabled]);
+    return scheduleReviewReminder({
+      remainingCount: remainingGoalCount,
+      canCheckin: canCheckinToday,
+    }) ?? undefined;
+  }, [canCheckinToday, remainingGoalCount, reminderEnabled]);
 
   const claimKnowledgePackage = useCallback(async (subjectId: string) => {
     if (claimingPackageId) return;
@@ -428,6 +432,7 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
       hint: totalReviewTasks > 0 ? `已完成 ${completedReview}/${totalReviewTasks}` : '暂无到期卡片',
       color: paperPalette.amber,
       bg: classicPalette.amberSoft,
+      attention: false,
       onClick: openPrimaryLearning,
     },
     {
@@ -437,6 +442,7 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
       hint: `今日目标 ${dailyGoal}`,
       color: paperPalette.green,
       bg: classicPalette.greenSoft,
+      attention: false,
       onClick: openPrimaryLearning,
     },
     {
@@ -446,6 +452,7 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
       hint: hasCheckedInToday ? '节奏保持中' : `连学 ${gameState.checkin.streak} 天`,
       color: paperPalette.rose,
       bg: classicPalette.roseSoft,
+      attention: canCheckinToday,
       onClick: () => navigate('checkin'),
     },
   ];
@@ -976,12 +983,15 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
             <button
               key={card.key}
               onClick={card.onClick}
-              className="min-h-[88px] rounded-lg border p-3 text-left shadow-[0_10px_26px_-22px_rgba(97,71,38,0.65)] transition-transform active:scale-[0.98]"
+              className="relative min-h-[88px] rounded-lg border p-3 text-left shadow-[0_10px_26px_-22px_rgba(97,71,38,0.65)] transition-transform active:scale-[0.98]"
               style={{
                 backgroundColor: isScholar ? theme.bgCard : classicPalette.card,
                 borderColor: isScholar ? theme.border : classicPalette.line,
               }}
             >
+              {card.attention && (
+                <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" aria-label="需要签到" />
+              )}
               <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: card.bg, color: card.color }}>
                 <Circle size={10} fill="currentColor" />
               </span>

@@ -3,6 +3,7 @@ import type {
   KnowledgePointExtended,
   Question,
   QuestionExplanation,
+  QuizResult,
   Subject,
   WrongRecord,
 } from '@/types';
@@ -13,6 +14,7 @@ export interface LearningProgressRecord extends Partial<KnowledgePointExtended> 
   knowledgePointId: string;
   ownerUserId?: string;
   sourceType?: 'manual' | 'local-import' | 'cloud-import';
+  quizSessions?: Array<Pick<QuizResult, 'id' | 'totalQuestions' | 'completedAt'>>;
   updatedAt?: string;
   deletedAt?: string | null;
 }
