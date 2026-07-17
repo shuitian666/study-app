@@ -53,6 +53,11 @@ export function parseCookies(header = '') {
 }
 
 export function getSessionId(req) {
+  const authorization = req.headers.authorization || '';
+  const bearerMatch = typeof authorization === 'string'
+    ? authorization.match(/^Bearer\s+(.+)$/i)
+    : null;
+  if (bearerMatch?.[1]) return bearerMatch[1].trim();
   return parseCookies(req.headers.cookie || '')[SESSION_COOKIE] || '';
 }
 

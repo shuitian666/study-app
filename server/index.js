@@ -91,6 +91,7 @@ import {
   startReminderScheduler,
   updateReminderPreferences,
 } from './reminders.js';
+import { buildAppVersionResponse } from './appVersion.js';
 
 const app = express();
 const defaultDevOrigins = [
@@ -99,10 +100,17 @@ const defaultDevOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ];
+const defaultProductionOrigins = [
+  'https://zhixueassistant.cn',
+  'https://www.zhixueassistant.cn',
+  'capacitor://localhost',
+  'http://localhost',
+  'https://localhost',
+];
 const configuredOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 const allowedOrigins = new Set([
   ...configuredOrigins,
-  ...(process.env.NODE_ENV === 'production' ? [] : defaultDevOrigins),
+  ...(process.env.NODE_ENV === 'production' ? defaultProductionOrigins : defaultDevOrigins),
 ]);
 function isPrivateDevOrigin(origin) {
   if (process.env.NODE_ENV === 'production') return false;
@@ -173,8 +181,8 @@ function requireTruthEnabled(_req, res, next) {
   return next();
 }
 
-function publicUserPayload(user) {
-  return getAccountState(user.id);
+function publicUserPayload(user, sessionToken) {
+  return getAccountState(user.id, sessionToken ? { sessionToken } : {});
 }
 
 const authLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'auth' });
@@ -235,7 +243,7 @@ app.post('/api/auth/register', authLimiter, (req, res) => {
   const user = createUser(email, hashPassword(password));
   const sessionId = makeSession(user.id);
   setSessionCookie(res, sessionId);
-  return res.json(publicUserPayload(user));
+  return res.json(publicUserPayload(user, sessionId));
 });
 
 app.post('/api/auth/login', authLimiter, (req, res) => {
@@ -247,7 +255,7 @@ app.post('/api/auth/login', authLimiter, (req, res) => {
   }
   const sessionId = makeSession(user.id);
   setSessionCookie(res, sessionId);
-  return res.json(publicUserPayload(user));
+  return res.json(publicUserPayload(user, sessionId));
 });
 
 app.post('/api/auth/logout', requireAuth, (req, res) => {
@@ -257,7 +265,7 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
 });
 
 app.get('/api/me', requireAuth, (req, res) => {
-  res.json(publicUserPayload(req.user));
+  res.json(publicUserPayload(req.user, getSessionId(req)));
 });
 
 app.get('/api/account/state', requireAuth, (req, res) => {
@@ -834,6 +842,10 @@ app.get('/api/truth/reports/:id/pdf', requireAuth, requireTruthEnabled, (req, re
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: nowIso() });
+});
+
+app.get('/api/app-version', (req, res) => {
+  res.json(buildAppVersionResponse(req.query));
 });
 
 app.post('/api/team/create', requireAuth, (req, res) => {

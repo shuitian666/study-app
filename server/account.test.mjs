@@ -41,7 +41,7 @@ const {
   normalizeStudyPractice,
   saveStudySummary,
 } = await import('./aiStudy.js');
-const { setSessionCookie } = await import('./security.js');
+const { getSessionId, setSessionCookie } = await import('./security.js');
 
 function clearDb() {
   for (const table of [
@@ -361,6 +361,17 @@ test('session cookie secure flag is opt-in for cross-site HTTPS deployments', ()
     if (originalSameSite === undefined) delete process.env.SESSION_COOKIE_SAMESITE;
     else process.env.SESSION_COOKIE_SAMESITE = originalSameSite;
   }
+});
+
+test('authorization bearer token can provide the session id for app clients', () => {
+  const req = {
+    headers: {
+      authorization: 'Bearer ses_app_client_token',
+      cookie: 'study_session=ses_cookie_token',
+    },
+  };
+
+  assert.equal(getSessionId(req), 'ses_app_client_token');
 });
 
 test('account profile persists learning profile with defaults and validation', () => {
