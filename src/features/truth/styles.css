@@ -1,0 +1,99 @@
+.truth-workspace { height:100%; overflow:auto; background:var(--color-bg); color:var(--color-text-primary); padding:24px 24px 104px; }
+.truth-container { max-width:1400px; margin:auto; container-type:inline-size; }
+.truth-header,.truth-heading-row,.truth-section-heading,.truth-actions,.truth-card-actions,.truth-pagination,.truth-viewer-toolbar { display:flex; align-items:center; gap:12px; }
+.truth-header,.truth-section-heading,.truth-pagination { justify-content:space-between; }
+.truth-header { margin-bottom:24px; flex-wrap:wrap; }
+.truth-header h1 { font-size:28px; font-weight:800; }
+.truth-header p,.truth-muted { font-size:13px; color:var(--color-text-muted); line-height:1.7; }
+.truth-button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:9px 13px; border:1px solid var(--color-border); border-radius:12px; background:var(--color-bg-card); color:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.truth-button:hover:not(:disabled) { border-color:var(--color-primary); background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-card)); }
+.truth-button:disabled { opacity:.45; cursor:not-allowed; }
+.truth-primary,.truth-selected { background:var(--color-primary); border-color:var(--color-primary); color:white; }
+.truth-primary:hover:not(:disabled),.truth-selected:hover:not(:disabled) { background:var(--color-primary-dark); color:white; }
+.truth-workspace :is(button,input,select,summary):focus-visible,.truth-dialog :is(button,a,input,[tabindex]):focus-visible { outline:3px solid var(--color-primary); outline-offset:3px; }
+.truth-tabs { display:flex; gap:8px; border-bottom:1px solid var(--color-border); margin-bottom:24px; }
+.truth-tabs button { display:flex; gap:8px; align-items:center; min-height:48px; padding:12px 18px; border-bottom:3px solid transparent; color:var(--color-text-muted); }
+.truth-tabs button.active { border-color:var(--color-primary); color:var(--color-primary); font-weight:700; }
+.truth-search { display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+.truth-search-input { flex:1; display:flex; align-items:center; gap:10px; padding:0 14px; border:1px solid var(--color-border); border-radius:12px; background:var(--color-bg-card); min-width:0; }
+.truth-search-input input { width:100%; min-width:0; min-height:46px; background:transparent; outline:none; }
+.truth-search-input:focus-within { outline:2px solid var(--color-primary); outline-offset:2px; }
+.truth-library-layout { display:grid; grid-template-columns:240px minmax(0,1fr); gap:24px; align-items:start; }
+.truth-filter-sidebar { border:1px solid var(--color-border); border-radius:16px; padding:18px; background:var(--color-bg-card); }
+.truth-filter-form { display:flex; flex-direction:column; gap:14px; }
+.truth-section-heading h2,.truth-section-heading h3 { font-weight:700; }
+.truth-text-button { color:var(--color-primary); min-height:44px; padding:4px; font-size:13px; }
+.truth-field { display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--color-text-muted); }
+.truth-field :is(input,select),.truth-report-title input { min-width:0; width:100%; min-height:44px; border:1px solid var(--color-border); border-radius:10px; padding:9px 10px; background:var(--color-bg-card); color:var(--color-text-primary); font-size:13px; }
+.truth-field select { text-overflow:ellipsis; }
+.truth-time-fields { display:grid; grid-template-columns:1fr 90px; gap:8px; }
+.truth-filter-form summary { padding:8px 0; cursor:pointer; font-size:13px; }
+.truth-filter-form details .truth-field { margin-top:10px; }
+.truth-filter-toggle { display:none; }
+.truth-gallery { min-width:0; }
+.truth-count { font-size:13px; color:var(--color-primary); margin-left:6px; }
+.truth-applied { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
+.truth-chip { border:1px solid var(--color-border); border-radius:8px; padding:5px 9px; font-size:12px; background:var(--color-bg-card); overflow-wrap:anywhere; }
+.truth-notice { background:color-mix(in srgb,var(--color-primary) 7%,var(--color-bg-card)); border:1px solid var(--color-border); border-radius:12px; padding:14px; font-size:13px; line-height:1.8; margin:12px 0; overflow-wrap:anywhere; }
+.truth-notice .truth-actions { margin-top:8px; flex-wrap:wrap; }
+.truth-gallery-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.truth-asset-card { border:1px solid var(--color-border); border-radius:16px; overflow:hidden; background:var(--color-bg-card); }
+.truth-asset-card.is-selected { border-color:var(--color-primary); box-shadow:0 0 0 1px var(--color-primary); }
+.truth-thumbnail { position:relative; background:#e8edf2; }
+.truth-thumbnail > img,.truth-thumbnail > .truth-media-state { width:100%; height:180px; object-fit:contain; }
+.truth-image-type { position:absolute; right:10px; top:10px; padding:4px 8px; border-radius:6px; background:#fff; color:#334155; font-size:11px; }
+.truth-card-info { padding:14px; }
+.truth-card-info h3 { font-size:14px; font-weight:700; margin-bottom:8px; }
+.truth-card-info p { font-size:12px; color:var(--color-text-muted); line-height:1.8; overflow-wrap:anywhere; }
+.truth-card-actions { margin-top:14px; justify-content:space-between; flex-wrap:wrap; }
+.truth-pagination { margin:22px 0; font-size:12px; flex-wrap:wrap; }
+.truth-empty { min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:12px; padding:32px; color:var(--color-text-muted); border:1px dashed var(--color-border); border-radius:16px; }
+.truth-empty h2,.truth-empty h3 { font-size:17px; font-weight:700; color:var(--color-text-primary); }
+.truth-selection-bar { display:flex; flex-wrap:wrap; gap:16px; align-items:center; position:sticky; bottom:0; padding:18px; margin-top:24px; border:1px solid var(--color-border); border-radius:16px; background:var(--color-bg-card); box-shadow:0 -4px 24px #0000000a; z-index:10; }
+.truth-report-title { flex:1; min-width:160px; }
+.truth-media-state { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px; min-height:100px; padding:16px; text-align:center; font-size:12px; color:var(--color-text-muted); }
+.truth-dialog { position:fixed; inset:0; margin:auto; width:calc(100% - 40px); max-width:1440px; max-height:94vh; border:1px solid var(--color-border); border-radius:20px; padding:0; overflow:auto; }
+.truth-dialog::backdrop { background:#0f172acc; }
+.truth-dialog-header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 22px; border-bottom:1px solid var(--color-border); }
+.truth-dialog-header h2 { font-weight:700; overflow-wrap:anywhere; }
+.truth-dialog-header p { font-size:12px; color:var(--color-text-muted); }
+.truth-viewer-body { display:grid; grid-template-columns:minmax(0,1fr) 310px; }
+.truth-image-section { min-width:0; padding:18px; }
+.truth-viewer-toolbar { flex-wrap:wrap; margin-bottom:12px; }
+.truth-viewer-details { padding:20px; border-left:1px solid var(--color-border); max-height:76vh; overflow:auto; }
+.truth-viewer-details h3 { font-weight:700; }
+.truth-zoom-scroll { height:60vh; overflow:auto; background:#111827; border-radius:10px; }
+.truth-original { width:100%; object-fit:contain; min-height:100%; }
+.truth-metadata { margin-top:12px; }
+.truth-metadata > div { display:grid; grid-template-columns:86px minmax(0,1fr); gap:10px; font-size:12px; padding:9px 0; border-bottom:1px solid var(--color-border); }
+.truth-metadata dt { color:var(--color-text-muted); }
+.truth-metadata dd { overflow-wrap:anywhere; }
+.truth-section-title { font-weight:700; margin-top:24px; }
+.truth-attachment { padding:12px 0; font-size:12px; overflow-wrap:anywhere; }
+.truth-attachment .truth-actions { margin-top:8px; }
+.truth-pdf { width:100%; height:58vh; border:0; background:#eee; }
+.truth-comparison-grid { display:grid; gap:16px; margin-top:20px; }
+.truth-compare-card { background:var(--color-bg-card); padding:16px; border:1px solid var(--color-border); border-radius:16px; min-width:0; }
+.truth-compare-image { width:100%; height:230px; object-fit:contain; margin:12px 0; background:#111827; }
+.truth-mobile-compare-nav { display:none; }
+.truth-report-list { display:flex; flex-direction:column; gap:12px; margin-top:20px; }
+.truth-report-row { display:flex; align-items:center; gap:16px; text-align:left; padding:20px; border:1px solid var(--color-border); background:var(--color-bg-card); border-radius:14px; }
+.truth-report-row > span:first-of-type { flex:1; min-width:0; }
+.truth-report-row strong,.truth-report-row small { display:block; overflow-wrap:anywhere; }
+.truth-report-row small { color:var(--color-text-muted); margin-top:6px; }
+.truth-report-detail { margin-top:20px; padding:24px; border:1px solid var(--color-border); background:var(--color-bg-card); border-radius:16px; }
+.truth-report-content { white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; line-height:1.9; margin-top:24px; }
+.truth-report-source { display:flex; flex-direction:column; gap:6px; padding:12px 0; border-bottom:1px solid var(--color-border); font-size:12px; overflow-wrap:anywhere; }
+@media(max-width:1199px) { .truth-gallery-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:1023px) { .truth-library-layout { grid-template-columns:1fr; } .truth-filter-toggle { display:inline-flex; } .truth-filter-sidebar { display:none; } .truth-filter-sidebar.is-open { display:block; } .truth-filter-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .truth-filter-form .truth-section-heading { grid-column:1/-1; } .truth-viewer-body { grid-template-columns:1fr; } .truth-viewer-details { max-height:none; border-left:0; border-top:1px solid var(--color-border); } }
+@media(max-width:639px) { .truth-workspace { padding:16px 14px 100px; } .truth-header h1 { font-size:24px; } .truth-header { gap:10px; } .truth-heading-row { gap:8px; } .truth-header p { font-size:11px; } .truth-tabs { gap:0; } .truth-tabs button { flex:1; justify-content:center; padding:12px 6px; font-size:13px; } .truth-search { flex-wrap:wrap; } .truth-search-input { flex-basis:100%; } .truth-search > button { flex:1; } .truth-gallery-grid { grid-template-columns:1fr; } .truth-thumbnail > img,.truth-thumbnail > .truth-media-state { height:220px; } .truth-filter-form { grid-template-columns:1fr; } .truth-section-heading { flex-wrap:wrap; } .truth-selection-bar { position:static; padding:14px; } .truth-dialog { width:calc(100% - 16px); max-height:96vh; border-radius:14px; } .truth-dialog-header { padding:12px; } .truth-image-section { padding:12px; } .truth-zoom-scroll { height:48vh; } .truth-viewer-toolbar { gap:6px; } .truth-viewer-toolbar .truth-button { padding:8px; } .truth-comparison-grid { display:block; } .truth-compare-card { display:none; } .truth-compare-card.truth-mobile-active { display:block; } .truth-mobile-compare-nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; } .truth-report-detail { padding:16px; } }
+@media(prefers-reduced-motion:reduce) { .truth-workspace *,.truth-dialog * { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
+@container (max-width:600px) {
+  .truth-gallery-grid { grid-template-columns:1fr; }
+  .truth-filter-form { grid-template-columns:1fr; }
+  .truth-comparison-grid { display:block; }
+  .truth-compare-card { display:none; }
+  .truth-compare-card.truth-mobile-active { display:block; }
+  .truth-mobile-compare-nav { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .truth-selection-bar { position:static; }
+}

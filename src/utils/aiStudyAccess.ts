@@ -3,7 +3,7 @@ import { calculateLearningExperience } from '@/utils/achievementProgress';
 import { calculateLevelProgress } from '@/utils/experience';
 import type { LearningState } from '@/store/LearningContext';
 
-export const AI_STUDY_UNLOCK_LEVEL = 10;
+export const AI_STUDY_UNLOCK_LEVEL = 1;
 
 export function getAIStudyLevelInfo(
   user: User | null,
@@ -15,6 +15,6 @@ export function getAIStudyLevelInfo(
   return {
     totalExperience,
     levelProgress,
-    unlocked: levelProgress.level >= AI_STUDY_UNLOCK_LEVEL,
+    unlocked: Boolean(user),
   };
 }

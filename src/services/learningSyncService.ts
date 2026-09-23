@@ -1,4 +1,4 @@
-import { API_BASE } from './aiClient';
+import { API_BASE, apiFetch } from './aiClient';
 import type {
   LearningBootstrapPayload,
   LearningDeletePayload,
@@ -7,9 +7,8 @@ import type {
 } from '@/types/learningSync';
 
 async function learningRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
     headers: {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,

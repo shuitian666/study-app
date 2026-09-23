@@ -972,7 +972,7 @@ export default function HomePage({ isActive = true, showBottomNav = true }: Home
               </span>
             </span>
             <span className="mt-1 block text-[11px] leading-4" style={{ color: isScholar ? theme.textSecondary : classicPalette.muted }}>
-              立即答疑 · 学习模式 Lv.10 解锁
+              立即答疑 · 所有等级开放，升级增加额度
             </span>
           </span>
           <ChevronRight size={17} style={{ color: isScholar ? theme.primary : paperPalette.blue }} />

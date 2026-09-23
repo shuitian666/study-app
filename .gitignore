@@ -18,6 +18,9 @@ server/data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.jks
+*.keystore
+android/key.properties
 
 # Editor directories and files
 .vscode/*

@@ -1,26 +1,38 @@
 import { useState } from 'react';
 import { useUser } from '@/store/UserContext';
 import { useGame } from '@/store/GameContext';
+import { useTheme } from '@/store/ThemeContext';
 import { PageHeader } from '@/components/ui/Common';
-import { Mail as MailIcon, Gift, Coins, Ticket, Crown, CircleDot, CheckCircle, Clock, AlertTriangle, Sparkles } from 'lucide-react';
+import {
+  Mail as MailIcon,
+  Gift,
+  Coins,
+  Ticket,
+  Crown,
+  CircleDot,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { accountClaimMailAttachment, accountMarkMailRead } from '@/services/aiClient';
 import { applyServerAccountPayload, isUnauthorizedError, logoutOnUnauthorized } from '@/store/accountSync';
+import {
+  adaptiveAlpha,
+  getAdaptiveBadge,
+  getAdaptiveButton,
+  getAdaptivePageBackground,
+  getAdaptiveSoftSurface,
+  getAdaptiveSurface,
+} from '@/utils/adaptiveTheme';
 
 type MailFilter = 'all' | 'unread' | 'claimable';
-
-const attachmentIcons: Record<string, React.ReactNode> = {
-  makeup_card: <Ticket size={14} className="text-blue-500" />,
-  avatar_frame: <Crown size={14} className="text-purple-500" />,
-  coin: <Coins size={14} className="text-amber-500" />,
-  experience: <Sparkles size={14} className="text-indigo-500" />,
-  regular_ticket: <Ticket size={14} className="text-emerald-500" />,
-  up_ticket: <Ticket size={14} className="text-purple-500" />,
-  vip: <Crown size={14} className="text-yellow-500" />,
-};
 
 export default function MailPage() {
   const { userState, userDispatch, navigate } = useUser();
   const { gameDispatch } = useGame();
+  const { theme } = useTheme();
   const [selectedMail, setSelectedMail] = useState<string | null>(null);
   const [filter, setFilter] = useState<MailFilter>('all');
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
@@ -28,6 +40,14 @@ export default function MailPage() {
 
   const mails = userState.mail.mails;
   const currentVersion = userState.mail.currentVersion;
+  const pageStyle = getAdaptivePageBackground(theme);
+  const cardStyle = getAdaptiveSurface(theme, 'raised');
+  const strongCardStyle = getAdaptiveSurface(theme, 'strong');
+  const softStyle = getAdaptiveSoftSurface(theme);
+  const primaryButtonStyle = getAdaptiveButton(theme, 'primary');
+  const ghostButtonStyle = getAdaptiveButton(theme, 'ghost');
+  const focusClass = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2';
+
   const isExpired = (deadline: string) => new Date(deadline) < new Date();
   const isClaimable = (mail: typeof mails[number]) => (
     !isExpired(mail.claimDeadline) && !mail.claimed && mail.attachments.some(attachment => !attachment.claimed)
@@ -81,126 +101,152 @@ export default function MailPage() {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
+
     if (days === 0) return '今天';
     if (days === 1) return '昨天';
     if (days < 7) return `${days}天前`;
     return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
   };
 
+  const getAttachmentIcon = (type: string) => {
+    const iconStyle = { color: theme.primary };
+    switch (type) {
+      case 'makeup_card':
+      case 'regular_ticket':
+      case 'up_ticket':
+        return <Ticket size={14} style={iconStyle} />;
+      case 'avatar_frame':
+      case 'vip':
+        return <Crown size={14} style={iconStyle} />;
+      case 'coin':
+        return <Coins size={14} style={{ color: theme.warning }} />;
+      case 'experience':
+        return <Sparkles size={14} style={{ color: theme.accent }} />;
+      default:
+        return <Gift size={14} style={iconStyle} />;
+    }
+  };
+
+  const attachmentBadgeStyle = (claimed: boolean, expired: boolean) => (
+    claimed ? getAdaptiveBadge(theme, 'success') : expired ? getAdaptiveBadge(theme, 'danger') : getAdaptiveBadge(theme, 'warning')
+  );
+
   return (
-    <div className="page-scroll pb-4">
+    <div className="page-scroll min-h-full pb-4" style={pageStyle}>
       <PageHeader
         title="邮件"
         onBack={() => navigate('home')}
       />
 
-      <div className="px-4 pt-3 space-y-4">
-        {/* Stats Banner */}
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 text-white">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+      <div className="space-y-4 px-4 pt-3">
+        <section className="rounded-2xl border p-4 shadow-sm" style={strongCardStyle}>
+          <div className="mb-3 flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border"
+              style={{ ...getAdaptiveBadge(theme, 'primary'), color: theme.primary }}
+            >
               <MailIcon size={24} />
             </div>
-            <div>
-              <h2 className="text-lg font-bold">系统邮件</h2>
-              <p className="text-sm text-white/80">管理员发放的奖励邮件</p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold" style={{ color: theme.textPrimary }}>系统邮件</h2>
+              <p className="text-sm" style={{ color: theme.textSecondary }}>管理员发放的奖励邮件</p>
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/10 rounded-lg p-2 text-center flex items-center justify-center gap-1">
-              <CircleDot size={14} />
-              <span className="text-sm">{unreadCount} 未读</span>
-            </div>
-            <div className="bg-white/10 rounded-lg p-2 text-center flex items-center justify-center gap-1">
-              <Gift size={14} />
-              <span className="text-sm">{claimableCount} 可领取</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Filter Tabs */}
-        <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-center gap-1 rounded-xl border p-2 text-center" style={softStyle}>
+              <CircleDot size={14} style={{ color: theme.primary }} />
+              <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{unreadCount} 未读</span>
+            </div>
+            <div className="flex items-center justify-center gap-1 rounded-xl border p-2 text-center" style={softStyle}>
+              <Gift size={14} style={{ color: theme.warning }} />
+              <span className="text-sm font-semibold" style={{ color: theme.textPrimary }}>{claimableCount} 可领取</span>
+            </div>
+          </div>
+        </section>
+
+        <div className="flex gap-2 rounded-2xl border p-1" style={cardStyle}>
           {[
             { key: 'all', label: '全部', count: mails.length },
             { key: 'unread', label: '未读', count: unreadCount },
             { key: 'claimable', label: '可领取', count: claimableCount },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key as MailFilter)}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
-                filter === tab.key ? 'bg-primary text-white' : 'bg-gray-100 text-text-secondary'
-              }`}
-            >
-              {tab.label}
-              {tab.count > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  filter === tab.key ? 'bg-white/20' : 'bg-primary/10 text-primary'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
+          ].map(tab => {
+            const active = filter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setFilter(tab.key as MailFilter)}
+                className={`flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-bold transition ${focusClass}`}
+                style={active ? primaryButtonStyle : ghostButtonStyle}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[10px]"
+                    style={active
+                      ? { backgroundColor: 'rgba(255,255,255,0.20)', color: 'inherit' }
+                      : getAdaptiveBadge(theme, 'primary')}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Mail List */}
         {filteredMails.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MailIcon size={40} className="text-gray-400" />
+          <div className="rounded-2xl border px-6 py-12 text-center" style={cardStyle}>
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border" style={softStyle}>
+              <MailIcon size={40} style={{ color: theme.textMuted }} />
             </div>
-            <p className="text-text-secondary font-medium mb-1">
+            <p className="mb-1 font-medium" style={{ color: theme.textSecondary }}>
               {filter === 'all' ? '暂无邮件' : filter === 'unread' ? '没有未读邮件' : '没有可领取的邮件'}
             </p>
-            <p className="text-text-muted text-sm">关注后续活动，获取更多奖励</p>
+            <p className="text-sm" style={{ color: theme.textMuted }}>关注后续活动，获取更多奖励</p>
           </div>
         ) : (
           <div className="space-y-3">
             {filteredMails.map(mail => {
               const expired = isExpired(mail.claimDeadline);
-              
+              const claimable = isClaimable(mail);
+
               return (
-                <div
+                <button
                   key={mail.id}
+                  type="button"
                   onClick={() => void handleOpenMail(mail.id)}
-                  className={`bg-white rounded-xl p-4 border ${
-                    !mail.read ? 'border-primary/50 shadow-sm' : 'border-gray-100'
-                  } ${expired? 'opacity-60' : ''}`}
+                  className={`w-full rounded-2xl border p-4 text-left shadow-sm transition active:scale-[0.99] ${focusClass} ${expired ? 'opacity-70' : ''}`}
+                  style={{
+                    ...cardStyle,
+                    borderColor: !mail.read ? adaptiveAlpha(theme.primary, 0.54, String(cardStyle.borderColor)) : cardStyle.borderColor,
+                    boxShadow: !mail.read ? `0 14px 32px ${adaptiveAlpha(theme.primary, 0.12, 'rgba(15,23,42,0.12)')}` : undefined,
+                  }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      !mail.read ? 'bg-primary/10' : 'bg-gray-100'
-                    }`}>
-                      {mail.systemMail ? (
-                        <span className="text-lg">📢</span>
-                      ) : (
-                        <span className="text-lg">✉️</span>
-                      )}
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                      style={mail.read ? softStyle : getAdaptiveBadge(theme, 'primary')}
+                    >
+                      <MailIcon size={18} style={{ color: mail.read ? theme.textMuted : theme.primary }} />
                     </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className={`text-sm font-medium truncate ${!mail.read ? 'text-gray-900' : 'text-gray-600'}`}>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center justify-between gap-2">
+                        <h4 className="truncate text-sm font-semibold" style={{ color: mail.read ? theme.textSecondary : theme.textPrimary }}>
                           {mail.title}
                         </h4>
                         {!mail.read && (
-                          <span className="w-2 h-2 bg-primary rounded-full shrink-0" />
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: theme.primary }} />
                         )}
                       </div>
-                      
-                      <p className="text-xs text-gray-400 mb-2">{mail.sender} · {formatDate(mail.sentAt)}</p>
-                      
-                      <div className="flex items-center gap-2">
-                        {/* Attachment indicators */}
+
+                      <p className="mb-2 text-xs" style={{ color: theme.textMuted }}>{mail.sender} · {formatDate(mail.sentAt)}</p>
+
+                      <div className="flex flex-wrap items-center gap-2">
                         {mail.attachments.length > 0 && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                            mail.claimed ? 'bg-gray-100 text-gray-500' : 
-                            expired ? 'bg-red-50 text-red-500' :
-                            'bg-amber-50 text-amber-600'
-                          }`}>
+                          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold" style={attachmentBadgeStyle(mail.claimed, expired)}>
                             {mail.claimed ? (
                               <><CheckCircle size={12} /> 已领取</>
                             ) : expired ? (
@@ -210,125 +256,138 @@ export default function MailPage() {
                             )}
                           </span>
                         )}
-                        
-                        {/* Deadline */}
+
                         {expired && (
-                          <span className="text-xs text-red-500 flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 text-xs" style={{ color: theme.danger }}>
                             <Clock size={12} />
                             {new Date(mail.claimDeadline).toLocaleDateString('zh-CN')} 到期
+                          </span>
+                        )}
+                        {claimable && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: theme.warning }}>
+                            <Sparkles size={12} />
+                            待领取
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         )}
 
-        {/* Version info */}
-        <div className="text-center text-xs text-text-muted py-2">
+        <div className="rounded-xl border px-3 py-2 text-center text-xs" style={{ ...softStyle, color: theme.textMuted }}>
           当前版本: v{currentVersion} · 更新后邮件附件将无法领取
         </div>
       </div>
 
-      {/* Mail Detail Modal */}
       {selectedMail && (() => {
         const mail = mails.find(m => m.id === selectedMail);
         if (!mail) return null;
         const expired = isExpired(mail.claimDeadline);
-        
+
         return (
-          <div 
-            className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
             onClick={() => setSelectedMail(null)}
           >
-            <div 
-              className="bg-white rounded-t-3xl w-full max-w-lg max-h-[80vh] overflow-hidden"
-              onClick={e => e.stopPropagation()}
+            <div
+              className="w-full max-w-lg overflow-hidden rounded-t-3xl border shadow-2xl"
+              style={{
+                ...getAdaptiveSurface(theme, 'strong'),
+                maxHeight: '80vh',
+              }}
+              onClick={event => event.stopPropagation()}
             >
-              {/* Header */}
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-bold">邮件详情</h3>
-                <button 
+              <div className="flex items-center justify-between border-b p-4" style={{ borderColor: cardStyle.borderColor }}>
+                <h3 className="font-bold" style={{ color: theme.textPrimary }}>邮件详情</h3>
+                <button
+                  type="button"
                   onClick={() => setSelectedMail(null)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"
+                  aria-label="关闭邮件详情"
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border ${focusClass}`}
+                  style={ghostButtonStyle}
                 >
-                  ✕
+                  <X size={16} />
                 </button>
               </div>
-              
-              {/* Content */}
-              <div className="p-4 overflow-y-auto max-h-[60vh]">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">📢</span>
-                  <div>
-                    <h4 className="font-medium">{mail.title}</h4>
-                    <p className="text-xs text-gray-400">{mail.sender} · {new Date(mail.sentAt).toLocaleString('zh-CN')}</p>
+
+              <div className="max-h-[60vh] overflow-y-auto p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl border" style={getAdaptiveBadge(theme, 'primary')}>
+                    <MailIcon size={17} style={{ color: theme.primary }} />
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="truncate font-medium" style={{ color: theme.textPrimary }}>{mail.title}</h4>
+                    <p className="text-xs" style={{ color: theme.textMuted }}>{mail.sender} · {new Date(mail.sentAt).toLocaleString('zh-CN')}</p>
                   </div>
                 </div>
-                
-                <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{mail.content}</p>
+
+                <div className="mb-4 rounded-xl border p-3" style={softStyle}>
+                  <p className="whitespace-pre-wrap text-sm leading-6" style={{ color: theme.textPrimary }}>{mail.content}</p>
                 </div>
                 {claimError && (
-                  <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{claimError}</p>
+                  <p className="mb-3 rounded-lg border px-3 py-2 text-xs font-medium" style={getAdaptiveBadge(theme, 'danger')}>{claimError}</p>
                 )}
-                
-                {/* Attachments */}
+
                 {mail.attachments.length > 0 && (
                   <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                    <h5 className="flex items-center gap-1 text-xs font-medium" style={{ color: theme.textSecondary }}>
                       <Gift size={12} /> 附件
                     </h5>
-                    
-                    {mail.attachments.map((att, idx) => (
-                      <div 
-                        key={att.id ?? idx}
-                        className={`flex items-center justify-between p-3 rounded-xl border ${
-                          att.claimed ? 'border-gray-200 bg-gray-50' : 
-                          expired ? 'border-red-200 bg-red-50' :
-                          'border-amber-200 bg-amber-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {attachmentIcons[att.type] || <Gift size={14} />}
-                          <div>
-                            <p className="text-sm font-medium">{att.name}</p>
-                            <p className="text-xs text-gray-500">x{att.quantity}</p>
+
+                    {mail.attachments.map((att, idx) => {
+                      const attachmentKey = att.id ?? idx;
+                      const itemClaimingKey = `${mail.id}:${attachmentKey}`;
+                      const isClaiming = claimingKey === itemClaimingKey;
+
+                      return (
+                        <div
+                          key={attachmentKey}
+                          className="flex items-center justify-between gap-3 rounded-xl border p-3"
+                          style={attachmentBadgeStyle(Boolean(att.claimed), expired)}
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            {getAttachmentIcon(att.type)}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium" style={{ color: theme.textPrimary }}>{att.name}</p>
+                              <p className="text-xs" style={{ color: theme.textMuted }}>x{att.quantity}</p>
+                            </div>
                           </div>
+
+                          {att.claimed ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold" style={{ color: theme.success }}>
+                              <CheckCircle size={12} /> 已领取
+                            </span>
+                          ) : expired ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold" style={{ color: theme.danger }}>
+                              <AlertTriangle size={12} /> 已过期
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void handleClaimAttachment(mail.id, idx)}
+                              disabled={claimingKey !== null}
+                              className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50 ${focusClass}`}
+                              style={primaryButtonStyle}
+                            >
+                              {isClaiming ? '领取中' : '领取'}
+                            </button>
+                          )}
                         </div>
-                        
-                        {att.claimed ? (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <CheckCircle size={12} /> 已领取
-                          </span>
-                        ) : expired ? (
-                          <span className="text-xs text-red-500 flex items-center gap-1">
-                            <AlertTriangle size={12} /> 已过期
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => void handleClaimAttachment(mail.id, idx)}
-                            disabled={claimingKey !== null}
-                            className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg font-medium disabled:opacity-50"
-                          >
-                            领取
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
-                
-                {/* Deadline notice */}
-                <div className="mt-4 p-3 bg-amber-50 rounded-xl border border-amber-200">
-                  <p className="text-xs text-amber-700 flex items-center gap-1">
+
+                <div className="mt-4 rounded-xl border p-3" style={getAdaptiveBadge(theme, expired ? 'danger' : 'warning')}>
+                  <p className="flex items-center gap-1 text-xs font-semibold">
                     <Clock size={12} />
                     领取截止日期: {new Date(mail.claimDeadline).toLocaleDateString('zh-CN')}
                   </p>
-                  <p className="text-[10px] text-amber-600 mt-1">
+                  <p className="mt-1 text-[10px]" style={{ color: theme.textSecondary }}>
                     版本更新后，未领取的附件将自动失效，请及时领取
                   </p>
                 </div>

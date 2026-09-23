@@ -28,8 +28,8 @@ export interface LevelUpTransition {
 export const MILESTONE_LEVEL_REWARDS: MilestoneLevelReward[] = [
   {
     level: 10,
-    title: 'AI 学习已解锁',
-    description: '可以开始使用规划式 AI 学习，自动规划、讲解、练习和总结。',
+    title: 'AI 学习额度提升',
+    description: '平台额度提升至每 5 小时 45 点、每 7 天 320 点，继续探索新的知识。',
     rewardName: LEVEL_10_REWARD_TITLE,
     rewardType: 'title',
     rewardRarity: 'SR',

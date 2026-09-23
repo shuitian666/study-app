@@ -15,6 +15,7 @@ export default defineConfig([
     'node_modules/**',
     'server/node_modules',
     'server/node_modules/**',
+    'android/**/build/**',
     '.tmp-visual-audit',
     '.tmp-visual-audit/**',
     'output',

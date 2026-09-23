@@ -1,5 +1,5 @@
 import type { TeamMemberProgress, TeamState } from '@/types';
-import { API_BASE } from './aiClient';
+import { API_BASE, apiFetch } from './aiClient';
 
 function initialProgress(): TeamMemberProgress {
   return {
@@ -22,10 +22,9 @@ function normalizeTeam(data: TeamState): TeamState {
 }
 
 async function teamRequest<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await apiFetch(`${API_BASE}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -66,7 +65,7 @@ export async function updateTeamProgress(
 }
 
 export async function getTeamByCode(inviteCodeOrTeamId: string): Promise<TeamState | null> {
-  const response = await fetch(`${API_BASE}/team/${encodeURIComponent(inviteCodeOrTeamId)}`, { credentials: 'include' });
+  const response = await apiFetch(`${API_BASE}/team/${encodeURIComponent(inviteCodeOrTeamId)}`);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || 'Failed to get team');
   const data = await response.json();

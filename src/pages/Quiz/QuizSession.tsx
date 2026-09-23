@@ -21,6 +21,7 @@ import { notifyStudyExperienceEarned } from '@/utils/levelRewards';
 import { CheckCircle, XCircle, ChevronRight, BookOpen, Sparkles, Loader2, MessageSquare } from 'lucide-react';
 import type { Question, QuizAnswer } from '@/types';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
+import { askAboutQuestion } from '@/features/ai/context';
 
 const stableHash = (value: string): number => {
   let hash = 2166136261;
@@ -469,33 +470,7 @@ export default function QuizSessionPage() {
             <div className="mt-2 flex justify-end">
               <button
                 onClick={() => {
-                  // 构建完整的题目上下文
-                  const optionsText = currentQuestion.options.map((opt, idx) => {
-                    const label = String.fromCharCode(65 + idx);
-                    return `${label}. ${opt.text.replace(/^[A-G]\.\s*/, '').trim()}`;
-                  }).join('\n');
-
-                  const correctLabels = currentQuestion.correctAnswers.map(a => {
-                    const idx = currentQuestion.options.findIndex(o => o.id === a);
-                    return String.fromCharCode(65 + idx);
-                  }).join('、');
-
-                  const fullContext = `题目：${currentQuestion.stem}
-
-选项：
-${optionsText}
-
-正确答案：${correctLabels}
-
-AI解析：${currentExplanation}
-
-我对这道题的解析还有疑问，请进一步详细讲解。`;
-
-                  navigate('ai-chat', {
-                    questionContext: fullContext,
-                    subjectId: subjectId,
-                    ...(currentQuestion.knowledgePointId && { knowledgePointId: currentQuestion.knowledgePointId })
-                  });
+                  askAboutQuestion(currentQuestion, true, selectedAnswers, currentExplanation);
                 }}
                 className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"
                 style={{ color: '#2563eb' }}
@@ -512,6 +487,9 @@ AI解析：${currentExplanation}
 
       {/* Action buttons */}
       <div className={`px-4 pt-4 pb-8 ${getAnimationClass(7)}`}>
+        <button className="ai-action mb-3 text-primary" onClick={() => askAboutQuestion(currentQuestion, showResult, selectedAnswers, currentExplanation || currentQuestion.explanation)}>
+          <MessageSquare size={16} />{showResult ? '问 AI · 帮我理解这道题' : '问 AI · 给我一点提示'}
+        </button>
         {!showResult ? (
           <button
             onClick={handleSubmitAnswer}

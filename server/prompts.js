@@ -185,9 +185,10 @@ export function buildChatMessages(systemPrompt, knowledgeContext, history, learn
 
   const messages = [{ role: 'system', content: content.join('\n\n') }];
 
-  if (history) {
-    for (const msg of history) {
+  if (Array.isArray(history)) {
+    for (const msg of history.slice(-12)) {
       if (!msg?.content) continue;
+      if (!['ai', 'assistant', 'user'].includes(msg.role)) continue;
       messages.push({
         role: msg.role === 'ai' ? 'assistant' : msg.role,
         content: String(msg.content).slice(0, CONTEXT_LIMITS.historyMessage),

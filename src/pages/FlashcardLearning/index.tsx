@@ -17,7 +17,8 @@ import { ArrowLeft, ChevronLeft, ChevronRight, CircleHelp, X, MessageSquare, Loa
 import FlashcardCard from '@/components/ui/FlashcardCard';
 import FlashcardStudyGuide, { FLASHCARD_GUIDE_DISMISSED_KEY } from '@/components/ui/FlashcardStudyGuide';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
-import { accountGrantKnowledgePointExperience, checkBackendAvailable, getAIConfig } from '@/services/aiClient';
+import { accountGrantKnowledgePointExperience, checkBackendAvailable } from '@/services/aiClient';
+import { askAboutQuestion } from '@/features/ai/context';
 import { applyServerAccountPayload, logoutOnUnauthorized } from '@/store/accountSync';
 import {
   knowledgePointToCardInput,
@@ -33,7 +34,7 @@ import type { KnowledgePointExtended, Question, ReviewItem } from '@/types';
 import { getLocalDateKey, getTodayLearningProgress } from '@/utils/dailyLearningProgress';
 import { generateTodayReviewPlan } from '@/utils/review';
 import { getReviewReminderSettings, requestReviewReminderPermission } from '@/utils/reviewReminder';
-import { getAIStudyLevelInfo, AI_STUDY_UNLOCK_LEVEL } from '@/utils/aiStudyAccess';
+import { getAIStudyLevelInfo } from '@/utils/aiStudyAccess';
 import { notifyStudyExperienceEarned } from '@/utils/levelRewards';
 
 // 按钮配置
@@ -156,7 +157,7 @@ function pickSessionPlan(
   return { phase: 'free', queue: buildSessionQueue(knowledgePoints, targetIds) };
 }
 
-export default function FlashcardLearningPage({ embedded = false, onAskAI }: FlashcardLearningPageProps) {
+export default function FlashcardLearningPage({ embedded = false }: FlashcardLearningPageProps) {
   const { navigate, userState, userDispatch } = useUser();
   const { gameState, gameDispatch } = useGame();
   const { theme, isDark } = useTheme();
@@ -336,16 +337,6 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
     let cancelled = false;
 
     const checkAIAssist = async () => {
-      const config = getAIConfig();
-
-      if (config.provider === 'douban') {
-        const ready = Boolean(config.apiKey?.trim() && config.modelId?.trim());
-        if (!cancelled) {
-          setAiAssistAvailable(ready);
-          setAiAssistHint(ready ? '' : '请先在设置里配置 AI');
-        }
-        return;
-      }
 
       const backendReady = await checkBackendAvailable();
       if (!cancelled) {
@@ -595,7 +586,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
       if (!getReviewReminderSettings().prompted) {
         void requestReviewReminderPermission();
       }
-      if (levelProgress.level < AI_STUDY_UNLOCK_LEVEL) {
+      if (levelProgress.level < 10) {
         void accountGrantKnowledgePointExperience(currentKp.id, learningExperience)
           .then(payload => {
             applyServerAccountPayload(payload, userDispatch, gameDispatch);
@@ -1372,26 +1363,7 @@ export default function FlashcardLearningPage({ embedded = false, onAskAI }: Fla
                           <div className="text-base font-semibold">题目解析</div>
                           <button
                             onClick={() => {
-                              const optionsText = currentQuizQuestion.options
-                                .map((option, index) => `${String.fromCharCode(65 + index)}. ${option.text}`)
-                                .join('\n');
-                              const correctLabels = currentQuizQuestion.correctAnswers
-                                .map(answer => {
-                                  const optionIndex = currentQuizQuestion.options.findIndex(option => option.id === answer);
-                                  return optionIndex >= 0 ? String.fromCharCode(65 + optionIndex) : answer;
-                                })
-                                .join('、');
-
-                              const questionContext = `题目：${currentQuizQuestion.stem}\n\n选项：\n${optionsText}\n\n正确答案：${correctLabels}\n\n解析：${currentExplanation}\n\n请进一步讲解。`;
-                              if (embedded && onAskAI) {
-                                onAskAI(questionContext);
-                                return;
-                              }
-                              navigate('ai-chat', {
-                                questionContext,
-                                subjectId: currentKp.subjectId,
-                                knowledgePointId: currentKp.id,
-                              });
+                              askAboutQuestion(currentQuizQuestion, true, [], currentExplanation);
                             }}
                             disabled={!aiAssistAvailable}
                             className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors disabled:cursor-not-allowed"

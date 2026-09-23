@@ -478,6 +478,51 @@ addColumn('users', "learning_profile TEXT NOT NULL DEFAULT '{}'");
 addColumn('users', 'daily_goal INTEGER NOT NULL DEFAULT 10');
 addColumn('team_members', 'avatar_frame TEXT');
 
+// Additive truth migrations preserve all existing originals and report snapshots.
+addColumn('truth_assets', 'group_name TEXT');
+addColumn('truth_assets', "capture_stage TEXT NOT NULL DEFAULT 'unknown'");
+addColumn('truth_assets', "image_type TEXT NOT NULL DEFAULT 'unknown'");
+addColumn('truth_assets', 'source_path TEXT');
+addColumn('truth_assets', 'capture_id TEXT');
+addColumn('truth_assets', 'version INTEGER NOT NULL DEFAULT 1');
+addColumn('truth_assets', 'pending_revision TEXT');
+addColumn('truth_assets', 'revision_status TEXT');
+db.exec(`
+CREATE INDEX IF NOT EXISTS idx_truth_assets_capture ON truth_assets (capture_id, status);
+CREATE TABLE IF NOT EXISTS truth_asset_versions (
+  asset_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  asset_snapshot TEXT NOT NULL,
+  published_at TEXT NOT NULL,
+  PRIMARY KEY (asset_id, version),
+  FOREIGN KEY (asset_id) REFERENCES truth_assets(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS truth_attachments (
+  id TEXT PRIMARY KEY,
+  asset_id TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  stored_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL DEFAULT 'application/pdf',
+  size_bytes INTEGER NOT NULL,
+  source_path TEXT,
+  published_version INTEGER,
+  uploaded_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (asset_id, sha256),
+  FOREIGN KEY (asset_id) REFERENCES truth_assets(id) ON DELETE CASCADE,
+  FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS truth_attachment_assets (
+  attachment_id TEXT NOT NULL,
+  asset_id TEXT NOT NULL,
+  PRIMARY KEY (attachment_id, asset_id),
+  FOREIGN KEY (attachment_id) REFERENCES truth_attachments(id) ON DELETE CASCADE,
+  FOREIGN KEY (asset_id) REFERENCES truth_assets(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_truth_attachment_assets_asset ON truth_attachment_assets (asset_id);
+`);
+
 export function nowIso() {
   return new Date().toISOString();
 }

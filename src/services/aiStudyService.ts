@@ -9,12 +9,12 @@ import type {
   Question,
   Subject,
 } from '@/types';
-import { API_BASE } from '@/services/aiClient';
+import { API_BASE, apiFetch } from '@/services/aiClient';
+import { readAIStream } from '@/features/ai/stream';
 
 async function aiStudyRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await apiFetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',
     headers: {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
@@ -60,9 +60,8 @@ export async function* streamAIStudyTutor(input: {
   signal?: AbortSignal;
 }): AsyncGenerator<string> {
   const { signal, ...body } = input;
-  const res = await fetch(`${API_BASE}/ai/study-tutor`, {
+  const res = await apiFetch(`${API_BASE}/ai/study-tutor`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal,
@@ -71,28 +70,7 @@ export async function* streamAIStudyTutor(input: {
     throw new Error((await res.json().catch(() => null))?.error || '学习导师暂时不可用');
   }
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
-        const payload = JSON.parse(trimmed.slice(6)) as { content?: string; error?: string; done?: boolean };
-        if (payload.error) throw new Error(payload.error);
-        if (payload.done) return;
-        if (payload.content) yield payload.content;
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
+  yield* readAIStream(res);
 }
 
 export function fetchAIStudyPractice(input: {

@@ -222,42 +222,9 @@ export interface LearningStats {
 
 // ===== AI Chat =====
 
-export type AIProvider = 'server' | 'offline' | 'ollama' | 'volcengine' | 'minimax' | 'douban' | 'openclaw';
-
-// AI预设配置
-export interface AIPreset {
-  id: string;
-  name: string;
-  provider: AIProvider;
-  modelId?: string;
-  groupId?: string;
-  description: string;
-}
-
-export const AI_PRESETS: AIPreset[] = [
-  { id: 'server', name: '服务器 AI', provider: 'server', description: '服务端统一代理，密钥不进入前端' },
-  { id: 'offline', name: '离线模式', provider: 'offline', description: '使用本地预设兜底' },
-  { id: 'ollama-local', name: 'Ollama (本地)', provider: 'ollama', description: '本地部署，无需API密钥' },
-  { id: 'douban', name: '豆包 API', provider: 'douban', description: '火山引擎豆包大模型，需密钥' },
-  { id: 'volcengine', name: '火山引擎', provider: 'volcengine', modelId: 'ep-xxxxx', description: '豆包大模型' },
-  { id: 'minimax', name: 'MiniMax', provider: 'minimax', groupId: 'group-xxxxx', description: '海螺问问' },
-  { id: 'custom', name: '自定义', provider: 'ollama', description: '手动输入API配置' },
-];
-
-export interface AIConfig {
-  provider: AIProvider;
-  presetId?: string;
-  model?: string;
-  apiKey?: string;
-  modelId?: string;
-  groupId?: string;
-}
-
-export interface ProviderInfo {
-  name: AIProvider;
-  available: boolean;
-  models: string[];
-}
+export type AIProvider = 'server';
+export interface AIConfig { provider: AIProvider }
+export interface ProviderInfo { name: AIProvider; available: boolean; models: string[] }
 
 export interface ChatMessage {
   id: string;
@@ -650,6 +617,7 @@ export interface AIStudyStep {
 }
 
 export interface AIStudySession {
+  version?: number;
   id: string;
   ownerUserId: string;
   plan: AIStudyPlan;
@@ -685,9 +653,22 @@ export interface AIStudySummary {
 }
 
 export type TruthSex = 'female' | 'male' | 'unknown';
-export type TruthPhase = 'control' | 'dosing' | 'withdrawal';
+export type TruthPhase = 'control' | 'dosing' | 'withdrawal' | 'unknown';
 export type TruthTimeUnit = 'hour' | 'day';
 export type TruthAssetStatus = 'draft' | 'pending' | 'published' | 'archived';
+export type TruthCaptureStage = 'before' | 'after' | 'unknown';
+export type TruthImageType = 'thermal' | 'visible' | 'unknown';
+
+export interface TruthAttachment {
+  id: string;
+  fileName: string;
+  originalName?: string;
+  mimeType: string;
+  sizeBytes: number;
+  sourcePath?: string | null;
+  previewUrl?: string;
+  downloadUrl: string;
+}
 
 export interface TruthSearchFilter {
   batchCode?: string | null;
@@ -700,6 +681,9 @@ export interface TruthSearchFilter {
   timeValue?: number | null;
   timeUnit?: TruthTimeUnit | null;
   bodyPart?: string | null;
+  groupName?: string | null;
+  captureStage?: TruthCaptureStage | null;
+  imageType?: TruthImageType | null;
 }
 
 export interface TruthAsset {
@@ -730,6 +714,16 @@ export interface TruthAsset {
   previewUrl: string;
   originalUrl: string;
   downloadUrl: string;
+  groupName?: string | null;
+  captureStage?: TruthCaptureStage;
+  imageType?: TruthImageType;
+  sourcePath?: string | null;
+  captureId?: string | null;
+  version?: number;
+  pendingRevision?: Partial<TruthAsset> | null;
+  revisionStatus?: 'draft' | 'pending';
+  pendingAttachments?: TruthAttachment[];
+  attachments?: TruthAttachment[];
 }
 
 export interface TruthClarification {
@@ -744,6 +738,13 @@ export interface TruthSearchResult {
   clarification: TruthClarification | null;
   assets: TruthAsset[];
   total: number;
+  offset?: number;
+  limit?: number;
+  warnings?: string[];
+  unrecognized?: string[];
+  unrecognizedTerms?: string[];
+  recognizedConditions?: Array<{ field: string; value: string | number }>;
+  hasMore?: boolean;
   availableValues?: {
     drugNames: string[];
     phases: TruthPhase[];
@@ -753,6 +754,10 @@ export interface TruthSearchResult {
     strains: string[];
     bodyParts: string[];
     timePoints: string[];
+    animalIds?: string[];
+    groupNames?: string[];
+    captureStages?: TruthCaptureStage[];
+    imageTypes?: TruthImageType[];
   };
 }
 

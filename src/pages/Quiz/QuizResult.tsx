@@ -17,6 +17,7 @@ import { useUser } from '@/store/UserContext';
 import { useLearning } from '@/store/LearningContext';
 import { useTheme } from '@/store/ThemeContext';
 import { usePreGenerate } from '@/hooks/usePreGenerate';
+import { askAboutQuestion } from '@/features/ai/context';
 
 import { Trophy, RotateCcw, Home, BookOpen, ArrowRight, Sparkles, Target, CheckCircle2, FileText, Loader2, MessageSquare } from 'lucide-react';
 
@@ -320,12 +321,7 @@ export default function QuizResultPage() {
                       <div className="flex justify-end">
                         <button
                           onClick={() => {
-                            // 打开追问模态框或者跳转到聊天
-                            navigate('ai-chat', {
-                              questionContext: `关于这道题：${q.stem}，我对解析还有疑问，请进一步讲解`,
-                              subjectId: q.subjectId,
-                              ...(q.knowledgePointId && { knowledgePointId: q.knowledgePointId })
-                            });
+                            askAboutQuestion(q, true, [], explanation);
                           }}
                           className="text-xs flex items-center gap-1 px-2 py-1 rounded-md hover:opacity-80"
                           style={{ color: '#2563eb' }}

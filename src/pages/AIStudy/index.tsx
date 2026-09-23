@@ -30,7 +30,7 @@ import {
   deleteAIStudySession,
   getAIStudySessions,
   saveAIStudySession,
-} from '@/services/indexedDBService';
+} from '@/features/ai/studySessions';
 import { getAIStudyLevelInfo, AI_STUDY_UNLOCK_LEVEL } from '@/utils/aiStudyAccess';
 import {
   checkpointCompletedChapterReview,
@@ -97,23 +97,6 @@ function findKnowledgePoint(
   );
 }
 
-function getNextKnowledgePointPosition(
-  plan: AIStudyPlan,
-  chapterIndex: number,
-  knowledgePointIndex: number,
-) {
-  const currentChapter = plan.chapters[chapterIndex];
-  if (currentChapter && knowledgePointIndex + 1 < currentChapter.knowledgePoints.length) {
-    return { chapterIndex, knowledgePointIndex: knowledgePointIndex + 1 };
-  }
-  for (let nextChapterIndex = chapterIndex + 1; nextChapterIndex < plan.chapters.length; nextChapterIndex += 1) {
-    if (plan.chapters[nextChapterIndex]?.knowledgePoints.length) {
-      return { chapterIndex: nextChapterIndex, knowledgePointIndex: 0 };
-    }
-  }
-  return null;
-}
-
 function formatSessionDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
@@ -162,6 +145,8 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
   const resolvedPointIdsRef = useRef(new Map<string, string>());
   const resolvedChapterIdsRef = useRef(new Map<string, string>());
   const preparedContentRef = useRef(new Map<string, Promise<PreparedStudyContent>>());
+  const explanationRequests = useRef(new Map<string, Promise<AIStudyExplanation>>());
+  const practiceRequests = useRef(new Map<string, Promise<{ questions: Question[] }>>());
   const activeContentRequestRef = useRef(0);
   const sessionsRequestRef = useRef(0);
   const ownerUserId = userState.user?.id || '';
@@ -303,24 +288,33 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
     if (!plan) return Promise.reject(new Error('学习计划不存在，请重新生成。'));
     const targetPlanKp = plan.chapters[targetChapterIndex]?.knowledgePoints[targetKpIndex];
     if (!targetPlanKp) return Promise.reject(new Error('知识点不存在，请重新生成计划。'));
-    const cacheKey = `${plan.id}:${targetPlanKp.id}`;
+    const cacheKey = `${ownerUserId}:${plan.id}:${targetPlanKp.id}`;
     const cached = preparedContentRef.current.get(cacheKey);
     if (cached) return cached;
 
     const targetKp = studyPointFor(targetPlanKp);
-    const request = Promise.all([
-      fetchAIStudyExplanation({
+    let explanationRequest = explanationRequests.current.get(cacheKey);
+    if (!explanationRequest) {
+      explanationRequest = fetchAIStudyExplanation({
         subjectId: plan.subjectId,
         knowledgePoint: targetKp,
         goal: targetPlanKp.goal,
         difficulty: targetPlanKp.difficulty,
-      }),
-      fetchAIStudyPractice({
+      });
+      explanationRequests.current.set(cacheKey, explanationRequest);
+      void explanationRequest.catch(() => explanationRequests.current.delete(cacheKey));
+    }
+    let practiceRequest = practiceRequests.current.get(cacheKey);
+    if (!practiceRequest) {
+      practiceRequest = fetchAIStudyPractice({
         subjectId: plan.subjectId,
         knowledgePoint: targetKp,
         difficulty: targetPlanKp.difficulty,
-      }),
-    ]).then(([explanation, practice]) => ({
+      });
+      practiceRequests.current.set(cacheKey, practiceRequest);
+      void practiceRequest.catch(() => practiceRequests.current.delete(cacheKey));
+    }
+    const request = Promise.all([explanationRequest, practiceRequest]).then(([explanation, practice]) => ({
       explanation,
       questions: practice.questions,
     }));
@@ -332,16 +326,9 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       }
     });
     return request;
-  }, [plan, studyPointFor]);
+  }, [ownerUserId, plan, studyPointFor]);
 
-  const preloadNextKnowledgePoint = useCallback((targetChapterIndex: number, targetKpIndex: number) => {
-    if (!plan) return;
-    const next = getNextKnowledgePointPosition(plan, targetChapterIndex, targetKpIndex);
-    if (!next) return;
-    void prepareKnowledgePointAt(next.chapterIndex, next.knowledgePointIndex).catch(() => {
-      // Background preparation is best-effort; foreground navigation retries automatically.
-    });
-  }, [plan, prepareKnowledgePointAt]);
+  // Learning content is generated only when the learner reaches that point.
 
   const startKnowledgePointAt = useCallback(async (targetChapterIndex: number, targetKpIndex: number) => {
     if (!plan) return;
@@ -361,14 +348,13 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       setSelectedAnswers([]);
       setShowResult(false);
       setStage('explain');
-      preloadNextKnowledgePoint(targetChapterIndex, targetKpIndex);
     } catch (err) {
       if (activeContentRequestRef.current !== requestId) return;
       setError(err instanceof Error ? err.message : '生成讲解失败，请重试。');
     } finally {
       if (activeContentRequestRef.current === requestId) setLoading(false);
     }
-  }, [plan, preloadNextKnowledgePoint, prepareKnowledgePointAt]);
+  }, [plan, prepareKnowledgePointAt]);
 
   const openTutor = useCallback((context: AIStudyTutorContext) => {
     if (onOpenTutor) {
@@ -663,6 +649,13 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
   useEffect(() => {
     if (!resumeTarget || plan?.id !== resumeTarget.plan.id) return;
     setResumeTarget(null);
+    if (resumeTarget.mode === 'summary') {
+      setSummaryText('学习进度已完成，请保存本轮总结。');
+      setAdviceText('保存成功后可在学习总结中查看。');
+      setError('总结尚未保存，请点击重新保存总结。');
+      setStage('summary');
+      return;
+    }
     if (resumeTarget.mode === 'chapter_review') {
       const chapter = resumeTarget.plan.chapters[resumeTarget.currentChapterIndex];
       if (chapter) void startChapterReview(chapter);
@@ -697,6 +690,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
   const finishSession = async () => {
     if (!plan) return;
     setLoading(true);
+    setError('');
     const chapterNames = plan.chapters.map(chapter => chapter.name);
     const kpNames = plan.chapters.flatMap(chapter => chapter.knowledgePoints.map(kp => kp.name));
     const kpIds = plan.chapters.flatMap(chapter =>
@@ -727,6 +721,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
       });
       setSummaryText(saved.summary.summary);
       setAdviceText(saved.summary.advice);
+      if (activeSession) forgetSession(activeSession.id);
     } catch (err) {
       setSummaryText(summary);
       setAdviceText(advice);
@@ -763,8 +758,9 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
         await saveAIStudySession(nextSession);
         rememberSession(nextSession);
       } else {
-        await deleteAIStudySession(ownerUserId, activeSession.id);
-        forgetSession(activeSession.id);
+        const pendingSummary: AIStudySession = { ...activeSession, mode: 'summary', correctCount, totalQuestions, weakKnowledgePointIds: weakPointIds, updatedAt: now };
+        await saveAIStudySession(pendingSummary);
+        rememberSession(pendingSummary);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存学习进度失败，请再次点击继续重试。');
@@ -1227,6 +1223,7 @@ export default function AIStudyPage({ onOpenTutor }: AIStudyPageProps) {
               <CheckCircle2 size={26} />
             </div>
             <h2 className="text-2xl font-extrabold" style={{ color: theme.textPrimary }}>本轮学习完成</h2>
+            {error && <button disabled={loading} onClick={() => void finishSession()} className="ai-action mt-3 text-primary">重新保存总结</button>}
             <p className="mt-3 text-base leading-8" style={{ color: theme.textSecondary }}>{summaryText}</p>
             <div className="mt-4 rounded-2xl border p-4 text-base leading-8" style={{ borderColor: theme.border, backgroundColor: theme.bg }}>
               {adviceText}

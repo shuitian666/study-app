@@ -33,8 +33,8 @@ export const LEVEL_BENEFITS: LevelBenefit[] = [
     id: 'ai-assisted-study',
     level: 10,
     type: 'feature',
-    label: 'AI 辅助学习',
-    description: '解锁规划式 AI 学习：自动规划、讲解、渐进练习和学习总结。',
+    label: 'AI 额度提升',
+    description: '平台 AI 额度提升至每 5 小时 45 点、每 7 天 320 点；所有学习功能从 Lv.1 开放。',
     enabled: true,
   },
 ];
