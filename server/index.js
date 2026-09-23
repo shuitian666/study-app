@@ -26,8 +26,7 @@ import {
   useInventoryItem,
 } from './account.js';
 import { sendVerificationEmail } from './mailer.js';
-import { CHAT_SYSTEM_PROMPT, buildChatMessages, buildExplainMessages, buildQuizMessages } from './prompts.js';
-import { chatCompletion, extractContent, getAiConfigStatus } from './providers.js';
+import { getAiConfigStatus } from './providers.js';
 import {
   clearSessionCookie,
   encryptSecret,
@@ -54,21 +53,15 @@ import {
   patchLearningProgress,
 } from './learning.js';
 import {
-  buildStudyTutorMessages,
-  generateChapterSynthesis,
-  generateStudyExplanation,
-  generateStudyPlan,
-  generateStudyPractice,
-  listStudySummaries,
-  saveStudySummary,
-} from './aiStudy.js';
-import {
   createTruthAssets,
-  createTruthReport,
+  createTruthAttachments,
+  countTruthAssets,
+  getTruthAttachmentFile,
   getTruthAssetFile,
   getTruthReport,
   getTruthStatus,
   listTruthAssets,
+  listTruthLibrary,
   listTruthReports,
   searchTruthAssets,
   setTruthAssetStatus,
@@ -92,6 +85,8 @@ import {
   updateReminderPreferences,
 } from './reminders.js';
 import { buildAppVersionResponse } from './appVersion.js';
+import { createAiRouter } from './ai/routes.js';
+import { validateEndpoint } from './ai/transport.js';
 
 const app = express();
 const defaultDevOrigins = [
@@ -182,12 +177,12 @@ function requireTruthEnabled(_req, res, next) {
 }
 
 function publicUserPayload(user, sessionToken) {
-  return getAccountState(user.id, sessionToken ? { sessionToken } : {});
+  return { ...getAccountState(user.id), ...(sessionToken ? { sessionToken } : {}) };
 }
 
 const authLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'auth' });
 const emailLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, keyPrefix: 'email' });
-const aiLimiter = makeRateLimiter({ windowMs: 60 * 1000, max: 30, keyPrefix: 'ai' });
+app.use('/api', createAiRouter(requireAuth));
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -244,6 +239,13 @@ app.post('/api/auth/register', authLimiter, (req, res) => {
   const sessionId = makeSession(user.id);
   setSessionCookie(res, sessionId);
   return res.json(publicUserPayload(user, sessionId));
+});
+const truthPdfUpload = multer({
+  storage: multer.diskStorage({
+    destination: truthTempDir,
+    filename: (_req, _file, callback) => callback(null, `upload-${crypto.randomUUID()}.tmp`),
+  }),
+  limits: { files: 100, fileSize: 64 * 1024 * 1024 },
 });
 
 app.post('/api/auth/login', authLimiter, (req, res) => {
@@ -453,7 +455,7 @@ app.get('/api/ai/config', requireAuth, (req, res) => {
   res.json(getAiConfigStatus(req.user.id));
 });
 
-app.put('/api/ai/config', requireAuth, (req, res) => {
+app.put('/api/ai/config', requireAuth, async (req, res) => {
   const mode = req.body.mode === 'custom' ? 'custom' : 'platform';
   const baseUrl = String(req.body.baseUrl || '').trim();
   const model = String(req.body.model || '').trim();
@@ -464,6 +466,10 @@ app.put('/api/ai/config', requireAuth, (req, res) => {
   }
 
   const existing = db.prepare('SELECT encrypted_api_key FROM user_ai_configs WHERE user_id = ?').get(req.user.id);
+  if (mode === 'custom') {
+    try { await validateEndpoint(baseUrl); }
+    catch { return res.status(400).json({ error: '请使用有效的公网 HTTPS 接口地址' }); }
+  }
   const encrypted = apiKey ? encryptSecret(apiKey) : existing?.encrypted_api_key || null;
   if (mode === 'custom' && !encrypted) {
     return res.status(400).json({ error: 'API key is required' });
@@ -517,197 +523,6 @@ app.get('/api/models', authOptional, (_req, res) => {
   res.json({ providers: [{ name: 'server', available: true, models: ['platform', 'custom'] }] });
 });
 
-function extractStreamContent(chunk) {
-  const choice = chunk?.choices?.[0];
-  return choice?.delta?.content
-    || choice?.message?.content
-    || choice?.delta?.reasoning_content
-    || choice?.text
-    || '';
-}
-
-function writeSse(res, payload) {
-  if (!res.writableEnded && !res.destroyed) {
-    res.write(`data: ${JSON.stringify(payload)}\n\n`);
-  }
-}
-
-app.post('/api/chat', authOptional, aiLimiter, async (req, res) => {
-  const { messages = [], knowledgeContext, learningContext } = req.body;
-  const fullMessages = buildChatMessages(CHAT_SYSTEM_PROMPT, knowledgeContext, messages, learningContext);
-
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
-
-  try {
-    const response = await chatCompletion(req.user?.id, fullMessages, { stream: true });
-    if (!response.body) {
-      throw new Error('AI upstream did not return a stream');
-    }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
-        const payload = trimmed.slice(6);
-        if (payload === '[DONE]') continue;
-        try {
-          const chunk = JSON.parse(payload);
-          const content = extractStreamContent(chunk);
-          if (content) writeSse(res, { content, done: false });
-        } catch {
-          // Ignore partial chunks.
-        }
-      }
-    }
-    writeSse(res, { content: '', done: true });
-    res.end();
-  } catch (err) {
-    console.error('Chat error:', sanitizeError(err));
-    writeSse(res, { error: sanitizeError(err), done: true });
-    res.end();
-  }
-});
-
-app.post('/api/quiz', authOptional, aiLimiter, async (req, res) => {
-  const { knowledgePointNames = [], knowledgePoints = [], subjectName = '', learningContext } = req.body;
-  const candidates = Array.isArray(knowledgePoints) && knowledgePoints.length > 0
-    ? knowledgePoints
-    : knowledgePointNames.map(name => ({ name }));
-  const messages = buildQuizMessages({ subjectName, knowledgePoints: candidates, learningContext });
-
-  try {
-    const response = await chatCompletion(req.user?.id, messages, { stream: false, temperature: 0.8 });
-    const text = await extractContent(response);
-    const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(cleaned);
-    const question = parsed.question || parsed;
-    const candidateNames = new Set(candidates.map(item => String(item.name || '')).filter(Boolean));
-    const selectedKnowledgePoint = candidateNames.has(parsed.selectedKnowledgePoint)
-      ? parsed.selectedKnowledgePoint
-      : candidates[0]?.name;
-    res.json({ question, selectedKnowledgePoint, mode: 'smart' });
-  } catch (err) {
-    console.error('Quiz error:', sanitizeError(err));
-    res.json({ question: null, error: sanitizeError(err) });
-  }
-});
-
-app.post('/api/explain', authOptional, aiLimiter, async (req, res) => {
-  const messages = buildExplainMessages(req.body || {});
-
-  try {
-    const response = await chatCompletion(req.user?.id, messages, { stream: false, temperature: 0.7 });
-    res.json({ explanation: await extractContent(response) });
-  } catch (err) {
-    console.error('Explain error:', sanitizeError(err));
-    res.json({ explanation: null, error: sanitizeError(err) });
-  }
-});
-
-app.post('/api/ai/study-plan', requireAuth, aiLimiter, async (req, res) => {
-  try {
-    res.json({ plan: await generateStudyPlan(req.user.id, req.body || {}) });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
-
-app.post('/api/ai/study-explain', requireAuth, aiLimiter, async (req, res) => {
-  try {
-    res.json(await generateStudyExplanation(req.user.id, req.body || {}));
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
-
-app.post('/api/ai/study-practice', requireAuth, aiLimiter, async (req, res) => {
-  try {
-    res.json(await generateStudyPractice(req.user.id, req.body || {}));
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
-
-app.post('/api/ai/study-tutor', requireAuth, aiLimiter, async (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
-
-  try {
-    const messages = buildStudyTutorMessages(req.body || {});
-    const response = await chatCompletion(req.user.id, messages, {
-      stream: true,
-      temperature: 0.35,
-      maxTokens: 1800,
-    });
-    if (!response.body) throw new Error('AI upstream did not return a stream');
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
-        const payload = trimmed.slice(6);
-        if (payload === '[DONE]') continue;
-        try {
-          const content = extractStreamContent(JSON.parse(payload));
-          if (content) writeSse(res, { content, done: false });
-        } catch {
-          // Ignore partial upstream chunks.
-        }
-      }
-    }
-    writeSse(res, { content: '', done: true });
-    res.end();
-  } catch (err) {
-    console.error('Study tutor error:', sanitizeError(err));
-    writeSse(res, { error: sanitizeError(err), done: true });
-    res.end();
-  }
-});
-
-app.post('/api/ai/chapter-synthesis', requireAuth, aiLimiter, async (req, res) => {
-  try {
-    res.json(await generateChapterSynthesis(req.user.id, req.body || {}));
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
-
-app.post('/api/ai/study-summary', requireAuth, aiLimiter, (req, res) => {
-  try {
-    res.json({ summary: saveStudySummary(req.user.id, req.body || {}) });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
-
-app.get('/api/ai/study-summaries', requireAuth, (req, res) => {
-  try {
-    res.json({ summaries: listStudySummaries(req.user.id) });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
 
 app.get('/api/truth/status', requireAuth, (req, res) => {
   res.json(getTruthStatus(req.user));
@@ -715,20 +530,33 @@ app.get('/api/truth/status', requireAuth, (req, res) => {
 
 app.post('/api/truth/search', requireAuth, requireTruthEnabled, (req, res) => {
   try {
-    res.json(searchTruthAssets(req.body?.query, req.body?.filter));
+    res.json(searchTruthAssets(req.body?.query, req.body?.filter, req.body));
   } catch (err) {
+    res.status(err.status || 500).json({ error: sanitizeError(err) });
+  }
+});
+
+app.get('/api/truth/library', requireAuth, requireTruthEnabled, (req, res) => {
+  try {
+    res.json(listTruthLibrary(req.query));
+  } catch (err) {
+    console.warn('[truth] library failed', err.status || 500);
     res.status(err.status || 500).json({ error: sanitizeError(err) });
   }
 });
 
 app.get('/api/truth/assets', requireAuth, requireTruthEnabled, requirePermission('truth.assets.edit'), (req, res) => {
   try {
+    const limit = Math.min(200, Math.max(1, Math.floor(Number(req.query.limit) || 100)));
+    const offset = Math.max(0, Math.floor(Number(req.query.offset) || 0));
+    const total = countTruthAssets({ status: req.query.status });
     res.json({
       assets: listTruthAssets({
         status: req.query.status,
-        limit: req.query.limit,
-        offset: req.query.offset,
+        limit,
+        offset,
       }),
+      total, limit, offset, hasMore: offset + limit < total,
     });
   } catch (err) {
     res.status(err.status || 500).json({ error: sanitizeError(err) });
@@ -757,6 +585,36 @@ app.post(
     }
   },
 );
+
+app.post('/api/truth/assets/:id/attachments', requireAuth, requireTruthEnabled,
+  requirePermission('truth.assets.upload'), truthPdfUpload.array('attachments', 100), async (req, res) => {
+    try {
+      const payload = JSON.parse(String(req.body.metadata || '{}'));
+      res.json(await createTruthAttachments(req.user.id, req.params.id, req.files || [], payload));
+    } catch (err) {
+      for (const file of req.files || []) {
+        try { fs.rmSync(file.path, { force: true }); } catch { /* Best-effort temporary cleanup. */ }
+      }
+      res.status(err.status || 400).json({ error: sanitizeError(err) });
+    }
+  });
+
+for (const variant of ['preview', 'download']) {
+  app.get(`/api/truth/attachments/:id/${variant}`, requireAuth, requireTruthEnabled, (req, res) => {
+    try {
+      const file = getTruthAttachmentFile(req.params.id, req.user);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      if (variant === 'download') return res.download(file.filePath, file.downloadName);
+      res.type(file.mimeType);
+      res.setHeader('Content-Disposition', 'inline');
+      return res.sendFile(file.filePath);
+    } catch (err) {
+      console.warn('[truth] attachment unavailable', req.params.id, err.status || 500);
+      return res.status(err.status || 500).json({ error: sanitizeError(err) });
+    }
+  });
+}
 
 app.patch('/api/truth/assets/:id', requireAuth, requireTruthEnabled, requirePermission('truth.assets.edit'), (req, res) => {
   try {
@@ -794,7 +652,7 @@ for (const variant of ['preview', 'original', 'download']) {
   app.get(`/api/truth/assets/:id/${variant}`, requireAuth, requireTruthEnabled, (req, res) => {
     try {
       const file = getTruthAssetFile(req.params.id, variant, req.user);
-      res.setHeader('Cache-Control', variant === 'preview' ? 'private, max-age=3600' : 'private, no-store');
+      res.setHeader('Cache-Control', 'private, no-store');
       if (variant === 'download') return res.download(file.filePath, file.downloadName);
       res.type(file.mimeType);
       if (variant === 'original') {
@@ -802,18 +660,11 @@ for (const variant of ['preview', 'original', 'download']) {
       }
       return res.sendFile(file.filePath);
     } catch (err) {
+      console.warn('[truth] image unavailable', req.params.id, variant, err.status || 500);
       return res.status(err.status || 500).json({ error: sanitizeError(err) });
     }
   });
 }
-
-app.post('/api/truth/reports', requireAuth, requireTruthEnabled, aiLimiter, async (req, res) => {
-  try {
-    res.json({ report: await createTruthReport(req.user.id, req.body || {}) });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: sanitizeError(err) });
-  }
-});
 
 app.get('/api/truth/reports', requireAuth, requireTruthEnabled, (req, res) => {
   try {

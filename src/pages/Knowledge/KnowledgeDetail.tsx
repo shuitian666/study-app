@@ -6,6 +6,7 @@ import { ProficiencyBadge, PageHeader } from '@/components/ui/Common';
 import { PROFICIENCY_MAP } from '@/types';
 import type { ProficiencyLevel } from '@/types';
 import { formatDate } from '@/utils/review';
+import { openAIHelp } from '@/features/ai/context';
 import { Clock, RotateCcw, BookOpen, Sparkles, Edit3, Download, Copy, Check } from 'lucide-react';
 
 export default function KnowledgeDetailPage() {
@@ -155,6 +156,9 @@ export default function KnowledgeDetailPage() {
 
       {/* 详细解释卡片 */}
       <div className="px-4 mt-4">
+        <button className="ai-action mb-3 text-primary" onClick={() => openAIHelp({ threadId: `knowledge-${kp.id}`, mode: 'explain', goal: `理解${kp.name}`, chapterName: chapter?.name || '', knowledgePointId: kp.id, knowledgePointName: kp.name, sectionContent: kp.explanation })}>
+          <Sparkles size={16} />问 AI · 帮我理解
+        </button>
         <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
           <BookOpen size={14} className="text-primary" />
           详细解释

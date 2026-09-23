@@ -254,8 +254,15 @@ async function requestStructuredAI(userId, messages, maxTokens) {
 }
 
 export async function generateStudyPlan(userId, payload = {}) {
-  const raw = await requestStructuredAI(userId, buildStudyPlanMessages(payload), 3200);
-  return normalizeGeneratedStudyPlan(payload, raw);
+  return retryStructured(async () => normalizeGeneratedStudyPlan(payload,
+    await requestStructuredAI(userId, buildStudyPlanMessages(payload), 3200)));
+}
+
+async function retryStructured(generate) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { return await generate(); }
+    catch (error) { if (error.status !== 502 || attempt === 1) throw error; }
+  }
 }
 
 export function normalizeStudyExplanation(payload = {}, raw = {}) {
@@ -444,7 +451,9 @@ function normalizeQuestion(rawQuestion, index, payload, prefix) {
   const type = normalizeQuestionType(rawQuestion?.type, correctAnswers.length);
   const stem = cleanText(rawQuestion?.stem);
   const explanation = cleanText(rawQuestion?.explanation);
-  if (!stem || options.length < 2 || correctAnswers.length === 0 || !explanation) return null;
+  if (!stem || options.length < 2 || correctAnswers.length === 0 || !explanation
+      || new Set(options.map(option => option.id)).size !== options.length
+      || (type !== 'multi_choice' && correctAnswers.length !== 1)) return null;
   return {
     id: `${prefix}-${index + 1}`,
     knowledgePointId: cleanText(payload.knowledgePoint?.id) || undefined,
@@ -563,6 +572,7 @@ export function normalizeChapterSynthesis(payload = {}, raw = {}) {
 }
 
 export async function generateChapterSynthesis(userId, payload = {}) {
+  return retryStructured(async () => {
   const raw = await requestStructuredAI(userId, [
     {
       role: 'system',
@@ -580,6 +590,7 @@ export async function generateChapterSynthesis(userId, payload = {}) {
     },
   ], 1400);
   return normalizeChapterSynthesis(payload, raw);
+  });
 }
 
 function rowToSummary(row) {
@@ -597,7 +608,14 @@ function rowToSummary(row) {
 
 export function saveStudySummary(userId, payload = {}) {
   const createdAt = nowIso();
-  const id = String(payload.id || `ai-summary-${crypto.randomUUID()}`);
+  const id = payload.sessionId
+    ? `ai-summary-${crypto.createHash('sha256').update(`${userId}:${payload.sessionId}`).digest('hex')}`
+    : String(payload.id || `ai-summary-${crypto.randomUUID()}`);
+  const existing = db.prepare('SELECT * FROM ai_study_summaries WHERE id = ?').get(id);
+  if (existing) {
+    if (existing.user_id !== userId) throw new Error('Summary owner mismatch');
+    return rowToSummary(existing);
+  }
   const chapterIds = asArray(payload.chapterIds).map(String);
   const knowledgePointIds = asArray(payload.knowledgePointIds).map(String);
   const correctCount = Number(payload.correctCount || 0);

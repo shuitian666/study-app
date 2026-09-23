@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { CheckSquare, Download, FileText, ImageOff, Loader2, Square } from 'lucide-react';
-import { createTruthReport, truthPdfUrl } from '@/services/truthService';
+import { createTruthReport, truthPdfUrl, downloadTruthFile } from '@/services/truthService';
+import AuthImage from '@/features/truth/AuthImage';
+import TruthViewer from '@/features/truth/TruthViewer';
 import type { TruthAsset, TruthPhase, TruthReport, TruthSearchResult } from '@/types';
 
 interface TruthResultCardProps {
@@ -11,7 +13,7 @@ interface TruthResultCardProps {
 function phaseLabel(asset: TruthAsset) {
   if (asset.phase === 'dosing') return '给药阶段';
   if (asset.phase === 'withdrawal') return '停药后';
-  return '对照组';
+  return asset.phase === 'control' ? '对照组' : '阶段未记录';
 }
 
 function timeLabel(asset: TruthAsset) {
@@ -20,7 +22,8 @@ function timeLabel(asset: TruthAsset) {
 }
 
 export default function TruthResultCard({ result, onClarify }: TruthResultCardProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(result.assets.map(asset => asset.id));
+  const [selectedIds, setSelectedIds] = useState<string[]>(result.assets.slice(0, 30).map(asset => asset.id));
+  const [viewIndex, setViewIndex] = useState<number | null>(null);
   const [report, setReport] = useState<TruthReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState('');
@@ -52,7 +55,7 @@ export default function TruthResultCard({ result, onClarify }: TruthResultCardPr
       <section className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
         <div className="flex items-center gap-2 font-bold text-slate-900">
           <ImageOff size={17} />
-          没有完全匹配的图片
+          没有符合已识别条件的图片
         </div>
         <p className="mt-2 text-xs leading-5">系统没有返回近似图片。请修改药物、实验阶段、时间点或性别后重新检索。</p>
         {values && (
@@ -65,7 +68,12 @@ export default function TruthResultCard({ result, onClarify }: TruthResultCardPr
   }
 
   const toggleAsset = (id: string) => {
-    setSelectedIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
+    setSelectedIds(current => current.includes(id) ? current.filter(item => item !== id) : current.length < 30 ? [...current, id] : current);
+  };
+
+  const download = async (url: string, name: string) => {
+    try { await downloadTruthFile(url, name); }
+    catch (error) { setReportError(error instanceof Error ? error.message : '下载失败，请重试'); }
   };
 
   const generateReport = async () => {
@@ -87,9 +95,10 @@ export default function TruthResultCard({ result, onClarify }: TruthResultCardPr
   };
 
   return (
-    <section className="mt-3 space-y-3" aria-label={`完全匹配图片，共${result.total}张`}>
+    <section className="mt-3 space-y-3" aria-label={`检索图片，共${result.total}张`}>
+      {result.warnings?.map(warning => <p key={warning} className="text-sm text-amber-800">{warning}</p>)}
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-bold text-emerald-700">完全匹配 {result.total} 张</p>
+        <p className="text-xs font-bold text-emerald-700">符合已识别条件 {result.total} 张 · 报告最多选择 30 张</p>
         <button
           type="button"
           onClick={generateReport}
@@ -102,40 +111,34 @@ export default function TruthResultCard({ result, onClarify }: TruthResultCardPr
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {result.assets.map(asset => {
+        {result.assets.map((asset, index) => {
           const selected = selectedSet.has(asset.id);
           return (
             <article key={asset.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <button
-                type="button"
-                onClick={() => toggleAsset(asset.id)}
+              <div
                 className="relative block w-full text-left"
-                aria-pressed={selected}
-                aria-label={`${selected ? '取消选择' : '选择'}图片 ${asset.animalId || asset.id}`}
               >
-                <img
+                <AuthImage
                   src={asset.previewUrl}
                   alt={`${asset.drugName || '热成像'} ${phaseLabel(asset)} ${timeLabel(asset)} ${asset.animalId || ''}`}
                   className="aspect-[4/3] w-full bg-slate-100 object-contain"
-                  loading="lazy"
                 />
-                <span className="absolute right-2 top-2 rounded-md bg-white/90 p-1 text-emerald-700 shadow">
-                  {selected ? <CheckSquare size={18} /> : <Square size={18} />}
-                </span>
-              </button>
+              </div>
               <div className="space-y-1 p-3">
+                <button type="button" className="ai-action" onClick={() => setViewIndex(index)} aria-label={`查看原图 ${asset.animalId || asset.id}`}>查看原图</button>
+                <button type="button" className="ai-action" aria-pressed={selected} onClick={() => toggleAsset(asset.id)}>{selected ? <CheckSquare size={18} /> : <Square size={18} />}{selected ? '取消选择' : '加入报告'}</button>
                 <p className="text-xs font-bold text-slate-900">{asset.drugName || '未记录药物'} · {phaseLabel(asset)} {timeLabel(asset)}</p>
                 <p className="text-[11px] text-slate-500">
                   批次 {asset.batchCode} · {asset.animalId || '未记录动物编号'} · {asset.sex === 'female' ? '雌性' : asset.sex === 'male' ? '雄性' : '性别未知'}
                 </p>
                 {asset.observation && <p className="text-[11px] leading-4 text-slate-600">人工观察：{asset.observation}</p>}
-                <a
-                  href={asset.downloadUrl}
+                <button
+                  type="button" onClick={() => void download(asset.downloadUrl, asset.originalName)}
                   className="inline-flex items-center gap-1 pt-1 text-[11px] font-bold text-blue-600"
                 >
                   <Download size={12} />
                   下载原图
-                </a>
+                </button>
               </div>
             </article>
           );
@@ -147,17 +150,18 @@ export default function TruthResultCard({ result, onClarify }: TruthResultCardPr
         <article className="rounded-xl border border-violet-200 bg-violet-50 p-4">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-sm font-bold text-violet-950">{report.title}</h4>
-            <a
-              href={truthPdfUrl(report.id)}
+            <button
+              type="button" onClick={() => void download(truthPdfUrl(report.id), `${report.title}.pdf`)}
               className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-bold text-violet-700 shadow-sm"
             >
               <Download size={13} />
               PDF
-            </a>
+            </button>
           </div>
           <p className="mt-3 whitespace-pre-wrap text-xs leading-5 text-violet-950">{report.content}</p>
         </article>
       )}
+      {viewIndex !== null && <TruthViewer assets={result.assets} initialIndex={viewIndex} onClose={() => setViewIndex(null)} />}
     </section>
   );
 }

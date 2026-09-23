@@ -19,8 +19,9 @@ import { useGame } from '@/store/GameContext';
 import { useAIChat } from '@/store/AIChatContext';
 import { PageHeader } from '@/components/ui/Common';
 import { askQuestionStreaming, generateQuiz } from '@/services/aiService';
-import { checkBackendAvailable, fetchAIConfig, getAIConfig } from '@/services/aiClient';
+import { checkBackendAvailable, fetchAIConfig } from '@/services/aiClient';
 import { fetchTruthStatus, searchTruth, type TruthStatus } from '@/services/truthService';
+import TruthWorkspace from '@/features/truth/TruthWorkspace';
 import { calculateNewProficiency } from '@/utils/review';
 import { buildAILearningContext } from '@/utils/aiLearningContext';
 import { AI_STUDY_UNLOCK_LEVEL, getAIStudyLevelInfo } from '@/utils/aiStudyAccess';
@@ -36,6 +37,7 @@ const GENERIC_AI_ERROR = 'AI 暂时无法回答，请稍后重试。';
 const TIMEOUT_AI_ERROR = 'AI 请求超时，请稍后重试。';
 
 interface AIChatPageProps {
+  initialMode?: 'chat' | 'study' | 'truth';
   embedded?: boolean;
   embeddedQuestionContext?: {
     id: string;
@@ -45,6 +47,7 @@ interface AIChatPageProps {
 }
 
 export default function AIChatPage({
+  initialMode = 'chat',
   embedded = false,
   embeddedQuestionContext = null,
   onClose,
@@ -54,7 +57,7 @@ export default function AIChatPage({
   const { gameState } = useGame();
   const { aiChatState, aiChatDispatch } = useAIChat();
   const [input, setInput] = useState('');
-  const [activeMode, setActiveMode] = useState<'chat' | 'study' | 'truth'>('chat');
+  const [activeMode, setActiveMode] = useState<'chat' | 'study' | 'truth'>(initialMode);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [studySubjectId, setStudySubjectId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,17 +81,6 @@ export default function AIChatPage({
 
 
   useEffect(() => {
-    const config = getAIConfig();
-    // 豆包模式需要检查 API Key 是否存在
-    if (config.provider === 'douban') {
-      if (config.apiKey && config.apiKey.trim().length > 0) {
-        setBackendMode('online');
-      } else {
-        setBackendMode('offline');
-      }
-      return;
-    }
-    // OpenClaw和其他模式检测本地后端
     checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
   }, []);
 
@@ -167,7 +159,7 @@ export default function AIChatPage({
         todayReviewItems: learningState.todayReviewItems,
         todayNewItems: learningState.todayNewItems,
       });
-      const { stream, relatedKpIds } = await askQuestionStreaming(
+      const { stream } = await askQuestionStreaming(
         query,
         learningState.knowledgePoints,
         messages,
@@ -185,27 +177,9 @@ export default function AIChatPage({
         throw new Error(EMPTY_AI_RESPONSE);
       }
 
-      // 豆包模式不需要检测本地后端
-      const config = getAIConfig();
-      if (config.provider === 'douban') {
-        setBackendMode('online');
-      } else {
-        checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
-        refreshAiMode();
-      }
+      checkBackendAvailable().then(ok => setBackendMode(ok ? 'online' : 'offline'));
+      void refreshAiMode();
 
-      if (relatedKpIds.length > 0) {
-        const questionResult = await generateQuiz(
-          relatedKpIds,
-          learningState.knowledgePoints,
-          learningState.questions,
-          learningContext,
-        );
-        if (questionResult.question) {
-          aiChatDispatch({ type: 'AI_ADD_GENERATED_QUESTION', payload: questionResult.question });
-          setGeneratedQuestions(prev => ({ ...prev, [aiMsgId]: questionResult }));
-        }
-      }
     } catch (e) {
       let errorMsg = GENERIC_AI_ERROR;
       if (e instanceof Error) {
@@ -407,6 +381,8 @@ export default function AIChatPage({
   const modeLabel = backendMode === 'online'
     ? (aiMode === 'custom' ? '自定义 AI' : '平台 AI')
     : '离线兜底';
+
+  if (!embedded && activeMode === 'truth') return <TruthWorkspace onClose={() => setActiveMode('chat')} />;
 
   return (
     <div className={embedded ? 'relative flex h-full min-h-0 flex-col bg-bg' : 'absolute inset-0 flex flex-col bg-bg'}>

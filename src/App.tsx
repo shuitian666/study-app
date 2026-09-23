@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import TabBar from '@/components/layout/TabBar';
+import NativeUpdatePrompt from '@/components/system/NativeUpdatePrompt';
 import AchievementPopup from '@/components/ui/AchievementPopup';
 import LevelUpCelebration from '@/components/ui/LevelUpCelebration';
 import LotteryDrawModal from '@/components/ui/LotteryDrawModal';
@@ -37,6 +38,7 @@ import {
   type LevelUpTransition,
 } from '@/utils/levelRewards';
 import type { AIStudyTutorContext } from '@/types';
+import HelpOverlay from '@/features/ai/HelpOverlay';
 
 const LoginPage = React.lazy(() => import('@/pages/Login'));
 const HomePage = React.lazy(() => import('@/pages/Home'));
@@ -56,7 +58,7 @@ const AchievementsPage = React.lazy(() => import('@/features/gamification/achiev
 const ShopPage = React.lazy(() => import('@/features/gamification/shop'));
 const RankingPage = React.lazy(() => import('@/features/gamification/ranking'));
 const LotteryPage = React.lazy(() => import('@/features/gamification/lottery'));
-const AIChatPage = React.lazy(() => import('@/pages/AIChat'));
+const AIChatPage = React.lazy(() => import('@/features/ai/AICenter'));
 const AIStudyPage = React.lazy(() => import('@/pages/AIStudy'));
 const StudyTutorPanel = React.lazy(() => import('@/components/ai/StudyTutorPanel'));
 const AIStudySummariesPage = React.lazy(() => import('@/pages/AIStudy/Summaries'));
@@ -1166,6 +1168,8 @@ export default function App() {
     <div className="app-shell bg-transparent">
       <ThemeStyles />
       <AppContent />
+      <HelpOverlay />
+      <NativeUpdatePrompt />
     </div>
   );
 }

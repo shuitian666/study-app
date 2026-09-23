@@ -1,5 +1,7 @@
 import { db, nowIso } from './db.js';
 import { decryptSecret } from './security.js';
+import { secureCompletionFetch } from './ai/transport.js';
+import { requestScope } from './ai/quota.js';
 
 const DEFAULT_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 const DEFAULT_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
@@ -22,6 +24,7 @@ export function getAiConfigForUser(userId) {
         };
       }
     }
+    if (custom?.mode === 'custom') throw new Error('自定义 AI 配置不可用，请重新保存密钥');
   }
 
   return {
@@ -53,7 +56,9 @@ export async function chatCompletion(userId, messages, opts = {}) {
     throw new Error('AI service is not configured');
   }
 
-  const response = await fetch(`${config.baseURL}/chat/completions`, {
+  const scope = requestScope.getStore();
+  const timeout = AbortSignal.timeout(stream ? 120000 : 45000);
+  const response = await secureCompletionFetch(`${config.baseURL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -66,12 +71,14 @@ export async function chatCompletion(userId, messages, opts = {}) {
       temperature,
       max_tokens: maxTokens,
     }),
-    signal: AbortSignal.timeout(stream ? 120000 : 45000),
+    signal: scope?.signal ? AbortSignal.any([scope.signal, timeout]) : timeout,
   });
 
   if (!response.ok) {
+    await response.body?.cancel();
     throw new Error(`AI upstream returned ${response.status}`);
   }
+  if (scope) scope.accepted = true;
 
   if (userId) {
     const dateKey = new Date().toISOString().slice(0, 10);
@@ -88,5 +95,8 @@ export async function chatCompletion(userId, messages, opts = {}) {
 
 export async function extractContent(response) {
   const data = await response.json();
+  const scope = requestScope.getStore();
+  if (scope && data.usage) db.prepare('UPDATE ai_usage_events SET input_tokens = input_tokens + ?, output_tokens = output_tokens + ? WHERE request_id = ?')
+    .run(Number(data.usage.prompt_tokens) || 0, Number(data.usage.completion_tokens) || 0, scope.requestId);
   return data.choices?.[0]?.message?.content?.trim() || '';
 }

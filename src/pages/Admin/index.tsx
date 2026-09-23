@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Mail, Search, ShieldCheck, UserCog } from 'lucide-react';
 import { PageHeader } from '@/components/ui/Common';
+import { useTheme } from '@/store/ThemeContext';
 import { useUser } from '@/store/UserContext';
+import {
+  adaptiveAlpha,
+  getAdaptiveBadge,
+  getAdaptiveButton,
+  getAdaptiveInput,
+  getAdaptivePageBackground,
+  getAdaptiveSoftSurface,
+  getAdaptiveSurface,
+} from '@/utils/adaptiveTheme';
 import {
   adminGrantRole,
   adminRevokeRole,
@@ -35,6 +45,7 @@ const rewardTypeLabels: Record<MailAttachmentType, string> = {
 
 export default function AdminPage() {
   const { userState, navigate } = useUser();
+  const { theme } = useTheme();
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState('');
@@ -53,6 +64,15 @@ export default function AdminPage() {
   const canManageRoles = permissions.includes('admin.roles.manage');
   const canSendMail = permissions.includes('mail.send');
   const canGrantReward = permissions.includes('reward.grant');
+
+  const pageStyle = getAdaptivePageBackground(theme);
+  const cardStyle = getAdaptiveSurface(theme, 'raised');
+  const strongCardStyle = getAdaptiveSurface(theme, 'strong');
+  const softStyle = getAdaptiveSoftSurface(theme);
+  const inputStyle = getAdaptiveInput(theme);
+  const primaryButtonStyle = getAdaptiveButton(theme, 'primary');
+  const ghostButtonStyle = getAdaptiveButton(theme, 'ghost');
+  const focusClass = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 focus-visible:ring-offset-2';
 
   useEffect(() => {
     let cancelled = false;
@@ -126,48 +146,65 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50">
+    <div className="min-h-full" style={pageStyle}>
       <PageHeader title="管理员中心" onBack={() => navigate('profile')} />
-      <main className="mx-auto max-w-5xl space-y-4 p-4 pb-24">
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={20} className="text-cyan-700" />
+      <main className="mx-auto grid max-w-5xl grid-cols-1 gap-4 p-4 pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+        <section className="rounded-2xl border p-4 shadow-sm" style={strongCardStyle}>
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
+              style={{ ...getAdaptiveBadge(theme, 'primary'), color: theme.primary }}
+            >
+              <ShieldCheck size={20} />
+            </span>
             <div>
-              <h2 className="font-bold text-slate-950">当前权限</h2>
-              <p className="text-xs text-slate-500">{roleLabels[currentRole]}</p>
+              <h2 className="text-base font-bold" style={{ color: theme.textPrimary }}>当前权限</h2>
+              <p className="text-xs" style={{ color: theme.textMuted }}>{roleLabels[currentRole]}</p>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {permissions.map(permission => (
-              <span key={permission} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{permission}</span>
+              <span key={permission} className="rounded-full border px-2 py-1 text-[11px] font-semibold" style={getAdaptiveBadge(theme, 'primary')}>
+                {permission}
+              </span>
             ))}
+            {permissions.length === 0 && (
+              <span className="text-xs" style={{ color: theme.textMuted }}>暂无管理权限</span>
+            )}
           </div>
         </section>
 
         {canManageRoles && (
-          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl border p-4 shadow-sm lg:row-span-2" style={cardStyle}>
             <div className="flex items-center gap-2">
-              <UserCog size={20} className="text-indigo-700" />
-              <h2 className="font-bold text-slate-950">角色管理</h2>
+              <UserCog size={20} style={{ color: theme.primary }} />
+              <h2 className="text-base font-bold" style={{ color: theme.textPrimary }}>角色管理</h2>
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex gap-2 max-[360px]:flex-col">
               <input
                 value={query}
                 onChange={event => setQuery(event.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm placeholder:text-text-muted ${focusClass}`}
+                style={inputStyle}
                 placeholder="搜索邮箱或昵称"
               />
-              <button type="button" onClick={() => void search()} disabled={loading} className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">
+              <button
+                type="button"
+                onClick={() => void search()}
+                disabled={loading}
+                className={`inline-flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${focusClass}`}
+                style={primaryButtonStyle}
+              >
                 <Search size={16} />
-                搜索
+                {loading ? '搜索中' : '搜索'}
               </button>
             </div>
             <div className="mt-3 space-y-2">
               {users.map(user => (
-                <article key={user.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3">
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">{user.nickname}</p>
-                    <p className="text-xs text-slate-500">{user.phone} · {roleLabels[user.role ?? 'user']}</p>
+                <article key={user.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3" style={softStyle}>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold" style={{ color: theme.textPrimary }}>{user.nickname}</p>
+                    <p className="truncate text-xs" style={{ color: theme.textMuted }}>{user.phone} · {roleLabels[user.role ?? 'user']}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(['user', 'sub_admin', 'admin'] as UserRole[]).map(role => (
@@ -176,7 +213,8 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => void setRole(user.id, role)}
                         disabled={user.role === 'super_admin'}
-                        className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-40"
+                        className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${focusClass}`}
+                        style={(user.role ?? 'user') === role ? primaryButtonStyle : ghostButtonStyle}
                       >
                         {roleLabels[role]}
                       </button>
@@ -184,36 +222,56 @@ export default function AdminPage() {
                   </div>
                 </article>
               ))}
+              {!loading && users.length === 0 && (
+                <div className="rounded-xl border px-3 py-4 text-center text-sm" style={{ ...softStyle, color: theme.textMuted }}>
+                  输入邮箱或昵称后搜索用户
+                </div>
+              )}
             </div>
           </section>
         )}
 
         {canSendMail && (
-          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="rounded-2xl border p-4 shadow-sm" style={cardStyle}>
             <div className="flex items-center gap-2">
-              <Mail size={20} className="text-emerald-700" />
-              <h2 className="font-bold text-slate-950">全站系统邮件</h2>
+              <Mail size={20} style={{ color: theme.accent || theme.primary }} />
+              <h2 className="text-base font-bold" style={{ color: theme.textPrimary }}>全站系统邮件</h2>
             </div>
             <div className="mt-3 grid grid-cols-1 gap-3">
-              <input value={mailTitle} onChange={event => setMailTitle(event.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="邮件标题" />
-              <textarea value={mailContent} onChange={event => setMailContent(event.target.value)} rows={5} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="邮件正文" />
+              <input
+                value={mailTitle}
+                onChange={event => setMailTitle(event.target.value)}
+                className={`rounded-xl border px-3 py-2 text-sm placeholder:text-text-muted ${focusClass}`}
+                style={inputStyle}
+                placeholder="邮件标题"
+              />
+              <textarea
+                value={mailContent}
+                onChange={event => setMailContent(event.target.value)}
+                rows={5}
+                className={`rounded-xl border px-3 py-2 text-sm placeholder:text-text-muted ${focusClass}`}
+                style={inputStyle}
+                placeholder="邮件正文"
+              />
               {canGrantReward && (
-                <div className="space-y-2 rounded-lg border border-slate-200 p-3">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <div className="space-y-2 rounded-xl border p-3" style={softStyle}>
+                  <label className="flex items-center gap-2 text-sm font-semibold" style={{ color: theme.textSecondary }}>
                     <input
                       type="checkbox"
                       checked={includeReward}
                       onChange={event => setIncludeReward(event.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300"
+                      className={`h-4 w-4 rounded ${focusClass}`}
+                      style={{ accentColor: theme.primary }}
                     />
                     附带奖励
                   </label>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[180px_1fr_120px]">
+                  <div className="grid grid-cols-1 gap-2 min-[520px]:grid-cols-[minmax(120px,180px)_minmax(0,1fr)_minmax(88px,120px)]">
                     <select
                       value={rewardType}
                       onChange={event => setRewardType(event.target.value as MailAttachmentType)}
                       disabled={!includeReward}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                      className={`min-w-0 rounded-xl border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${focusClass}`}
+                      style={inputStyle}
                     >
                       {Object.entries(rewardTypeLabels).map(([type, label]) => <option key={type} value={type}>{label}</option>)}
                     </select>
@@ -221,7 +279,8 @@ export default function AdminPage() {
                       value={rewardName}
                       onChange={event => setRewardName(event.target.value)}
                       disabled={!includeReward}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                      className={`min-w-0 rounded-xl border px-3 py-2 text-sm placeholder:text-text-muted disabled:cursor-not-allowed disabled:opacity-50 ${focusClass}`}
+                      style={inputStyle}
                       placeholder="附件名称，可留空"
                     />
                     <input
@@ -230,21 +289,44 @@ export default function AdminPage() {
                       value={rewardQuantity}
                       onChange={event => setRewardQuantity(event.target.value)}
                       disabled={!includeReward}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                      className={`min-w-0 rounded-xl border px-3 py-2 text-sm placeholder:text-text-muted disabled:cursor-not-allowed disabled:opacity-50 ${focusClass}`}
+                      style={inputStyle}
                       placeholder="数量"
                     />
                   </div>
                 </div>
               )}
-              <button type="button" onClick={() => void sendMail()} disabled={!mailTitle.trim() || !mailContent.trim()} className="rounded-lg bg-emerald-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+              <button
+                type="button"
+                onClick={() => void sendMail()}
+                disabled={!mailTitle.trim() || !mailContent.trim()}
+                className={`rounded-xl border px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${focusClass}`}
+                style={primaryButtonStyle}
+              >
                 发送给全体用户
               </button>
             </div>
           </section>
         )}
 
-        {message && <p className="text-sm font-semibold text-emerald-700">{message}</p>}
-        {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+        {(message || error) && (
+          <div className="space-y-2 lg:col-span-2">
+            {message && (
+              <p className="rounded-xl border px-3 py-2 text-sm font-semibold" style={getAdaptiveBadge(theme, 'success')}>
+                {message}
+              </p>
+            )}
+            {error && (
+              <p className="rounded-xl border px-3 py-2 text-sm font-semibold" style={getAdaptiveBadge(theme, 'danger')}>
+                {error}
+              </p>
+            )}
+          </div>
+        )}
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-0 h-20"
+          style={{ background: `linear-gradient(180deg, transparent, ${adaptiveAlpha(theme.bg, 0.56, 'rgba(0,0,0,0.18)')})` }}
+        />
       </main>
     </div>
   );

@@ -1,9 +1,12 @@
-import { API_BASE } from '@/services/aiClient';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { API_BASE, apiFetch } from '@/services/aiClient';
 
 const REMINDER_ENABLED_KEY = 'study-app:review-reminder-enabled:v1';
 const REMINDER_TIME_KEY = 'study-app:review-reminder-time:v1';
 const REMINDER_PROMPTED_KEY = 'study-app:review-reminder-prompted:v1';
 const DEFAULT_REMINDER_TIME = '20:00';
+const DAILY_LOCAL_NOTIFICATION_ID = 2026070301;
 
 export interface StudyReminderSettings {
   enabled: boolean;
@@ -43,8 +46,12 @@ export function setReviewReminderEnabled(enabled: boolean, reminderTime = DEFAUL
   localStorage.setItem(REMINDER_PROMPTED_KEY, '1');
 }
 
+export function isNativeStudyApp(): boolean {
+  return Capacitor.isNativePlatform();
+}
+
 export function canUseBrowserNotification(): boolean {
-  return typeof window !== 'undefined' && 'Notification' in window;
+  return !isNativeStudyApp() && typeof window !== 'undefined' && 'Notification' in window;
 }
 
 export function canUsePushNotifications(): boolean {
@@ -55,6 +62,34 @@ export async function requestReviewReminderPermission(): Promise<boolean> {
   localStorage.setItem(REMINDER_PROMPTED_KEY, '1');
   const reminderTime = getReviewReminderSettings().reminderTime;
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (isNativeStudyApp()) {
+    const permission = await LocalNotifications.requestPermissions();
+    const granted = permission.display === 'granted';
+    try {
+      await updateReminderPreferences({
+        enabled: true,
+        reminderTime,
+        timezone,
+        pushEnabled: false,
+        emailFallbackEnabled: true,
+      });
+      setReviewReminderEnabled(true, reminderTime);
+      return granted;
+    } catch {
+      if (granted) {
+        setReviewReminderEnabled(true, reminderTime);
+        await syncLocalReminderForPreferences({
+          enabled: true,
+          reminderTime,
+          timezone,
+          pushEnabled: false,
+          emailFallbackEnabled: true,
+        });
+      }
+      return granted;
+    }
+  }
 
   if (!canUseBrowserNotification()) {
     try {
@@ -109,6 +144,8 @@ export async function requestReviewReminderPermission(): Promise<boolean> {
 }
 
 export function scheduleReviewReminder(input: StudyTaskReminderSnapshot | number): (() => void) | null {
+  if (isNativeStudyApp()) return null;
+
   const settings = getReviewReminderSettings();
   const snapshot = typeof input === 'number'
     ? { remainingCount: input, canCheckin: false }
@@ -154,7 +191,7 @@ export function scheduleReviewReminder(input: StudyTaskReminderSnapshot | number
 }
 
 export async function fetchReminderPreferences(): Promise<ReminderPreferencesResponse> {
-  const res = await fetch(`${API_BASE}/reminders/preferences`, { credentials: 'include' });
+  const res = await apiFetch(`${API_BASE}/reminders/preferences`);
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to load reminder preferences');
   return res.json();
 }
@@ -162,18 +199,63 @@ export async function fetchReminderPreferences(): Promise<ReminderPreferencesRes
 export async function updateReminderPreferences(
   patch: Partial<ServerReminderPreferences>,
 ): Promise<ServerReminderPreferences> {
-  const res = await fetch(`${API_BASE}/reminders/preferences`, {
+  const res = await apiFetch(`${API_BASE}/reminders/preferences`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify(patch),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to save reminder preferences');
   const data = await res.json();
   if (data.preferences) {
     setReviewReminderEnabled(Boolean(data.preferences.enabled), data.preferences.reminderTime || DEFAULT_REMINDER_TIME);
+    await syncLocalReminderForPreferences(data.preferences);
   }
   return data.preferences;
+}
+
+function parseReminderTime(reminderTime: string): { hour: number; minute: number } | null {
+  const [hourRaw, minuteRaw] = reminderTime.split(':');
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+export async function syncLocalReminderForPreferences(
+  preferences: Partial<ServerReminderPreferences> & Pick<ServerReminderPreferences, 'enabled' | 'reminderTime'>,
+): Promise<void> {
+  if (!isNativeStudyApp()) return;
+
+  await LocalNotifications.cancel({
+    notifications: [{ id: DAILY_LOCAL_NOTIFICATION_ID }],
+  }).catch(() => {});
+
+  if (!preferences.enabled) return;
+
+  const time = parseReminderTime(preferences.reminderTime || DEFAULT_REMINDER_TIME);
+  if (!time) return;
+
+  const permission = await LocalNotifications.requestPermissions();
+  if (permission.display !== 'granted') return;
+
+  await LocalNotifications.schedule({
+    notifications: [{
+      id: DAILY_LOCAL_NOTIFICATION_ID,
+      title: '智学助手',
+      body: '今天的学习任务还在等你完成。',
+      schedule: {
+        on: {
+          hour: time.hour,
+          minute: time.minute,
+        },
+        repeats: true,
+        allowWhileIdle: true,
+      },
+      smallIcon: 'ic_stat_icon_config_sample',
+      iconColor: '#00C7C7',
+    }],
+  });
 }
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
@@ -191,6 +273,7 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
 }
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (isNativeStudyApp()) return null;
   if (!('serviceWorker' in navigator)) return null;
   return navigator.serviceWorker.register('/sw.js');
 }
@@ -220,10 +303,9 @@ export async function subscribeToPushNotifications(vapidPublicKey: string): Prom
     applicationServerKey: urlBase64ToArrayBuffer(vapidPublicKey),
   });
 
-  const res = await fetch(`${API_BASE}/reminders/push-subscription`, {
+  const res = await apiFetch(`${API_BASE}/reminders/push-subscription`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ subscription }),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || 'Failed to save push subscription');
@@ -240,10 +322,9 @@ export async function unsubscribeFromPushNotifications(): Promise<ServerReminder
     await subscription.unsubscribe().catch(() => false);
   }
 
-  const res = await fetch(`${API_BASE}/reminders/push-subscription`, {
+  const res = await apiFetch(`${API_BASE}/reminders/push-subscription`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ endpoint }),
   });
   if (res.status === 401) return null;

@@ -1,0 +1,6 @@
+.ai-action { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:44px; min-height:44px; padding:8px 12px; border-radius:12px; }
+.ai-action:disabled { opacity:.45; cursor:not-allowed; }
+.ai-action:not(:disabled):hover, .ai-entry:not(:disabled):hover { filter:brightness(.97); }
+.ai-input { display:block; width:100%; margin-top:4px; padding:10px 12px; min-height:44px; border:1px solid var(--color-border, #cbd5e1); border-radius:12px; background:transparent; color:inherit; }
+.ai-action:focus-visible, .ai-entry:focus-visible, .ai-input:focus-visible { outline:2px solid var(--color-primary, #6366f1); outline-offset:3px; }
+@media (prefers-reduced-motion: reduce) { .ai-entry, .ai-action { transition:none !important; animation:none !important; } }
